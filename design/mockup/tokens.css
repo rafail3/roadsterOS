@@ -1,0 +1,95 @@
+/* roadsterOS design tokens. The Android theme mirrors these values. */
+@font-face {
+  font-family: "Inter";
+  src: url("fonts/inter-latin-wght-normal.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* dark theme: the default, used at night and whenever the car reports illumination */
+:root {
+  color-scheme: dark;
+  /* surfaces */
+  --canvas: #06080b;
+  --ambient-a: rgba(130, 170, 210, 0.16);
+  --ambient-b: rgba(70, 100, 140, 0.13);
+  --glass: rgba(255, 255, 255, 0.05);
+  --glass-strong: rgba(255, 255, 255, 0.08);
+  --glass-pressed: rgba(255, 255, 255, 0.12);
+  --hairline: rgba(255, 255, 255, 0.09);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --scrim: rgba(4, 6, 9, 0.72);
+  --sheet: #0a0d12;
+  --sheet-raised: #10141a;
+
+  /* ink */
+  --ink: #eef1f5;
+  --ink-muted: #9aa3ae;
+  --ink-subtle: #7b8592;
+
+  /* accent: ice */
+  --accent: #9fd3ff;
+  --accent-ink: #06121c;
+  --accent-tint: rgba(159, 211, 255, 0.14);
+  --accent-line: rgba(159, 211, 255, 0.35);
+  --danger: #ff7a7a;
+  --danger-ink: #1c0606;
+
+  /* type */
+  --font: "Inter", system-ui, sans-serif;
+  --size-clock: 128px;
+  --size-display: 56px;
+  --size-title: 24px;
+  --size-body: 20px;
+  --size-label: 16px;
+  --size-caption: 14px;
+
+  /* rhythm */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --radius: 16px;
+  --radius-sm: 12px;
+  --target: 56px;
+  --target-lg: 64px;
+  --rail: 112px;
+  --bar: 56px;
+
+  /* motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --fast: 150ms;
+  --base: 200ms;
+  --theme: 700ms;
+}
+
+/* light theme: grey-white canvas for daylight, same geometry, deeper accent for contrast */
+.screen.light {
+  color-scheme: light;
+  --canvas: #e6e9ee;
+  --ambient-a: rgba(255, 255, 255, 0.55);
+  --ambient-b: rgba(160, 185, 210, 0.28);
+  --glass: rgba(255, 255, 255, 0.52);
+  --glass-strong: rgba(255, 255, 255, 0.72);
+  --glass-pressed: rgba(255, 255, 255, 0.95);
+  --hairline: rgba(20, 28, 38, 0.09);
+  --hairline-strong: rgba(20, 28, 38, 0.16);
+  --scrim: rgba(40, 48, 58, 0.45);
+  --sheet: #f2f4f7;
+  --sheet-raised: #fafbfc;
+
+  --ink: #171c23;
+  --ink-muted: #5a6572;
+  --ink-subtle: #76808d;
+
+  --accent: #1d6fb5;
+  --accent-ink: #ffffff;
+  --accent-tint: rgba(29, 111, 181, 0.12);
+  --accent-line: rgba(29, 111, 181, 0.35);
+  --danger: #d8393f;
+  --danger-ink: #ffffff;
+}

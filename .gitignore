@@ -13,3 +13,12 @@ unit-dumps/raw/
 # local tooling caches
 .boost/
 .codegraph/
+
+# design tooling state
+.impeccable/
+
+# app-local launch config
+.claude/
+
+# playwright mcp output
+.playwright-mcp/

@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>roadsterOS mockup</title>
+<meta name="color-scheme" content="dark">
+<link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<main class="stage">
+  <div class="bezel" aria-hidden="true">
+  <section class="device" aria-label="Head unit, 1280 by 720">
+    <div class="screen" id="screen">
+      <div class="ambient" aria-hidden="true"></div>
+
+      <header class="bar" id="bar">
+        <div class="bar-group">
+          <span class="icon i-bluetooth" id="bar-bt" aria-hidden="true"></span>
+          <span class="bar-text" id="bar-source">Bluetooth</span>
+        </div>
+        <button class="handle" id="handle" aria-label="Open quick settings" aria-controls="drawer" aria-expanded="false">
+          <span class="handle-line"></span>
+        </button>
+        <div class="bar-group">
+          <span class="icon i-wifi-high" role="img" aria-label="Wi-Fi connected"></span>
+          <span class="icon i-speaker-high" id="bar-volume" role="img" aria-label="Sound on"></span>
+          <span class="icon i-moon" id="bar-theme" role="img" aria-label="Night theme"></span>
+        </div>
+      </header>
+
+      <nav class="rail" aria-label="Functions">
+        <button class="rail-item is-active" data-fn="music"><span class="icon i-music-notes"></span><span>Music</span></button>
+        <button class="rail-item" data-fn="radio"><span class="icon i-radio"></span><span>Radio</span></button>
+        <button class="rail-item" data-fn="phone"><span class="icon i-phone"></span><span>Phone</span></button>
+        <button class="rail-item" data-fn="camera"><span class="icon i-camera"></span><span>Camera</span></button>
+        <button class="rail-item" data-fn="settings"><span class="icon i-gear-six"></span><span>Settings</span></button>
+      </nav>
+
+      <section class="field">
+        <div class="clock-block">
+          <time class="clock" id="clock" datetime="2026-10-31T12:00">12:00</time>
+          <p class="date" id="date">Saturday, 31 October</p>
+        </div>
+        <div class="apps" aria-label="Apps">
+          <button class="app"><span class="app-mark app-mark-nav"></span><span>Navigation</span></button>
+          <button class="app"><span class="app-mark app-mark-music"></span><span>Music</span></button>
+          <button class="app"><span class="app-mark app-mark-pod"></span><span>Podcasts</span></button>
+        </div>
+      </section>
+
+      <section class="panel" id="panel" aria-label="Now playing">
+        <!-- now playing: Bluetooth -->
+        <div class="np" id="np-bt">
+          <div class="art" aria-hidden="true"></div>
+          <div class="np-meta" aria-live="polite">
+            <p class="np-title" id="np-title">Night Transit</p>
+            <p class="np-artist" id="np-artist">Vela Orsini</p>
+          </div>
+          <div class="progress" aria-hidden="true"><div class="progress-fill" id="np-progress"></div></div>
+          <div class="np-times"><span id="np-pos">1:12</span><span id="np-dur">3:48</span></div>
+          <div class="controls">
+            <button class="ctl" aria-label="Previous"><span class="icon i-skip-back"></span></button>
+            <button class="ctl ctl-primary" id="play" aria-label="Pause"><span class="icon i-pause"></span></button>
+            <button class="ctl" aria-label="Next"><span class="icon i-skip-forward"></span></button>
+          </div>
+        </div>
+        <!-- now playing: radio -->
+        <div class="np np-radio" id="np-radio" hidden>
+          <p class="freq"><span class="freq-num">101.9</span><span class="freq-band">FM</span></p>
+          <p class="np-title">Radio Nord</p>
+          <p class="np-artist">Evening programme</p>
+          <div class="presets">
+            <button class="preset is-active" aria-label="Preset 1" aria-pressed="true">1</button><button class="preset" aria-label="Preset 2" aria-pressed="false">2</button><button class="preset" aria-label="Preset 3" aria-pressed="false">3</button>
+            <button class="preset" aria-label="Preset 4" aria-pressed="false">4</button><button class="preset" aria-label="Preset 5" aria-pressed="false">5</button><button class="preset" aria-label="Preset 6" aria-pressed="false">6</button>
+          </div>
+          <div class="controls">
+            <button class="ctl" aria-label="Seek down"><span class="icon i-skip-back"></span></button>
+            <button class="ctl ctl-primary" aria-label="Mute"><span class="icon i-speaker-high"></span></button>
+            <button class="ctl" aria-label="Seek up"><span class="icon i-skip-forward"></span></button>
+          </div>
+        </div>
+        <!-- nothing playing -->
+        <div class="np np-empty" id="np-none" hidden>
+          <p class="np-title">No source</p>
+          <p class="np-artist">Connect a phone or choose Radio</p>
+          <div class="controls">
+            <button class="ctl ctl-wide"><span class="icon i-bluetooth"></span><span>Bluetooth</span></button>
+            <button class="ctl ctl-wide"><span class="icon i-radio"></span><span>Radio</span></button>
+          </div>
+        </div>
+      </section>
+
+      <div class="scrim" id="scrim"></div>
+      <!-- quick settings drawer, pulled from the status bar -->
+      <section class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Quick settings" inert>
+        <div class="drawer-grid">
+          <button class="toggle is-on" data-toggle="bt"><span class="icon i-bluetooth"></span><span>Bluetooth</span></button>
+          <button class="toggle is-on" data-toggle="wifi"><span class="icon i-wifi-high"></span><span>Wi-Fi</span></button>
+          <button class="toggle" data-toggle="mute"><span class="icon i-speaker-slash"></span><span>Mute</span></button>
+          <div class="toggle toggle-group" role="group" aria-label="Theme">
+            <button data-theme="auto" aria-pressed="true">Auto</button>
+            <button data-theme="light" aria-pressed="false">Day</button>
+            <button data-theme="dark" aria-pressed="false">Night</button>
+          </div>
+        </div>
+        <label class="slider"><span class="icon i-sun-dim"></span><input type="range" id="brightness" min="10" max="100" value="80" aria-label="Brightness" aria-valuetext="80 percent"><span class="slider-readout" id="brightness-readout">80%</span></label>
+        <label class="slider"><span class="icon i-speaker-high"></span><input type="range" min="0" max="100" value="45" aria-label="Volume" aria-valuetext="45 percent"><span class="slider-readout">45%</span></label>
+        <button class="handle handle-bottom" id="handle-close" aria-label="Close quick settings"><span class="handle-line"></span></button>
+      </section>
+
+      <!-- call overlay -->
+      <section class="overlay call" id="call" role="alertdialog" aria-modal="true" aria-labelledby="call-name" hidden>
+        <div class="call-card">
+          <p class="call-state" id="call-state">Incoming call</p>
+          <p class="call-name" id="call-name">Ana Petrescu</p>
+          <p class="call-number" id="call-number">+40&nbsp;7xx&nbsp;xxx&nbsp;xxx</p>
+          <p class="call-timer" id="call-timer" hidden>00:00</p>
+          <div class="call-actions" id="call-ringing">
+            <button class="ctl ctl-lg ctl-danger" aria-label="Decline"><span class="icon i-phone-disconnect"></span></button>
+            <button class="ctl ctl-lg ctl-accent" aria-label="Answer"><span class="icon i-phone-incoming"></span></button>
+          </div>
+          <div class="call-actions" id="call-active" hidden>
+            <button class="ctl ctl-lg" aria-label="Mute microphone" aria-pressed="false"><span class="icon i-microphone-slash"></span></button>
+            <button class="ctl ctl-lg ctl-danger" aria-label="Hang up"><span class="icon i-phone-disconnect"></span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- reverse camera -->
+      <section class="overlay camera" id="camera" role="dialog" aria-modal="true" aria-label="Reverse camera" hidden>
+        <div class="camera-feed" role="img" aria-label="Reverse camera, synthetic frame">
+          <div class="guide guide-l" aria-hidden="true"></div><div class="guide guide-r" aria-hidden="true"></div>
+        </div>
+        <button class="camera-close" id="camera-close" aria-label="Close camera"><span class="icon i-x"></span></button>
+        <p class="camera-label">Reverse camera</p>
+      </section>
+
+      <div class="dimmer" id="dimmer" aria-hidden="true"></div>
+    </div>
+  </section>
+  </div>
+
+  <aside class="state" aria-label="Preview state">
+    <h1>Preview state</h1>
+    <div class="state-group">
+      <span>Source</span>
+      <div class="seg">
+        <button data-source="bt" class="is-on">Bluetooth</button>
+        <button data-source="radio">Radio</button>
+        <button data-source="none">None</button>
+      </div>
+    </div>
+    <div class="state-group">
+      <span>Playback</span>
+      <div class="seg">
+        <button data-playing="1" class="is-on">Playing</button>
+        <button data-playing="0">Paused</button>
+      </div>
+    </div>
+    <div class="state-group">
+      <span>Call</span>
+      <div class="seg">
+        <button data-call="idle" class="is-on">Idle</button>
+        <button data-call="ringing">Ringing</button>
+        <button data-call="active">Active</button>
+      </div>
+    </div>
+    <div class="state-group">
+      <span>Theme (also in the drawer)</span>
+      <div class="seg">
+        <button data-theme="auto" class="is-on">Auto</button>
+        <button data-theme="light">Day</button>
+        <button data-theme="dark">Night</button>
+      </div>
+    </div>
+    <div class="state-group">
+      <span>Simulated hour (auto theme: day 05:00 to 19:00)</span>
+      <div class="state-range"><input type="range" id="hour" min="0" max="23" value="12" aria-label="Simulated hour"><output id="hour-readout">live</output></div>
+    </div>
+    <div class="state-group">
+      <span>Overlays</span>
+      <div class="seg">
+        <button data-camera="toggle">Reverse camera</button>
+        <button data-drawer="toggle">Drawer</button>
+      </div>
+    </div>
+    <div class="state-group">
+      <span>Clock</span>
+      <div class="seg">
+        <button data-clock="live" class="is-on">Live</button>
+        <button data-clock="fixed">Fixed 12:00</button>
+      </div>
+    </div>
+    <div class="state-group">
+      <span>Replay recording</span>
+      <div class="seg seg-col" id="recordings"></div>
+    </div>
+    <p class="state-note">Names, tracks and numbers are synthetic.</p>
+  </aside>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
