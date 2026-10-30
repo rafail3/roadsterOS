@@ -1,0 +1,62 @@
+package ro.rdstr.car
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+enum class ThemeMode { AUTO, LIGHT, DARK }
+enum class Theme { LIGHT, DARK }
+enum class Face { DIGITAL, ANALOG }
+
+/** What the shell itself remembers, independent of the car. */
+@Serializable
+data class ShellState(
+    val theme: ThemeMode = ThemeMode.AUTO,
+    val drawer: Boolean = false,
+    val face: Face = Face.DIGITAL,
+    val font: String = "geist",
+    val brightness: Int = 100,
+)
+
+@Serializable
+sealed class ShellAction {
+    @Serializable @SerialName("CycleTheme") data object CycleTheme : ShellAction()
+    @Serializable @SerialName("SetTheme") data class SetTheme(val mode: ThemeMode) : ShellAction()
+    @Serializable @SerialName("OpenDrawer") data object OpenDrawer : ShellAction()
+    @Serializable @SerialName("CloseDrawer") data object CloseDrawer : ShellAction()
+    /** The drawer was released after a pull covering this fraction of its height. */
+    @Serializable @SerialName("DrawerReleased") data class DrawerReleased(val fraction: Double) : ShellAction()
+    @Serializable @SerialName("ToggleFace") data object ToggleFace : ShellAction()
+    @Serializable @SerialName("SetFace") data class SetFace(val face: Face) : ShellAction()
+    @Serializable @SerialName("SetFont") data class SetFont(val name: String) : ShellAction()
+    @Serializable @SerialName("SetBrightness") data class SetBrightness(val value: Int) : ShellAction()
+    @Serializable @SerialName("Headlights") data class Headlights(val on: Boolean) : ShellAction()
+}
+
+/** Shell behaviour shared by the unit and the browser emulator. Pure. */
+object Shell {
+    const val DAY_START = 5
+    const val DAY_END = 19
+    const val HEADLIGHTS_BRIGHTNESS = 40
+    const val FULL_BRIGHTNESS = 100
+    const val MIN_BRIGHTNESS = 10
+    const val DRAWER_OPEN_FRACTION = 1.0 / 3
+
+    fun reduce(s: ShellState, a: ShellAction): ShellState = when (a) {
+        ShellAction.CycleTheme -> s.copy(theme = ThemeMode.entries[(s.theme.ordinal + 1) % ThemeMode.entries.size])
+        is ShellAction.SetTheme -> s.copy(theme = a.mode)
+        ShellAction.OpenDrawer -> s.copy(drawer = true)
+        ShellAction.CloseDrawer -> s.copy(drawer = false)
+        is ShellAction.DrawerReleased -> s.copy(drawer = a.fraction > DRAWER_OPEN_FRACTION)
+        ShellAction.ToggleFace -> s.copy(face = if (s.face == Face.DIGITAL) Face.ANALOG else Face.DIGITAL)
+        is ShellAction.SetFace -> s.copy(face = a.face)
+        is ShellAction.SetFont -> s.copy(font = a.name)
+        is ShellAction.SetBrightness -> s.copy(brightness = a.value.coerceIn(MIN_BRIGHTNESS, FULL_BRIGHTNESS))
+        is ShellAction.Headlights -> s.copy(brightness = if (a.on) HEADLIGHTS_BRIGHTNESS else FULL_BRIGHTNESS)
+    }
+
+    fun effectiveTheme(s: ShellState, hour: Int): Theme = when (s.theme) {
+        ThemeMode.LIGHT -> Theme.LIGHT
+        ThemeMode.DARK -> Theme.DARK
+        ThemeMode.AUTO -> if (hour in DAY_START until DAY_END) Theme.LIGHT else Theme.DARK
+    }
+}
