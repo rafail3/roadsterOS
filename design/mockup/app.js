@@ -12,7 +12,7 @@ const state = {
   brightness: 100,    // 0..100, what the backlight would be set to; only the slider and the headlights change it
   hour: null,         // null = live clock, otherwise a simulated hour 0..23
   analog: false,      // clock face
-  font: "inter",      // inter | geist
+  font: "geist",      // geist | inter
 };
 
 const DAY_START = 5;   // light theme from 05:00
@@ -48,14 +48,19 @@ function renderDigits(text) {
     const current = cell.querySelector(".glyph:not(.out)");
     if (current && current.textContent === ch) return;
     if (current && shownDigits) {
+      // the leaving glyph drops its entrance animation so the exit one can start; a timer backs up animationend
+      current.classList.remove("in");
       current.classList.add("out");
-      current.addEventListener("animationend", () => current.remove(), { once: true });
+      const gone = () => current.remove();
+      current.addEventListener("animationend", gone, { once: true });
+      setTimeout(gone, 900);
     } else if (current) {
       current.remove();
     }
     const next = document.createElement("span");
     next.className = "glyph" + (shownDigits ? " in" : "");
     next.textContent = ch;
+    next.addEventListener("animationend", () => next.classList.remove("in"), { once: true });
     cell.appendChild(next);
   });
   shownDigits = text;
@@ -338,7 +343,7 @@ if (!q.has("bare") && location.protocol.startsWith("http")) {
     if (state.camera) p.set("camera", "");
     if (state.brightness !== 100) p.set("brightness", String(state.brightness));
     if (state.analog) p.set("analog", "");
-    if (state.font !== "inter") p.set("font", state.font);
+    if (state.font !== "geist") p.set("font", state.font);
     const s = p.toString();
     return location.pathname + (s ? "?" + s : "");
   }
