@@ -10,12 +10,13 @@
 /* a changed digit counts in: the old glyph slides up and fades, the new one rises into place */
 .digit .glyph { display: inline-block; }
 /* numeric transition: the old glyph rolls up and dissolves, the new one rolls in from below and settles; one spring-like curve */
-.digit .glyph.out { position: absolute; left: 0; right: 0; top: 0; animation: glyph-out calc(var(--count) * 0.85) var(--ease-roll) forwards; }
+/* the leaving glyph is gone within the first 60% of the roll: a linear fade, so no faint tail lingers over the new digit */
+.digit .glyph.out { position: absolute; left: 0; right: 0; top: 0; animation: glyph-out calc(var(--count) * 0.6) linear forwards; }
 .digit .glyph.in { animation: glyph-in var(--count) var(--ease-roll); }
 @keyframes glyph-out {
   0%   { transform: translateY(0) scale(1); opacity: 1; filter: blur(0); }
-  55%  { opacity: 0.15; filter: blur(2px); }
-  100% { transform: translateY(-34%) scale(0.96); opacity: 0; filter: blur(2.5px); }
+  70%  { opacity: 0; filter: blur(1.5px); }
+  100% { transform: translateY(-30%) scale(0.97); opacity: 0; filter: blur(1.5px); }
 }
 @keyframes glyph-in {
   0%   { transform: translateY(34%) scale(0.96); opacity: 0; filter: blur(2.5px); }
