@@ -44,4 +44,5 @@ dependencies {
     "simImplementation"(project(":car-sim"))
     "deviceImplementation"(project(":car-vendor"))
     implementation(libs.coroutines.android)
+    testImplementation(libs.junit)
 }

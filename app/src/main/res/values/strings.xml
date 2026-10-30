@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">roadsterOS</string>
+    <string name="service_android_settings">Android settings</string>
+    <string name="service_release_owner">Release device owner</string>
 </resources>
