@@ -1,8 +1,11 @@
 package ro.rdstr.car
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import ro.rdstr.car.CarEvent.Call.State
 import ro.rdstr.car.CarEvent.SteeringKey.Key
 
+@Serializable
 data class RulesState(
     val source: AudioSource = AudioSource.NONE,
     val playing: Boolean = false,
@@ -15,15 +18,16 @@ data class RulesState(
     val lastSource: AudioSource = AudioSource.NONE,
 )
 
+@Serializable
 sealed class Action {
-    data object ShowCamera : Action()
-    data object HideCamera : Action()
-    data class ShowCall(val call: CarEvent.Call) : Action()
-    data object HideCall : Action()
-    data class Send(val command: CarCommand) : Action()
-    data class Night(val on: Boolean) : Action()
-    data object SaveState : Action()
-    data object RestoreState : Action()
+    @Serializable @SerialName("ShowCamera") data object ShowCamera : Action()
+    @Serializable @SerialName("HideCamera") data object HideCamera : Action()
+    @Serializable @SerialName("ShowCall") data class ShowCall(val call: CarEvent.Call) : Action()
+    @Serializable @SerialName("HideCall") data object HideCall : Action()
+    @Serializable @SerialName("Send") data class Send(val command: CarCommand) : Action()
+    @Serializable @SerialName("Night") data class Night(val on: Boolean) : Action()
+    @Serializable @SerialName("SaveState") data object SaveState : Action()
+    @Serializable @SerialName("RestoreState") data object RestoreState : Action()
 }
 
 /** The single place that decides what happens when the car says something. Pure, no Android. */
