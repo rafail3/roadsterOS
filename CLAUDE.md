@@ -18,7 +18,7 @@ The vendor kernel and drivers stay; everything the driver sees and everything th
 
 ## Public text (commits, PR titles and bodies, issues, releases, README, any tracked file)
 
-The repository is public. Public text states only what was implemented and with which technologies, short and neutral, in English. It never contains: reasoning behind a decision, intentions or strategy, what is missing or not working, judgements about the product, internal decisions, names of products used as design or feature references, personal details of contributors, AI attribution lines (no `Co-Authored-By`, no "Generated with" footer). Detailed reasoning goes in chat and, where it helps a developer, in code comments. Clean PR bodies before merge: GitHub copies them into the squash commit.
+Everything tracked in this repository is written in English: code, comments, resource strings, scripts, docs, workflow files. The repository is public. Public text states only what was implemented and with which technologies, short and neutral. It never contains: reasoning behind a decision, intentions or strategy, what is missing or not working, judgements about the product, internal decisions, names of products used as design or feature references, personal details of contributors, AI attribution lines (no `Co-Authored-By`, no "Generated with" footer). Detailed reasoning goes in chat and, where it helps a developer, in code comments. Clean PR bodies before merge: GitHub copies them into the squash commit.
 
 ## Target constraints that shape every technical decision
 
@@ -50,7 +50,7 @@ The repository is public. Public text states only what was implemented and with 
 
 ## Git and PR conventions
 
-Branches `type/slug`. Conventional Commits, lowercase subject, English. PR body sections: `## Problemă / ## Fix / ## Impact / ## Testare`, content neutral per the public-text rule. One commit per finished sub-task, one push per task, PR opened by the agent, merged by the owner. Never weaken tests. Never watch CI in a loop.
+Branches `type/slug`. Conventional Commits, lowercase subject, English. PR body sections: `## Problem / ## Fix / ## Impact / ## Testing`, content neutral per the public-text rule. One commit per finished sub-task, one push per task, PR opened by the agent, merged by the owner. Never weaken tests. Never watch CI in a loop.
 
 ## Build, test, run
 

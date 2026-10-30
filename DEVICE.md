@@ -14,8 +14,8 @@ Updated: 2026-10-30. Source: box label, Settings screens photographed in the car
 | Build | `full_8227L_demo-userdebug 10 O11019 1571038753 userdebug` | userdebug → `adb root` usually works |
 | Kernel | 3.18.79, built Dec 18 2020 (Linaro GCC 6.3) | 2014-era kernel, no mainline Linux support |
 | Security patch | Oct 5 2019 | |
-| Serial | (mascat, în notițe locale) | |
-| WiFi/BT MAC | (mascat) | same for both → combined WiFi/BT chip |
+| Serial | (masked, kept in local notes) | |
+| WiFi/BT MAC | (masked) | same for both → combined WiFi/BT chip |
 | Vendor stack | AutoChips (`com.autochips.*`) | e.g. `com.autochips.bluetooth` |
 | Resolution | 1280x720 @ 160 dpi (typical for 8227L 9") | confirm via `wm size` |
 
