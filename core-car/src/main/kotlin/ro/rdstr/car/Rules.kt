@@ -58,7 +58,9 @@ object Rules {
                 next to emptyList()
             }
 
-        is CarEvent.Playback -> s.copy(playing = e.playing) to emptyList()
+        // Playback reports come from the Bluetooth player only, so they select BT when nothing else is active.
+        is CarEvent.Playback ->
+            s.copy(playing = e.playing, source = if (e.playing && s.source == AudioSource.NONE) AudioSource.BT else s.source) to emptyList()
         is CarEvent.Track, is CarEvent.Radio, is CarEvent.CarDisplay -> s to emptyList()
     }
 

@@ -148,6 +148,20 @@ class RulesTest {
     }
 
     @Test
+    fun `playback with no source selects bt`() {
+        val (s, a) = Rules.apply(RulesState(btConnected = true), CarEvent.Playback(true))
+        assertEquals(AudioSource.BT, s.source)
+        assertTrue(s.playing)
+        assertEquals(emptyList<Action>(), a)
+    }
+
+    @Test
+    fun `playback does not take the source away from radio`() {
+        val (s, _) = Rules.apply(radio, CarEvent.Playback(true))
+        assertEquals(AudioSource.RADIO, s.source)
+    }
+
+    @Test
     fun `informational events change nothing`() {
         for (e in listOf(CarEvent.Track("x"), CarEvent.Radio(100_000, CarEvent.Radio.Band.FM), CarEvent.CarDisplay("clock"))) {
             val (s, a) = Rules.apply(bt, e)
