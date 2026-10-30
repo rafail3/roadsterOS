@@ -1,47 +1,27 @@
-# Mazda 6 (2010, GH) — head unit fact sheet
+# 8227L_demo platform reference
 
-Updated: 2026-10-30. Source: box label, Settings screens photographed in the car (see info-display-original/), xda/android-headunits research.
+Facts shared by aftermarket car head units built on the MediaTek `8227L_demo` platform. Values are typical; confirm them on a given unit with `adb shell getprop`, `wm size` and `wm density`.
 
 ## Identity
 | Item | Value | Note |
 |---|---|---|
-| Box model | XTRONS ICE/HU/PC98M6ML | 9", Mazda 6 2008-2012 fascia, no Bose support |
-| Platform | **8227L_demo** (MediaTek "alps") | the most common cheap head-unit platform, big xda community |
-| SoC | MediaTek MT8127 / AutoChips AC8227L | quad Cortex-A7 ~1.3 GHz, Mali-450 GPU, 32-bit (armeabi-v7a) |
-| RAM | 0.98 GB | 763 MB avg used, 217 MB free, 29 apps in 3 h |
-| Storage | 16 GB eMMC | 6.87 GB used |
-| Android shown | 10 | **fake**: build is `alps-mp-o1.mp5` = Android 8.1 Oreo (API 27). Verify with CPU-Z |
-| Build | `full_8227L_demo-userdebug 10 O11019 1571038753 userdebug` | userdebug → `adb root` usually works |
-| Kernel | 3.18.79, built Dec 18 2020 (Linaro GCC 6.3) | 2014-era kernel, no mainline Linux support |
-| Security patch | Oct 5 2019 | |
-| Serial | (masked, kept in local notes) | |
-| WiFi/BT MAC | (masked) | same for both → combined WiFi/BT chip |
+| Platform | **8227L_demo** (MediaTek "alps") | widespread low-cost head-unit platform |
+| SoC | MediaTek MT8127 / AutoChips AC8227L | quad Cortex-A7 ~1.3 GHz, Mali-450 GPU, 32-bit (`armeabi-v7a`) |
+| RAM | 1 GB | about 200 MB free on a stock system |
+| Storage | 16 GB eMMC | |
+| Android shown | 9 or 10 | version string set by sellers; the build is `alps-mp-o1.mp5` = Android 8.1 (API 27) |
+| Build type | `userdebug` | `adb root` usually works |
+| Kernel | 3.18.x | |
 | Vendor stack | AutoChips (`com.autochips.*`) | e.g. `com.autochips.bluetooth` |
-| Resolution | 1280x720 @ 160 dpi (typical for 8227L 9") | confirm via `wm size` |
+| Screen | 1280x720 at 160 dpi on 9" and 10" units | 1024x600 on some 7" units |
 
-## Stock apps seen
-Launcher (clock + dock: Radio, BT Music, Bluetooth, Music, Video, Navi); AV_IN, Car Info, ApkInstaller, CarbitLink (phone mirroring), Chrome, Email, File Manager, Gallery, Google, GpsTest, Instructions, Maps, Play Store, Settings, Voice Search, YouTube.
+## Stock software
+Vendor launcher (clock + dock: Radio, BT Music, Bluetooth, Music, Video, Navi); AV_IN, Car Info, ApkInstaller, CarbitLink (phone mirroring); Google apps (Chrome, Gmail, Maps, Play Store, YouTube, Voice Search).
 
-## State
-- Developer options: ON (2026-10-30). USB debugging / ADB over network: not yet enabled.
-- WiFi: no IP yet (not connected to any network).
-- Root: not checked yet.
-
-## What the community already knows about 8227L
-- Android version string is edited by sellers; real = 8.1 (API 27).
-- Flashing: MediaTek SP Flash Tool over USB (scatter file + boot/system images). Firmware files from seller as `*.bin` / `*.upd`. Bootloop = recoverable by reflash, data wiped.
-- Root: `adb root` (userdebug) or Magisk-patched boot.img via SP Flash Tool.
+## Platform notes
+- Flashing: MediaTek SP Flash Tool over USB (scatter file + boot/system images). Firmware comes from the seller as `*.bin` / `*.upd`. A bootloop is recoverable by reflashing; data is wiped.
+- Root: `adb root` on `userdebug` builds, or a Magisk-patched `boot.img` via SP Flash Tool.
 - Debloat without root: `pm uninstall -k --user 0 <pkg>`; restore with `cmd package install-existing <pkg>`.
-- Custom launcher works as HOME: `cmd package set-home-activity <pkg>/<activity>`.
-- Reference: https://github.com/sipamungkas/headunit-flat-launcher (plain-Java launcher for 8227L, 24 MB PSS vs 54 MB stock, 88 packages removed, 0.7 s cold start).
-- Known quirk: BT A2DP audio plays only while BT Music app is active source.
-
-## Constraints
-- No extra hardware, use only what exists.
-- Work step by step, confirm before each step.
-
-## Open questions
-- Exact MCU version (Factory settings menu, password usually 8888 / 3368 / 7890 on 8227L).
-- Which signals the CAN decoder box delivers (steering keys, reverse, more?).
-- Root availability (`adb root`).
-- Which vendor package handles MCU/car events (candidate: `com.autochips.*`).
+- A custom launcher works as HOME: `cmd package set-home-activity <pkg>/<activity>`.
+- Bluetooth A2DP audio plays only while the vendor BT Music app is the active source.
+- Factory settings menu password is usually 8888, 3368 or 7890.

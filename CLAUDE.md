@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this project is
 
-roadsterOS (short: rdstr) is an Android-based shell for aftermarket car head units on the MediaTek **8227L_demo** platform: quad Cortex-A7, 1 GB RAM, 16 GB eMMC, Android 8.1 (API 27) even though Settings may claim 10, 32-bit `armeabi-v7a`, kernel 3.18, AutoChips vendor stack (`com.autochips.*`). First target: XTRONS PC98M6ML in a Mazda 6 GH. Hardware fact sheet: `DEVICE.md`.
+roadsterOS (short: rdstr) is an Android-based shell for aftermarket car head units on the MediaTek **8227L_demo** platform: quad Cortex-A7, 1 GB RAM, 16 GB eMMC, Android 8.1 (API 27) even though Settings may claim 10, 32-bit `armeabi-v7a`, kernel 3.18, AutoChips vendor stack (`com.autochips.*`). Platform reference: `DEVICE.md`. The project targets every unit on this platform; one unit is used as the development reference.
 
 The vendor kernel and drivers stay; everything the driver sees and everything that runs in the background is replaced. Our app is the only HOME app and the device owner; vendor and Google bloat is removed per-user; vendor apps that talk to the car (Bluetooth, radio, AV_IN, CAN) stay installed but hidden and are driven from our UI through the `CarBus` interface.
 
