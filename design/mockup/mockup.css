@@ -86,9 +86,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 
 /* centre field */
 .field { grid-row: 2; display: flex; flex-direction: column; justify-content: space-between; padding: var(--space-6) var(--space-6) var(--space-5) var(--space-5); position: relative; z-index: 1; }
-.clock-block { margin-top: auto; margin-bottom: auto; padding-bottom: var(--space-7); }
-.clock { display: block; font-size: var(--size-clock); font-weight: 600; letter-spacing: -0.04em; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
-.date { margin: var(--space-3) 0 0 6px; font-size: 28px; font-weight: 400; color: var(--ink-muted); letter-spacing: -0.01em; }
+/* clock faces live in clock.css */
 
 .apps { display: flex; gap: var(--space-4); }
 .app { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); width: 96px; padding: var(--space-3) 0; border-radius: var(--radius-sm); color: var(--ink-muted); font-size: var(--size-label); font-weight: 500; transition: background var(--fast), color var(--fast); }

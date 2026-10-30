@@ -6,6 +6,13 @@
   font-style: normal;
   font-display: swap;
 }
+@font-face {
+  font-family: "Geist";
+  src: url("fonts/geist-latin-wght-normal.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 /* dark theme: the default, used at night and whenever the car reports illumination */
 :root {
@@ -66,6 +73,9 @@
   --base: 200ms;
   --theme: 700ms;
 }
+
+/* alternative face, switchable from the preview panel */
+.screen.font-geist { --font: "Geist", system-ui, sans-serif; }
 
 /* light theme: grey-white canvas for daylight, same geometry, deeper accent for contrast */
 .screen.light {

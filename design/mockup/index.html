@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>roadsterOS mockup</title>
 <meta name="color-scheme" content="dark">
+<title>roadsterOS mockup</title>
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="mockup.css">
+<link rel="stylesheet" href="clock.css">
 </head>
 <body>
 <main class="stage">
@@ -40,10 +41,42 @@
       </nav>
 
       <section class="field">
-        <div class="clock-block">
-          <time class="clock" id="clock" datetime="2026-10-31T12:00">12:00</time>
-          <p class="date" id="date">Saturday, 31 October</p>
-        </div>
+        <!-- tap the clock to switch between the digital and the analog face -->
+        <button class="clock-block" id="clock-toggle" aria-label="Clock, tap to switch face" aria-pressed="false">
+          <div class="digital" id="digital">
+            <time class="clock" id="clock" datetime="2026-10-31T12:00"><span class="digit"></span><span class="digit"></span><span class="digit colon"></span><span class="digit"></span><span class="digit"></span></time>
+            <div class="date-card" id="date-card">
+              <span class="dc-weekday" id="dc-weekday">Sat</span>
+              <span class="dc-day" id="dc-day">31</span>
+              <span class="dc-month" id="dc-month">October</span>
+            </div>
+          </div>
+          <div class="analog" id="analog" hidden>
+            <svg class="dial" viewBox="0 0 480 480" aria-hidden="true">
+              <defs>
+                <radialGradient id="dial-shade" cx="50%" cy="42%" r="60%">
+                  <stop offset="0" stop-color="var(--dial-hi)" />
+                  <stop offset="1" stop-color="var(--dial-lo)" />
+                </radialGradient>
+              </defs>
+              <circle class="dial-face" cx="240" cy="240" r="228" fill="url(#dial-shade)" />
+              <circle class="dial-inner" cx="240" cy="240" r="221" />
+              <circle class="dial-rim" cx="240" cy="240" r="228" />
+              <g class="ticks" id="ticks"></g>
+              <g class="numerals">
+                <text x="240" y="76">12</text>
+                <text x="406" y="252">3</text>
+                <text x="240" y="428">6</text>
+                <text x="74" y="252">9</text>
+              </g>
+              <g class="hand hand-hour" id="hand-hour"><rect x="235" y="120" width="10" height="150" rx="5" /></g>
+              <g class="hand hand-minute" id="hand-minute"><rect x="236" y="60" width="8" height="212" rx="4" /></g>
+              <g class="hand hand-second" id="hand-second"><rect x="238.75" y="44" width="2.5" height="246" rx="1.25" /></g>
+              <circle class="cap" cx="240" cy="240" r="9" />
+              <circle class="cap-dot" cx="240" cy="240" r="3.5" />
+            </svg>
+          </div>
+        </button>
         <div class="apps" aria-label="Apps">
           <button class="app"><span class="app-mark app-mark-nav"></span><span>Navigation</span></button>
           <button class="app"><span class="app-mark app-mark-music"></span><span>Music</span></button>
@@ -141,6 +174,20 @@
 
   <aside class="state" aria-label="Preview state">
     <h1>Preview state</h1>
+    <div class="state-group">
+      <span>Font</span>
+      <div class="seg">
+        <button data-font="inter" class="is-on">Inter</button>
+        <button data-font="geist">Geist</button>
+      </div>
+    </div>
+    <div class="state-group">
+      <span>Clock face (also by tapping the clock)</span>
+      <div class="seg">
+        <button data-analog="0" class="is-on">Digital</button>
+        <button data-analog="1">Analog</button>
+      </div>
+    </div>
     <div class="state-group">
       <span>Source</span>
       <div class="seg">

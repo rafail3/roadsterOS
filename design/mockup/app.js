@@ -11,6 +11,8 @@ const state = {
   mute: false,
   brightness: 100,    // 0..100, what the backlight would be set to; only the slider and the headlights change it
   hour: null,         // null = live clock, otherwise a simulated hour 0..23
+  analog: false,      // clock face
+  font: "inter",      // inter | geist
 };
 
 const DAY_START = 5;   // light theme from 05:00
@@ -37,14 +39,76 @@ function effectiveTheme() {
   return h >= DAY_START && h < DAY_END ? "light" : "dark";
 }
 
+// digital face: each character is its own cell; a changed one counts in with the old glyph sliding out
+let shownDigits = "";
+function renderDigits(text) {
+  const cells = $$("#clock .digit");
+  text.split("").forEach((ch, i) => {
+    const cell = cells[i];
+    const current = cell.querySelector(".glyph:not(.out)");
+    if (current && current.textContent === ch) return;
+    if (current && shownDigits) {
+      current.classList.add("out");
+      current.addEventListener("animationend", () => current.remove(), { once: true });
+    } else if (current) {
+      current.remove();
+    }
+    const next = document.createElement("span");
+    next.className = "glyph" + (shownDigits ? " in" : "");
+    next.textContent = ch;
+    cell.appendChild(next);
+  });
+  shownDigits = text;
+}
+
+// analog face: 60 ticks, hands set from the same time
+function buildTicks() {
+  const g = $("#ticks");
+  if (g.childElementCount) return;
+  const ns = "http://www.w3.org/2000/svg";
+  for (let i = 0; i < 60; i++) {
+    const a = (i / 60) * Math.PI * 2;
+    const major = i % 5 === 0;
+    const quarter = i % 15 === 0;
+    const r1 = quarter ? 214 : major ? 212 : 216;
+    const r2 = 226;
+    const el = document.createElementNS(ns, quarter ? "circle" : "line");
+    if (quarter) {
+      el.setAttribute("cx", (240 + Math.sin(a) * 222).toFixed(2));
+      el.setAttribute("cy", (240 - Math.cos(a) * 222).toFixed(2));
+      el.setAttribute("r", "3.5");
+    } else {
+      el.setAttribute("x1", (240 + Math.sin(a) * r1).toFixed(2));
+      el.setAttribute("y1", (240 - Math.cos(a) * r1).toFixed(2));
+      el.setAttribute("x2", (240 + Math.sin(a) * r2).toFixed(2));
+      el.setAttribute("y2", (240 - Math.cos(a) * r2).toFixed(2));
+      if (major) el.setAttribute("class", "major");
+    }
+    g.appendChild(el);
+  }
+}
+function renderHands(t) {
+  const s = t.getSeconds();
+  const m = t.getMinutes() + s / 60;
+  const h = (t.getHours() % 12) + m / 60;
+  $("#hand-second").style.transform = `rotate(${s * 6}deg)`;
+  $("#hand-minute").style.transform = `rotate(${m * 6}deg)`;
+  $("#hand-hour").style.transform = `rotate(${h * 30}deg)`;
+}
+
 let lastMinute = -1;
 function renderClock() {
   const t = now();
+  $("#digital").hidden = state.analog;
+  $("#analog").hidden = !state.analog;
+  if (state.analog) { buildTicks(); renderHands(t); }
   if (state.hour === null && t.getMinutes() === lastMinute) return;
   lastMinute = state.hour === null ? t.getMinutes() : -1;
-  $("#clock").textContent = `${pad(t.getHours())}:${pad(t.getMinutes())}`;
+  renderDigits(`${pad(t.getHours())}:${pad(t.getMinutes())}`);
   $("#clock").dateTime = t.toISOString();
-  $("#date").textContent = t.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  $("#dc-weekday").textContent = t.toLocaleDateString("en-GB", { weekday: "short" });
+  $("#dc-day").textContent = String(t.getDate());
+  $("#dc-month").textContent = t.toLocaleDateString("en-GB", { month: "long" });
 }
 
 let currentTheme = null;
@@ -81,6 +145,10 @@ function renderBrightness() {
 function render() {
   renderTheme();
   renderBrightness();
+  screen.classList.toggle("font-geist", state.font === "geist");
+  $("#clock-toggle").setAttribute("aria-pressed", String(state.analog));
+  $$("[data-font]").forEach((b) => b.classList.toggle("is-on", b.dataset.font === state.font));
+  $$("[data-analog]").forEach((b) => b.classList.toggle("is-on", (b.dataset.analog === "1") === state.analog));
 
   // status bar
   const sourceText = { bt: "Bluetooth", radio: "Radio", none: "No source" }[state.source];
@@ -143,6 +211,9 @@ $$("[data-playing]").forEach((b) => b.onclick = () => { state.playing = b.datase
 $$("[data-call]").forEach((b) => b.onclick = () => { state.call = b.dataset.call; render(); });
 $$("[data-clock]").forEach((b) => b.onclick = () => { state.hour = b.dataset.clock === "live" ? null : 12; render(); });
 $("#hour").oninput = (e) => { state.hour = Number(e.target.value); render(); };
+$$("[data-font]").forEach((b) => b.onclick = () => { state.font = b.dataset.font; render(); });
+$$("[data-analog]").forEach((b) => b.onclick = () => { state.analog = b.dataset.analog === "1"; render(); });
+$("#clock-toggle").onclick = () => { state.analog = !state.analog; render(); };
 $("[data-camera]").onclick = () => { state.camera = !state.camera; render(); };
 $("[data-drawer]").onclick = () => { state.drawer = !state.drawer; render(); };
 
@@ -245,12 +316,14 @@ if (q.get("call")) state.call = q.get("call");
 if (q.get("hour") !== null) state.hour = Number(q.get("hour"));
 if (q.get("clock") === "fixed") state.hour = 12;
 if (q.get("brightness") !== null) state.brightness = Number(q.get("brightness"));
+if (q.has("analog")) state.analog = true;
+if (q.get("font")) state.font = q.get("font");
 render();
 setInterval(render, 1000);
 
 // live reload for the design loop: poll the mockup files and reload when one changes, keeping the state in the URL
 if (!q.has("bare") && location.protocol.startsWith("http")) {
-  const files = ["index.html", "mockup.css", "tokens.css", "app.js"];
+  const files = ["index.html", "mockup.css", "tokens.css", "clock.css", "app.js"];
   const stamps = {};
   async function stamp(f) {
     try { return (await fetch(f, { method: "HEAD", cache: "no-store" })).headers.get("last-modified"); } catch { return null; }
@@ -264,6 +337,8 @@ if (!q.has("bare") && location.protocol.startsWith("http")) {
     if (state.drawer) p.set("drawer", "");
     if (state.camera) p.set("camera", "");
     if (state.brightness !== 100) p.set("brightness", String(state.brightness));
+    if (state.analog) p.set("analog", "");
+    if (state.font !== "inter") p.set("font", state.font);
     const s = p.toString();
     return location.pathname + (s ? "?" + s : "");
   }
