@@ -1,9 +1,9 @@
 package ro.rdstr.car
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+import kotlin.test.Test
 import ro.rdstr.car.CarEvent.Call.State
 import ro.rdstr.car.CarEvent.SteeringKey.Key
 

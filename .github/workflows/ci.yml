@@ -15,7 +15,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew test assembleSimDebug assembleDeviceDebug lint --no-daemon
+      - run: ./gradlew :core-car:allTests test assembleSimDebug assembleDeviceDebug :core-car:jsBrowserProductionWebpack lint --no-daemon
       - uses: actions/upload-artifact@v4
         with:
           name: apk-sim-debug
