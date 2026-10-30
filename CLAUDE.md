@@ -52,4 +52,10 @@ The repository is public. Public text states only what was implemented and with 
 
 Branches `type/slug`. Conventional Commits, lowercase subject, English. PR body sections: `## Problemă / ## Fix / ## Impact / ## Testare`, content neutral per the public-text rule. One commit per finished sub-task, one push per task, PR opened by the agent, merged by the owner. Never weaken tests. Never watch CI in a loop.
 
-Build, test and run commands will be added once the Gradle project exists.
+## Build, test, run
+
+- `./gradlew test` — unit tests (JVM).
+- `./gradlew assembleSimDebug` / `assembleDeviceDebug` — APK for the emulator / for the unit.
+- `./gradlew :core-car:test --tests "ro.rdstr.car.RulesTest"` — one test class.
+- `./gradlew lint` — Android lint.
+- `adb install -r app/build/outputs/apk/sim/debug/app-sim-debug.apk` then `adb shell cmd package set-home-activity ro.rdstr.os/.HomeActivity`.

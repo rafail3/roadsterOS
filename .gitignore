@@ -9,3 +9,7 @@ local.properties
 
 # raw dumps from the unit; only masked exports are committed
 unit-dumps/raw/
+
+# local tooling caches
+.boost/
+.codegraph/
