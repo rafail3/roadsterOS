@@ -1,0 +1,11 @@
+# Android / Gradle
+.gradle/
+build/
+local.properties
+*.apk
+*.aab
+.idea/
+*.iml
+
+# raw dumps from the unit; only masked exports are committed
+unit-dumps/raw/
