@@ -13,9 +13,10 @@ data class Step(val state: RulesState, val actions: List<Action>)
 @OptIn(ExperimentalJsExport::class)
 @JsExport
 object Bridge {
+    // states carry every field so hosts never guess a default; events keep the journal's compact form
     private val json = Json {
         classDiscriminator = "type"
-        encodeDefaults = false
+        encodeDefaults = true
         ignoreUnknownKeys = true
     }
 

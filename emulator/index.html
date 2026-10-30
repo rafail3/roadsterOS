@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<title>roadsterOS mockup</title>
+<title>roadsterOS emulator</title>
 <link rel="preload" href="fonts/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="mockup.css">
+<link rel="stylesheet" href="emulator.css">
 <link rel="stylesheet" href="clock.css">
 </head>
 <body>
@@ -172,8 +172,69 @@
   </section>
   </div>
 
-  <aside class="state" aria-label="Preview state">
-    <h1>Preview state</h1>
+  <aside class="state" aria-label="Emulator controls">
+    <h1>Emulator</h1>
+
+    <h2>Car</h2>
+    <div class="state-group">
+      <span>Steering wheel</span>
+      <div class="seg">
+        <button data-key="VOL_UP">Vol +</button><button data-key="VOL_DOWN">Vol &minus;</button><button data-key="MUTE">Mute</button>
+        <button data-key="PREV">Prev</button><button data-key="NEXT">Next</button><button data-key="MODE">Mode</button><button data-key="PHONE">Phone</button>
+      </div>
+    </div>
+    <div class="state-group">
+      <span>Signals</span>
+      <div class="seg">
+        <button data-reverse="1">Reverse in</button><button data-reverse="0">Reverse out</button>
+        <button data-lights="1">Headlights on</button><button data-lights="0">Headlights off</button>
+        <button data-acc="0">ACC off</button><button data-acc="1">ACC on</button>
+      </div>
+    </div>
+    <div class="state-group">
+      <span>Bluetooth</span>
+      <div class="state-row"><input id="bt-device" value="Phone" aria-label="Device name"><button data-btconn="1">Connect</button><button data-btconn="0">Disconnect</button></div>
+      <div class="state-row"><input id="track-title" value="Night Transit" aria-label="Track title"><input id="track-artist" value="Vela Orsini" aria-label="Artist"><button id="track-send">Track</button></div>
+      <div class="seg"><button data-playev="1">Playback on</button><button data-playev="0">Playback off</button></div>
+    </div>
+    <div class="state-group">
+      <span>Phone</span>
+      <div class="state-row"><input id="call-name-in" value="Ana Petrescu" aria-label="Caller name"><input id="call-number-in" value="+40 7xx xxx xxx" aria-label="Caller number"></div>
+      <div class="seg"><button data-callev="RINGING">Ring</button><button data-callev="ACTIVE">Active</button><button data-callev="IDLE">Idle</button></div>
+    </div>
+    <div class="state-group">
+      <span>Radio</span>
+      <div class="state-row"><input id="radio-khz" value="101.9" aria-label="Frequency MHz"><input id="radio-rds" value="Radio Nord" aria-label="RDS name"><button id="radio-tune">Tune</button></div>
+    </div>
+
+    <h2>Scenarios</h2>
+    <div class="state-group">
+      <div class="seg seg-col" id="recordings"></div>
+      <div class="state-row"><div class="replay-bar"><div class="replay-fill" id="replay-progress"></div></div><button id="replay-stop">Stop</button></div>
+    </div>
+
+    <h2>Shell</h2>
+    <div class="state-group">
+      <span>Theme (also in the drawer)</span>
+      <div class="seg">
+        <button data-theme="AUTO" class="is-on">Auto</button>
+        <button data-theme="LIGHT">Day</button>
+        <button data-theme="DARK">Night</button>
+      </div>
+    </div>
+    <div class="state-group">
+      <span>Simulated hour (auto theme: day 05:00 to 19:00)</span>
+      <div class="state-range"><input type="range" id="hour" min="0" max="23" value="12" aria-label="Simulated hour"><output id="hour-readout">live</output></div>
+    </div>
+    <div class="state-group">
+      <span>Clock</span>
+      <div class="seg">
+        <button data-clock="live" class="is-on">Live</button>
+        <button data-clock="fixed">Fixed 12:00</button>
+        <button data-analog="0" class="is-on">Digital</button>
+        <button data-analog="1">Analog</button>
+      </div>
+    </div>
     <div class="state-group">
       <span>Font</span>
       <div class="seg">
@@ -182,68 +243,27 @@
       </div>
     </div>
     <div class="state-group">
-      <span>Clock face (also by tapping the clock)</span>
-      <div class="seg">
-        <button data-analog="0" class="is-on">Digital</button>
-        <button data-analog="1">Analog</button>
-      </div>
+      <span>Preview</span>
+      <div class="seg"><button data-drawer="toggle">Drawer</button><button data-camera="toggle">Camera</button></div>
+    </div>
+
+    <h2>Inspector</h2>
+    <div class="state-group">
+      <span>Log (car &gt; events in, &lt; ui commands out)</span>
+      <div class="log" id="log"></div>
     </div>
     <div class="state-group">
-      <span>Source</span>
-      <div class="seg">
-        <button data-source="bt" class="is-on">Bluetooth</button>
-        <button data-source="radio">Radio</button>
-        <button data-source="none">None</button>
-      </div>
+      <span>Rules state</span>
+      <pre class="inspector" id="inspector-car"></pre>
     </div>
     <div class="state-group">
-      <span>Playback</span>
-      <div class="seg">
-        <button data-playing="1" class="is-on">Playing</button>
-        <button data-playing="0">Paused</button>
-      </div>
-    </div>
-    <div class="state-group">
-      <span>Call</span>
-      <div class="seg">
-        <button data-call="idle" class="is-on">Idle</button>
-        <button data-call="ringing">Ringing</button>
-        <button data-call="active">Active</button>
-      </div>
-    </div>
-    <div class="state-group">
-      <span>Theme (also in the drawer)</span>
-      <div class="seg">
-        <button data-theme="auto" class="is-on">Auto</button>
-        <button data-theme="light">Day</button>
-        <button data-theme="dark">Night</button>
-      </div>
-    </div>
-    <div class="state-group">
-      <span>Simulated hour (auto theme: day 05:00 to 19:00)</span>
-      <div class="state-range"><input type="range" id="hour" min="0" max="23" value="12" aria-label="Simulated hour"><output id="hour-readout">live</output></div>
-    </div>
-    <div class="state-group">
-      <span>Overlays</span>
-      <div class="seg">
-        <button data-camera="toggle">Reverse camera</button>
-        <button data-drawer="toggle">Drawer</button>
-      </div>
-    </div>
-    <div class="state-group">
-      <span>Clock</span>
-      <div class="seg">
-        <button data-clock="live" class="is-on">Live</button>
-        <button data-clock="fixed">Fixed 12:00</button>
-      </div>
-    </div>
-    <div class="state-group">
-      <span>Replay recording</span>
-      <div class="seg seg-col" id="recordings"></div>
+      <span>Shell state</span>
+      <pre class="inspector" id="inspector-shell"></pre>
     </div>
     <p class="state-note">Names, tracks and numbers are synthetic.</p>
   </aside>
 </main>
+<script src="../core-car/build/kotlin-webpack/js/productionExecutable/rdstr.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

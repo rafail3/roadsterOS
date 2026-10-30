@@ -22,3 +22,6 @@ unit-dumps/raw/
 
 # playwright mcp output
 .playwright-mcp/
+
+# kotlin compiler session data
+.kotlin/

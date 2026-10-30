@@ -43,6 +43,7 @@ Everything tracked in this repository is written in English: code, comments, res
 - `DEVICE.md` — hardware/software facts about the target unit.
 - `app/`, `core-ui/`, `core-car/`, `car-vendor/`, `car-sim/`, `feature-*/` — Gradle modules (see spec).
 - `sim/` — emulator AVD config, recorded `.jsonl` scenarios, `send.ps1`.
+- `emulator/` — browser emulator: the screens as HTML/CSS driven by `core-car` compiled to JavaScript; also the live design mockup.
 - `install/` — `install.ps1`/`.sh`, `rollback.ps1`, `debloat.txt`.
 - `scripts/check-device.ps1` — memory, cold-start and package checks on the unit.
 - `unit-dumps/` — masked package lists, props and logcat captures, dated.
@@ -58,4 +59,6 @@ Branches `type/slug`. Conventional Commits, lowercase subject, English. PR body 
 - `./gradlew assembleSimDebug` / `assembleDeviceDebug` — APK for the emulator / for the unit.
 - `./gradlew :core-car:test --tests "ro.rdstr.car.RulesTest"` — one test class.
 - `./gradlew lint` — Android lint.
+- `./gradlew :core-car:allTests` — core-car tests on the JVM and in JavaScript; `./gradlew :core-car:jsBrowserProductionWebpack` builds the browser bundle used by `emulator/`.
+- Browser emulator: `python -m http.server 8787` from the repo root, then `http://localhost:8787/emulator/`.
 - `adb install -r app/build/outputs/apk/sim/debug/app-sim-debug.apk` then `adb shell cmd package set-home-activity ro.rdstr.os/.HomeActivity`.
