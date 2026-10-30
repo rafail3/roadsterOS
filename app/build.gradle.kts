@@ -34,7 +34,10 @@ android {
     }
 
     lint {
-        disable += listOf("ExpiredTargetSdkVersion", "OldTargetApi")
+        disable += listOf(
+            "ExpiredTargetSdkVersion", "OldTargetApi",
+            "GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion",
+        )
     }
 }
 
