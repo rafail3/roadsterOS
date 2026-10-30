@@ -8,8 +8,8 @@ import ro.rdstr.car.Journal
 import java.io.File
 
 /**
- * adb shell am broadcast -a ro.rdstr.sim -e event '{"type":"ReverseGear","on":true}'
- * adb shell am broadcast -a ro.rdstr.sim -e file /sdcard/rdstr/incoming-call.jsonl
+ * adb shell am broadcast -a ro.rdstr.sim -n ro.rdstr.os/ro.rdstr.carsim.SimReceiver -e event '{"type":"ReverseGear","on":true}'
+ * adb shell am broadcast -a ro.rdstr.sim -n ro.rdstr.os/ro.rdstr.carsim.SimReceiver -e file /data/local/tmp/rdstr/incoming-call.jsonl
  */
 class SimReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
