@@ -1,0 +1,5 @@
+{"t":0,"event":{"type":"Power","acc":true}}
+{"t":1500,"event":{"type":"Illumination","on":false}}
+{"t":4000,"event":{"type":"BtConnection","connected":true,"device":"Phone"}}
+{"t":5000,"event":{"type":"Track","title":"First Song","artist":"Some Artist","album":"Album","durationMs":214000}}
+{"t":5100,"event":{"type":"Playback","playing":true,"positionMs":0}}

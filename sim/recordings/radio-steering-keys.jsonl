@@ -1,0 +1,7 @@
+{"t":0,"event":{"type":"Radio","khz":101900,"band":"FM","rds":"RADIO ONE","signal":8}}
+{"t":2000,"event":{"type":"SteeringKey","key":"VOL_UP"}}
+{"t":2500,"event":{"type":"SteeringKey","key":"VOL_UP"}}
+{"t":4000,"event":{"type":"SteeringKey","key":"NEXT"}}
+{"t":4300,"event":{"type":"Radio","khz":102500,"band":"FM","rds":"RADIO TWO","signal":6}}
+{"t":7000,"event":{"type":"SteeringKey","key":"MUTE"}}
+{"t":9000,"event":{"type":"SteeringKey","key":"MUTE"}}

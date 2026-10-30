@@ -1,0 +1,5 @@
+{"t":0,"event":{"type":"BtConnection","connected":true,"device":"Phone"}}
+{"t":500,"event":{"type":"Playback","playing":true,"positionMs":30000}}
+{"t":3000,"event":{"type":"Call","state":"RINGING","number":"+40700000000","name":"Caller"}}
+{"t":8000,"event":{"type":"Call","state":"ACTIVE","number":"+40700000000","name":"Caller"}}
+{"t":15000,"event":{"type":"Call","state":"IDLE"}}
