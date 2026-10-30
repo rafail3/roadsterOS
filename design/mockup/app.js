@@ -9,15 +9,16 @@ const state = {
   bt: true,
   wifi: true,
   mute: false,
-  brightness: 80,     // 0..100, what the backlight would be set to
-  autoBrightness: true,
+  brightness: 100,    // 0..100, what the backlight would be set to; only the slider and the headlights change it
   hour: null,         // null = live clock, otherwise a simulated hour 0..23
 };
 
 const DAY_START = 5;   // light theme from 05:00
 const DAY_END = 19;    // dark theme from 19:00
-const DAY_BRIGHTNESS = 85;
-const NIGHT_BRIGHTNESS = 40;
+const HEADLIGHTS_BRIGHTNESS = 40;
+const THEME_CYCLE = ["auto", "light", "dark"];
+const THEME_LABEL = { auto: "Auto", light: "Day", dark: "Night" };
+const THEME_ICON = { auto: "i-circle-half", light: "i-sun", dark: "i-moon" };
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
@@ -58,9 +59,13 @@ function renderTheme() {
   }
   currentTheme = theme;
   screen.classList.toggle("light", theme === "light");
-  if (state.autoBrightness) state.brightness = theme === "light" ? DAY_BRIGHTNESS : NIGHT_BRIGHTNESS;
   $("#bar-theme").className = `icon ${theme === "light" ? "i-sun" : "i-moon"}`;
   $("#bar-theme").setAttribute("aria-label", theme === "light" ? "Day theme" : "Night theme");
+  // one tile in the drawer cycles Auto, Day, Night
+  $("#theme-icon").className = `icon ${THEME_ICON[state.theme]}`;
+  $("#theme-label").textContent = THEME_LABEL[state.theme];
+  $("#theme-toggle").setAttribute("aria-label", `Theme: ${THEME_LABEL[state.theme]}, tap to change`);
+  $("#theme-toggle").classList.toggle("is-on", state.theme !== "auto" ? false : true);
   $$("[data-theme]").forEach((b) => { const on = b.dataset.theme === state.theme; b.classList.toggle("is-on", on); b.setAttribute("aria-pressed", String(on)); });
 }
 
@@ -147,8 +152,9 @@ $("#handle-close").onclick = () => { state.drawer = false; render(); };
 $("#scrim").onclick = () => { state.drawer = false; render(); };
 $("#play").onclick = () => { state.playing = !state.playing; render(); };
 $$(".toggle[data-toggle]").forEach((t) => t.onclick = () => { state[t.dataset.toggle] = !state[t.dataset.toggle]; render(); });
-$$("[data-theme]").forEach((b) => b.onclick = () => { state.theme = b.dataset.theme; state.autoBrightness = true; render(); });
-$("#brightness").oninput = (e) => { state.brightness = Number(e.target.value); state.autoBrightness = false; render(); };
+$$("[data-theme]").forEach((b) => b.onclick = () => { state.theme = b.dataset.theme; render(); });
+$("#theme-toggle").onclick = () => { state.theme = THEME_CYCLE[(THEME_CYCLE.indexOf(state.theme) + 1) % THEME_CYCLE.length]; render(); };
+$("#brightness").oninput = (e) => { state.brightness = Number(e.target.value); render(); };
 $$(".rail-item").forEach((b) => b.onclick = () => {
   if (b.dataset.fn === "music") state.source = "bt";
   if (b.dataset.fn === "radio") state.source = "radio";
@@ -197,7 +203,7 @@ function applyEvent(ev) {
     case "Call": state.call = ["RINGING", "ACTIVE", "IDLE"].includes(ev.state) ? ev.state.toLowerCase() : "idle"; if (ev.name) $("#call-name").textContent = ev.name; if (ev.number) $("#call-number").textContent = ev.number; break;
     case "ReverseGear": state.camera = ev.on; break;
     // headlights on: the backlight drops even while the clock says day
-    case "Illumination": state.autoBrightness = false; state.brightness = ev.on ? NIGHT_BRIGHTNESS : DAY_BRIGHTNESS; break;
+    case "Illumination": state.brightness = ev.on ? HEADLIGHTS_BRIGHTNESS : 100; break;
     case "Radio": state.source = "radio"; $(".freq-num").textContent = (ev.khz / 1000).toFixed(1); $("#np-radio .np-title").textContent = ev.rds || ""; break;
     case "SteeringKey": if (ev.key === "MUTE") state.mute = !state.mute; break;
     case "Power": if (!ev.acc) { state.source = "none"; state.playing = false; } break;
@@ -238,6 +244,37 @@ if (q.get("source")) state.source = q.get("source");
 if (q.get("call")) state.call = q.get("call");
 if (q.get("hour") !== null) state.hour = Number(q.get("hour"));
 if (q.get("clock") === "fixed") state.hour = 12;
-if (q.get("brightness") !== null) { state.brightness = Number(q.get("brightness")); state.autoBrightness = false; }
+if (q.get("brightness") !== null) state.brightness = Number(q.get("brightness"));
 render();
 setInterval(render, 1000);
+
+// live reload for the design loop: poll the mockup files and reload when one changes, keeping the state in the URL
+if (!q.has("bare") && location.protocol.startsWith("http")) {
+  const files = ["index.html", "mockup.css", "tokens.css", "app.js"];
+  const stamps = {};
+  async function stamp(f) {
+    try { return (await fetch(f, { method: "HEAD", cache: "no-store" })).headers.get("last-modified"); } catch { return null; }
+  }
+  function stateUrl() {
+    const p = new URLSearchParams();
+    if (state.theme !== "auto") p.set("theme", state.theme);
+    if (state.hour !== null) p.set("hour", String(state.hour));
+    if (state.source !== "bt") p.set("source", state.source);
+    if (state.call !== "idle") p.set("call", state.call);
+    if (state.drawer) p.set("drawer", "");
+    if (state.camera) p.set("camera", "");
+    if (state.brightness !== 100) p.set("brightness", String(state.brightness));
+    const s = p.toString();
+    return location.pathname + (s ? "?" + s : "");
+  }
+  (async () => {
+    for (const f of files) stamps[f] = await stamp(f);
+    setInterval(async () => {
+      for (const f of files) {
+        const s = await stamp(f);
+        if (s && stamps[f] && s !== stamps[f]) { location.replace(stateUrl()); return; }
+        if (s) stamps[f] = s;
+      }
+    }, 1000);
+  })();
+}

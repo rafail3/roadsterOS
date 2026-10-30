@@ -100,13 +100,9 @@
           <button class="toggle is-on" data-toggle="bt"><span class="icon i-bluetooth"></span><span>Bluetooth</span></button>
           <button class="toggle is-on" data-toggle="wifi"><span class="icon i-wifi-high"></span><span>Wi-Fi</span></button>
           <button class="toggle" data-toggle="mute"><span class="icon i-speaker-slash"></span><span>Mute</span></button>
-          <div class="toggle toggle-group" role="group" aria-label="Theme">
-            <button data-theme="auto" aria-pressed="true">Auto</button>
-            <button data-theme="light" aria-pressed="false">Day</button>
-            <button data-theme="dark" aria-pressed="false">Night</button>
-          </div>
+          <button class="toggle is-on" id="theme-toggle" aria-label="Theme: Auto, tap to change"><span class="icon i-circle-half" id="theme-icon"></span><span id="theme-label">Auto</span></button>
         </div>
-        <label class="slider"><span class="icon i-sun-dim"></span><input type="range" id="brightness" min="10" max="100" value="80" aria-label="Brightness" aria-valuetext="80 percent"><span class="slider-readout" id="brightness-readout">80%</span></label>
+        <label class="slider"><span class="icon i-sun-dim"></span><input type="range" id="brightness" min="10" max="100" value="100" aria-label="Brightness" aria-valuetext="100 percent"><span class="slider-readout" id="brightness-readout">100%</span></label>
         <label class="slider"><span class="icon i-speaker-high"></span><input type="range" min="0" max="100" value="45" aria-label="Volume" aria-valuetext="45 percent"><span class="slider-readout">45%</span></label>
         <button class="handle handle-bottom" id="handle-close" aria-label="Close quick settings"><span class="handle-line"></span></button>
       </section>

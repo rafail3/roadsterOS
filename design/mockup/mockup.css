@@ -57,6 +57,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .i-phone-incoming { --m: url(icons/phone-incoming.svg); }
 .i-microphone-slash { --m: url(icons/microphone-slash.svg); }
 .i-x { --m: url(icons/x.svg); }
+.i-circle-half { --m: url(icons/circle-half.svg); }
 
 /* status bar */
 .bar { touch-action: none; grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-5); position: relative; z-index: 2; color: var(--ink-muted); }
@@ -150,9 +151,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .drawer-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
 .toggle { height: 96px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); border-radius: var(--radius-sm); border: 1px solid var(--hairline); background: var(--glass); color: var(--ink-muted); font-size: var(--size-label); font-weight: 500; transition: background var(--fast), color var(--fast); }
 .toggle .icon { width: 30px; height: 30px; }
-.toggle-group { flex-direction: row; gap: var(--space-1); padding: var(--space-1); cursor: default; }
-.toggle-group button { flex: 1; height: 100%; border-radius: 9px; font-size: var(--size-label); font-weight: 500; color: var(--ink-muted); transition: background var(--fast), color var(--fast); }
-.toggle-group button.is-on { background: var(--accent-tint); color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent-line); }
 .toggle.is-on { color: var(--accent); background: var(--accent-tint); border-color: var(--accent-line); }
 .toggle:active { filter: brightness(1.3); }
 .slider { display: flex; align-items: center; gap: var(--space-4); color: var(--ink-muted); height: var(--target); }
