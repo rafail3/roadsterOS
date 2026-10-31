@@ -10,7 +10,7 @@ enum class Face { DIGITAL, ANALOG }
 /** What the shell itself remembers, independent of the car. */
 @Serializable
 data class ShellState(
-    val theme: ThemeMode = ThemeMode.AUTO,
+    val theme: ThemeMode = ThemeMode.DARK,
     val drawer: Boolean = false,
     val face: Face = Face.DIGITAL,
     val font: String = "geist",
