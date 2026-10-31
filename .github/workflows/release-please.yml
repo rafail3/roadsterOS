@@ -1,0 +1,29 @@
+name: release-please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      # A personal token, because pull requests opened with GITHUB_TOKEN do not start CI
+      # and the required check on main would never report.
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+      # The pull request JSON goes through env so release notes never reach the shell parser.
+      - name: Enable auto-merge on the release pull request
+        if: ${{ steps.release.outputs.pr }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          PR_JSON: ${{ steps.release.outputs.pr }}
+        run: gh pr merge "$(jq -r '.number' <<< "$PR_JSON")" --auto --squash --repo "$GITHUB_REPOSITORY"
