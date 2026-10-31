@@ -2,6 +2,10 @@ plugins {
     alias(libs.plugins.android.application)
 }
 
+// version.txt is rewritten by release-please; versionCode follows it so there is one number to keep.
+val appVersion = providers.fileContents(rootProject.layout.projectDirectory.file("version.txt")).asText.get().trim()
+val (major, minor, patch) = appVersion.split(".").map(String::toInt)
+
 android {
     namespace = "ro.rdstr.os"
     compileSdk = 36
@@ -10,8 +14,8 @@ android {
         applicationId = "ro.rdstr.os"
         minSdk = 27
         targetSdk = 27
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = major * 10000 + minor * 100 + patch
+        versionName = appVersion
     }
 
     flavorDimensions += "target"

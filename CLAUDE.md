@@ -46,6 +46,7 @@ Everything tracked in this repository is written in English: code, comments, res
 - `install/` — `install.ps1`/`.sh`, `rollback.ps1`, `debloat.txt`.
 - `scripts/check-device.ps1` — memory, cold-start and package checks on the unit.
 - `unit-dumps/` — masked package lists, props and logcat captures, dated.
+- `version.txt` — current version, rewritten by release-please; `app/build.gradle.kts` derives `versionName` and `versionCode` from it.
 
 
 ## Git and PR conventions
