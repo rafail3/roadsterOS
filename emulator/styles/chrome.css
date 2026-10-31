@@ -68,13 +68,14 @@
 
 .field-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
 .field-input { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
-.field-input span, .label, .range span { margin: 0; color: var(--ui-muted); font-size: 13px; }
+.field-input span, .range span { margin: 0; color: var(--ui-muted); font-size: 13px; }
 .field-input input { width: 100%; height: var(--ui-control); padding: 0 var(--space-3); border-radius: 8px; background: var(--ui-well); border: 1px solid var(--ui-line); color: var(--ui-ink); font: inherit; }
 
 .segmented { display: flex; flex: none; padding: 2px; gap: 2px; border-radius: 8px; background: var(--ui-well); border: 1px solid var(--ui-line); }
 .segmented button { flex: 1; height: 30px; padding: 0 var(--space-3); border-radius: 6px; color: var(--ui-muted); white-space: nowrap; transition: background var(--fast), color var(--fast); }
 .segmented button[aria-pressed="true"] { background: var(--ui-selected); color: var(--ui-accent); }
 
+.row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .range { display: grid; grid-template-columns: 1fr auto; gap: var(--space-1) var(--space-3); align-items: center; }
 .range input { grid-column: 1 / -1; grid-row: 2; margin: 0; accent-color: var(--ui-accent); }
 .range output { font-variant-numeric: tabular-nums; }

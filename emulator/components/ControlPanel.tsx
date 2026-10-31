@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { CallState, Face, SteeringKey, ThemeMode } from "../car/bridge";
 import { carEvent, replay, setHour, shellAction, stopReplay, useEmulator, useNow } from "../car/store";
 import { Field, Section, Segmented, Switch } from "./controls";
@@ -30,7 +30,7 @@ const FACES: { value: Face; label: string }[] = [
   { value: "ANALOG", label: "Analog" },
 ];
 const FONTS = [{ value: "geist", label: "Geist" }, { value: "inter", label: "Inter" }];
-const CLOCKS = [{ value: "live", label: "Live" }, { value: "fixed", label: "Fixed 12:00" }] as const;
+const CLOCKS = [{ value: "live", label: "Live" }, { value: "fixed", label: "12:00" }] as const;
 
 function SteeringWheel() {
   return (
@@ -132,24 +132,24 @@ function Scenarios() {
   );
 }
 
-function ShellControls() {
+function Row({ label, children }: { label: string; children: ReactNode }) {
+  return <div className="row"><span>{label}</span>{children}</div>;
+}
+
+function DisplayControls() {
   const { shell, hour } = useEmulator();
   const now = useNow(hour);
   return (
-    <Section title="Shell">
-      <p className="label">Theme (auto: day from 05:00 to 19:00)</p>
-      <Segmented label="Theme" options={THEMES} value={shell.theme} onChange={(mode) => shellAction({ type: "SetTheme", mode })} />
-      <p className="label">Clock</p>
-      <Segmented label="Clock source" options={CLOCKS} value={hour === null ? "live" : "fixed"} onChange={(v) => setHour(v === "live" ? null : FIXED_HOUR)} />
+    <Section title="Display" open>
+      <Row label="Theme"><Segmented label="Theme" options={THEMES} value={shell.theme} onChange={(mode) => shellAction({ type: "SetTheme", mode })} /></Row>
+      <Row label="Clock"><Segmented label="Clock face" options={FACES} value={shell.face} onChange={(face) => shellAction({ type: "SetFace", face })} /></Row>
+      <Row label="Time"><Segmented label="Clock source" options={CLOCKS} value={hour === null ? "live" : "fixed"} onChange={(v) => setHour(v === "live" ? null : FIXED_HOUR)} /></Row>
       <label className="range">
-        <span>Simulated hour</span>
+        <span>Simulated hour (auto theme: day from 05:00 to 19:00)</span>
         <input type="range" min="0" max="23" value={now.getHours()} onChange={(e) => setHour(Number(e.target.value))} />
         <output>{hour === null ? "live" : `${String(hour).padStart(2, "0")}:00`}</output>
       </label>
-      <p className="label">Face</p>
-      <Segmented label="Clock face" options={FACES} value={shell.face} onChange={(face) => shellAction({ type: "SetFace", face })} />
-      <p className="label">Font</p>
-      <Segmented label="Font" options={FONTS} value={shell.font} onChange={(name) => shellAction({ type: "SetFont", name })} />
+      <Row label="Font"><Segmented label="Font" options={FONTS} value={shell.font} onChange={(name) => shellAction({ type: "SetFont", name })} /></Row>
       <Switch label="Drawer open" checked={shell.drawer} onChange={(on) => shellAction({ type: on ? "OpenDrawer" : "CloseDrawer" })} />
     </Section>
   );
@@ -158,13 +158,13 @@ function ShellControls() {
 export function ControlPanel() {
   return (
     <div className="controls-scroll">
+      <DisplayControls />
       <SteeringWheel />
       <Signals />
       <Scenarios />
       <Bluetooth />
       <Phone />
       <Radio />
-      <ShellControls />
       <p className="note">Names, tracks and numbers are synthetic.</p>
     </div>
   );
