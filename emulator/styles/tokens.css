@@ -1,14 +1,14 @@
 /* roadsterOS design tokens. The Android theme mirrors these values. */
 @font-face {
   font-family: "Inter";
-  src: url("fonts/inter-latin-wght-normal.woff2") format("woff2");
+  src: url("/fonts/inter-latin-wght-normal.woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: "Geist";
-  src: url("fonts/geist-latin-wght-normal.woff2") format("woff2");
+  src: url("/fonts/geist-latin-wght-normal.woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;

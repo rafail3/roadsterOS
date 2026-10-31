@@ -25,3 +25,11 @@ unit-dumps/raw/
 
 # kotlin compiler session data
 .kotlin/
+
+# browser emulator
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+emulator/public/rdstr.js
+emulator/public/recordings/

@@ -16,6 +16,12 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew :core-car:allTests test assembleSimDebug assembleDeviceDebug :core-car:jsBrowserProductionWebpack lint --no-daemon
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
       - uses: actions/upload-artifact@v4
         with:
           name: apk-sim-debug

@@ -24,10 +24,10 @@ Events can also be sent one at a time: `./sim/send.ps1 ReverseGear '{"on":true}'
 
 ## Browser emulator
 
-    ./gradlew :core-car:jsBrowserProductionWebpack
-    python -m http.server 8787
+    npm install
+    npm run dev
 
-Then open `http://localhost:8787/emulator/`. The page runs the shared `core-car` rules compiled to JavaScript; the side panel sends car events, replays recordings and sets the shell state.
+Then open `http://localhost:8787/`. The app is built with Next.js and React and runs the shared `core-car` rules compiled to JavaScript. `npm run dev` rebuilds that bundle when the Kotlin sources change. The side panel sends car events, replays recordings and sets the shell state; the inspector shows the event log and the rules and shell state. `npm run build` and `npm start` run the production build.
 
 ## Modules
 
