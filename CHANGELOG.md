@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.2.0](https://github.com/rafail3/roadsterOS/compare/v0.1.0...v0.2.0) (2026-11-02)
+## [1.0.0](https://github.com/rafail3/roadsterOS/commits/v1.0.0) (2026-11-02)
 
 
 ### Features
