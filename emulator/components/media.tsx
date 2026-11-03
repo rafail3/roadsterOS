@@ -6,7 +6,10 @@ import { bridge } from "../car/bridge";
 import { elapsedMs, useEmulator } from "../car/store";
 
 const TICK_MS = 250;
-const CROSSFADE_MS = 1100;
+/** Older layers go once the newest has faded in; this only cleans up when no animation runs (reduced motion). */
+const CROSSFADE_LIMIT_MS = 3000;
+/** How long play keeps its glyph squeezed while waiting for the phone to confirm. */
+const SWAP_WAIT_MS = 600;
 const MARQUEE_PX_PER_S = 30;
 const MARQUEE_GAP = 1 / 3;
 /** The cover is sampled this small, as the unit decodes it, before its edge colours are taken. */
@@ -60,16 +63,20 @@ export function usePosition() {
   return { elapsed: elapsedMs(emulator), duration: emulator.track.durationMs };
 }
 
-/** The current image over the previous one, which stays until the new one has faded in. */
+/**
+ * The current image over the previous ones. A layer under the newest is removed only when the newest
+ * reports the end of its fade (`settle`), so the hand-over never cuts a fade short.
+ */
 export function useCrossfade(src: string | null) {
   const [layers, setLayers] = useState<{ src: string | null; id: number }[]>([{ src, id: 0 }]);
   const id = useRef(0);
   useEffect(() => {
-    setLayers((current) => (current[current.length - 1].src === src ? current : [...current.slice(-1), { src, id: ++id.current }]));
-    const timer = setTimeout(() => setLayers((current) => current.slice(-1)), CROSSFADE_MS);
+    setLayers((current) => (current[current.length - 1].src === src ? current : [...current, { src, id: ++id.current }]));
+    const timer = setTimeout(() => setLayers((current) => current.slice(-1)), CROSSFADE_LIMIT_MS);
     return () => clearTimeout(timer);
   }, [src]);
-  return layers;
+  const settle = (settled: number) => setLayers((current) => current.filter((layer) => layer.id >= settled));
+  return { layers, settle };
 }
 
 /** One line of text that scrolls slowly when it does not fit, after a pause. */
@@ -107,12 +114,23 @@ const LABEL: Record<Kind, string> = { prev: "Previous", play: "Play", next: "Nex
 /** A filled glyph with no plate; pressing blooms a soft disc behind it and squeezes the glyph. */
 export function TransportButton({ kind, playing = false, onPress }: { kind: Kind; playing?: boolean; onPress: () => void }) {
   const [nudge, setNudge] = useState(false);
+  // play stays squeezed after release until the other glyph replaces it, so the swap reads as one motion
+  const [waitingOn, setWaitingOn] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
   const icon = kind === "prev" ? "i-rewind-fill" : kind === "next" ? "i-fast-forward-fill" : playing ? "i-pause-fill" : "i-play-fill";
+  const press = () => {
+    onPress();
+    if (kind !== "play") return setNudge(true);
+    setWaitingOn(icon);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setWaitingOn(null), SWAP_WAIT_MS);
+  };
   return (
     <button
-      className={`tx tx-${kind}${nudge ? " is-nudging" : ""}`}
+      className={`tx tx-${kind}${nudge ? " is-nudging" : ""}${waitingOn === icon ? " is-waiting" : ""}`}
       aria-label={kind === "play" ? (playing ? "Pause" : "Play") : LABEL[kind]}
-      onClick={() => { onPress(); if (kind !== "play") setNudge(true); }}
+      onClick={press}
       onAnimationEnd={(e) => { if (e.animationName.startsWith("tx-nudge")) setNudge(false); }}
     >
       {/* keyed so a play/pause swap pops the new glyph in */}

@@ -24,7 +24,7 @@ export function MusicApp({ open }: { open: boolean }) {
     <section className={`music-app${open ? " is-open" : ""}`} aria-label="Music" aria-hidden={!open} inert={!open} style={{ "--cover-top": colors.top, "--cover-bottom": colors.bottom } as React.CSSProperties}>
       {/* on the unit the cover is decoded small and blurred once per track; no live blur */}
       <div className="music-backdrop" aria-hidden="true">
-        {backdrops.map((layer) => layer.src && <img key={layer.id} src={layer.src} alt="" />)}
+        {backdrops.layers.map((layer, i, all) => layer.src && <img key={layer.id} src={layer.src} alt="" className={i < all.length - 1 ? "is-leaving" : undefined} onAnimationEnd={() => backdrops.settle(layer.id)} />)}
       </div>
 
       <button className="glass-button music-close" aria-label="Close music" onClick={() => shellAction({ type: "Home" })}>
@@ -32,9 +32,9 @@ export function MusicApp({ open }: { open: boolean }) {
       </button>
 
       <div className={`music-cover${car.playing ? " is-playing" : ""}`}>
-        {covers.map((layer) => (layer.src
-          ? <img key={layer.id} src={layer.src} alt={`Cover of ${track.title}`} />
-          : <div key={layer.id} className="music-cover-empty"><span className="icon i-music-notes" aria-hidden="true" /></div>))}
+        {covers.layers.map((layer) => (layer.src
+          ? <img key={layer.id} src={layer.src} alt={`Cover of ${track.title}`} onAnimationEnd={() => covers.settle(layer.id)} />
+          : <div key={layer.id} className="music-cover-empty" onAnimationEnd={() => covers.settle(layer.id)}><span className="icon i-music-notes" aria-hidden="true" /></div>))}
       </div>
 
       <div className="music-side">

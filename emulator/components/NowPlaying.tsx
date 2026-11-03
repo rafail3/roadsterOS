@@ -12,13 +12,13 @@ function Bluetooth({ emulator }: { emulator: EmulatorState }) {
   return (
     <div className="np np-bt">
       <div className="np-tint" aria-hidden="true">
-        {tints.map((layer) => layer.src && <img key={layer.id} src={layer.src} alt="" />)}
+        {tints.layers.map((layer, i, all) => layer.src && <img key={layer.id} src={layer.src} alt="" className={i < all.length - 1 ? "is-leaving" : undefined} onAnimationEnd={() => tints.settle(layer.id)} />)}
       </div>
       <button className="np-open" aria-label={`Open music, ${track.title} by ${track.artist}`} onClick={() => shellAction({ type: "OpenApp", app: "MUSIC" })}>
         <span className={`np-cover${car.playing ? " is-playing" : ""}`}>
-          {covers.map((layer) => (layer.src
-            ? <img key={layer.id} src={layer.src} alt="" />
-            : <span key={layer.id} className="np-cover-empty"><span className="icon i-music-notes" /></span>))}
+          {covers.layers.map((layer) => (layer.src
+            ? <img key={layer.id} src={layer.src} alt="" onAnimationEnd={() => covers.settle(layer.id)} />
+            : <span key={layer.id} className="np-cover-empty" onAnimationEnd={() => covers.settle(layer.id)}><span className="icon i-music-notes" /></span>))}
         </span>
         <span className="np-meta" key={track.title}>
           <Marquee text={track.title} className="np-title" />
