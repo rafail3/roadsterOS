@@ -32,9 +32,23 @@
 .car-status dd { margin: 0; font-weight: 500; }
 
 /* stage: the head unit, scaled down to the space it has */
-.stage { min-width: 0; min-height: 0; padding: var(--space-5); overflow: auto; display: grid; }
+/* graphite desk under a soft light, so the black frame reads against it */
+.stage { min-width: 0; min-height: 0; padding: var(--space-5); overflow: auto; display: grid; background: radial-gradient(120% 90% at 50% 40%, #2c3036, #1f2226 70%, #1a1c20); }
 .frame { margin: auto; }
-.bezel { position: relative; width: 1410px; height: 796px; padding: 36px 30px 40px 100px; border-radius: 22px; transform-origin: 0 0; background: linear-gradient(180deg, #16181b, #0b0c0e 40%, #08090a); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 30px 90px rgba(0, 0, 0, 0.6); }
+/* piano-black plastic: near-black base, a bevelled top edge, and one broad diagonal reflection */
+.bezel {
+  position: relative; isolation: isolate; width: 1410px; height: 796px; padding: 36px 30px 40px 100px; border-radius: 22px; transform-origin: 0 0;
+  background: linear-gradient(180deg, #0b0c0d, #040405 55%, #020203);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(255, 255, 255, 0.06), inset 1px 0 0 rgba(255, 255, 255, 0.06), inset -1px 0 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.9), 0 2px 4px rgba(0, 0, 0, 0.5), 0 28px 70px rgba(0, 0, 0, 0.55);
+}
+.bezel::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background:
+    linear-gradient(112deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.05) 18%, transparent 34%, transparent 72%, rgba(255, 255, 255, 0.035) 84%, transparent 92%),
+    radial-gradient(60% 40% at 20% 0%, rgba(255, 255, 255, 0.07), transparent 70%);
+}
 /* the frame's left edge, as on the unit: pinholes, then five printed touch keys */
 .frame-keys { position: absolute; left: 0; top: 36px; width: 100px; height: 720px; }
 .pinhole { position: absolute; left: 30px; display: flex; align-items: center; gap: 7px; font: 600 10px/1 "Geist", system-ui, sans-serif; letter-spacing: 0.04em; color: rgba(235, 238, 242, 0.62); }
@@ -52,7 +66,7 @@
 .frame-sign { position: absolute; right: 12px; top: 50%; transform: translateY(-54%); font: 500 20px/1 "Geist", system-ui, sans-serif; }
 .frame-key:active, .pinhole-rst:active { color: #fff; background: rgba(255, 255, 255, 0.08); }
 @media (hover: hover) { .frame-key:hover, .pinhole-rst:hover { color: #fff; } }
-.device { width: 1280px; height: 720px; border-radius: 3px; overflow: hidden; background: #000; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.9), 0 0 0 2px #050608; }
+.device { position: relative; width: 1280px; height: 720px; border-radius: 3px; overflow: hidden; background: #000; box-shadow: 0 0 0 1px #000, 0 0 0 2px rgba(255, 255, 255, 0.05); }
 
 /* side: controls above, inspector docked below */
 .side { min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) 260px; background: var(--ui-panel); border-left: 1px solid var(--ui-line); }
