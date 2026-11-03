@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import ro.rdstr.car.CarBus
+import ro.rdstr.car.CarEcho
 import ro.rdstr.car.CarCommand
 import ro.rdstr.car.CarEvent
 import ro.rdstr.car.JournalLine
@@ -33,13 +34,7 @@ class SimCarBus(private val scope: CoroutineScope) : CarBus {
     }
 
     override fun send(command: CarCommand) {
-        when (command) {
-            CarCommand.Media.Play -> emit(CarEvent.Playback(true))
-            CarCommand.Media.Pause -> emit(CarEvent.Playback(false))
-            CarCommand.Phone.Answer -> emit(CarEvent.Call(CarEvent.Call.State.ACTIVE))
-            CarCommand.Phone.HangUp -> emit(CarEvent.Call(CarEvent.Call.State.IDLE))
-            else -> Unit
-        }
+        CarEcho.respond(command)?.let(::emit)
     }
 }
 

@@ -22,13 +22,21 @@ An Android-based shell for aftermarket car head units built on the MediaTek 8227
 Events can also be sent one at a time: `./sim/send.ps1 ReverseGear '{"on":true}'`.
 `./scripts/check-device.ps1` prints memory use and cold start time of the installed app.
 
+## Browser emulator
+
+    npm install
+    npm run dev
+
+Then open `http://localhost:8787/`. The app is built with Next.js and React and runs the shared `core-car` rules compiled to JavaScript. `npm run dev` rebuilds that bundle when the Kotlin sources change. The side panel sends car events, replays recordings and sets the shell state; the inspector shows the event log and the rules and shell state. `npm run build` and `npm start` run the production build.
+
 ## Modules
 
-- `core-car` — `CarBus` interface, event and command types, JSON Lines journal, rules engine.
+- `core-car` — `CarBus` interface, event and command types, JSON Lines journal, rules engine, shell state; built for the JVM and for the browser.
 - `car-sim` — simulator: journal replay and an `adb` broadcast receiver (`ro.rdstr.sim`).
 - `car-vendor` — adapter to the head unit's vendor services.
 - `core-ui` — design tokens and custom views.
 - `app` — service, home activity, screens. Flavors: `sim`, `device`.
+- `emulator` — browser emulator and live design mockup of the screens.
 
 ## License
 

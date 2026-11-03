@@ -1,15 +1,26 @@
 plugins {
-    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
 }
 
-java {
-    toolchain { languageVersion = JavaLanguageVersion.of(21) }
-}
-
-dependencies {
-    api(libs.coroutines.core)
-    implementation(libs.serialization.json)
-    testImplementation(libs.junit)
-    testImplementation(libs.coroutines.test)
+kotlin {
+    jvmToolchain(21)
+    jvm()
+    js {
+        outputModuleName = "rdstr"
+        browser {
+            commonWebpackConfig { outputFileName = "rdstr.js" }
+        }
+        binaries.executable()
+    }
+    sourceSets {
+        commonMain.dependencies {
+            api(libs.coroutines.core)
+            implementation(libs.serialization.json)
+        }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.coroutines.test)
+        }
+    }
 }

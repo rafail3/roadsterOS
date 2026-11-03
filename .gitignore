@@ -13,3 +13,23 @@ unit-dumps/raw/
 # local tooling caches
 .boost/
 .codegraph/
+
+# design tooling state
+.impeccable/
+
+# app-local launch config
+.claude/
+
+# playwright mcp output
+.playwright-mcp/
+
+# kotlin compiler session data
+.kotlin/
+
+# browser emulator
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+emulator/public/rdstr.js
+emulator/public/recordings/

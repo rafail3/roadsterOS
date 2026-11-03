@@ -1,0 +1,153 @@
+/* The tool around the head unit: not part of the product, never captured in ?bare mode. */
+:root {
+  --ui-bg: #0c0e12;
+  --ui-panel: #13161c;
+  --ui-raised: #1b1f27;
+  --ui-hover: #222733;
+  --ui-well: #0f1218;
+  --ui-line: #262b35;
+  --ui-ink: #d5dae2;
+  --ui-muted: #9aa3ae;
+  --ui-accent: #9fd3ff;
+  --ui-selected: #26303c;
+  --ui-danger: #ff7a7a;
+  --ui-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  --ui-control: 36px;
+}
+
+.tool {
+  height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr) 380px; grid-template-rows: 52px minmax(0, 1fr);
+  background: var(--ui-bg); color: var(--ui-ink); font: 14px/1.4 "Geist", system-ui, sans-serif; scrollbar-color: var(--ui-line) transparent;
+}
+.tool button:focus-visible, .tool input:focus-visible, .tool summary:focus-visible, .inspector-body:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 2px; }
+.tool h1, .tool h2 { margin: 0; font-size: inherit; font-weight: 600; }
+
+/* top bar */
+.topbar { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--space-6); padding: 0 var(--space-5); background: var(--ui-panel); border-bottom: 1px solid var(--ui-line); }
+.topbar h1 { flex: none; font-size: 15px; letter-spacing: -0.01em; }
+.topbar .tool-name { font-weight: 400; color: var(--ui-muted); }
+.car-status { display: flex; gap: var(--space-5); flex: 1; min-width: 0; margin: 0; overflow: hidden; white-space: nowrap; }
+.car-status div { display: flex; gap: 6px; }
+.car-status dt { color: var(--ui-muted); }
+.car-status dd { margin: 0; font-weight: 500; }
+
+/* stage: the head unit, scaled down to the space it has */
+/* flat graphite, so the black frame reads against it evenly on every side */
+.stage { min-width: 0; min-height: 0; padding: var(--space-5); overflow: auto; display: grid; background: #2e3136; }
+.frame { margin: auto; }
+/* piano-black plastic: near-black base, a bevelled top edge, and one broad diagonal reflection */
+.bezel {
+  position: relative; isolation: isolate; width: 1410px; height: 796px; padding: 36px 30px 40px 100px; border-radius: 22px; transform-origin: 0 0;
+  background: linear-gradient(180deg, #0b0c0d, #040405 55%, #020203);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(255, 255, 255, 0.06), inset 1px 0 0 rgba(255, 255, 255, 0.06), inset -1px 0 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.9), 0 2px 4px rgba(0, 0, 0, 0.45), 0 10px 28px rgba(0, 0, 0, 0.3);
+}
+.bezel::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  background:
+    linear-gradient(112deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.05) 18%, transparent 34%, transparent 72%, rgba(255, 255, 255, 0.035) 84%, transparent 92%),
+    radial-gradient(60% 40% at 20% 0%, rgba(255, 255, 255, 0.07), transparent 70%);
+}
+/* the frame's left edge, as on the unit: pinholes, then five printed touch keys */
+.frame-keys { position: absolute; left: 0; top: 36px; width: 100px; height: 720px; }
+.pinhole { position: absolute; left: 30px; display: flex; align-items: center; gap: 7px; font: 600 10px/1 "Geist", system-ui, sans-serif; letter-spacing: 0.04em; color: rgba(235, 238, 242, 0.62); }
+.pinhole i { width: 7px; height: 7px; border-radius: 50%; background: #000; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.12); }
+.pinhole-mic { top: 0; }
+.pinhole-rst { top: 30px; padding: 4px 0; }
+.frame-key { position: absolute; left: 18px; width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; color: rgba(235, 238, 242, 0.86); transition: color var(--fast), background var(--fast); }
+.frame-key:nth-of-type(2) { top: 84px; }
+.frame-key:nth-of-type(3) { top: 184px; }
+.frame-key:nth-of-type(4) { top: 284px; }
+.frame-key:nth-of-type(5) { top: 384px; }
+.frame-key:nth-of-type(6) { top: 484px; }
+.frame-key .icon { width: 30px; height: 30px; }
+.frame-key:has(.frame-sign) .icon { margin-left: -8px; }
+.frame-sign { position: absolute; right: 12px; top: 50%; transform: translateY(-54%); font: 500 20px/1 "Geist", system-ui, sans-serif; }
+.frame-key:active, .pinhole-rst:active { color: #fff; background: rgba(255, 255, 255, 0.08); }
+@media (hover: hover) { .frame-key:hover, .pinhole-rst:hover { color: #fff; } }
+.device { position: relative; width: 1280px; height: 720px; border-radius: 3px; overflow: hidden; background: #000; box-shadow: 0 0 0 1px #000, 0 0 0 2px rgba(255, 255, 255, 0.05); }
+
+/* side: controls above, inspector docked below */
+.side { min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) 260px; background: var(--ui-panel); border-left: 1px solid var(--ui-line); }
+.controls-scroll { overflow-y: auto; padding: var(--space-2) var(--space-4); }
+
+.section { border-bottom: 1px solid var(--ui-line); }
+.section summary { display: flex; align-items: center; justify-content: space-between; height: 44px; cursor: pointer; list-style: none; border-radius: 4px; }
+.section summary::-webkit-details-marker { display: none; }
+.section h2 { font-size: 13px; }
+.section .icon { width: 16px; height: 16px; color: var(--ui-muted); transition: transform var(--fast) var(--ease-out); }
+.section:not([open]) .icon { transform: rotate(-90deg); }
+.section-body { display: flex; flex-direction: column; gap: var(--space-3); padding-bottom: var(--space-4); }
+
+.button { min-height: var(--ui-control); padding: 0 var(--space-3); border-radius: 8px; background: var(--ui-raised); border: 1px solid var(--ui-line); color: var(--ui-ink); transition: background var(--fast); }
+.button:active:not(:disabled) { background: var(--ui-selected); }
+.button:disabled { opacity: 0.45; cursor: default; }
+@media (hover: hover) {
+  .button:hover:not(:disabled), .segmented button:hover { background: var(--ui-hover); }
+  .switch:hover input:not(:checked), .field-input input:hover { border-color: var(--ui-muted); }
+  .section summary:hover .icon { color: var(--ui-ink); }
+}
+
+.keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); }
+
+.switch { display: flex; align-items: center; justify-content: space-between; min-height: var(--ui-control); cursor: pointer; }
+.switch input { appearance: none; position: relative; flex: none; width: 40px; height: 22px; margin: 0; border-radius: 11px; background: var(--ui-raised); border: 1px solid var(--ui-line); cursor: pointer; transition: background var(--fast), border-color var(--fast); }
+.switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--ui-muted); transition: transform var(--fast) var(--ease-out), background var(--fast); }
+.switch input:checked { background: var(--ui-selected); border-color: var(--ui-accent); }
+.switch input:checked::after { transform: translateX(18px); background: var(--ui-accent); }
+
+.field-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+.field-input { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.field-input span, .range span { margin: 0; color: var(--ui-muted); font-size: 13px; }
+.field-input input { width: 100%; height: var(--ui-control); padding: 0 var(--space-3); border-radius: 8px; background: var(--ui-well); border: 1px solid var(--ui-line); color: var(--ui-ink); font: inherit; }
+
+.segmented { display: flex; flex: none; padding: 2px; gap: 2px; border-radius: 8px; background: var(--ui-well); border: 1px solid var(--ui-line); }
+.segmented button { flex: 1; height: 30px; padding: 0 var(--space-3); border-radius: 6px; color: var(--ui-muted); white-space: nowrap; transition: background var(--fast), color var(--fast); }
+.segmented button[aria-pressed="true"] { background: var(--ui-selected); color: var(--ui-accent); }
+
+.row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.range { display: grid; grid-template-columns: 1fr auto; gap: var(--space-1) var(--space-3); align-items: center; }
+.range input { grid-column: 1 / -1; grid-row: 2; margin: 0; accent-color: var(--ui-accent); }
+.range output { font-variant-numeric: tabular-nums; }
+
+.scenarios { display: flex; flex-direction: column; gap: var(--space-2); }
+.scenario { display: flex; align-items: center; gap: var(--space-2); text-align: left; font-family: var(--ui-mono); font-size: 13px; }
+.scenario .icon { width: 12px; height: 12px; color: var(--ui-muted); transform: none; }
+.scenario[aria-pressed="true"] { border-color: var(--ui-accent); color: var(--ui-accent); }
+.replay { display: flex; align-items: center; gap: var(--space-3); }
+.replay progress { flex: 1; height: 6px; appearance: none; border: 0; border-radius: 3px; overflow: hidden; background: var(--ui-raised); accent-color: var(--ui-accent); }
+.replay progress::-webkit-progress-bar { background: var(--ui-raised); }
+.replay progress::-webkit-progress-value { background: var(--ui-accent); }
+
+.note { margin: 0; color: var(--ui-muted); font-size: 13px; }
+.controls-scroll > .note { padding: var(--space-3) 0; }
+.note.error { color: var(--ui-danger); }
+
+/* inspector */
+.inspector { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: var(--space-2); padding: var(--space-3) var(--space-4) var(--space-4); border-top: 1px solid var(--ui-line); }
+.inspector-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.inspector-body { overflow: auto; padding: var(--space-2) var(--space-3); border-radius: 8px; background: var(--ui-well); border: 1px solid var(--ui-line); font: 12px/1.5 var(--ui-mono); color: var(--ui-muted); }
+.inspector-body pre { margin: 0; font: inherit; }
+.inspector-body .note { font-family: "Geist", system-ui, sans-serif; }
+.log { margin: 0; padding: 0; list-style: none; }
+.log li { display: grid; grid-template-columns: auto 28px minmax(0, 1fr); gap: var(--space-2); padding: 2px 0; }
+.log code { font: inherit; overflow-wrap: anywhere; }
+.log time { font-variant-numeric: tabular-nums; }
+.log-in span, .log-in code { color: var(--ui-ink); }
+.log-out span, .log-out code { color: var(--ui-accent); }
+
+.bridge-missing { max-width: 60ch; margin: 20vh auto 0; padding: 0 var(--space-5); font: 16px/1.5 "Geist", system-ui, sans-serif; color: #d5dae2; }
+.bridge-missing h1 { font-size: 24px; }
+
+@media (max-width: 900px) {
+  .tool { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 56vw auto; }
+  .topbar { flex-wrap: wrap; padding: var(--space-3) var(--space-4); gap: var(--space-3); }
+  .car-status { order: 3; flex-basis: 100%; flex-wrap: wrap; gap: var(--space-1) var(--space-4); }
+  .stage { padding: var(--space-3); }
+  .side { grid-template-rows: auto 260px; border-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button, .switch input, .switch input::after, .segmented button, .section .icon { transition-duration: 0.01ms; }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "roadsteros",
+  "private": true,
+  "workspaces": ["emulator"],
+  "scripts": {
+    "dev": "npm run dev -w emulator",
+    "build": "npm run build -w emulator",
+    "start": "npm run start -w emulator"
+  }
+}
