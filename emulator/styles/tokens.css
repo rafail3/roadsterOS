@@ -41,6 +41,7 @@
   --accent-tint: rgba(159, 211, 255, 0.14);
   --accent-line: rgba(159, 211, 255, 0.35);
   --danger: #ff7a7a;
+  --mute: #ff453a;
   --danger-ink: #1c0606;
 
   /* type */
@@ -101,5 +102,6 @@
   --accent-tint: rgba(29, 111, 181, 0.12);
   --accent-line: rgba(29, 111, 181, 0.35);
   --danger: #d8393f;
+  --mute: #ff3b30;
   --danger-ink: #ffffff;
 }

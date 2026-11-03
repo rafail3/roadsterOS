@@ -61,6 +61,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .i-speaker-simple { --m: url(/icons/speaker-simple-none.svg); }
 
 /* status bar */
+/* an icon that opens something: a 48x56 touch target around a 24px glyph, without moving the glyph */
+.bar-button { display: grid; place-items: center; width: 48px; height: var(--bar); margin: 0 -12px; color: inherit; }
 .bar { touch-action: none; grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-5); position: relative; z-index: 2; color: var(--ink-muted); }
 .bar-group { display: flex; align-items: center; gap: var(--space-4); min-width: 200px; }
 .bar-group:last-child { justify-content: flex-end; }
@@ -187,3 +189,49 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
   .drawer, .scrim, .ctl, .toggle, .rail-item, .app, .handle-line { transition-duration: 0.01ms; }
 }
 
+/* volume: shown for a moment after every change */
+.volume-hud { position: absolute; top: 72px; left: 50%; z-index: 6; display: flex; align-items: center; gap: var(--space-2); width: 360px; height: 64px; padding: 0 var(--space-5) 0 var(--space-2); border-radius: 32px; background: var(--sheet-raised); border: 1px solid var(--hairline-strong); color: var(--ink); opacity: 0; pointer-events: none; transform: translate(-50%, -8px); transition: opacity var(--base) var(--ease-out), transform var(--base) var(--ease-out); }
+.volume-hud.is-shown { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
+.volume-mute { flex: none; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; transition: background var(--fast); }
+.volume-mute:active { background: var(--glass-pressed); }
+.volume-mute .icon { width: 28px; height: 28px; }
+/* the finger target is the full strip height, the track inside stays thin */
+.volume-slider { flex: 1; align-self: stretch; display: flex; align-items: center; padding: 0 var(--space-2); touch-action: none; cursor: pointer; border-radius: 12px; }
+.volume-slider:focus-visible, .volume-mute:focus-visible, .bar-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.volume-track { flex: 1; pointer-events: none; height: 6px; border-radius: 3px; background: var(--hairline-strong); overflow: hidden; }
+.volume-fill { height: 100%; border-radius: 3px; background: var(--ink); transition: width var(--fast) var(--ease-out); }
+.volume-num { min-width: 40px; text-align: right; font-size: var(--size-title); font-weight: 600; font-variant-numeric: tabular-nums; }
+.volume-hud.is-muted .volume-mute, .volume-hud.is-muted .volume-num { color: var(--mute); }
+/* muting shakes the bar sideways and rocks the speaker, a short decaying wiggle */
+.volume-hud.is-shaking { animation: volume-shake 460ms cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+.volume-hud.is-shaking .volume-mute .icon { animation: volume-rock 460ms cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+@keyframes volume-shake {
+  0%, 100% { translate: 0 0; }
+  14% { translate: -9px 0; }
+  30% { translate: 8px 0; }
+  46% { translate: -6px 0; }
+  62% { translate: 4px 0; }
+  78% { translate: -2px 0; }
+}
+@keyframes volume-rock {
+  0%, 100% { rotate: 0deg; }
+  14% { rotate: -14deg; }
+  30% { rotate: 12deg; }
+  46% { rotate: -8deg; }
+  62% { rotate: 5deg; }
+  78% { rotate: -2deg; }
+}
+
+/* the frame swells into the screen beside a held volume key */
+/* the frame pushed into the screen: tangent to the edge at both ends, so it blends in with no corner */
+.edge-bulge { position: absolute; left: 0; z-index: 7; display: block; width: 12px; height: 136px; margin-top: -68px; fill: #000; pointer-events: none; overflow: visible; transform: scale(0, 0.72); transform-origin: left center; transition: transform 240ms cubic-bezier(0.32, 0, 0.18, 1); }
+/* a spring: a quick push past the rest depth, then a small settle */
+.edge-bulge.is-pressed { transform: scale(1, 1); transition: transform 520ms linear(0, 0.22 6%, 0.56 14%, 0.86 24%, 1.03 34%, 1.07 41%, 1.05 50%, 1.01 62%, 0.995 75%, 1); }
+
+/* backlight off after the power key; a tap wakes it */
+.screen-off { position: absolute; inset: 0; z-index: 10; background: #000; cursor: default; }
+
+@media (prefers-reduced-motion: reduce) {
+  .volume-hud, .volume-fill, .edge-bulge { transition-duration: 0.01ms; }
+  .volume-hud.is-shaking, .volume-hud.is-shaking .volume-mute .icon { animation: none; }
+}

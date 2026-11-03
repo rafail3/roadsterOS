@@ -47,8 +47,9 @@ class BridgeTest {
     @Test
     fun `shell through json`() {
         val s = Bridge.shell(Bridge.shellInitial(), """{"type":"CycleTheme"}""")
-        assertTrue(s.contains(""""theme":"LIGHT""""), s)
-        assertEquals("DARK", Bridge.effectiveTheme(Bridge.shellInitial(), 22))
-        assertEquals("LIGHT", Bridge.effectiveTheme(Bridge.shellInitial(), 12))
+        assertTrue(s.contains(""""theme":"AUTO""""), s)
+        assertEquals("DARK", Bridge.effectiveTheme(s, 22))
+        assertEquals("LIGHT", Bridge.effectiveTheme(s, 12))
+        assertEquals("DARK", Bridge.effectiveTheme(Bridge.shellInitial(), 12))
     }
 }

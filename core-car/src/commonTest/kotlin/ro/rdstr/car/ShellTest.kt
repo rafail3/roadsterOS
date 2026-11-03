@@ -7,8 +7,13 @@ import kotlin.test.assertTrue
 
 class ShellTest {
     @Test
+    fun `theme starts dark`() {
+        assertEquals(Theme.DARK, Shell.effectiveTheme(ShellState(), 12))
+    }
+
+    @Test
     fun `theme cycles auto light dark`() {
-        var s = ShellState()
+        var s = ShellState(theme = ThemeMode.AUTO)
         s = Shell.reduce(s, ShellAction.CycleTheme); assertEquals(ThemeMode.LIGHT, s.theme)
         s = Shell.reduce(s, ShellAction.CycleTheme); assertEquals(ThemeMode.DARK, s.theme)
         s = Shell.reduce(s, ShellAction.CycleTheme); assertEquals(ThemeMode.AUTO, s.theme)
@@ -16,7 +21,7 @@ class ShellTest {
 
     @Test
     fun `auto theme follows the hour`() {
-        val s = ShellState()
+        val s = ShellState(theme = ThemeMode.AUTO)
         assertEquals(Theme.LIGHT, Shell.effectiveTheme(s, 5))
         assertEquals(Theme.LIGHT, Shell.effectiveTheme(s, 18))
         assertEquals(Theme.DARK, Shell.effectiveTheme(s, 19))
@@ -31,6 +36,20 @@ class ShellTest {
         assertFalse(Shell.reduce(ShellState(), ShellAction.DrawerReleased(0.2)).drawer)
         assertTrue(Shell.reduce(ShellState(), ShellAction.OpenDrawer).drawer)
         assertFalse(Shell.reduce(ShellState(drawer = true), ShellAction.CloseDrawer).drawer)
+    }
+
+    @Test
+    fun `power turns the screen off and a touch wakes it`() {
+        val off = Shell.reduce(ShellState(), ShellAction.ToggleScreen)
+        assertFalse(off.screenOn)
+        assertTrue(Shell.reduce(off, ShellAction.ToggleScreen).screenOn)
+        assertTrue(Shell.reduce(off, ShellAction.Wake).screenOn)
+    }
+
+    @Test
+    fun `home and back close the drawer`() {
+        assertFalse(Shell.reduce(ShellState(drawer = true), ShellAction.Home).drawer)
+        assertFalse(Shell.reduce(ShellState(drawer = true), ShellAction.Back).drawer)
     }
 
     @Test
