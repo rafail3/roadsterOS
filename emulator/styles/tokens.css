@@ -14,6 +14,10 @@
   font-display: swap;
 }
 
+/* registered so the ambient glow can fade to a cover's colours */
+@property --ambient-a { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --ambient-b { syntax: "<color>"; inherits: true; initial-value: transparent; }
+
 /* dark theme: the default, used at night and whenever the car reports illumination */
 :root {
   /* the unit's panel is 1024x600; the layout keeps a 1280-wide canvas drawn at 0.8 (on Android: density 128 for our app) */

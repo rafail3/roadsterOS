@@ -188,7 +188,7 @@ export async function replay(name: string) {
   }
 }
 
-/** URL state for captures, e.g. ?bare&theme=light&hour=20&source=radio&call=ringing&drawer&camera&brightness=40&analog&app=music */
+/** URL state for captures, e.g. ?bare&theme=light&hour=20&source=radio&call=ringing&drawer&camera&brightness=40&analog&app=music&track=1 */
 function fromUrl(q: URLSearchParams): EmulatorState {
   let shell = bridge.shellInitial();
   let car = bridge.initial();
@@ -222,7 +222,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   return {
     car,
     shell,
-    track: { ...SAMPLE_TRACKS[0] },
+    track: { ...(SAMPLE_TRACKS[Number(q.get("track"))] ?? SAMPLE_TRACKS[0]) },
     positionMs: 72000,
     positionAt: Date.now(),
     radio: { khz: 101900, band: "FM", rds: "Radio Nord" },

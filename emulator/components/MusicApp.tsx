@@ -1,7 +1,7 @@
 import { useRef, useState, type PointerEvent } from "react";
 import { bridge } from "../car/bridge";
 import { carCommand, setVolume, shellAction, useEmulator } from "../car/store";
-import { Marquee, Progress, time, TransportRow, useCrossfade, usePosition } from "./media";
+import { Marquee, Progress, time, TransportRow, useCoverColors, useCrossfade, usePosition } from "./media";
 
 /** Full-screen Bluetooth music: the cover blurred into the whole background, a large cover, transport and volume. */
 export function MusicApp({ open }: { open: boolean }) {
@@ -11,6 +11,7 @@ export function MusicApp({ open }: { open: boolean }) {
   const backdrops = useCrossfade(track.art);
   const covers = useCrossfade(track.art);
   const max = bridge.maxVolume();
+  const colors = useCoverColors(track.art);
   const [dragging, setDragging] = useState(false);
   const slider = useRef<HTMLDivElement>(null);
 
@@ -20,7 +21,7 @@ export function MusicApp({ open }: { open: boolean }) {
   };
 
   return (
-    <section className={`music-app${open ? " is-open" : ""}`} aria-label="Music" aria-hidden={!open} inert={!open}>
+    <section className={`music-app${open ? " is-open" : ""}`} aria-label="Music" aria-hidden={!open} inert={!open} style={{ "--cover-top": colors.top, "--cover-bottom": colors.bottom } as React.CSSProperties}>
       {/* on the unit the cover is decoded small and blurred once per track; no live blur */}
       <div className="music-backdrop" aria-hidden="true">
         {backdrops.map((layer) => layer.src && <img key={layer.id} src={layer.src} alt="" />)}

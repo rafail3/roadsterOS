@@ -2,12 +2,46 @@
 // a scrolling title, a progress line and the transport buttons.
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { bridge } from "../car/bridge";
 import { elapsedMs, useEmulator } from "../car/store";
 
 const TICK_MS = 250;
 const CROSSFADE_MS = 1100;
 const MARQUEE_PX_PER_S = 30;
 const MARQUEE_GAP = 1 / 3;
+/** The cover is sampled this small, as the unit decodes it, before its edge colours are taken. */
+const COVER_SAMPLE = 48;
+
+type CoverColors = { top: string; bottom: string };
+const coverCache = new Map<string, CoverColors>();
+
+/** The two background colours of a cover, computed by the shared rules from a small decode of it. */
+export function useCoverColors(src: string | null): CoverColors {
+  const fallback = () => bridge.coverColors([], COVER_SAMPLE);
+  const [colors, setColors] = useState<CoverColors>(() => (src && coverCache.get(src)) || fallback());
+  useEffect(() => {
+    if (!src) return setColors(fallback());
+    const known = coverCache.get(src);
+    if (known) return setColors(known);
+    let live = true;
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = COVER_SAMPLE;
+      const context = canvas.getContext("2d")!;
+      context.drawImage(img, 0, 0, COVER_SAMPLE, COVER_SAMPLE);
+      const rgba = context.getImageData(0, 0, COVER_SAMPLE, COVER_SAMPLE).data;
+      const argb: number[] = [];
+      for (let i = 0; i < rgba.length; i += 4) argb.push((rgba[i + 3] << 24) | (rgba[i] << 16) | (rgba[i + 1] << 8) | rgba[i + 2]);
+      const next = bridge.coverColors(argb, COVER_SAMPLE);
+      coverCache.set(src, next);
+      if (live) setColors(next);
+    };
+    img.src = src;
+    return () => { live = false; };
+  }, [src]);
+  return colors;
+}
 
 export function time(ms: number) {
   const seconds = Math.max(0, Math.round(ms / 1000));

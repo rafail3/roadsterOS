@@ -7,6 +7,7 @@ import { NowPlaying } from "./NowPlaying";
 import { CallOverlay, CameraOverlay } from "./Overlays";
 import { VolumeHud } from "./VolumeHud";
 import { MusicApp } from "./MusicApp";
+import { useCoverColors } from "./media";
 
 const THEME_FADE_MS = 750;
 const MAX_VEIL = 0.78;
@@ -71,6 +72,11 @@ export function Screen() {
   const drawer = useRef<HTMLElement>(null);
   const { dragging, onPointerDown } = useDrawerDrag(drawer);
   const inApp = shell.app !== "HOME";
+  const cover = useCoverColors(car.source === "BT" ? emulator.track.art : null);
+  // while Bluetooth music plays, the home glow takes the cover's colours, softer by day
+  const glow = car.source === "BT" && emulator.track.art
+    ? ({ "--ambient-a": `color-mix(in srgb, ${cover.top} ${light ? 30 : 85}%, transparent)`, "--ambient-b": `color-mix(in srgb, ${cover.bottom} ${light ? 25 : 90}%, transparent)` } as React.CSSProperties)
+    : undefined;
   const covered = shell.drawer || car.call !== "IDLE" || car.camera;
   const veil = Math.max(0, Math.min(MAX_VEIL, (1 - shell.brightness / 100) * VEIL_PER_DIM));
 
@@ -85,7 +91,7 @@ export function Screen() {
   }, [car.camera]);
 
   return (
-    <div className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming")}>
+    <div className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming")} style={glow}>
       <div className="ambient" aria-hidden="true" />
 
       <header className="bar" inert={covered} onPointerDown={onPointerDown}>
