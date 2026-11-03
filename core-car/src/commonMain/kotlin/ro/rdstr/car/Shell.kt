@@ -7,6 +7,9 @@ enum class ThemeMode { AUTO, LIGHT, DARK }
 enum class Theme { LIGHT, DARK }
 enum class Face { DIGITAL, ANALOG }
 
+/** What fills the screen above home. */
+enum class App { HOME, MUSIC }
+
 /** What the shell itself remembers, independent of the car. */
 @Serializable
 data class ShellState(
@@ -16,6 +19,7 @@ data class ShellState(
     val font: String = "geist",
     val brightness: Int = 100,
     val screenOn: Boolean = true,
+    val app: App = App.HOME,
 )
 
 @Serializable
@@ -35,6 +39,7 @@ sealed class ShellAction {
     @Serializable @SerialName("Wake") data object Wake : ShellAction()
     @Serializable @SerialName("Home") data object Home : ShellAction()
     @Serializable @SerialName("Back") data object Back : ShellAction()
+    @Serializable @SerialName("OpenApp") data class OpenApp(val app: App) : ShellAction()
 }
 
 /** Shell behaviour shared by the unit and the browser emulator. Pure. */
@@ -59,8 +64,10 @@ object Shell {
         is ShellAction.Headlights -> s.copy(brightness = if (a.on) HEADLIGHTS_BRIGHTNESS else FULL_BRIGHTNESS)
         ShellAction.ToggleScreen -> s.copy(screenOn = !s.screenOn)
         ShellAction.Wake -> s.copy(screenOn = true)
-        // ponytail: both only close the drawer until screens other than home exist
-        ShellAction.Home, ShellAction.Back -> s.copy(drawer = false)
+        is ShellAction.OpenApp -> s.copy(app = a.app, drawer = false)
+        ShellAction.Home -> s.copy(app = App.HOME, drawer = false)
+        // one layer at a time: the drawer first, then the app
+        ShellAction.Back -> if (s.drawer) s.copy(drawer = false) else s.copy(app = App.HOME)
     }
 
     fun effectiveTheme(s: ShellState, hour: Int): Theme = when (s.theme) {
