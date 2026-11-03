@@ -5,11 +5,11 @@ import { Clock } from "./Clock";
 import { Drawer, useDrawerDrag } from "./Drawer";
 import { NowPlaying } from "./NowPlaying";
 import { CallOverlay, CameraOverlay } from "./Overlays";
+import { VolumeHud } from "./VolumeHud";
 
 const THEME_FADE_MS = 750;
 const MAX_VEIL = 0.78;
 const VEIL_PER_DIM = 0.85;
-const VOLUME_HUD_MS = 1500;
 
 const RAIL = [
   { id: "music", label: "Music", icon: "i-music-notes" },
@@ -45,19 +45,6 @@ function useThemeFade(theme: string) {
   return fading;
 }
 
-/** True for a moment after the value changes, never on the first render. */
-function useFlash(value: unknown, ms: number) {
-  const [shown, setShown] = useState(false);
-  const first = useRef(true);
-  useEffect(() => {
-    if (first.current) { first.current = false; return; }
-    setShown(true);
-    const timer = setTimeout(() => setShown(false), ms);
-    return () => clearTimeout(timer);
-  }, [value, ms]);
-  return shown;
-}
-
 function pressRail(id: string, cameraOn: boolean) {
   if (id === "music") carCommand({ type: "Audio.Source", source: "BT" });
   if (id === "radio") carCommand({ type: "Audio.Source", source: "RADIO" });
@@ -74,7 +61,7 @@ export function Screen() {
   const drawer = useRef<HTMLElement>(null);
   const { dragging, onPointerDown } = useDrawerDrag(drawer);
   const covered = shell.drawer || car.call !== "IDLE" || car.camera;
-  const volumeShown = useFlash(`${car.volume}/${car.muted}`, VOLUME_HUD_MS);
+  const [volumeOpened, setVolumeOpened] = useState(0);
   const veil = Math.max(0, Math.min(MAX_VEIL, (1 - shell.brightness / 100) * VEIL_PER_DIM));
 
   useEffect(() => {
@@ -104,7 +91,9 @@ export function Screen() {
         </button>
         <div className="bar-group">
           <span className="icon i-wifi-high" role="img" aria-label="Wi-Fi connected" />
-          <span className={`icon ${car.muted ? "i-speaker-slash is-off" : "i-speaker-high"}`} role="img" aria-label={car.muted ? "Muted" : "Sound on"} />
+          <button className="bar-button" aria-label={car.muted ? "Volume, muted" : "Volume"} onClick={() => setVolumeOpened((n) => n + 1)}>
+            <span className={`icon ${car.muted ? "i-speaker-slash is-off" : "i-speaker-high"}`} aria-hidden="true" />
+          </button>
           <span className={`icon ${light ? "i-sun" : "i-moon"}`} id="bar-theme" role="img" aria-label={light ? "Day theme" : "Night theme"} />
         </div>
       </header>
@@ -137,11 +126,7 @@ export function Screen() {
       <Drawer emulator={emulator} panel={drawer} dragging={dragging} />
       {car.call !== "IDLE" && <CallOverlay emulator={emulator} />}
       {car.camera && <CameraOverlay />}
-      <div className={classes("volume-hud", volumeShown && "is-shown")} role="status" aria-live="polite">
-        <span className={`icon ${car.muted ? "i-speaker-slash" : "i-speaker-high"}`} aria-hidden="true" />
-        <div className="volume-track" aria-hidden="true"><div className="volume-fill" style={{ width: `${car.muted ? 0 : (car.volume / bridge.maxVolume()) * 100}%` }} /></div>
-        <span className="volume-num">{car.muted ? "Muted" : car.volume}</span>
-      </div>
+      <VolumeHud volume={car.volume} muted={car.muted} opened={volumeOpened} />
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.toFixed(3) }} />
       {!shell.screenOn && <button className="screen-off" aria-label="Screen off, tap to wake" onClick={() => shellAction({ type: "Wake" })} />}
     </div>

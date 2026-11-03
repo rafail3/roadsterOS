@@ -61,6 +61,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .i-speaker-simple { --m: url(/icons/speaker-simple-none.svg); }
 
 /* status bar */
+/* an icon that opens something: a 48x56 touch target around a 24px glyph, without moving the glyph */
+.bar-button { display: grid; place-items: center; width: 48px; height: var(--bar); margin: 0 -12px; color: inherit; }
 .bar { touch-action: none; grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-5); position: relative; z-index: 2; color: var(--ink-muted); }
 .bar-group { display: flex; align-items: center; gap: var(--space-4); min-width: 200px; }
 .bar-group:last-child { justify-content: flex-end; }
@@ -188,9 +190,15 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 }
 
 /* volume: shown for a moment after every change */
-.volume-hud { position: absolute; top: 72px; left: 50%; z-index: 6; display: flex; align-items: center; gap: var(--space-4); width: 360px; height: 64px; padding: 0 var(--space-5); border-radius: 32px; background: var(--sheet-raised); border: 1px solid var(--hairline-strong); color: var(--ink); opacity: 0; pointer-events: none; transform: translate(-50%, -8px); transition: opacity var(--base) var(--ease-out), transform var(--base) var(--ease-out); }
-.volume-hud.is-shown { opacity: 1; transform: translate(-50%, 0); }
-.volume-track { flex: 1; height: 6px; border-radius: 3px; background: var(--hairline-strong); overflow: hidden; }
+.volume-hud { position: absolute; top: 72px; left: 50%; z-index: 6; display: flex; align-items: center; gap: var(--space-2); width: 360px; height: 64px; padding: 0 var(--space-5) 0 var(--space-2); border-radius: 32px; background: var(--sheet-raised); border: 1px solid var(--hairline-strong); color: var(--ink); opacity: 0; pointer-events: none; transform: translate(-50%, -8px); transition: opacity var(--base) var(--ease-out), transform var(--base) var(--ease-out); }
+.volume-hud.is-shown { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
+.volume-mute { flex: none; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; transition: background var(--fast); }
+.volume-mute:active { background: var(--glass-pressed); }
+.volume-mute .icon { width: 28px; height: 28px; }
+/* the finger target is the full strip height, the track inside stays thin */
+.volume-slider { flex: 1; align-self: stretch; display: flex; align-items: center; padding: 0 var(--space-2); touch-action: none; cursor: pointer; border-radius: 12px; }
+.volume-slider:focus-visible, .volume-mute:focus-visible, .bar-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.volume-track { flex: 1; pointer-events: none; height: 6px; border-radius: 3px; background: var(--hairline-strong); overflow: hidden; }
 .volume-fill { height: 100%; border-radius: 3px; background: var(--ink); transition: width var(--fast) var(--ease-out); }
 .volume-num { min-width: 40px; text-align: right; font-size: var(--size-title); font-weight: 600; font-variant-numeric: tabular-nums; }
 
