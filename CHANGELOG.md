@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/rafail3/roadsterOS/compare/v1.1.0...v1.2.0) (2026-11-03)
+
+
+### Features
+
+* frame keys, volume bar and mute ([#7](https://github.com/rafail3/roadsterOS/issues/7)) ([e695e02](https://github.com/rafail3/roadsterOS/commit/e695e0249cab850357e218e9bcb3fc25aa9f07ce))
+
 ## [1.1.0](https://github.com/rafail3/roadsterOS/compare/v1.0.0...v1.1.0) (2026-11-03)
 
 
