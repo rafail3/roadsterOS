@@ -1,6 +1,7 @@
 package ro.rdstr.car
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
@@ -41,6 +42,11 @@ object Bridge {
     }
 
     fun maxVolume(): Int = Rules.MAX_VOLUME
+
+    fun setVolume(state: String, level: Int): String = json.encodeToString(
+        ListSerializer(CarCommand.serializer()),
+        Rules.setVolume(json.decodeFromString(RulesState.serializer(), state), level),
+    )
 
     fun shellInitial(): String = json.encodeToString(ShellState.serializer(), ShellState())
 

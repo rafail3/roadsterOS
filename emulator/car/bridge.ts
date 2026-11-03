@@ -70,6 +70,7 @@ interface Kotlin {
     Record<"apply" | "command" | "shell", (state: string, input: string) => string> & {
       echo(command: string): string;
       maxVolume(): number;
+      setVolume(state: string, level: number): string;
       effectiveTheme(state: string, hour: number): "LIGHT" | "DARK";
     };
 }
@@ -93,5 +94,6 @@ export const bridge = {
   shell: (state: ShellState, action: ShellAction): ShellState =>
     JSON.parse(K!.Bridge.shell(JSON.stringify(state), JSON.stringify(action))),
   maxVolume: () => K!.Bridge.maxVolume(),
+  setVolume: (state: CarState, level: number): CarCommand[] => JSON.parse(K!.Bridge.setVolume(JSON.stringify(state), level)),
   effectiveTheme: (state: ShellState, hour: number) => K!.Bridge.effectiveTheme(JSON.stringify(state), hour),
 };

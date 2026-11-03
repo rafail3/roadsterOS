@@ -82,6 +82,16 @@ object Rules {
         is CarEvent.Track, is CarEvent.Radio, is CarEvent.CarDisplay -> s to emptyList()
     }
 
+    /** A level picked on screen, as the commands to send: relative steps, mute at zero, sound back above it. */
+    fun setVolume(s: RulesState, level: Int): List<CarCommand> {
+        val target = level.coerceIn(0, MAX_VOLUME)
+        return buildList {
+            if (target != s.volume) add(CarCommand.Audio.Volume(target - s.volume))
+            if (target == 0 && !s.muted) add(CarCommand.Audio.Mute(true))
+            if (target > 0 && s.muted) add(CarCommand.Audio.Mute(false))
+        }
+    }
+
     /** Commands coming from our own UI that change what the rules must remember. */
     fun onCommand(s: RulesState, c: CarCommand): RulesState = when (c) {
         is CarCommand.Audio.Source -> if (c.source == s.source) s else s.copy(source = c.source, lastSource = s.source)

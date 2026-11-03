@@ -28,7 +28,6 @@ export function VolumeHud({ volume, muted, opened }: { volume: number; muted: bo
   // the whole strip between the icon and the number is the touch target, not only the thin track
   const dragTo = (e: PointerEvent<HTMLDivElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
-    if (muted) carCommand({ type: "Audio.Mute", on: false });
     setVolume(Math.round(Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * max));
   };
   const release = () => { holding.current = false; poke(); };

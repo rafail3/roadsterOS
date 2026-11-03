@@ -85,6 +85,16 @@ class RulesTest {
     }
 
     @Test
+    fun `a level picked on screen mutes at zero and unmutes above it`() {
+        val s = bt.copy(volume = 5)
+        assertEquals(listOf(CarCommand.Audio.Volume(3)), Rules.setVolume(s, 8))
+        assertEquals(listOf(CarCommand.Audio.Volume(-5), CarCommand.Audio.Mute(true)), Rules.setVolume(s, 0))
+        assertEquals(emptyList(), Rules.setVolume(s.copy(volume = 0, muted = true), 0))
+        assertEquals(listOf(CarCommand.Audio.Volume(2), CarCommand.Audio.Mute(false)), Rules.setVolume(s.copy(volume = 0, muted = true), 2))
+        assertEquals(listOf(CarCommand.Audio.Volume(Rules.MAX_VOLUME - 5)), Rules.setVolume(s, 99))
+    }
+
+    @Test
     fun `mute key toggles`() {
         val (muted, a1) = Rules.apply(bt, CarEvent.SteeringKey(Key.MUTE))
         assertEquals(listOf(Action.Send(CarCommand.Audio.Mute(true))), a1)

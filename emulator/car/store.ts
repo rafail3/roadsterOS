@@ -93,10 +93,9 @@ export function carCommand(command: CarCommand) {
   sendToCar(command);
 }
 
-/** Sets an absolute level through relative steps, the only volume command the car knows. */
+/** A level picked on screen; the shared rules turn it into steps and mute at zero. */
 export function setVolume(level: number) {
-  const delta = Math.min(bridge.maxVolume(), Math.max(0, level)) - state.car.volume;
-  if (delta !== 0) carCommand({ type: "Audio.Volume", delta });
+  bridge.setVolume(state.car, level).forEach(carCommand);
 }
 
 export function shellAction(action: ShellAction) {
