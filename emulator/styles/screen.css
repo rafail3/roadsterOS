@@ -187,3 +187,16 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
   .drawer, .scrim, .ctl, .toggle, .rail-item, .app, .handle-line { transition-duration: 0.01ms; }
 }
 
+/* volume: shown for a moment after every change */
+.volume-hud { position: absolute; top: 72px; left: 50%; z-index: 6; display: flex; align-items: center; gap: var(--space-4); width: 360px; height: 64px; padding: 0 var(--space-5); border-radius: 32px; background: var(--sheet-raised); border: 1px solid var(--hairline-strong); color: var(--ink); opacity: 0; pointer-events: none; transform: translate(-50%, -8px); transition: opacity var(--base) var(--ease-out), transform var(--base) var(--ease-out); }
+.volume-hud.is-shown { opacity: 1; transform: translate(-50%, 0); }
+.volume-track { flex: 1; height: 6px; border-radius: 3px; background: var(--hairline-strong); overflow: hidden; }
+.volume-fill { height: 100%; border-radius: 3px; background: var(--ink); transition: width var(--fast) var(--ease-out); }
+.volume-num { min-width: 40px; text-align: right; font-size: var(--size-title); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* backlight off after the power key; a tap wakes it */
+.screen-off { position: absolute; inset: 0; z-index: 10; background: #000; cursor: default; }
+
+@media (prefers-reduced-motion: reduce) {
+  .volume-hud, .volume-fill { transition-duration: 0.01ms; }
+}
