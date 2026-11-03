@@ -32,6 +32,7 @@ sealed class Action {
     @Serializable @SerialName("ToggleScreen") data object ToggleScreen : Action()
     @Serializable @SerialName("Home") data object Home : Action()
     @Serializable @SerialName("Back") data object Back : Action()
+    @Serializable @SerialName("ShowVolume") data object ShowVolume : Action()
 }
 
 /** The single place that decides what happens when the car says something. Pure, no Android. */
@@ -129,7 +130,7 @@ object Rules {
         // one step at a time, with the same mute at zero as a level picked on screen
         Key.VOL_UP, Key.VOL_DOWN -> {
             val commands = setVolume(s, s.volume + if (k == Key.VOL_UP) 1 else -1)
-            commands.fold(s, ::onCommand) to commands.map { Action.Send(it) }
+            commands.fold(s, ::onCommand) to commands.map { Action.Send(it) } + Action.ShowVolume
         }
         Key.MUTE -> s.copy(muted = !s.muted) to listOf(Action.Send(CarCommand.Audio.Mute(!s.muted)))
         Key.NEXT, Key.PREV -> {

@@ -58,14 +58,14 @@ class RulesTest {
 
     @Test
     fun `volume keys send relative volume`() {
-        assertEquals(listOf(Action.Send(CarCommand.Audio.Volume(1))), Rules.apply(bt, CarEvent.SteeringKey(Key.VOL_UP)).second)
-        assertEquals(listOf(Action.Send(CarCommand.Audio.Volume(-1))), Rules.apply(bt, CarEvent.SteeringKey(Key.VOL_DOWN)).second)
+        assertEquals(listOf(Action.Send(CarCommand.Audio.Volume(1)), Action.ShowVolume), Rules.apply(bt, CarEvent.SteeringKey(Key.VOL_UP)).second)
+        assertEquals(listOf(Action.Send(CarCommand.Audio.Volume(-1)), Action.ShowVolume), Rules.apply(bt, CarEvent.SteeringKey(Key.VOL_DOWN)).second)
     }
 
     @Test
     fun `panel volume keys send relative volume like the steering wheel`() {
-        assertEquals(listOf(Action.Send(CarCommand.Audio.Volume(1))), Rules.apply(bt, CarEvent.PanelKey(PanelKey.VOL_UP)).second)
-        assertEquals(listOf(Action.Send(CarCommand.Audio.Volume(-1))), Rules.apply(bt, CarEvent.PanelKey(PanelKey.VOL_DOWN)).second)
+        assertEquals(listOf(Action.Send(CarCommand.Audio.Volume(1)), Action.ShowVolume), Rules.apply(bt, CarEvent.PanelKey(PanelKey.VOL_UP)).second)
+        assertEquals(listOf(Action.Send(CarCommand.Audio.Volume(-1)), Action.ShowVolume), Rules.apply(bt, CarEvent.PanelKey(PanelKey.VOL_DOWN)).second)
         assertEquals(Rules.DEFAULT_VOLUME + 1, Rules.apply(bt, CarEvent.PanelKey(PanelKey.VOL_UP)).first.volume)
         assertEquals(Rules.DEFAULT_VOLUME - 1, Rules.apply(bt, CarEvent.SteeringKey(Key.VOL_DOWN)).first.volume)
     }
@@ -80,12 +80,13 @@ class RulesTest {
     @Test
     fun `volume keys mute at zero and unmute on the way up`() {
         val (atZero, down) = Rules.apply(bt.copy(volume = 1), CarEvent.PanelKey(PanelKey.VOL_DOWN))
-        assertEquals(listOf(Action.Send(CarCommand.Audio.Volume(-1)), Action.Send(CarCommand.Audio.Mute(true))), down)
+        assertEquals(listOf(Action.Send(CarCommand.Audio.Volume(-1)), Action.Send(CarCommand.Audio.Mute(true)), Action.ShowVolume), down)
         assertEquals(0, atZero.volume)
         assertTrue(atZero.muted)
-        assertEquals(emptyList(), Rules.apply(atZero, CarEvent.SteeringKey(Key.VOL_DOWN)).second)
+        // nothing left to lower, but the key still brings the volume bar up
+        assertEquals(listOf(Action.ShowVolume), Rules.apply(atZero, CarEvent.SteeringKey(Key.VOL_DOWN)).second)
         val (up, upActions) = Rules.apply(atZero, CarEvent.SteeringKey(Key.VOL_UP))
-        assertEquals(listOf(Action.Send(CarCommand.Audio.Volume(1)), Action.Send(CarCommand.Audio.Mute(false))), upActions)
+        assertEquals(listOf(Action.Send(CarCommand.Audio.Volume(1)), Action.Send(CarCommand.Audio.Mute(false)), Action.ShowVolume), upActions)
         assertFalse(up.muted)
     }
 

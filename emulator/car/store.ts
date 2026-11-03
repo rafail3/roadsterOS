@@ -24,6 +24,8 @@ export interface EmulatorState {
   log: LogEntry[];
   replay: { name: string; progress: number } | null;
   replayError: string | null;
+  /** bumped whenever the volume bar should come up, even with nothing changed */
+  volumeOpened: number;
 }
 
 const LOG_SIZE = 60;
@@ -72,6 +74,7 @@ function runAction(action: RuleAction) {
   if (action.type === "Send" && action.command) sendToCar(action.command);
   if (action.type === "Night") shellAction({ type: "Headlights", on: Boolean(action.on) });
   if (SHELL_ACTIONS[action.type]) shellAction(SHELL_ACTIONS[action.type]);
+  if (action.type === "ShowVolume") openVolume();
 }
 
 /** What the bus does: the rules already accounted for the command, the car answers. */
@@ -100,6 +103,10 @@ export function setVolume(level: number) {
 
 export function shellAction(action: ShellAction) {
   set({ shell: bridge.shell(state.shell, action) });
+}
+
+export function openVolume() {
+  set({ volumeOpened: state.volumeOpened + 1 });
 }
 
 export function setHour(hour: number | null) {
@@ -181,6 +188,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     log: [],
     replay: null,
     replayError: null,
+    volumeOpened: 0,
   };
 }
 
