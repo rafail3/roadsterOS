@@ -1,32 +1,38 @@
 import { useState } from "react";
-import { carCommand, type EmulatorState } from "../car/store";
+import { carCommand, shellAction, type EmulatorState } from "../car/store";
+import { Marquee, Progress, time, TransportRow, useCrossfade, usePosition } from "./media";
 
 const PRESETS = [1, 2, 3, 4, 5, 6];
 
-function time(ms: number) {
-  const seconds = Math.round(ms / 1000);
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-}
-
 function Bluetooth({ emulator }: { emulator: EmulatorState }) {
-  const { car, track, positionMs } = emulator;
-  const progress = track.durationMs ? Math.min(100, (positionMs / track.durationMs) * 100) : 0;
+  const { car, track } = emulator;
+  const { elapsed, duration } = usePosition();
+  const tints = useCrossfade(track.art);
+  const covers = useCrossfade(track.art);
   return (
-    <div className="np">
-      <div className="art" aria-hidden="true" />
-      <div className="np-meta" aria-live="polite">
-        <p className="np-title">{track.title}</p>
-        <p className="np-artist">{track.artist}</p>
+    <div className="np np-bt">
+      <div className="np-tint" aria-hidden="true">
+        {tints.map((layer) => layer.src && <img key={layer.id} src={layer.src} alt="" />)}
       </div>
-      <div className="progress" aria-hidden="true"><div className="progress-fill" style={{ width: `${progress}%` }} /></div>
-      <div className="np-times"><span>{time(positionMs)}</span><span>{time(track.durationMs)}</span></div>
-      <div className="controls">
-        <button className="ctl" aria-label="Previous" onClick={() => carCommand({ type: "Media.Prev" })}><span className="icon i-skip-back" /></button>
-        <button className="ctl ctl-primary" aria-label={car.playing ? "Pause" : "Play"} onClick={() => carCommand({ type: car.playing ? "Media.Pause" : "Media.Play" })}>
-          <span className={`icon ${car.playing ? "i-pause" : "i-play"}`} />
-        </button>
-        <button className="ctl" aria-label="Next" onClick={() => carCommand({ type: "Media.Next" })}><span className="icon i-skip-forward" /></button>
-      </div>
+      <button className="np-open" aria-label={`Open music, ${track.title} by ${track.artist}`} onClick={() => shellAction({ type: "OpenApp", app: "MUSIC" })}>
+        <span className={`np-cover${car.playing ? " is-playing" : ""}`}>
+          {covers.map((layer) => (layer.src
+            ? <img key={layer.id} src={layer.src} alt="" />
+            : <span key={layer.id} className="np-cover-empty"><span className="icon i-music-notes" /></span>))}
+        </span>
+        <span className="np-meta" key={track.title}>
+          <Marquee text={track.title} className="np-title" />
+          <Marquee text={track.artist} className="np-artist" />
+        </span>
+      </button>
+      <Progress elapsed={elapsed} duration={duration} className="np-progress" />
+      <div className="np-times"><span>{time(elapsed)}</span><span>-{time(duration - elapsed)}</span></div>
+      <TransportRow
+        playing={car.playing}
+        onPrev={() => carCommand({ type: "Media.Prev" })}
+        onPlay={() => carCommand({ type: car.playing ? "Media.Pause" : "Media.Play" })}
+        onNext={() => carCommand({ type: "Media.Next" })}
+      />
     </div>
   );
 }

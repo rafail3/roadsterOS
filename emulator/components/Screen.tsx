@@ -6,6 +6,7 @@ import { Drawer, useDrawerDrag } from "./Drawer";
 import { NowPlaying } from "./NowPlaying";
 import { CallOverlay, CameraOverlay } from "./Overlays";
 import { VolumeHud } from "./VolumeHud";
+import { MusicApp } from "./MusicApp";
 
 const THEME_FADE_MS = 750;
 const MAX_VEIL = 0.78;
@@ -52,7 +53,10 @@ function useThemeFade(theme: string) {
 }
 
 function pressRail(id: string, cameraOn: boolean) {
-  if (id === "music") carCommand({ type: "Audio.Source", source: "BT" });
+  if (id === "music") {
+    carCommand({ type: "Audio.Source", source: "BT" });
+    shellAction({ type: "OpenApp", app: "MUSIC" });
+  }
   if (id === "radio") carCommand({ type: "Audio.Source", source: "RADIO" });
   if (id === "camera") carEvent({ type: "ReverseGear", on: !cameraOn });
 }
@@ -66,6 +70,7 @@ export function Screen() {
   const fading = useThemeFade(theme);
   const drawer = useRef<HTMLElement>(null);
   const { dragging, onPointerDown } = useDrawerDrag(drawer);
+  const inApp = shell.app !== "HOME";
   const covered = shell.drawer || car.call !== "IDLE" || car.camera;
   const veil = Math.max(0, Math.min(MAX_VEIL, (1 - shell.brightness / 100) * VEIL_PER_DIM));
 
@@ -103,7 +108,7 @@ export function Screen() {
         </div>
       </header>
 
-      <nav className="rail" aria-label="Functions" inert={covered}>
+      <nav className="rail" aria-label="Functions" inert={covered || inApp}>
         {RAIL.map(({ id, label, icon }) => {
           const active = (car.source === "BT" && id === "music") || (car.source === "RADIO" && id === "radio");
           return (
@@ -114,19 +119,22 @@ export function Screen() {
         })}
       </nav>
 
-      <section className="field" inert={covered}>
+      <section className="field" inert={covered || inApp}>
         <Clock now={now} face={shell.face} />
         <div className="apps" aria-label="Apps">
           {APPS.map(({ label, mark }) => (
-            <button key={label} className="app"><span className={`app-mark ${mark}`} /><span>{label}</span></button>
+            <button key={label} className="app" onClick={label === "Music" ? () => shellAction({ type: "OpenApp", app: "MUSIC" }) : undefined}>
+              <span className={`app-mark ${mark}`} /><span>{label}</span>
+            </button>
           ))}
         </div>
       </section>
 
-      <section className="panel" aria-label="Now playing" inert={covered}>
+      <section className="panel" aria-label="Now playing" inert={covered || inApp}>
         <NowPlaying emulator={emulator} />
       </section>
 
+      <MusicApp open={shell.app === "MUSIC"} />
       <div className={classes("scrim", shell.drawer && "is-open")} onClick={() => shellAction({ type: "CloseDrawer" })} />
       <Drawer emulator={emulator} panel={drawer} dragging={dragging} />
       {car.call !== "IDLE" && <CallOverlay emulator={emulator} />}
@@ -136,7 +144,7 @@ export function Screen() {
           <path d={BULGE_PATH} />
         </svg>
       ))}
-      <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} />
+      <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC"} />
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.toFixed(3) }} />
       {!shell.screenOn && <button className="screen-off" aria-label="Screen off, tap to wake" onClick={() => shellAction({ type: "Wake" })} />}
     </div>

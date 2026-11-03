@@ -6,7 +6,8 @@ const VISIBLE_MS = 1500;
 const KEY_STEP: Record<string, number> = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 };
 
 /** Shown after every volume change, or when opened from the status bar; stays while a finger holds it. */
-export function VolumeHud({ volume, muted, opened }: { volume: number; muted: boolean; opened: number }) {
+/** `quiet` while a screen shows its own volume control, which then moves instead. */
+export function VolumeHud({ volume, muted, opened, quiet = false }: { volume: number; muted: boolean; opened: number; quiet?: boolean }) {
   const max = bridge.maxVolume();
   const [shown, setShown] = useState(false);
   const holding = useRef(false);
@@ -23,7 +24,7 @@ export function VolumeHud({ volume, muted, opened }: { volume: number; muted: bo
 
   useEffect(() => {
     if (first.current) { first.current = false; return; }
-    poke();
+    if (!quiet) poke();
   }, [volume, muted, opened]);
   useEffect(() => () => clearTimeout(timer.current), []);
   useEffect(() => {

@@ -1,0 +1,117 @@
+/* Bluetooth music: the home card and the full-screen app. Sizes are for a 1280x720 screen read from arm's length. */
+:root {
+  --seamless: cubic-bezier(0.37, 0, 0.63, 1);
+  /* springs sampled from stiffness/damping pairs */
+  --spring-cover: linear(0, 0.099 5%, 0.316 10%, 0.559 15%, 0.773 20%, 0.932 25%, 1.032 30%, 1.082 35%, 1.095 40%, 1.085 45%, 1.064 50%, 1.041 55%, 1.021 60%, 1.006 65%, 0.997 70%, 0.992 75%, 0.991 80%, 0.992 85%, 0.994 90%, 0.996 95%, 1);
+  --spring-glyph: linear(0, 0.1 5%, 0.319 10%, 0.564 15%, 0.778 20%, 0.937 25%, 1.036 30%, 1.083 35%, 1.095 40%, 1.084 45%, 1.062 50%, 1.039 55%, 1.019 60%, 1.005 65%, 0.996 70%, 0.992 75%, 0.991 80%, 0.992 85%, 0.994 90%, 0.996 95%, 1);
+  --spring-swap: linear(0, 0.063 5%, 0.205 10%, 0.375 15%, 0.541 20%, 0.686 25%, 0.802 30%, 0.889 35%, 0.951 40%, 0.99 45%, 1.014 50%, 1.025 55%, 1.028 60%, 1.027 65%, 1.023 70%, 1.018 75%, 1.014 80%, 1.009 85%, 1.006 90%, 1.003 95%, 1);
+  --sheet-in: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.i-rewind-fill { --m: url(/icons/rewind-fill.svg); }
+.i-fast-forward-fill { --m: url(/icons/fast-forward-fill.svg); }
+.i-play-fill { --m: url(/icons/play-fill.svg); }
+.i-pause-fill { --m: url(/icons/pause-fill.svg); }
+.i-speaker-low { --m: url(/icons/speaker-low.svg); }
+
+@keyframes media-fade { from { opacity: 0; } }
+
+/* ----- shared: scrolling line, progress line, transport ----- */
+.marquee { overflow: hidden; white-space: nowrap; text-overflow: clip; }
+.marquee-text { display: inline-block; }
+.marquee.is-running .marquee-text { padding-right: var(--marquee-gap); animation: marquee var(--marquee-duration) linear 1.2s infinite; }
+@keyframes marquee { to { transform: translateX(var(--marquee-distance)); } }
+
+.progress-line { position: relative; height: 6px; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, 0.16); }
+.progress-line-fill { position: absolute; inset: 0; transform-origin: left center; background: rgba(255, 255, 255, 0.82); transition: transform 250ms linear; }
+
+.transport { display: flex; justify-content: center; align-items: center; gap: var(--tx-gap, 36px); }
+/* a filled glyph with no plate; a soft disc blooms behind it while pressed */
+.tx { --tx-size: 96px; --tx-glyph: 52px; position: relative; width: var(--tx-size); height: var(--tx-size); display: grid; place-items: center; border-radius: 50%; color: var(--tx-color, #fff); }
+.tx-play { --tx-size: 120px; --tx-glyph: 68px; }
+.tx::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--tx-bloom, rgba(255, 255, 255, 0.16)); opacity: 0; transform: scale(0.85); transition: opacity 320ms var(--seamless), transform 320ms var(--seamless); }
+.tx:active::before { opacity: 1; transform: scale(1); transition-duration: 60ms; transition-timing-function: linear; }
+.tx-glyph { position: relative; width: var(--tx-glyph); height: var(--tx-glyph); transition: transform 485ms var(--spring-glyph); animation: tx-pop 350ms var(--spring-swap) backwards, media-fade 120ms linear backwards; }
+.tx-glyph.is-delayed { animation-delay: 120ms; }
+/* pressing play squeezes its glyph almost away; the other glyph then pops in */
+.tx-play:active .tx-glyph { transform: scale(0.2); transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1); }
+.tx-prev:active .tx-glyph, .tx-next:active .tx-glyph { transform: scale(0.88); transition: transform 120ms cubic-bezier(0.2, 0, 0, 1); }
+.tx-next.is-nudging .tx-glyph { animation: tx-nudge-fwd 340ms var(--seamless); }
+.tx-prev.is-nudging .tx-glyph { animation: tx-nudge-back 340ms var(--seamless); }
+@keyframes tx-pop { from { transform: scale(0.2); } }
+@keyframes tx-nudge-fwd { 38% { translate: 8px 0; } }
+@keyframes tx-nudge-back { 38% { translate: -8px 0; } }
+.tx:focus-visible, .np-open:focus-visible, .glass-button:focus-visible, .music-volume-track:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ----- home card ----- */
+.np-bt { position: relative; isolation: isolate; overflow: hidden; gap: var(--space-3); }
+/* the cover, blurred, tints the whole card */
+.np-tint { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.np-tint img { position: absolute; inset: -20%; width: 140%; height: 140%; object-fit: cover; filter: blur(60px) saturate(1.4); opacity: 0.55; animation: media-fade 1100ms var(--seamless) 360ms backwards; }
+.np-tint::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6, 8, 11, 0.2), rgba(6, 8, 11, 0.62)); }
+.screen.light .np-tint img { opacity: 0.32; }
+.screen.light .np-tint::after { background: linear-gradient(180deg, rgba(242, 244, 247, 0.15), rgba(242, 244, 247, 0.6)); }
+.np-open { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--space-4); text-align: left; border-radius: var(--radius-sm); }
+.np-cover { position: relative; flex: 1; min-height: 0; border-radius: 12px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28); transform: scale(0.94); transition: transform 500ms cubic-bezier(0.2, 0.9, 0.25, 1); }
+.np-cover.is-playing { transform: scale(1); transition: transform 780ms var(--spring-cover); }
+.np-cover img, .np-cover-empty { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; animation: media-fade 450ms var(--seamless) 90ms backwards; }
+.np-cover-empty { display: grid; place-items: center; background: var(--glass-strong); color: var(--ink-subtle); }
+.np-cover-empty .icon { width: 64px; height: 64px; }
+.np-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; animation: media-fade 380ms var(--seamless) 200ms backwards; }
+.np-progress { height: 6px; background: var(--hairline-strong); }
+.np-progress .progress-line-fill { background: var(--ink); }
+.np-bt .np-times { margin-top: calc(-1 * var(--space-1)); }
+.np .transport { --tx-gap: 4px; }
+.np .tx { --tx-size: 76px; --tx-glyph: 36px; --tx-color: var(--ink); --tx-bloom: color-mix(in srgb, var(--ink) 14%, transparent); }
+.np .tx-play { --tx-size: 92px; --tx-glyph: 48px; }
+
+/* ----- full-screen app ----- */
+.music-app {
+  position: absolute; inset: 0; z-index: 2; isolation: isolate; overflow: hidden;
+  display: grid; grid-template-columns: 480px minmax(0, 1fr); align-items: center; column-gap: 80px; padding: 56px 96px 0 112px;
+  background: #101318; color: #fff;
+  transform: translateY(100%); transition: transform 420ms var(--sheet-in);
+}
+.music-app.is-open { transform: none; }
+/* the cover blurred across the whole screen, under a darkening scrim; on the unit it is baked once per track */
+.music-backdrop { position: absolute; inset: 0; z-index: -1; overflow: hidden; }
+.music-backdrop img { position: absolute; inset: -15%; width: 130%; height: 130%; object-fit: cover; filter: blur(80px) saturate(1.5); animation: media-fade 1100ms var(--seamless) 360ms backwards; }
+.music-backdrop::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.6)); }
+
+.glass-button { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; color: rgba(235, 235, 245, 0.85); background: rgba(23, 23, 23, 0.55); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35); transition: transform 300ms var(--spring-glyph); }
+.glass-button:active { transform: scale(1.07); transition-duration: 120ms; }
+.glass-button .icon { width: 28px; height: 28px; }
+.music-close { position: absolute; top: 76px; left: 32px; }
+/* the status bar stays over the app; over the coloured backdrop it needs light ink */
+.screen:has(.music-app.is-open) .bar, .screen:has(.music-app.is-open) .bar-text { color: rgba(255, 255, 255, 0.86); }
+
+/* the cover sits back when paused and springs forward when playing */
+.music-cover { position: relative; width: 480px; aspect-ratio: 1; border-radius: 16px; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3); transform: scale(0.73); transition: transform 500ms cubic-bezier(0.2, 0.9, 0.25, 1), box-shadow 500ms var(--seamless); }
+.music-cover.is-playing { transform: scale(1); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); transition: transform 780ms var(--spring-cover), box-shadow 500ms var(--seamless); }
+.music-cover img, .music-cover-empty { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; animation: media-fade 450ms var(--seamless) 90ms backwards; }
+.music-cover-empty { display: grid; place-items: center; background: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.6); }
+.music-cover-empty .icon { width: 120px; height: 120px; }
+
+.music-side { display: flex; flex-direction: column; gap: 32px; min-width: 0; }
+.music-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; animation: media-fade 380ms var(--seamless) 200ms backwards; }
+.music-title { margin: 0; font-size: 36px; line-height: 44px; font-weight: 600; letter-spacing: -0.02em; color: #fff; }
+.music-artist { margin: 0; font-size: 26px; line-height: 34px; color: rgba(255, 255, 255, 0.78); }
+
+.music-seek .progress-line { height: 8px; }
+.music-times { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 16px; font-weight: 600; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; color: rgba(255, 255, 255, 0.62); }
+.music-device { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.62); font-size: 14px; }
+.music-device .icon { width: 16px; height: 16px; }
+
+.music-volume { display: flex; align-items: center; gap: 14px; color: rgba(255, 255, 255, 0.62); }
+.music-volume .icon { width: 24px; height: 24px; }
+.music-volume.is-muted .i-speaker-low { color: var(--mute); }
+/* the finger target is the whole row height; the bar inside thickens while held */
+.music-volume-track { flex: 1; height: 48px; display: flex; align-items: center; touch-action: none; cursor: pointer; border-radius: 12px; }
+.music-volume-bar { position: relative; flex: 1; height: 10px; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, 0.15); transition: height 420ms var(--spring-glyph); }
+.music-volume.is-active .music-volume-bar { height: 14px; }
+.music-volume-fill { position: absolute; inset: 0; transform-origin: left center; background: rgba(255, 255, 255, 0.7); transition: transform 120ms linear; }
+
+@media (prefers-reduced-motion: reduce) {
+  .music-app, .music-cover, .np-cover, .tx-glyph, .tx::before, .glass-button, .music-volume-bar { transition-duration: 0.01ms; }
+  .tx-glyph, .music-backdrop img, .np-tint img, .music-cover img, .np-cover img, .music-meta, .np-meta, .marquee.is-running .marquee-text { animation: none; }
+}
