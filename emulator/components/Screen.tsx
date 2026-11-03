@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { bridge, type Source } from "../car/bridge";
-import { carCommand, carEvent, shellAction, useEmulator, useNow } from "../car/store";
+import { carCommand, carEvent, openVolume, shellAction, useEmulator, useNow } from "../car/store";
 import { Clock } from "./Clock";
 import { Drawer, useDrawerDrag } from "./Drawer";
 import { NowPlaying } from "./NowPlaying";
 import { CallOverlay, CameraOverlay } from "./Overlays";
+import { VolumeHud } from "./VolumeHud";
 
 const THEME_FADE_MS = 750;
 const MAX_VEIL = 0.78;
@@ -22,6 +23,11 @@ const APPS = [
   { label: "Music", mark: "app-mark-music" },
   { label: "Podcasts", mark: "app-mark-pod" },
 ];
+// ponytail: centres of the volume keys on this frame model, in screen pixels; another frame needs its own
+const KEY_CENTER = { VOL_UP: 416, VOL_DOWN: 516 } as const;
+// leaves the edge along it, rises through a long S-curve, runs flat, and returns the same way
+const BULGE_PATH = "M0 0C0 22 12 26 12 48V88C12 110 0 114 0 136Z";
+
 const SOURCE_LABEL: Record<Source, string> = { BT: "Bluetooth", RADIO: "Radio", NONE: "No source" };
 
 function classes(...names: (string | false)[]) {
@@ -89,7 +95,9 @@ export function Screen() {
         </button>
         <div className="bar-group">
           <span className="icon i-wifi-high" role="img" aria-label="Wi-Fi connected" />
-          <span className={`icon ${car.muted ? "i-speaker-slash is-off" : "i-speaker-high"}`} role="img" aria-label={car.muted ? "Muted" : "Sound on"} />
+          <button className="bar-button" aria-label={car.muted ? "Volume, muted" : "Volume"} onClick={openVolume}>
+            <span className={`icon ${car.muted ? "i-speaker-slash is-off" : "i-speaker-high"}`} aria-hidden="true" />
+          </button>
           <span className={`icon ${light ? "i-sun" : "i-moon"}`} id="bar-theme" role="img" aria-label={light ? "Day theme" : "Night theme"} />
         </div>
       </header>
@@ -122,7 +130,14 @@ export function Screen() {
       <Drawer emulator={emulator} panel={drawer} dragging={dragging} />
       {car.call !== "IDLE" && <CallOverlay emulator={emulator} />}
       {car.camera && <CameraOverlay />}
+      {(Object.keys(KEY_CENTER) as (keyof typeof KEY_CENTER)[]).map((key) => (
+        <svg key={key} className={classes("edge-bulge", emulator.pressedKey === key && "is-pressed")} style={{ top: KEY_CENTER[key] }} viewBox="0 0 12 136" preserveAspectRatio="none" aria-hidden="true">
+          <path d={BULGE_PATH} />
+        </svg>
+      ))}
+      <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} />
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.toFixed(3) }} />
+      {!shell.screenOn && <button className="screen-off" aria-label="Screen off, tap to wake" onClick={() => shellAction({ type: "Wake" })} />}
     </div>
   );
 }

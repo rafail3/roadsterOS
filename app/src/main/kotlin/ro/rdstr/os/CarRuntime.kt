@@ -30,7 +30,7 @@ data class UiState(
             is Action.ShowCall -> ui.copy(call = a.call)
             Action.HideCall -> ui.copy(call = null)
             is Action.Night -> ui.copy(night = a.on)
-            is Action.Send, Action.SaveState, Action.RestoreState -> ui
+            is Action.Send, Action.SaveState, Action.RestoreState, Action.ToggleScreen, Action.Home, Action.Back, Action.ShowVolume -> ui
         }
         return ui
     }

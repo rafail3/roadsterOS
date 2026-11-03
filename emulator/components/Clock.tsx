@@ -89,10 +89,14 @@ function Dial({ now }: { now: Date }) {
 
 export function Clock({ now, face }: { now: Date; face: Face }) {
   const analog = face === "ANALOG";
+  const toggle = () => shellAction({ type: "ToggleFace" });
   return (
-    <button className="clock-block" aria-label="Clock, tap to switch face" aria-pressed={analog} onClick={() => shellAction({ type: "ToggleFace" })}>
+    // only the time itself switches the face: the date card and the space beside it do not
+    <div className="clock-block">
       <div className="digital" hidden={analog}>
-        <Digits text={`${pad(now.getHours())}:${pad(now.getMinutes())}`} dateTime={now.toISOString()} />
+        <button className="clock-hit" aria-label="Clock, tap for the analog face" onClick={toggle}>
+          <Digits text={`${pad(now.getHours())}:${pad(now.getMinutes())}`} dateTime={now.toISOString()} />
+        </button>
         <div className="date-card">
           <span className="dc-weekday">{now.toLocaleDateString("en-GB", { weekday: "short" })}</span>
           <span className="dc-day">{now.getDate()}</span>
@@ -100,8 +104,8 @@ export function Clock({ now, face }: { now: Date; face: Face }) {
         </div>
       </div>
       <div className="analog" id="analog" hidden={!analog}>
-        {analog && <Dial now={now} />}
+        {analog && <button className="clock-hit" aria-label="Clock, tap for the digital face" onClick={toggle}><Dial now={now} /></button>}
       </div>
-    </button>
+    </div>
   );
 }

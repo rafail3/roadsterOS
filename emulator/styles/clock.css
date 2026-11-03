@@ -1,6 +1,9 @@
 /* clock faces: digital with a date card, analog dial. Tap the clock to switch. */
-.clock-block { display: block; text-align: left; margin-top: auto; margin-bottom: auto; padding-bottom: var(--space-7); cursor: pointer; border-radius: var(--radius); }
-.clock-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 8px; }
+.clock-block { display: block; text-align: left; margin-top: auto; margin-bottom: auto; padding-bottom: var(--space-7); }
+/* the touch target is the time itself: the digits, or the round dial */
+.clock-hit { display: block; cursor: pointer; border-radius: var(--radius); }
+.analog .clock-hit { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; }
+.clock-hit:focus-visible { outline: 2px solid var(--accent); outline-offset: 8px; }
 
 /* digital */
 .digital { display: flex; align-items: center; gap: var(--space-6); }

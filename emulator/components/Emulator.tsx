@@ -1,7 +1,8 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { useEmulator } from "../car/store";
+import type { PanelKey } from "../car/bridge";
+import { carEvent, pressKey, useEmulator } from "../car/store";
 import { ControlPanel } from "./ControlPanel";
 import { Inspector } from "./Inspector";
 import { Screen } from "./Screen";
@@ -20,6 +21,7 @@ function CarStatus() {
     ["Call", { IDLE: "Idle", RINGING: "Ringing", ACTIVE: "Active" }[car.call]],
     ["Reverse", car.camera ? "Engaged" : "Off"],
     ["Headlights", car.night ? "On" : "Off"],
+    ["Volume", car.muted ? "Muted" : String(car.volume)],
   ];
   return (
     <dl className="car-status" aria-label="Car status">
@@ -30,7 +32,7 @@ function CarStatus() {
   );
 }
 
-const PANEL_KEYS: { key: string; label: string; icon: string; sign?: string }[] = [
+const PANEL_KEYS: { key: PanelKey; label: string; icon: string; sign?: string }[] = [
   { key: "POWER", label: "Power", icon: "i-power" },
   { key: "HOME", label: "Home", icon: "i-house" },
   { key: "BACK", label: "Back", icon: "i-back" },
@@ -45,7 +47,16 @@ function FrameKeys() {
       <span className="pinhole pinhole-mic"><i aria-hidden="true" />MIC</span>
       <button className="pinhole pinhole-rst" aria-label="Reset, reloads the emulator" onClick={() => location.reload()}><i aria-hidden="true" />RST</button>
       {PANEL_KEYS.map(({ key, label, icon, sign }) => (
-        <button key={key} className="frame-key" aria-label={label}>
+        <button
+          key={key}
+          className="frame-key"
+          aria-label={label}
+          onClick={() => carEvent({ type: "PanelKey", key })}
+          onPointerDown={() => pressKey(key)}
+          onPointerUp={() => pressKey(null)}
+          onPointerLeave={() => pressKey(null)}
+          onPointerCancel={() => pressKey(null)}
+        >
           <span className={`icon ${icon}`} aria-hidden="true" />
           {sign && <span className="frame-sign" aria-hidden="true">{sign}</span>}
         </button>

@@ -1,7 +1,7 @@
 // Emulator state outside React, so components and hot reload never lose the simulated car.
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { bridge, type CarCommand, type CarEvent, type CarState, type RuleAction, type ShellAction, type ShellState } from "./bridge";
+import { bridge, type CarCommand, type CarEvent, type CarState, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
 
 export interface LogEntry {
   id: number;
@@ -24,6 +24,10 @@ export interface EmulatorState {
   log: LogEntry[];
   replay: { name: string; progress: number } | null;
   replayError: string | null;
+  /** bumped whenever the volume bar should come up, even with nothing changed */
+  volumeOpened: number;
+  /** the frame key held down right now, for the edge swell beside it */
+  pressedKey: PanelKey | null;
 }
 
 const LOG_SIZE = 60;
@@ -61,10 +65,25 @@ function displayData(event: CarEvent): Partial<EmulatorState> {
   }
 }
 
+const SHELL_ACTIONS: Record<string, ShellAction> = {
+  ToggleScreen: { type: "ToggleScreen" },
+  Home: { type: "Home" },
+  Back: { type: "Back" },
+};
+
 function runAction(action: RuleAction) {
   // ShowCamera, ShowCall and the like are visible through the rules state
-  if (action.type === "Send" && action.command) carCommand(action.command);
+  if (action.type === "Send" && action.command) sendToCar(action.command);
   if (action.type === "Night") shellAction({ type: "Headlights", on: Boolean(action.on) });
+  if (SHELL_ACTIONS[action.type]) shellAction(SHELL_ACTIONS[action.type]);
+  if (action.type === "ShowVolume") openVolume();
+}
+
+/** What the bus does: the rules already accounted for the command, the car answers. */
+function sendToCar(command: CarCommand) {
+  set({ log: addLog("out", command) });
+  const echo = bridge.echo(command);
+  if (echo) setTimeout(() => carEvent(echo), ECHO_DELAY_MS);
 }
 
 export function carEvent(event: CarEvent) {
@@ -73,14 +92,27 @@ export function carEvent(event: CarEvent) {
   step.actions.forEach(runAction);
 }
 
+/** A command from our own UI: the rules remember it, then it goes to the car. */
 export function carCommand(command: CarCommand) {
-  set({ car: bridge.command(state.car, command), log: addLog("out", command) });
-  const echo = bridge.echo(command);
-  if (echo) setTimeout(() => carEvent(echo), ECHO_DELAY_MS);
+  set({ car: bridge.command(state.car, command) });
+  sendToCar(command);
+}
+
+/** A level picked on screen; the shared rules turn it into steps and mute at zero. */
+export function setVolume(level: number) {
+  bridge.setVolume(state.car, level).forEach(carCommand);
 }
 
 export function shellAction(action: ShellAction) {
   set({ shell: bridge.shell(state.shell, action) });
+}
+
+export function pressKey(key: PanelKey | null) {
+  if (state.pressedKey !== key) set({ pressedKey: key });
+}
+
+export function openVolume() {
+  set({ volumeOpened: state.volumeOpened + 1 });
 }
 
 export function setHour(hour: number | null) {
@@ -162,6 +194,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     log: [],
     replay: null,
     replayError: null,
+    volumeOpened: 0,
+    pressedKey: null,
   };
 }
 

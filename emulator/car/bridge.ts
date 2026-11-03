@@ -5,6 +5,7 @@ export type CallState = "IDLE" | "RINGING" | "ACTIVE";
 export type ThemeMode = "AUTO" | "LIGHT" | "DARK";
 export type Face = "DIGITAL" | "ANALOG";
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";
+export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
 
 export interface CarState {
   source: Source;
@@ -14,6 +15,7 @@ export interface CarState {
   call: CallState;
   btConnected: boolean;
   night: boolean;
+  volume: number;
 }
 
 export interface ShellState {
@@ -22,11 +24,13 @@ export interface ShellState {
   face: Face;
   font: string;
   brightness: number;
+  screenOn: boolean;
 }
 
 export type CarEvent =
   | { type: "ReverseGear"; on: boolean }
   | { type: "SteeringKey"; key: SteeringKey }
+  | { type: "PanelKey"; key: PanelKey }
   | { type: "Illumination"; on: boolean }
   | { type: "Power"; acc: boolean }
   | { type: "BtConnection"; connected: boolean; device?: string }
@@ -43,10 +47,11 @@ export type CarCommand =
   | { type: "Phone.Answer" | "Phone.HangUp" }
   | { type: "Phone.Mute"; on: boolean }
   | { type: "Audio.Mute"; on: boolean }
+  | { type: "Audio.Volume"; delta: number }
   | { type: "Audio.Source"; source: Source };
 
 export type ShellAction =
-  | { type: "CycleTheme" | "OpenDrawer" | "CloseDrawer" | "ToggleFace" }
+  | { type: "CycleTheme" | "OpenDrawer" | "CloseDrawer" | "ToggleFace" | "ToggleScreen" | "Wake" | "Home" | "Back" }
   | { type: "SetTheme"; mode: ThemeMode }
   | { type: "DrawerReleased"; fraction: number }
   | { type: "SetFace"; face: Face }
@@ -64,6 +69,8 @@ interface Kotlin {
   Bridge: Record<"initial" | "shellInitial", () => string> &
     Record<"apply" | "command" | "shell", (state: string, input: string) => string> & {
       echo(command: string): string;
+      maxVolume(): number;
+      setVolume(state: string, level: number): string;
       effectiveTheme(state: string, hour: number): "LIGHT" | "DARK";
     };
 }
@@ -86,5 +93,7 @@ export const bridge = {
   echo: (command: CarCommand): CarEvent | null => JSON.parse(K!.Bridge.echo(JSON.stringify(command))),
   shell: (state: ShellState, action: ShellAction): ShellState =>
     JSON.parse(K!.Bridge.shell(JSON.stringify(state), JSON.stringify(action))),
+  maxVolume: () => K!.Bridge.maxVolume(),
+  setVolume: (state: CarState, level: number): CarCommand[] => JSON.parse(K!.Bridge.setVolume(JSON.stringify(state), level)),
   effectiveTheme: (state: ShellState, hour: number) => K!.Bridge.effectiveTheme(JSON.stringify(state), hour),
 };

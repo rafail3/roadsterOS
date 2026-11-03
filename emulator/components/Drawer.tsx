@@ -1,5 +1,6 @@
 import { useState, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
-import { carCommand, carEvent, shellAction, type EmulatorState } from "../car/store";
+import { bridge } from "../car/bridge";
+import { carCommand, carEvent, setVolume, shellAction, type EmulatorState } from "../car/store";
 
 const THEME_LABEL = { AUTO: "Auto", LIGHT: "Day", DARK: "Night" };
 const THEME_ICON = { AUTO: "i-circle-half", LIGHT: "i-sun", DARK: "i-moon" };
@@ -41,7 +42,6 @@ export function useDrawerDrag(drawer: RefObject<HTMLElement | null>) {
 
 export function Drawer({ emulator, panel, dragging }: { emulator: EmulatorState; panel: RefObject<HTMLElement | null>; dragging: boolean }) {
   const { car, shell } = emulator;
-  const [volume, setVolume] = useState(45);
   const open = shell.drawer;
   return (
     <section
@@ -72,8 +72,8 @@ export function Drawer({ emulator, panel, dragging }: { emulator: EmulatorState;
       </label>
       <label className="slider">
         <span className="icon i-speaker-high" />
-        <input type="range" min="0" max="100" value={volume} aria-label="Volume" aria-valuetext={`${volume} percent`} onChange={(e) => setVolume(Number(e.target.value))} />
-        <span className="slider-readout">{volume}%</span>
+        <input type="range" min="0" max={bridge.maxVolume()} value={car.volume} aria-label="Volume" aria-valuetext={`${car.volume}`} onChange={(e) => setVolume(Number(e.target.value))} />
+        <span className="slider-readout">{car.volume}</span>
       </label>
       <button className="handle handle-bottom" aria-label="Close quick settings" onClick={() => shellAction({ type: "CloseDrawer" })}><span className="handle-line" /></button>
     </section>
