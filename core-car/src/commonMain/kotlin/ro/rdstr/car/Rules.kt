@@ -126,9 +126,10 @@ object Rules {
     }
 
     private fun key(s: RulesState, k: Key): Pair<RulesState, List<Action>> = when (k) {
+        // one step at a time, with the same mute at zero as a level picked on screen
         Key.VOL_UP, Key.VOL_DOWN -> {
-            val volume = CarCommand.Audio.Volume(if (k == Key.VOL_UP) 1 else -1)
-            onCommand(s, volume) to listOf(Action.Send(volume))
+            val commands = setVolume(s, s.volume + if (k == Key.VOL_UP) 1 else -1)
+            commands.fold(s, ::onCommand) to commands.map { Action.Send(it) }
         }
         Key.MUTE -> s.copy(muted = !s.muted) to listOf(Action.Send(CarCommand.Audio.Mute(!s.muted)))
         Key.NEXT, Key.PREV -> {

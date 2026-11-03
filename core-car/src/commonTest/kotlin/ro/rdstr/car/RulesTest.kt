@@ -78,6 +78,18 @@ class RulesTest {
     }
 
     @Test
+    fun `volume keys mute at zero and unmute on the way up`() {
+        val (atZero, down) = Rules.apply(bt.copy(volume = 1), CarEvent.PanelKey(PanelKey.VOL_DOWN))
+        assertEquals(listOf(Action.Send(CarCommand.Audio.Volume(-1)), Action.Send(CarCommand.Audio.Mute(true))), down)
+        assertEquals(0, atZero.volume)
+        assertTrue(atZero.muted)
+        assertEquals(emptyList(), Rules.apply(atZero, CarEvent.SteeringKey(Key.VOL_DOWN)).second)
+        val (up, upActions) = Rules.apply(atZero, CarEvent.SteeringKey(Key.VOL_UP))
+        assertEquals(listOf(Action.Send(CarCommand.Audio.Volume(1)), Action.Send(CarCommand.Audio.Mute(false))), upActions)
+        assertFalse(up.muted)
+    }
+
+    @Test
     fun `volume command moves the level within range`() {
         assertEquals(Rules.DEFAULT_VOLUME + 1, Rules.onCommand(bt, CarCommand.Audio.Volume(1)).volume)
         assertEquals(Rules.MAX_VOLUME, Rules.onCommand(bt.copy(volume = Rules.MAX_VOLUME), CarCommand.Audio.Volume(1)).volume)
