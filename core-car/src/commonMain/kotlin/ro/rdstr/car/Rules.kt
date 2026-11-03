@@ -16,6 +16,7 @@ data class RulesState(
     val night: Boolean = false,
     val resumeAfterCall: Boolean = false,
     val lastSource: AudioSource = AudioSource.NONE,
+    val volume: Int = Rules.DEFAULT_VOLUME,
 )
 
 @Serializable
@@ -28,10 +29,16 @@ sealed class Action {
     @Serializable @SerialName("Night") data class Night(val on: Boolean) : Action()
     @Serializable @SerialName("SaveState") data object SaveState : Action()
     @Serializable @SerialName("RestoreState") data object RestoreState : Action()
+    @Serializable @SerialName("ToggleScreen") data object ToggleScreen : Action()
+    @Serializable @SerialName("Home") data object Home : Action()
+    @Serializable @SerialName("Back") data object Back : Action()
 }
 
 /** The single place that decides what happens when the car says something. Pure, no Android. */
 object Rules {
+    // ponytail: range and start level are placeholders until the unit reports its own
+    const val MAX_VOLUME = 30
+    const val DEFAULT_VOLUME = 12
 
     fun apply(s: RulesState, e: CarEvent): Pair<RulesState, List<Action>> = when (e) {
         is CarEvent.ReverseGear ->
@@ -39,6 +46,13 @@ object Rules {
 
         is CarEvent.Call -> call(s, e)
         is CarEvent.SteeringKey -> key(s, e.key)
+        is CarEvent.PanelKey -> when (e.key) {
+            CarEvent.PanelKey.Key.POWER -> s to listOf(Action.ToggleScreen)
+            CarEvent.PanelKey.Key.HOME -> s to listOf(Action.Home)
+            CarEvent.PanelKey.Key.BACK -> s to listOf(Action.Back)
+            CarEvent.PanelKey.Key.VOL_UP -> key(s, Key.VOL_UP)
+            CarEvent.PanelKey.Key.VOL_DOWN -> key(s, Key.VOL_DOWN)
+        }
 
         is CarEvent.Illumination -> s.copy(night = e.on) to listOf(Action.Night(e.on))
 
@@ -72,6 +86,7 @@ object Rules {
     fun onCommand(s: RulesState, c: CarCommand): RulesState = when (c) {
         is CarCommand.Audio.Source -> if (c.source == s.source) s else s.copy(source = c.source, lastSource = s.source)
         is CarCommand.Audio.Mute -> s.copy(muted = c.on)
+        is CarCommand.Audio.Volume -> s.copy(volume = (s.volume + c.delta).coerceIn(0, MAX_VOLUME))
         else -> s
     }
 
@@ -101,8 +116,10 @@ object Rules {
     }
 
     private fun key(s: RulesState, k: Key): Pair<RulesState, List<Action>> = when (k) {
-        Key.VOL_UP -> s to listOf(Action.Send(CarCommand.Audio.Volume(1)))
-        Key.VOL_DOWN -> s to listOf(Action.Send(CarCommand.Audio.Volume(-1)))
+        Key.VOL_UP, Key.VOL_DOWN -> {
+            val volume = CarCommand.Audio.Volume(if (k == Key.VOL_UP) 1 else -1)
+            onCommand(s, volume) to listOf(Action.Send(volume))
+        }
         Key.MUTE -> s.copy(muted = !s.muted) to listOf(Action.Send(CarCommand.Audio.Mute(!s.muted)))
         Key.NEXT, Key.PREV -> {
             val up = k == Key.NEXT

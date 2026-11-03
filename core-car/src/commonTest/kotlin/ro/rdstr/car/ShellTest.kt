@@ -39,6 +39,20 @@ class ShellTest {
     }
 
     @Test
+    fun `power turns the screen off and a touch wakes it`() {
+        val off = Shell.reduce(ShellState(), ShellAction.ToggleScreen)
+        assertFalse(off.screenOn)
+        assertTrue(Shell.reduce(off, ShellAction.ToggleScreen).screenOn)
+        assertTrue(Shell.reduce(off, ShellAction.Wake).screenOn)
+    }
+
+    @Test
+    fun `home and back close the drawer`() {
+        assertFalse(Shell.reduce(ShellState(drawer = true), ShellAction.Home).drawer)
+        assertFalse(Shell.reduce(ShellState(drawer = true), ShellAction.Back).drawer)
+    }
+
+    @Test
     fun `face toggles and brightness clamps`() {
         assertEquals(Face.ANALOG, Shell.reduce(ShellState(), ShellAction.ToggleFace).face)
         assertEquals(Face.DIGITAL, Shell.reduce(ShellState(face = Face.ANALOG), ShellAction.ToggleFace).face)

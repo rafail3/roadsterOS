@@ -40,6 +40,8 @@ object Bridge {
         return Journal.encodeEvent(event)
     }
 
+    fun maxVolume(): Int = Rules.MAX_VOLUME
+
     fun shellInitial(): String = json.encodeToString(ShellState.serializer(), ShellState())
 
     fun shell(state: String, action: String): String {

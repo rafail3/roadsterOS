@@ -15,6 +15,12 @@ sealed class CarEvent {
         enum class Key { VOL_UP, VOL_DOWN, NEXT, PREV, MODE, PHONE, MUTE }
     }
 
+    /** The touch keys printed on the frame beside the screen. */
+    @Serializable @SerialName("PanelKey")
+    data class PanelKey(val key: Key) : CarEvent() {
+        enum class Key { POWER, HOME, BACK, VOL_UP, VOL_DOWN }
+    }
+
     @Serializable @SerialName("Illumination")
     data class Illumination(val on: Boolean) : CarEvent()
 

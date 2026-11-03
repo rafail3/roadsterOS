@@ -15,6 +15,7 @@ data class ShellState(
     val face: Face = Face.DIGITAL,
     val font: String = "geist",
     val brightness: Int = 100,
+    val screenOn: Boolean = true,
 )
 
 @Serializable
@@ -30,6 +31,10 @@ sealed class ShellAction {
     @Serializable @SerialName("SetFont") data class SetFont(val name: String) : ShellAction()
     @Serializable @SerialName("SetBrightness") data class SetBrightness(val value: Int) : ShellAction()
     @Serializable @SerialName("Headlights") data class Headlights(val on: Boolean) : ShellAction()
+    @Serializable @SerialName("ToggleScreen") data object ToggleScreen : ShellAction()
+    @Serializable @SerialName("Wake") data object Wake : ShellAction()
+    @Serializable @SerialName("Home") data object Home : ShellAction()
+    @Serializable @SerialName("Back") data object Back : ShellAction()
 }
 
 /** Shell behaviour shared by the unit and the browser emulator. Pure. */
@@ -52,6 +57,10 @@ object Shell {
         is ShellAction.SetFont -> s.copy(font = a.name)
         is ShellAction.SetBrightness -> s.copy(brightness = a.value.coerceIn(MIN_BRIGHTNESS, FULL_BRIGHTNESS))
         is ShellAction.Headlights -> s.copy(brightness = if (a.on) HEADLIGHTS_BRIGHTNESS else FULL_BRIGHTNESS)
+        ShellAction.ToggleScreen -> s.copy(screenOn = !s.screenOn)
+        ShellAction.Wake -> s.copy(screenOn = true)
+        // ponytail: both only close the drawer until screens other than home exist
+        ShellAction.Home, ShellAction.Back -> s.copy(drawer = false)
     }
 
     fun effectiveTheme(s: ShellState, hour: Int): Theme = when (s.theme) {
