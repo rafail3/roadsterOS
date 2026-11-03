@@ -23,6 +23,9 @@ const APPS = [
   { label: "Music", mark: "app-mark-music" },
   { label: "Podcasts", mark: "app-mark-pod" },
 ];
+// ponytail: centres of the volume keys on this frame model, in screen pixels; another frame needs its own
+const KEY_CENTER = { VOL_UP: 416, VOL_DOWN: 516 } as const;
+
 const SOURCE_LABEL: Record<Source, string> = { BT: "Bluetooth", RADIO: "Radio", NONE: "No source" };
 
 function classes(...names: (string | false)[]) {
@@ -125,6 +128,9 @@ export function Screen() {
       <Drawer emulator={emulator} panel={drawer} dragging={dragging} />
       {car.call !== "IDLE" && <CallOverlay emulator={emulator} />}
       {car.camera && <CameraOverlay />}
+      {(Object.keys(KEY_CENTER) as (keyof typeof KEY_CENTER)[]).map((key) => (
+        <div key={key} className={classes("edge-bulge", emulator.pressedKey === key && "is-pressed")} style={{ top: KEY_CENTER[key] }} aria-hidden="true" />
+      ))}
       <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} />
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.toFixed(3) }} />
       {!shell.screenOn && <button className="screen-off" aria-label="Screen off, tap to wake" onClick={() => shellAction({ type: "Wake" })} />}

@@ -12,6 +12,8 @@ export function VolumeHud({ volume, muted, opened }: { volume: number; muted: bo
   const holding = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const first = useRef(true);
+  const [shaking, setShaking] = useState(false);
+  const wasMuted = useRef(muted);
 
   const poke = () => {
     setShown(true);
@@ -24,6 +26,10 @@ export function VolumeHud({ volume, muted, opened }: { volume: number; muted: bo
     poke();
   }, [volume, muted, opened]);
   useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => {
+    if (muted && !wasMuted.current) setShaking(true);
+    wasMuted.current = muted;
+  }, [muted]);
 
   // the whole strip between the icon and the number is the touch target, not only the thin track
   const dragTo = (e: PointerEvent<HTMLDivElement>) => {
@@ -38,7 +44,7 @@ export function VolumeHud({ volume, muted, opened }: { volume: number; muted: bo
   };
 
   return (
-    <div className={`volume-hud${shown ? " is-shown" : ""}`} inert={!shown}>
+    <div className={`volume-hud${shown ? " is-shown" : ""}${muted ? " is-muted" : ""}${shaking ? " is-shaking" : ""}`} inert={!shown} onAnimationEnd={(e) => { if (e.target === e.currentTarget) setShaking(false); }}>
       <button className="volume-mute" aria-label={muted ? "Sound on" : "Mute"} aria-pressed={muted} onClick={() => carCommand({ type: "Audio.Mute", on: !muted })}>
         <span className={`icon ${muted ? "i-speaker-slash" : "i-speaker-high"}`} aria-hidden="true" />
       </button>

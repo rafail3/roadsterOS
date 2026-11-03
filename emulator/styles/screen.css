@@ -201,10 +201,35 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .volume-track { flex: 1; pointer-events: none; height: 6px; border-radius: 3px; background: var(--hairline-strong); overflow: hidden; }
 .volume-fill { height: 100%; border-radius: 3px; background: var(--ink); transition: width var(--fast) var(--ease-out); }
 .volume-num { min-width: 40px; text-align: right; font-size: var(--size-title); font-weight: 600; font-variant-numeric: tabular-nums; }
+.volume-hud.is-muted .volume-mute, .volume-hud.is-muted .volume-num { color: var(--mute); }
+/* muting shakes the bar sideways and rocks the speaker, a short decaying wiggle */
+.volume-hud.is-shaking { animation: volume-shake 460ms cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+.volume-hud.is-shaking .volume-mute .icon { animation: volume-rock 460ms cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+@keyframes volume-shake {
+  0%, 100% { translate: 0 0; }
+  14% { translate: -9px 0; }
+  30% { translate: 8px 0; }
+  46% { translate: -6px 0; }
+  62% { translate: 4px 0; }
+  78% { translate: -2px 0; }
+}
+@keyframes volume-rock {
+  0%, 100% { rotate: 0deg; }
+  14% { rotate: -14deg; }
+  30% { rotate: 12deg; }
+  46% { rotate: -8deg; }
+  62% { rotate: 5deg; }
+  78% { rotate: -2deg; }
+}
+
+/* the frame swells into the screen beside a held volume key */
+.edge-bulge { position: absolute; left: 0; z-index: 7; width: 14px; height: 96px; margin-top: -48px; border-radius: 0 50% 50% 0 / 0 50% 50% 0; background: #000; pointer-events: none; transform: scaleX(0); transform-origin: left center; transition: transform 180ms cubic-bezier(0.4, 0, 1, 1); }
+.edge-bulge.is-pressed { transform: scaleX(1); transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 
 /* backlight off after the power key; a tap wakes it */
 .screen-off { position: absolute; inset: 0; z-index: 10; background: #000; cursor: default; }
 
 @media (prefers-reduced-motion: reduce) {
-  .volume-hud, .volume-fill { transition-duration: 0.01ms; }
+  .volume-hud, .volume-fill, .edge-bulge { transition-duration: 0.01ms; }
+  .volume-hud.is-shaking, .volume-hud.is-shaking .volume-mute .icon { animation: none; }
 }

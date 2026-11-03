@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import type { PanelKey } from "../car/bridge";
-import { carEvent, useEmulator } from "../car/store";
+import { carEvent, pressKey, useEmulator } from "../car/store";
 import { ControlPanel } from "./ControlPanel";
 import { Inspector } from "./Inspector";
 import { Screen } from "./Screen";
@@ -47,7 +47,16 @@ function FrameKeys() {
       <span className="pinhole pinhole-mic"><i aria-hidden="true" />MIC</span>
       <button className="pinhole pinhole-rst" aria-label="Reset, reloads the emulator" onClick={() => location.reload()}><i aria-hidden="true" />RST</button>
       {PANEL_KEYS.map(({ key, label, icon, sign }) => (
-        <button key={key} className="frame-key" aria-label={label} onClick={() => carEvent({ type: "PanelKey", key })}>
+        <button
+          key={key}
+          className="frame-key"
+          aria-label={label}
+          onClick={() => carEvent({ type: "PanelKey", key })}
+          onPointerDown={() => pressKey(key)}
+          onPointerUp={() => pressKey(null)}
+          onPointerLeave={() => pressKey(null)}
+          onPointerCancel={() => pressKey(null)}
+        >
           <span className={`icon ${icon}`} aria-hidden="true" />
           {sign && <span className="frame-sign" aria-hidden="true">{sign}</span>}
         </button>

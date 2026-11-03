@@ -1,7 +1,7 @@
 // Emulator state outside React, so components and hot reload never lose the simulated car.
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { bridge, type CarCommand, type CarEvent, type CarState, type RuleAction, type ShellAction, type ShellState } from "./bridge";
+import { bridge, type CarCommand, type CarEvent, type CarState, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
 
 export interface LogEntry {
   id: number;
@@ -26,6 +26,8 @@ export interface EmulatorState {
   replayError: string | null;
   /** bumped whenever the volume bar should come up, even with nothing changed */
   volumeOpened: number;
+  /** the frame key held down right now, for the edge swell beside it */
+  pressedKey: PanelKey | null;
 }
 
 const LOG_SIZE = 60;
@@ -103,6 +105,10 @@ export function setVolume(level: number) {
 
 export function shellAction(action: ShellAction) {
   set({ shell: bridge.shell(state.shell, action) });
+}
+
+export function pressKey(key: PanelKey | null) {
+  if (state.pressedKey !== key) set({ pressedKey: key });
 }
 
 export function openVolume() {
@@ -189,6 +195,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     replay: null,
     replayError: null,
     volumeOpened: 0,
+    pressedKey: null,
   };
 }
 
