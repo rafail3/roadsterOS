@@ -2,6 +2,7 @@ package ro.rdstr.car
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
@@ -47,6 +48,12 @@ object Bridge {
         ListSerializer(CarCommand.serializer()),
         Rules.setVolume(json.decodeFromString(RulesState.serializer(), state), level),
     )
+
+    /** [pixels]: a JSON array of ARGB ints, row by row; answers {"top":"#rrggbb","bottom":"#rrggbb"}. */
+    fun coverColors(pixels: String, width: Int): String {
+        val (top, bottom) = CoverColors.from(json.decodeFromString(ListSerializer(Int.serializer()), pixels).toIntArray(), width)
+        return """{"top":"${CoverColors.hex(top)}","bottom":"${CoverColors.hex(bottom)}"}"""
+    }
 
     fun shellInitial(): String = json.encodeToString(ShellState.serializer(), ShellState())
 
