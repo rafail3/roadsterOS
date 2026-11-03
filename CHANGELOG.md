@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/rafail3/roadsterOS/compare/v1.0.0...v1.1.0) (2026-11-03)
+
+
+### Features
+
+* **emulator:** browser emulator running the shared core-car rules ([#5](https://github.com/rafail3/roadsterOS/issues/5)) ([aad60f9](https://github.com/rafail3/roadsterOS/commit/aad60f920fb60e4765ce7ada53704c8b74041269))
+
 ## [1.0.0](https://github.com/rafail3/roadsterOS/commits/v1.0.0) (2026-11-02)
 
 
