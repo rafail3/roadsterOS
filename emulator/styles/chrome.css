@@ -34,7 +34,24 @@
 /* stage: the head unit, scaled down to the space it has */
 .stage { min-width: 0; min-height: 0; padding: var(--space-5); overflow: auto; display: grid; }
 .frame { margin: auto; }
-.bezel { width: 1340px; height: 784px; padding: 30px 30px 34px; border-radius: 20px; transform-origin: 0 0; background: linear-gradient(180deg, #1c1f24, #0f1115); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 30px 90px rgba(0, 0, 0, 0.6); }
+.bezel { position: relative; width: 1410px; height: 796px; padding: 36px 30px 40px 100px; border-radius: 22px; transform-origin: 0 0; background: linear-gradient(180deg, #16181b, #0b0c0e 40%, #08090a); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 0 0 1px rgba(0, 0, 0, 0.6), 0 30px 90px rgba(0, 0, 0, 0.6); }
+/* the frame's left edge, as on the unit: pinholes, then five printed touch keys */
+.frame-keys { position: absolute; left: 0; top: 36px; width: 100px; height: 720px; }
+.pinhole { position: absolute; left: 30px; display: flex; align-items: center; gap: 7px; font: 600 10px/1 "Geist", system-ui, sans-serif; letter-spacing: 0.04em; color: rgba(235, 238, 242, 0.62); }
+.pinhole i { width: 7px; height: 7px; border-radius: 50%; background: #000; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.12); }
+.pinhole-mic { top: 0; }
+.pinhole-rst { top: 30px; padding: 4px 0; }
+.frame-key { position: absolute; left: 18px; width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; color: rgba(235, 238, 242, 0.86); transition: color var(--fast), background var(--fast); }
+.frame-key:nth-of-type(2) { top: 84px; }
+.frame-key:nth-of-type(3) { top: 184px; }
+.frame-key:nth-of-type(4) { top: 284px; }
+.frame-key:nth-of-type(5) { top: 384px; }
+.frame-key:nth-of-type(6) { top: 484px; }
+.frame-key .icon { width: 30px; height: 30px; }
+.frame-key:has(.frame-sign) .icon { margin-left: -8px; }
+.frame-sign { position: absolute; right: 12px; top: 50%; transform: translateY(-54%); font: 500 20px/1 "Geist", system-ui, sans-serif; }
+.frame-key:active, .pinhole-rst:active { color: #fff; background: rgba(255, 255, 255, 0.08); }
+@media (hover: hover) { .frame-key:hover, .pinhole-rst:hover { color: #fff; } }
 .device { width: 1280px; height: 720px; border-radius: 3px; overflow: hidden; background: #000; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.9), 0 0 0 2px #050608; }
 
 /* side: controls above, inspector docked below */
