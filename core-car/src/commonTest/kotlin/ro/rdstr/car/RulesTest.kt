@@ -87,8 +87,8 @@ class RulesTest {
     }
 
     @Test
-    fun `volume covers the unit's music stream range`() {
-        assertEquals(100, Rules.MAX_VOLUME)
+    fun `volume covers the unit's level range`() {
+        assertEquals(30, Rules.MAX_VOLUME)
     }
 
     @Test

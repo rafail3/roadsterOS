@@ -37,9 +37,10 @@ sealed class Action {
 
 /** The single place that decides what happens when the car says something. Pure, no Android. */
 object Rules {
-    // the unit's music stream runs 0..100; the start level is a placeholder until it is read from the unit
-    const val MAX_VOLUME = 100
-    const val DEFAULT_VOLUME = 40
+    // the unit's volume level runs 0..30 (the vendor maps it onto Android's 0..100 music stream through a table);
+    // the start level is the one last read on the unit, until our app reads it at boot
+    const val MAX_VOLUME = 30
+    const val DEFAULT_VOLUME = 16
 
     fun apply(s: RulesState, e: CarEvent): Pair<RulesState, List<Action>> = when (e) {
         is CarEvent.ReverseGear ->
