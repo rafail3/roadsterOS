@@ -71,10 +71,24 @@ class RulesTest {
     }
 
     @Test
-    fun `panel power home and back go to the shell`() {
-        assertEquals(listOf(Action.ToggleScreen), Rules.apply(bt, CarEvent.PanelKey(PanelKey.POWER)).second)
+    fun `panel home and back go to the shell`() {
         assertEquals(listOf(Action.Home), Rules.apply(bt, CarEvent.PanelKey(PanelKey.HOME)).second)
         assertEquals(listOf(Action.Back), Rules.apply(bt, CarEvent.PanelKey(PanelKey.BACK)).second)
+    }
+
+    @Test
+    fun `a short press on panel power toggles mute and shows the volume bar`() {
+        val (muted, actions) = Rules.apply(bt, CarEvent.PanelKey(PanelKey.POWER))
+        assertEquals(listOf(Action.Send(CarCommand.Audio.Mute(true)), Action.ShowVolume), actions)
+        assertTrue(muted.muted)
+        val (unmuted, again) = Rules.apply(muted, CarEvent.PanelKey(PanelKey.POWER))
+        assertEquals(listOf(Action.Send(CarCommand.Audio.Mute(false)), Action.ShowVolume), again)
+        assertFalse(unmuted.muted)
+    }
+
+    @Test
+    fun `volume covers the unit's music stream range`() {
+        assertEquals(100, Rules.MAX_VOLUME)
     }
 
     @Test
@@ -104,7 +118,7 @@ class RulesTest {
         assertEquals(listOf(CarCommand.Audio.Volume(-5), CarCommand.Audio.Mute(true)), Rules.setVolume(s, 0))
         assertEquals(emptyList(), Rules.setVolume(s.copy(volume = 0, muted = true), 0))
         assertEquals(listOf(CarCommand.Audio.Volume(2), CarCommand.Audio.Mute(false)), Rules.setVolume(s.copy(volume = 0, muted = true), 2))
-        assertEquals(listOf(CarCommand.Audio.Volume(Rules.MAX_VOLUME - 5)), Rules.setVolume(s, 99))
+        assertEquals(listOf(CarCommand.Audio.Volume(Rules.MAX_VOLUME - 5)), Rules.setVolume(s, Rules.MAX_VOLUME + 50))
     }
 
     @Test
