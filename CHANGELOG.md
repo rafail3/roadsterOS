@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/rafail3/roadsterOS/compare/v1.2.0...v1.3.0) (2026-11-04)
+
+
+### Features
+
+* emulator and rules matched to the reference unit ([#15](https://github.com/rafail3/roadsterOS/issues/15)) ([de58473](https://github.com/rafail3/roadsterOS/commit/de58473130cc2466f2953432ad2201a94b94c8c1))
+
 ## [1.2.0](https://github.com/rafail3/roadsterOS/compare/v1.1.0...v1.2.0) (2026-11-03)
 
 
