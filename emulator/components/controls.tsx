@@ -18,11 +18,11 @@ export function Switch({ label, checked, onChange }: { label: string; checked: b
   );
 }
 
-export function Field({ label, value, onChange, type = "text", step }: { label: string; value: string; onChange: (value: string) => void; type?: string; step?: string }) {
+export function Field({ label, value, onChange, type = "text", step, min, max }: { label: string; value: string; onChange: (value: string) => void; type?: string; step?: string; min?: string; max?: string }) {
   return (
     <label className="field-input">
       <span>{label}</span>
-      <input type={type} step={step} value={value} spellCheck={false} autoComplete="off" onChange={(e) => onChange(e.target.value)} />
+      <input type={type} step={step} min={min} max={max} value={value} spellCheck={false} autoComplete="off" onChange={(e) => onChange(e.target.value)} />
     </label>
   );
 }
