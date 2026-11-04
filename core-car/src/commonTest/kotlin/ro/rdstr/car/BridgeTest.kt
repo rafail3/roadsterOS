@@ -45,6 +45,14 @@ class BridgeTest {
     }
 
     @Test
+    fun `cover colours through json`() {
+        val pixels = List(48 * 48) { 0xFF808080.toInt() }.joinToString(",", "[", "]")
+        val answer = Bridge.coverColors(pixels, 48)
+        assertTrue(answer.startsWith("""{"top":"#"""), answer)
+        assertTrue(answer.contains(""""bottom":"#"""), answer)
+    }
+
+    @Test
     fun `shell through json`() {
         val s = Bridge.shell(Bridge.shellInitial(), """{"type":"CycleTheme"}""")
         assertTrue(s.contains(""""theme":"AUTO""""), s)

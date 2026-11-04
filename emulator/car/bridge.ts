@@ -6,6 +6,7 @@ export type ThemeMode = "AUTO" | "LIGHT" | "DARK";
 export type Face = "DIGITAL" | "ANALOG";
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";
 export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
+export type App = "HOME" | "MUSIC";
 
 export interface CarState {
   source: Source;
@@ -25,6 +26,7 @@ export interface ShellState {
   font: string;
   brightness: number;
   screenOn: boolean;
+  app: App;
 }
 
 export type CarEvent =
@@ -57,7 +59,8 @@ export type ShellAction =
   | { type: "SetFace"; face: Face }
   | { type: "SetFont"; name: string }
   | { type: "SetBrightness"; value: number }
-  | { type: "Headlights"; on: boolean };
+  | { type: "Headlights"; on: boolean }
+  | { type: "OpenApp"; app: App };
 
 export interface RuleAction {
   type: string;
@@ -71,6 +74,7 @@ interface Kotlin {
       echo(command: string): string;
       maxVolume(): number;
       setVolume(state: string, level: number): string;
+      coverColors(pixels: string, width: number): string;
       effectiveTheme(state: string, hour: number): "LIGHT" | "DARK";
     };
 }
@@ -94,6 +98,7 @@ export const bridge = {
   shell: (state: ShellState, action: ShellAction): ShellState =>
     JSON.parse(K!.Bridge.shell(JSON.stringify(state), JSON.stringify(action))),
   maxVolume: () => K!.Bridge.maxVolume(),
+  coverColors: (pixels: number[], width: number): { top: string; bottom: string } => JSON.parse(K!.Bridge.coverColors(JSON.stringify(pixels), width)),
   setVolume: (state: CarState, level: number): CarCommand[] => JSON.parse(K!.Bridge.setVolume(JSON.stringify(state), level)),
   effectiveTheme: (state: ShellState, hour: number) => K!.Bridge.effectiveTheme(JSON.stringify(state), hour),
 };

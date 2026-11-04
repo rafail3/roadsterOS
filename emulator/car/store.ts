@@ -14,10 +14,14 @@ export interface EmulatorState {
   car: CarState;
   shell: ShellState;
   // display data carried by events, not part of the rules state
-  track: { title: string; artist: string; durationMs: number };
+  track: { title: string; artist: string; durationMs: number; art: string | null };
+  /** position at positionAt (ms since epoch); the phone only reports it on changes */
   positionMs: number;
+  positionAt: number;
   radio: { khz: number; band: string; rds: string };
   call: { name: string; number: string };
+  /** the phone Bluetooth reports as connected */
+  device: string;
   acc: boolean;
   /** null = live clock, otherwise a simulated hour 0..23 */
   hour: number | null;
@@ -33,6 +37,22 @@ export interface EmulatorState {
 const LOG_SIZE = 60;
 const ECHO_DELAY_MS = 120;
 const CALLER = { name: "Ana Petrescu", number: "+40 7xx xxx xxx" };
+/** Prev restarts the track after this much playback, as phones do; earlier it goes back one track. */
+const RESTART_AFTER_MS = 3000;
+
+// The phone's queue as the emulator plays it: synthetic titles and covers.
+export const SAMPLE_TRACKS = [
+  { title: "Night Transit", artist: "Vela Orsini", durationMs: 228000, art: "/art/night-transit.svg" },
+  { title: "Amber Coast", artist: "Lio Marren", durationMs: 201000, art: "/art/amber-coast.svg" },
+  { title: "Glass Garden", artist: "Odessa Vane", durationMs: 254000, art: "/art/glass-garden.svg" },
+];
+const artFor = (title: string) => SAMPLE_TRACKS.find((t) => t.title === title)?.art ?? null;
+
+/** Where playback is now: the last reported position, advanced while playing. */
+export function elapsedMs(s: EmulatorState, now = Date.now()) {
+  const moved = s.car.playing ? now - s.positionAt : 0;
+  return Math.min(s.track.durationMs || Infinity, s.positionMs + moved);
+}
 
 let state: EmulatorState = fromUrl(new URLSearchParams(location.search));
 const listeners = new Set<() => void>();
@@ -51,15 +71,18 @@ function addLog(direction: LogEntry["direction"], value: unknown): LogEntry[] {
 function displayData(event: CarEvent): Partial<EmulatorState> {
   switch (event.type) {
     case "Track":
-      return { track: { title: event.title, artist: event.artist ?? "", durationMs: event.durationMs ?? 0 } };
+      return { track: { title: event.title, artist: event.artist ?? "", durationMs: event.durationMs ?? 0, art: artFor(event.title) } };
     case "Playback":
-      return event.positionMs === undefined ? {} : { positionMs: event.positionMs };
+      // without a reported position, freeze or resume from where playback is now
+      return { positionMs: event.positionMs ?? elapsedMs(state), positionAt: Date.now() };
     case "Radio":
       return { radio: { khz: event.khz, band: event.band, rds: event.rds ?? "" } };
     case "Call":
       return event.state === "RINGING" ? { call: { name: event.name ?? "", number: event.number ?? "" } } : {};
     case "Power":
       return { acc: event.acc };
+    case "BtConnection":
+      return event.connected && event.device ? { device: event.device } : {};
     default:
       return {};
   }
@@ -84,6 +107,19 @@ function sendToCar(command: CarCommand) {
   set({ log: addLog("out", command) });
   const echo = bridge.echo(command);
   if (echo) setTimeout(() => carEvent(echo), ECHO_DELAY_MS);
+  if (command.type === "Media.Next" || command.type === "Media.Prev") setTimeout(() => phoneSkips(command.type === "Media.Next"), ECHO_DELAY_MS);
+}
+
+/** The phone's side of next and previous: another track from its queue, or the same one from the start. */
+function phoneSkips(forward: boolean) {
+  const index = SAMPLE_TRACKS.findIndex((t) => t.title === state.track.title);
+  if (!forward && elapsedMs(state) > RESTART_AFTER_MS) {
+    carEvent({ type: "Playback", playing: state.car.playing, positionMs: 0 });
+    return;
+  }
+  const next = SAMPLE_TRACKS[(index + (forward ? 1 : -1) + SAMPLE_TRACKS.length) % SAMPLE_TRACKS.length];
+  carEvent({ type: "Track", title: next.title, artist: next.artist, album: "", durationMs: next.durationMs });
+  carEvent({ type: "Playback", playing: state.car.playing, positionMs: 0 });
 }
 
 export function carEvent(event: CarEvent) {
@@ -152,7 +188,7 @@ export async function replay(name: string) {
   }
 }
 
-/** URL state for captures, e.g. ?bare&theme=light&hour=20&source=radio&call=ringing&drawer&camera&brightness=40&analog */
+/** URL state for captures, e.g. ?bare&theme=light&hour=20&source=radio&call=ringing&drawer&camera&brightness=40&analog&app=music&track=1 */
 function fromUrl(q: URLSearchParams): EmulatorState {
   let shell = bridge.shellInitial();
   let car = bridge.initial();
@@ -162,6 +198,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   if (q.has("night")) shell = bridge.shell(shell, { type: "SetTheme", mode: "DARK" });
   if (q.has("drawer")) shell = bridge.shell(shell, { type: "OpenDrawer" });
   if (q.has("analog")) shell = bridge.shell(shell, { type: "SetFace", face: "ANALOG" });
+  if (q.get("app") === "music") shell = bridge.shell(shell, { type: "OpenApp", app: "MUSIC" });
   const font = q.get("font");
   if (font) shell = bridge.shell(shell, { type: "SetFont", name: font });
   const brightness = q.get("brightness");
@@ -185,10 +222,12 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   return {
     car,
     shell,
-    track: { title: "Night Transit", artist: "Vela Orsini", durationMs: 228000 },
+    track: { ...(SAMPLE_TRACKS[Number(q.get("track"))] ?? SAMPLE_TRACKS[0]) },
     positionMs: 72000,
+    positionAt: Date.now(),
     radio: { khz: 101900, band: "FM", rds: "Radio Nord" },
     call: CALLER,
+    device: "Phone",
     acc: true,
     hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : null,
     log: [],

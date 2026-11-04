@@ -47,6 +47,23 @@ class ShellTest {
     }
 
     @Test
+    fun `an app opens over home and home or back return to it`() {
+        val music = Shell.reduce(ShellState(), ShellAction.OpenApp(App.MUSIC))
+        assertEquals(App.MUSIC, music.app)
+        assertEquals(App.HOME, Shell.reduce(music, ShellAction.Home).app)
+        assertEquals(App.HOME, Shell.reduce(music, ShellAction.Back).app)
+    }
+
+    @Test
+    fun `back closes the drawer before the app`() {
+        val both = ShellState(app = App.MUSIC, drawer = true)
+        val once = Shell.reduce(both, ShellAction.Back)
+        assertFalse(once.drawer)
+        assertEquals(App.MUSIC, once.app)
+        assertEquals(App.HOME, Shell.reduce(once, ShellAction.Back).app)
+    }
+
+    @Test
     fun `home and back close the drawer`() {
         assertFalse(Shell.reduce(ShellState(drawer = true), ShellAction.Home).drawer)
         assertFalse(Shell.reduce(ShellState(drawer = true), ShellAction.Back).drawer)

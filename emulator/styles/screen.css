@@ -16,6 +16,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .screen [inert] { pointer-events: none; }
 .screen.theming, .screen.theming * { transition: background-color var(--theme) var(--ease-out), color var(--theme) var(--ease-out), border-color var(--theme) var(--ease-out), opacity var(--theme) var(--ease-out), filter var(--theme) var(--ease-out); }
 .dimmer { position: absolute; inset: 0; z-index: 9; background: #000; opacity: 0; pointer-events: none; transition: opacity var(--theme) var(--ease-out); }
+.screen { transition: --ambient-a 800ms cubic-bezier(0.37, 0, 0.63, 1), --ambient-b 800ms cubic-bezier(0.37, 0, 0.63, 1); }
 .ambient {
   position: absolute; inset: 0; pointer-events: none;
   background:
@@ -63,7 +64,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 /* status bar */
 /* an icon that opens something: a 48x56 touch target around a 24px glyph, without moving the glyph */
 .bar-button { display: grid; place-items: center; width: 48px; height: var(--bar); margin: 0 -12px; color: inherit; }
-.bar { touch-action: none; grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-5); position: relative; z-index: 2; color: var(--ink-muted); }
+.bar { touch-action: none; grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-5); position: relative; z-index: 3; color: var(--ink-muted); }
 .bar-group { display: flex; align-items: center; gap: var(--space-4); min-width: 200px; }
 .bar-group:last-child { justify-content: flex-end; }
 .bar .icon { width: 24px; height: 24px; }
@@ -104,16 +105,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 /* glass panel */
 .panel { grid-row: 2; margin: 0 var(--space-5) var(--space-5) 0; position: relative; z-index: 1; }
 .np { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; gap: var(--space-4); padding: var(--space-5); border-radius: var(--radius); background: var(--glass); border: 1px solid var(--hairline); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06); }
-/* synthetic artwork: a pre-blurred low-resolution bitmap on the unit */
-.art { flex: 1; min-height: 0; border-radius: var(--radius-sm); background:
-  radial-gradient(60% 50% at 30% 35%, rgba(159, 211, 255, 0.55), transparent 70%),
-  radial-gradient(50% 60% at 75% 70%, rgba(120, 80, 160, 0.6), transparent 70%),
-  linear-gradient(160deg, #1b2533, #0d1118); border: 1px solid var(--hairline); }
 .np-meta { display: flex; flex-direction: column; gap: 2px; }
 .np-title { margin: 0; font-size: var(--size-title); font-weight: 600; letter-spacing: -0.01em; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .np-artist { margin: 0; font-size: var(--size-label); color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.progress { height: 4px; border-radius: 2px; background: var(--hairline-strong); overflow: hidden; }
-.progress-fill { height: 100%; width: 32%; background: var(--ink); border-radius: 2px; }
 .np-times { display: flex; justify-content: space-between; font-size: var(--size-caption); color: var(--ink-subtle); font-variant-numeric: tabular-nums; margin-top: calc(-1 * var(--space-2)); }
 .controls { display: flex; justify-content: center; align-items: center; gap: var(--space-4); }
 .ctl { width: var(--target-lg); height: var(--target-lg); border-radius: 50%; display: grid; place-items: center; color: var(--ink); background: var(--glass-strong); border: 1px solid var(--hairline); transition: background var(--fast), transform var(--fast); }
