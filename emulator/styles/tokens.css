@@ -16,6 +16,8 @@
 
 /* dark theme: the default, used at night and whenever the car reports illumination */
 :root {
+  /* the unit's panel is 1024x600; the layout keeps a 1280-wide canvas drawn at 0.8 (on Android: density 128 for our app) */
+  --canvas-w: 1280px; --canvas-h: 750px; --unit-scale: 0.8;
   color-scheme: dark;
   /* surfaces */
   --canvas: #06080b;

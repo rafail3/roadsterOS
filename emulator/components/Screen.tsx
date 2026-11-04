@@ -24,7 +24,8 @@ const APPS = [
   { label: "Podcasts", mark: "app-mark-pod" },
 ];
 // ponytail: centres of the volume keys on this frame model, in screen pixels; another frame needs its own
-const KEY_CENTER = { VOL_UP: 416, VOL_DOWN: 516 } as const;
+// centres of the frame's volume keys, in canvas units (the screen is drawn at 0.8)
+const KEY_CENTER = { VOL_UP: 520, VOL_DOWN: 645 } as const;
 // leaves the edge along it, rises through a long S-curve, runs flat, and returns the same way
 const BULGE_PATH = "M0 0C0 22 12 26 12 48V88C12 110 0 114 0 136Z";
 

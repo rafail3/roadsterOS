@@ -37,9 +37,9 @@ sealed class Action {
 
 /** The single place that decides what happens when the car says something. Pure, no Android. */
 object Rules {
-    // ponytail: range and start level are placeholders until the unit reports its own
-    const val MAX_VOLUME = 30
-    const val DEFAULT_VOLUME = 12
+    // the unit's music stream runs 0..100; the start level is a placeholder until it is read from the unit
+    const val MAX_VOLUME = 100
+    const val DEFAULT_VOLUME = 40
 
     fun apply(s: RulesState, e: CarEvent): Pair<RulesState, List<Action>> = when (e) {
         is CarEvent.ReverseGear ->
@@ -48,7 +48,8 @@ object Rules {
         is CarEvent.Call -> call(s, e)
         is CarEvent.SteeringKey -> key(s, e.key)
         is CarEvent.PanelKey -> when (e.key) {
-            CarEvent.PanelKey.Key.POWER -> s to listOf(Action.ToggleScreen)
+            // a short press on the frame's power key mutes and unmutes, as the unit does
+            CarEvent.PanelKey.Key.POWER -> key(s, Key.MUTE).let { (next, actions) -> next to actions + Action.ShowVolume }
             CarEvent.PanelKey.Key.HOME -> s to listOf(Action.Home)
             CarEvent.PanelKey.Key.BACK -> s to listOf(Action.Back)
             CarEvent.PanelKey.Key.VOL_UP -> key(s, Key.VOL_UP)

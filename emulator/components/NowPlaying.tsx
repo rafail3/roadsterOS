@@ -36,7 +36,7 @@ function Radio({ emulator }: { emulator: EmulatorState }) {
   const [preset, setPreset] = useState(0);
   return (
     <div className="np np-radio">
-      <p className="freq"><span className="freq-num">{(radio.khz / 1000).toFixed(1)}</span><span className="freq-band">{radio.band}</span></p>
+      <p className="freq"><span className="freq-num">{radio.band === "AM" ? radio.khz : (radio.khz / 1000).toFixed(1)}</span><span className="freq-band">{radio.band}</span></p>
       <p className="np-title">{radio.rds}</p>
       <p className="np-artist">Evening programme</p>
       <div className="presets">

@@ -10,10 +10,9 @@ const KEYS: { key: SteeringKey; label: string }[] = [
   { key: "VOL_DOWN", label: "Vol −" },
   { key: "VOL_UP", label: "Vol +" },
   { key: "MUTE", label: "Mute" },
-  { key: "PHONE", label: "Phone" },
   { key: "PREV", label: "Prev" },
   { key: "NEXT", label: "Next" },
-  { key: "MODE", label: "Mode" },
+  { key: "MODE", label: "Set" },
 ];
 const CALL_STATES: { value: CallState; label: string }[] = [
   { value: "IDLE", label: "Idle" },
@@ -89,15 +88,28 @@ function Phone() {
   );
 }
 
+// The unit's tuner: FM in 0.1 MHz steps, AM in 9 kHz steps (European ranges).
+const BANDS = {
+  FM: { label: "Frequency (MHz)", min: 87.5, max: 108, step: 0.1, toKhz: (v: number) => Math.round(v * 1000), start: "101.9" },
+  AM: { label: "Frequency (kHz)", min: 522, max: 1620, step: 9, toKhz: (v: number) => Math.round(v), start: "1404" },
+} as const;
+const BAND_OPTIONS: { value: keyof typeof BANDS; label: string }[] = [{ value: "FM", label: "FM" }, { value: "AM", label: "AM" }];
+
 function Radio() {
-  const [mhz, setMhz] = useState("101.9");
+  const [band, setBand] = useState<keyof typeof BANDS>("FM");
+  const [value, setValue] = useState<string>(BANDS.FM.start);
   const [station, setStation] = useState("Radio Nord");
-  const tune = () => carEvent({ type: "Radio", khz: Math.round(Number(mhz) * 1000), band: "FM", rds: station, signal: 7 });
+  const range = BANDS[band];
+  const tune = () => {
+    const clamped = Math.min(range.max, Math.max(range.min, Number(value) || range.min));
+    carEvent({ type: "Radio", khz: range.toKhz(clamped), band, rds: band === "FM" ? station : "", signal: 7 });
+  };
   return (
     <Section title="Radio">
+      <Row label="Band"><Segmented label="Band" options={BAND_OPTIONS} value={band} onChange={(b) => { setBand(b); setValue(BANDS[b].start); }} /></Row>
       <div className="field-pair">
-        <Field label="Frequency (MHz)" type="number" step="0.1" value={mhz} onChange={setMhz} />
-        <Field label="Station" value={station} onChange={setStation} />
+        <Field label={range.label} type="number" step={String(range.step)} min={String(range.min)} max={String(range.max)} value={value} onChange={setValue} />
+        <Field label="Station (RDS)" value={station} onChange={setStation} />
       </div>
       <button className="button" onClick={tune}>Tune</button>
     </Section>

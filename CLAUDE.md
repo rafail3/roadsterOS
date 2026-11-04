@@ -25,7 +25,7 @@ Everything tracked in this repository is written in English: code, comments, res
 - 1 GB RAM with ~200 MB free on stock. Budget for our app: under 30 MB PSS, cold start under 1 s, APK under 5 MB.
 - `minSdk = targetSdk = 27`. No feature that needs a newer API. No native code.
 - Mali-450 GPU: flat UI, no blur, no large shadows, at most two overlapping layers.
-- Screen 1280x720 at 160 dpi (confirm with `adb shell wm size` / `wm density` on first connection).
+- Screen 1024x600 at 240 dpi on the reference unit. The layout is designed on a 1280x750 canvas and drawn at 0.8: `--unit-scale` in `emulator/styles/tokens.css`, density 128 inside our app on Android.
 - UI stack: Kotlin + classic Android Views. Not Compose, not Flutter.
 
 ## Working with the unit
@@ -61,5 +61,5 @@ Branches `type/slug`. Conventional Commits, lowercase subject, English. PR body 
 - `./gradlew :core-car:test --tests "ro.rdstr.car.RulesTest"` — one test class.
 - `./gradlew lint` — Android lint.
 - `./gradlew :core-car:allTests` — core-car tests on the JVM and in JavaScript; `./gradlew :core-car:jsBrowserProductionWebpack` builds the browser bundle used by `emulator/`; `npm run dev` rebuilds it when the Kotlin sources changed.
-- Browser emulator: `npm install` once, then `npm run dev` from the repo root and open `http://localhost:8787/`. `?bare` shows the 1280x720 screen alone for captures.
+- Browser emulator: `npm install` once, then `npm run dev` from the repo root and open `http://localhost:8787/`. `?bare` shows the 1024x600 screen alone for captures.
 - `adb install -r app/build/outputs/apk/sim/debug/app-sim-debug.apk` then `adb shell cmd package set-home-activity ro.rdstr.os/.HomeActivity`.

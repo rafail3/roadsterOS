@@ -25,12 +25,12 @@ A complete shell for the 8227L platform rather than a launcher on top of it: it 
 ## Operating Context
 
 - Car events arrive as `CarEvent` values (reverse gear, steering keys, illumination, ACC power, Bluetooth connection, track, playback, call, radio, dash display); commands leave as `CarCommand` values. A pure rules engine maps events to actions.
-- Development runs against the simulator flavor in the Android emulator (1280x720, 160 dpi, 1 GB, Android 8.1) with recorded `.jsonl` scenarios; the device flavor runs on the unit.
+- Development runs against the simulator flavor in the Android emulator (1024x600, 240 dpi, 1 GB, Android 8.1) with recorded `.jsonl` scenarios; the device flavor runs on the unit.
 - Navigation is an external app (opened full screen); the shell overlays a thin bar.
 
 ## Capabilities and Constraints
 
-- Screen 1280x720 at 160 dpi, landscape, capacitive touch. Mali-450 GPU: no real-time blur, no large shadows, at most two overlapping translucent layers; flat UI, images at display size.
+- Screen 1024x600 at 240 dpi, landscape, capacitive touch. The layout is designed on a 1280x750 canvas and drawn at 0.8 (density 128 inside our app). Mali-450 GPU: no real-time blur, no large shadows, at most two overlapping translucent layers; flat UI, images at display size.
 - Budget: under 30 MB PSS, cold start under 1 s, APK under 5 MB. No native code, no AndroidX, no Compose.
 - No engine data (speed, rpm, temperatures) and no embedded map tile: the car does not provide them and Android cannot embed another app's view.
 - Home is a single page with no horizontal paging. The top status bar pulls down into the shell's own quick-settings drawer. Android's status bar, navigation bar and settings are never shown.
