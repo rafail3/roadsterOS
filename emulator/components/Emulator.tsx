@@ -9,7 +9,7 @@ import { Screen } from "./Screen";
 import { Segmented } from "./controls";
 
 /** The screen plus its bezel, unscaled. */
-const FRAME = { width: 1410, height: 796 };
+const FRAME = { width: 1154, height: 676 };
 const VIEWS = [{ value: "fit", label: "Fit" }, { value: "actual", label: "100%" }] as const;
 
 function CarStatus() {
@@ -83,7 +83,7 @@ function Stage({ fit }: { fit: boolean }) {
       <div className="frame" style={{ width: FRAME.width * scale, height: FRAME.height * scale }}>
         <div className="bezel" style={{ transform: `scale(${scale})` }}>
           <FrameKeys />
-          <section className="device" aria-label="Head unit, 1280 by 720"><Screen /></section>
+          <section className="device" aria-label="Head unit, 1024 by 600"><Screen /></section>
         </div>
       </div>
     </main>
