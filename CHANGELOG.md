@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/rafail3/roadsterOS/compare/v1.4.0...v1.5.0) (2026-11-04)
+
+
+### Features
+
+* held volume keys and smoother mute ([bce8b08](https://github.com/rafail3/roadsterOS/commit/bce8b086e4cf7494498e1ad657ca6a813c137b8e))
+
 ## [1.4.0](https://github.com/rafail3/roadsterOS/compare/v1.3.0...v1.4.0) (2026-11-04)
 
 
