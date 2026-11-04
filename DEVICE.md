@@ -33,7 +33,7 @@ Some units ship the car stack as `com.ts.MainUI` (`/system/priv-app/MainUI`) ins
 | Input | Path | What Android sees |
 |---|---|---|
 | Frame Home, Back | MCU -> `com.ts.MainUI` | injected `KEYCODE_HOME`, `KEYCODE_BACK` |
-| Frame Vol+ / Vol- | MCU -> `com.ts.MainUI` | `setStreamVolume(STREAM_MUSIC, 0..100)`; held keys repeat about every 210 ms |
+| Frame Vol+ / Vol- | MCU -> `com.ts.MainUI` | volume level 0..30, one level per key; written to `STREAM_MUSIC` (0..100) through a fixed table; held keys repeat about every 210 ms |
 | Frame Power, short press | MCU -> `com.ts.MainUI` | mute toggle, broadcast `BROADCAST_MAINUI_MUTE_STATE` |
 | Steering keys | CAN box -> `com.ts.MainUI` | volume, AVRCP previous / next, source change, mute |
 | Headlights | MCU | broadcast `BROADCAST_ADAS_LIGHT_STATE` |
