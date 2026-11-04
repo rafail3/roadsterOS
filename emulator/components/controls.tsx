@@ -1,4 +1,24 @@
-import type { ReactNode } from "react";
+import type { MouseEvent, PointerEvent, ReactNode } from "react";
+
+// A held volume key repeats as the unit's MCU repeats it: again after about 270 ms, then every 210 ms (measured).
+const FIRST_REPEAT_MS = 270;
+const REPEAT_MS = 210;
+// ponytail: one timer for the whole page, one finger holds one key at a time
+let repeatTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Press handlers that send once on press and keep sending while the pointer stays down. */
+export function holdToRepeat(send: () => void, onHold?: (down: boolean) => void) {
+  const stop = () => { clearTimeout(repeatTimer); onHold?.(false); };
+  const tick = (delay: number) => { repeatTimer = setTimeout(() => { send(); tick(REPEAT_MS); }, delay); };
+  return {
+    onPointerDown: (e: PointerEvent) => { if (e.button !== 0) return; clearTimeout(repeatTimer); onHold?.(true); send(); tick(FIRST_REPEAT_MS); },
+    onPointerUp: stop,
+    onPointerLeave: stop,
+    onPointerCancel: stop,
+    // Enter and Space still press the key once; a pointer press already sent on pointer down
+    onClick: (e: MouseEvent) => { if (e.detail === 0) send(); },
+  };
+}
 
 export function Section({ title, open, children }: { title: string; open?: boolean; children: ReactNode }) {
   return (
