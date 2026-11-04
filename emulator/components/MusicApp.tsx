@@ -1,6 +1,7 @@
 import { useRef, useState, type PointerEvent } from "react";
 import { bridge } from "../car/bridge";
-import { carCommand, setVolume, shellAction, useEmulator } from "../car/store";
+import { carCommand, setVolume, shellAction, stepVolume, useEmulator } from "../car/store";
+import { holdToRepeat } from "./controls";
 import { Marquee, Progress, time, TransportRow, useCoverColors, useCrossfade, usePosition } from "./media";
 
 /** Full-screen Bluetooth music: the cover blurred into the whole background, a large cover, transport and volume. */
@@ -60,7 +61,9 @@ export function MusicApp({ open }: { open: boolean }) {
         />
 
         <div className={`music-volume${dragging ? " is-active" : ""}${car.muted ? " is-muted" : ""}`}>
-          <span className="icon i-speaker-low" aria-hidden="true" />
+          <button className="music-volume-step" aria-label="Volume down" {...holdToRepeat(() => stepVolume(-1))}>
+            <span className="icon i-speaker-low" aria-hidden="true" />
+          </button>
           <div
             ref={slider}
             className="music-volume-track"
@@ -82,7 +85,9 @@ export function MusicApp({ open }: { open: boolean }) {
           >
             <div className="music-volume-bar"><div className="music-volume-fill" style={{ transform: `scaleX(${car.muted ? 0 : car.volume / max})` }} /></div>
           </div>
-          <span className="icon i-speaker-high" aria-hidden="true" />
+          <button className="music-volume-step" aria-label="Volume up" {...holdToRepeat(() => stepVolume(1))}>
+            <span className="icon i-speaker-high" aria-hidden="true" />
+          </button>
         </div>
       </div>
     </section>

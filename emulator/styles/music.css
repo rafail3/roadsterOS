@@ -111,7 +111,12 @@
 .music-device { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.62); font-size: 14px; }
 .music-device .icon { width: 16px; height: 16px; }
 
-.music-volume { display: flex; align-items: center; gap: 14px; color: rgba(255, 255, 255, 0.62); }
+/* volume sits in its own glass capsule, so it never reads as a second timeline */
+.music-volume { display: flex; align-items: center; gap: 4px; margin-top: 8px; padding: 4px; border-radius: 999px; color: rgba(255, 255, 255, 0.62); background: rgba(23, 23, 23, 0.32); border: 1px solid rgba(255, 255, 255, 0.1); }
+.music-volume-step { flex: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; color: inherit; transition: background var(--fast), color var(--fast); }
+.music-volume-step:active { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.music-volume-step:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (hover: hover) { .music-volume-step:hover { color: #fff; } }
 .music-volume .icon { width: 24px; height: 24px; }
 .music-volume.is-muted .i-speaker-low { color: var(--mute); }
 /* the finger target is the whole row height; the bar inside thickens while held */

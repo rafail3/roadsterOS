@@ -139,6 +139,11 @@ export function setVolume(level: number) {
   bridge.setVolume(state.car, level).forEach(carCommand);
 }
 
+/** One level up or down from wherever the volume is now; safe to call again from a held key. */
+export function stepVolume(delta: number) {
+  setVolume(state.car.volume + delta);
+}
+
 export function shellAction(action: ShellAction) {
   set({ shell: bridge.shell(state.shell, action) });
 }
