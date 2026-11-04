@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { CallState, Face, SteeringKey, ThemeMode } from "../car/bridge";
 import { carEvent, replay, setHour, shellAction, stopReplay, useEmulator, useNow } from "../car/store";
-import { Field, Section, Segmented, Switch } from "./controls";
+import { Field, holdToRepeat, Section, Segmented, Switch } from "./controls";
 
 const DEFAULT_TRACK_MS = 228000;
 const FIXED_HOUR = 12;
@@ -36,7 +36,9 @@ function SteeringWheel() {
     <Section title="Steering wheel" open>
       <div className="keys">
         {KEYS.map(({ key, label }) => (
-          <button key={key} className="button" onClick={() => carEvent({ type: "SteeringKey", key })}>{label}</button>
+          key === "VOL_UP" || key === "VOL_DOWN"
+            ? <button key={key} className="button" {...holdToRepeat(() => carEvent({ type: "SteeringKey", key }))}>{label}</button>
+            : <button key={key} className="button" onClick={() => carEvent({ type: "SteeringKey", key })}>{label}</button>
         ))}
       </div>
     </Section>

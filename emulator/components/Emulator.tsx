@@ -6,7 +6,7 @@ import { carEvent, pressKey, useEmulator } from "../car/store";
 import { ControlPanel } from "./ControlPanel";
 import { Inspector } from "./Inspector";
 import { Screen } from "./Screen";
-import { Segmented } from "./controls";
+import { holdToRepeat, Segmented } from "./controls";
 
 /** The screen plus its bezel, unscaled. */
 const FRAME = { width: 1154, height: 676 };
@@ -46,21 +46,24 @@ function FrameKeys() {
     <div className="frame-keys">
       <span className="pinhole pinhole-mic"><i aria-hidden="true" />MIC</span>
       <button className="pinhole pinhole-rst" aria-label="Reset, reloads the emulator" onClick={() => location.reload()}><i aria-hidden="true" />RST</button>
-      {PANEL_KEYS.map(({ key, label, icon, sign }) => (
-        <button
-          key={key}
-          className="frame-key"
-          aria-label={label}
-          onClick={() => carEvent({ type: "PanelKey", key })}
-          onPointerDown={() => pressKey(key)}
-          onPointerUp={() => pressKey(null)}
-          onPointerLeave={() => pressKey(null)}
-          onPointerCancel={() => pressKey(null)}
-        >
-          <span className={`icon ${icon}`} aria-hidden="true" />
-          {sign && <span className="frame-sign" aria-hidden="true">{sign}</span>}
-        </button>
-      ))}
+      {PANEL_KEYS.map(({ key, label, icon, sign }) => {
+        const send = () => carEvent({ type: "PanelKey", key });
+        const press = key === "VOL_UP" || key === "VOL_DOWN"
+          ? holdToRepeat(send, (down) => pressKey(down ? key : null))
+          : {
+              onClick: send,
+              onPointerDown: () => pressKey(key),
+              onPointerUp: () => pressKey(null),
+              onPointerLeave: () => pressKey(null),
+              onPointerCancel: () => pressKey(null),
+            };
+        return (
+          <button key={key} className="frame-key" aria-label={label} {...press}>
+            <span className={`icon ${icon}`} aria-hidden="true" />
+            {sign && <span className="frame-sign" aria-hidden="true">{sign}</span>}
+          </button>
+        );
+      })}
     </div>
   );
 }
