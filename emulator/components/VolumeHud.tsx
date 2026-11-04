@@ -4,7 +4,9 @@ import { carCommand, setVolume } from "../car/store";
 
 const VISIBLE_MS = 1500;
 /** Muting drains the bar and unmuting refills it to the old level, slower than a single step. */
-const MUTE_FILL_MS = 420;
+const MUTE_FILL_MS = 480;
+// eases out without the sharp start of the step curve, so the refill reads as one movement
+const MUTE_FILL_EASE = "cubic-bezier(0.33, 1, 0.68, 1)";
 const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const KEY_STEP: Record<string, number> = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 };
 
@@ -18,8 +20,16 @@ export function VolumeHud({ volume, muted, opened, quiet = false }: { volume: nu
   // compared by value: a first render, or a repeated mount in development, is not a change
   const last = useRef({ volume, muted, opened });
   const [shaking, setShaking] = useState(false);
+  // set while rendering, so the slow duration reaches the bar in the same frame as the new width
+  const [mutedShown, setMutedShown] = useState(muted);
   const [muteChange, setMuteChange] = useState(false);
+  if (mutedShown !== muted) {
+    setMutedShown(muted);
+    setMuteChange(true);
+  }
   const muteTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // the number counts back up with the bar after unmuting
+  const [counted, setCounted] = useState<number | null>(null);
   const wasMuted = useRef(muted);
 
   const poke = () => {
@@ -33,13 +43,25 @@ export function VolumeHud({ volume, muted, opened, quiet = false }: { volume: nu
     last.current = { volume, muted, opened };
     if (before.volume === volume && before.muted === muted && before.opened === opened) return;
     if (before.muted !== muted) {
-      setMuteChange(true);
       clearTimeout(muteTimer.current);
       muteTimer.current = setTimeout(() => setMuteChange(false), MUTE_FILL_MS);
+      if (!muted && !reducedMotion()) countUp(volume);
     }
     if (!quiet) poke();
   }, [volume, muted, opened]);
-  useEffect(() => () => { clearTimeout(timer.current); clearTimeout(muteTimer.current); }, []);
+  const frame = useRef(0);
+  const countUp = (to: number) => {
+    const start = performance.now();
+    cancelAnimationFrame(frame.current);
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / MUTE_FILL_MS);
+      setCounted(Math.round(to * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) frame.current = requestAnimationFrame(step);
+      else setCounted(null);
+    };
+    frame.current = requestAnimationFrame(step);
+  };
+  useEffect(() => () => { clearTimeout(timer.current); clearTimeout(muteTimer.current); cancelAnimationFrame(frame.current); }, []);
   useEffect(() => {
     if (muted && !wasMuted.current) setShaking(true);
     wasMuted.current = muted;
@@ -77,9 +99,9 @@ export function VolumeHud({ volume, muted, opened, quiet = false }: { volume: nu
         onPointerCancel={release}
         onKeyDown={onKey}
       >
-        <div className="volume-track"><div className="volume-fill" style={{ width: `${muted ? 0 : (volume / max) * 100}%`, transitionDuration: muteChange && !reducedMotion() ? `${MUTE_FILL_MS}ms` : undefined }} /></div>
+        <div className="volume-track"><div className="volume-fill" style={{ width: `${muted ? 0 : (volume / max) * 100}%`, ...(muteChange && !reducedMotion() ? { transitionDuration: `${MUTE_FILL_MS}ms`, transitionTimingFunction: MUTE_FILL_EASE } : {}) }} /></div>
       </div>
-      <span className="volume-num" aria-hidden="true">{muted ? "Muted" : volume}</span>
+      <span className="volume-num" aria-hidden="true">{muted ? "Muted" : counted ?? volume}</span>
     </div>
   );
 }
