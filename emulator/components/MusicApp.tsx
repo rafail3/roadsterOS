@@ -3,6 +3,7 @@ import { bridge } from "../car/bridge";
 import { carCommand, setVolume, shellAction, stepVolume, useEmulator } from "../car/store";
 import { holdToRepeat } from "./controls";
 import { useMuteFill } from "./VolumeHud";
+import { DevicesSheet } from "./DevicesSheet";
 import { Marquee, Progress, time, TransportRow, useCoverColors, useCrossfade, usePosition } from "./media";
 
 /** Full-screen Bluetooth music: the cover blurred into the whole background, a large cover, transport and volume. */
@@ -33,6 +34,9 @@ export function MusicApp({ open }: { open: boolean }) {
       <button className="glass-button music-close" aria-label="Close music" onClick={() => shellAction({ type: "Home" })}>
         <span className="icon i-caret-down" aria-hidden="true" />
       </button>
+      <button className="glass-button music-devices" aria-label="Devices" onClick={() => shellAction({ type: "OpenDevices" })}>
+        <span className="icon i-bluetooth" aria-hidden="true" />
+      </button>
 
       <div className={`music-cover${car.playing ? " is-playing" : ""}`}>
         {covers.layers.map((layer) => (layer.src
@@ -50,7 +54,7 @@ export function MusicApp({ open }: { open: boolean }) {
           <Progress elapsed={elapsed} duration={duration} />
           <div className="music-times">
             <span>{time(elapsed)}</span>
-            <span className="music-device"><span className="icon i-bluetooth" aria-hidden="true" />{device}</span>
+            <button className="music-device" aria-label={`${device}, choose device`} onClick={() => shellAction({ type: "OpenDevices" })}><span className="icon i-bluetooth" aria-hidden="true" />{device}</button>
             <span>-{time(duration - elapsed)}</span>
           </div>
         </div>
@@ -92,6 +96,7 @@ export function MusicApp({ open }: { open: boolean }) {
           </button>
         </div>
       </div>
+      <DevicesSheet />
     </section>
   );
 }
