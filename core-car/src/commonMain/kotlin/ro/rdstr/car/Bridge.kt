@@ -158,6 +158,18 @@ object Bridge {
 
     fun callDuration(ms: Double): String = PhoneBook.duration(ms.toLong())
 
+    fun clockText(hour: Int, minute: Int, h24: Boolean): String = Settings.clockText(hour, minute, h24)
+
+    fun meridiem(hour: Int): String = Settings.meridiem(hour)
+
+    /** The commands a car start sends to cap a loud last level at the shell's start volume. */
+    fun startVolume(state: String, cap: Int): String = json.encodeToString(
+        ListSerializer(CarCommand.serializer()),
+        Settings.startVolume(json.decodeFromString(RulesState.serializer(), state), cap),
+    )
+
+    fun size(bytes: Double): String = Settings.size(bytes.toLong())
+
     fun shellInitial(): String = json.encodeToString(ShellState.serializer(), ShellState())
 
     fun shell(state: String, action: String): String {

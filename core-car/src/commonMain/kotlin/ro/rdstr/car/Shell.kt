@@ -2,13 +2,14 @@ package ro.rdstr.car
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 enum class ThemeMode { AUTO, LIGHT, DARK }
 enum class Theme { LIGHT, DARK }
 enum class Face { DIGITAL, ANALOG }
 
 /** What fills the screen above home. */
-enum class App { HOME, MUSIC, RADIO, MAPS, PHONE }
+enum class App { HOME, MUSIC, RADIO, MAPS, PHONE, SETTINGS }
 
 /** What the shell itself remembers, independent of the car. */
 @Serializable
@@ -33,6 +34,12 @@ data class ShellState(
     val lastHomeMs: Long? = null,
     /** The card page on home chosen last; [HomeCard.shown] falls back when it is not there. */
     val card: CardPage? = null,
+    /** The big clock on the 24-hour clock, or the 12-hour one. */
+    val clock24h: Boolean = true,
+    /** The two notes when the car goes over the speed limit. */
+    val speedChime: Boolean = true,
+    /** The highest volume level the car starts with; 0 keeps the level it was switched off with. */
+    val startVolume: Int = 0,
 )
 
 @Serializable
@@ -68,6 +75,11 @@ sealed class ShellAction {
     @Serializable @SerialName("CloseRecents") data object CloseRecents : ShellAction()
     /** A swipe on the card on home, or a new source, brings this page forward. */
     @Serializable @SerialName("ShowCard") data class ShowCard(val page: CardPage) : ShellAction()
+    @Serializable @SerialName("SetClock24h") data class SetClock24h(val on: Boolean) : ShellAction()
+    @Serializable @SerialName("SetSpeedChime") data class SetSpeedChime(val on: Boolean) : ShellAction()
+    @Serializable @SerialName("SetStartVolume") data class SetStartVolume(val level: Int) : ShellAction()
+    /** Every preference back to its default; what is open and what the car reports stay. */
+    @Serializable @SerialName("ResetSettings") data object ResetSettings : ShellAction()
 }
 
 /**
@@ -140,6 +152,13 @@ object Shell {
         ShellAction.OpenRecents -> s.copy(recents = true, drawer = false, devices = false, lastHomeMs = null)
         ShellAction.CloseRecents -> s.copy(recents = false)
         is ShellAction.ShowCard -> s.copy(card = a.page)
+        is ShellAction.SetClock24h -> s.copy(clock24h = a.on)
+        is ShellAction.SetSpeedChime -> s.copy(speedChime = a.on)
+        is ShellAction.SetStartVolume -> s.copy(startVolume = a.level.coerceIn(0, Rules.MAX_VOLUME))
+        ShellAction.ResetSettings -> ShellState().copy(
+            app = s.app, running = s.running, recents = s.recents, devices = s.devices, networks = s.networks,
+            headlights = s.headlights, screenOn = s.screenOn, card = s.card,
+        )
         // one layer at a time: the drawer, the open apps, a devices or networks sheet, then the app
         ShellAction.Back -> when {
             s.drawer -> s.copy(drawer = false)
@@ -154,6 +173,20 @@ object Shell {
 
     /** Leaving the map, the card on home shows it. */
     private fun cardAfter(s: ShellState) = if (s.app == App.MAPS) CardPage.NAVIGATION else s.card
+
+    private val prefsJson = Json { ignoreUnknownKeys = true }
+
+    /** The preferences only, as the unit keeps them across starts: nothing open, no car state. */
+    fun preferences(s: ShellState) = ShellState(
+        theme = s.theme, face = s.face, font = s.font, brightness = s.brightness,
+        clock24h = s.clock24h, speedChime = s.speedChime, startVolume = s.startVolume,
+    )
+
+    fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))
+
+    /** A stored text from an older version or a damaged one gives the defaults, never a crash at boot. */
+    fun decodePreferences(text: String?): ShellState =
+        text?.let { runCatching { preferences(prefsJson.decodeFromString(ShellState.serializer(), it)) }.getOrNull() } ?: ShellState()
 
     fun effectiveTheme(s: ShellState, hour: Int): Theme = when (s.theme) {
         ThemeMode.LIGHT -> Theme.LIGHT
