@@ -1,0 +1,12 @@
+<resources>
+    <color name="canvas">#06080b</color>
+    <color name="glass">#0dffffff</color>
+    <color name="hairline">#17ffffff</color>
+    <color name="ink">#eef1f5</color>
+    <color name="ink_muted">#9aa3ae</color>
+    <color name="ink_subtle">#7b8592</color>
+    <color name="accent">#9fd3ff</color>
+    <color name="accent_ink">#06121c</color>
+    <color name="accent_tint">#249fd3ff</color>
+    <color name="danger">#ff7a7a</color>
+</resources>
