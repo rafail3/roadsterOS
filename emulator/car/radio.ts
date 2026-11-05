@@ -1,6 +1,6 @@
 // The simulated air around the unit: synthetic stations with the RDS data real ones send.
 
-import type { Band } from "./bridge";
+import { bridge, type Band } from "./bridge";
 
 /** A station on air: `ps` is its RDS name (8 characters at most), `pty` its programme type code. */
 export interface Station { khz: number; band: Band; ps: string; pty: number; signal: 1 | 2 | 3 }
@@ -32,4 +32,4 @@ export const STATIONS: Station[] = [
 export const stationAt = (band: Band, khz: number) => STATIONS.find((s) => s.band === band && s.khz === khz);
 
 /** A frequency as the screen writes it: kHz on AM; MHz on FM, with a second decimal only off the 100 kHz grid. */
-export const formatFreq = (band: Band, khz: number) => (band === "AM" ? String(khz) : (khz / 1000).toFixed(khz % 100 ? 2 : 1));
+export const formatFreq = (band: Band, khz: number) => bridge.freqFormat(band, khz);

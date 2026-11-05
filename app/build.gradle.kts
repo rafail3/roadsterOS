@@ -47,6 +47,7 @@ android {
 
 dependencies {
     implementation(project(":core-car"))
+    implementation(project(":core-map"))
     implementation(project(":core-ui"))
     "simImplementation"(project(":car-sim"))
     "deviceImplementation"(project(":car-vendor"))

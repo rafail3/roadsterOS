@@ -46,6 +46,49 @@ object Bridge {
 
     fun ptyName(code: Int): String = Rds.ptyName(code)
 
+    private var borders: List<MapPacks.Country> = emptyList()
+
+    /** Loads the country borders once; [countryAt] then answers from them. */
+    fun loadBorders(geojson: String) { borders = MapPacks.parseBorders(geojson) }
+
+    /** The ISO code of the country at a position, or an empty string outside every border. */
+    fun countryAt(lon: Double, lat: Double): String = MapPacks.countryAt(borders, lon, lat)?.code ?: ""
+
+    /** [installed], [declined]: JSON arrays of country codes; [downloading]: a code, or empty. */
+    fun mapOffer(country: String, installed: String, wifi: Boolean, declined: String, downloading: String): String = MapPacks.offer(
+        country.ifEmpty { null },
+        json.decodeFromString(ListSerializer(String.serializer()), installed).toSet(),
+        wifi,
+        json.decodeFromString(ListSerializer(String.serializer()), declined).toSet(),
+        downloading.ifEmpty { null },
+    ).name
+
+    private val speedometer = Speedometer()
+
+    /** A GPS fix for the map's speed; [chipKmh] below 0 when the fix has no speed. Answers {"kmh":n,"stopped":b}. */
+    fun speed(lon: Double, lat: Double, timeMs: Double, chipKmh: Double): String =
+        speedometer.update(lon, lat, timeMs.toLong(), chipKmh.takeIf { it >= 0 }).let { """{"kmh":${it.kmh},"stopped":${it.stopped}}""" }
+
+    private val speedWarning = SpeedWarning()
+
+    /**
+     * The limit sign and the over-limit warning for the last fix given to [speed]; [roadLimit] below 0 when the car's
+     * road has none. Answers {"limit":n or null,"over":b,"chime":b,"lit":n,"tone":"WHITE"|"ORANGE"|"RED"}, the last two for
+     * the dial's ring.
+     */
+    fun speedWarning(roadLimit: Int, timeMs: Double): String {
+        val reading = speedometer.reading
+        val w = speedWarning.update(reading, roadLimit.takeIf { it >= 0 }, timeMs.toLong())
+        val ring = SpeedWarning.ring(reading.kmh, w)
+        return """{"limit":${w.limit},"over":${w.over},"chime":${w.chime},"lit":${ring.lit},"tone":"${ring.tone}"}"""
+    }
+
+    /** A pack's size in MB, or 0 when it is not known. */
+    fun packMb(code: String): Int = MapPacks.PACK_MB[code] ?: 0
+
+    /** A country's name from the borders, or its code. */
+    fun countryName(code: String): String = borders.firstOrNull { it.code == code }?.name ?: code
+
     fun setVolume(state: String, level: Int): String = json.encodeToString(
         ListSerializer(CarCommand.serializer()),
         Rules.setVolume(json.decodeFromString(RulesState.serializer(), state), level),
@@ -55,6 +98,36 @@ object Bridge {
     fun coverColors(pixels: String, width: Int): String {
         val (top, bottom) = CoverColors.from(json.decodeFromString(ListSerializer(Int.serializer()), pixels).toIntArray(), width)
         return """{"top":"${CoverColors.hex(top)}","bottom":"${CoverColors.hex(bottom)}"}"""
+    }
+
+    /**
+     * The card on home for the car's [state], whether Bluetooth is [btOn], and the page chosen last ([chosen], empty for
+     * none): answers {"pages":[...],"shown":"...","strip":"NONE"|"BT"|"RADIO","forSource":"..." or ""}.
+     */
+    fun homeCard(state: String, btOn: Boolean, chosen: String): String {
+        val car = json.decodeFromString(RulesState.serializer(), state)
+        val pages = HomeCard.pages(car, btOn).joinToString(",") { "\"$it\"" }
+        val shown = HomeCard.shown(car, btOn, chosen.takeIf { it.isNotEmpty() }?.let { CardPage.valueOf(it) })
+        return """{"pages":[$pages],"shown":"$shown","strip":"${HomeCard.strip(car)}","forSource":"${HomeCard.forSource(car, btOn) ?: ""}"}"""
+    }
+
+    /** What a transport button on a card page sends: a JSON array of commands. [press] is PREV, PLAY or NEXT. */
+    fun homeCardPress(state: String, page: String, press: String): String = json.encodeToString(
+        ListSerializer(CarCommand.serializer()),
+        HomeCard.press(CardPage.valueOf(page), HomeCard.Press.valueOf(press), json.decodeFromString(RulesState.serializer(), state)),
+    )
+
+    /** A frequency as the screen writes it; [band] is FM or AM. */
+    fun freqFormat(band: String, khz: Int): String = FreqDisplay.format(CarEvent.Radio.Band.valueOf(band), khz)
+
+    /** One frame of the frequency's glide to the tuned one. */
+    fun freqGlide(shown: Double, target: Int): Double = FreqDisplay.glide(shown, target)
+
+    /** The rolling counter: {"exact":"95.35" or null,"label":"...","decimalAt":n,"columns":[[place,offset],...]}. */
+    fun freqCounter(band: String, khz: Double, target: Int): String {
+        val c = FreqDisplay.counter(CarEvent.Radio.Band.valueOf(band), khz, target)
+        val columns = c.columns.joinToString(",") { "[${it.place},${it.offset}]" }
+        return """{"exact":${c.exact?.let { "\"$it\"" } ?: "null"},"label":"${c.label}","decimalAt":${c.decimalAt},"columns":[$columns]}"""
     }
 
     fun shellInitial(): String = json.encodeToString(ShellState.serializer(), ShellState())

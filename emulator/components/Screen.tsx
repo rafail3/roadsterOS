@@ -3,12 +3,14 @@ import { bridge, type Source } from "../car/bridge";
 import { carCommand, carEvent, openVolume, setBluetooth, shellAction, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Clock } from "./Clock";
 import { Drawer, useDrawerDrag } from "./Drawer";
-import { NowPlaying } from "./NowPlaying";
+import { HomeCard } from "./HomeCard";
 import { CallOverlay, CameraOverlay } from "./Overlays";
 import { VolumeHud } from "./VolumeHud";
 import { ConnectionNotice } from "./ConnectionNotice";
 import { MusicApp } from "./MusicApp";
 import { RadioApp } from "./RadioApp";
+import { MapsApp } from "./MapsApp";
+import { MapOffer } from "./MapOffer";
 import { DevicesSheet } from "./DevicesSheet";
 import { NetworksSheet } from "./NetworksSheet";
 import { LocationPrompt } from "./LocationPrompt";
@@ -24,12 +26,13 @@ const RAIL = [
   { id: "music", label: "Music", icon: "i-music-notes" },
   { id: "radio", label: "Radio", icon: "i-radio" },
   { id: "phone", label: "Phone", icon: "i-phone" },
+  { id: "maps", label: "Maps", icon: "i-navigation-arrow" },
   { id: "camera", label: "Camera", icon: "i-camera" },
-  { id: "settings", label: "Settings", icon: "i-gear-six" },
 ];
-const APPS = [
-  { label: "Navigation", mark: "app-mark-nav" },
-  { label: "Music", mark: "app-mark-music" },
+/** The app icons on home and the app each opens; Podcasts has no app yet. */
+const APPS: { label: string; mark: string; app?: "MAPS" | "MUSIC" }[] = [
+  { label: "Maps", mark: "app-mark-nav", app: "MAPS" },
+  { label: "Music", mark: "app-mark-music", app: "MUSIC" },
   { label: "Podcasts", mark: "app-mark-pod" },
 ];
 // ponytail: centres of the volume keys on this frame model, in screen pixels; another frame needs its own
@@ -89,6 +92,7 @@ function pressRail(id: string, cameraOn: boolean) {
     carCommand({ type: "Audio.Source", source: "RADIO" });
     shellAction({ type: "OpenApp", app: "RADIO" });
   }
+  if (id === "maps") shellAction({ type: "OpenApp", app: "MAPS" });
   if (id === "camera") carEvent({ type: "ReverseGear", on: !cameraOn });
 }
 
@@ -111,6 +115,14 @@ export function Screen() {
     : undefined;
   const covered = shell.drawer || shell.recents || car.call !== "IDLE" || car.camera;
   const veil = bridge.veil(shell);
+  const card = bridge.homeCard(car, emulator.btOn, shell.card);
+  // a new source brings its page forward on the card
+  const lastSource = useRef(car.source);
+  useEffect(() => {
+    if (lastSource.current === car.source) return;
+    lastSource.current = car.source;
+    if (card.forSource) shellAction({ type: "ShowCard", page: card.forSource });
+  }, [car.source, card.forSource]);
   // above neutral the whole screen goes through one colour filter; none at all otherwise
   const boost = veil.brightness > 1 ? { filter: `brightness(${veil.brightness.toFixed(3)}) saturate(${veil.saturation.toFixed(3)})` } : undefined;
 
@@ -125,7 +137,7 @@ export function Screen() {
   }, [car.camera]);
 
   return (
-    <div ref={finger} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming", inApp && "in-app", waking && "waking")} style={{ ...glow, ...boost }}>
+    <div ref={finger} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming", inApp && "in-app", shell.app === "MAPS" && "in-maps", waking && "waking")} style={{ ...glow, ...boost }}>
       <div className="ambient" aria-hidden="true" />
 
       <header className="bar" inert={covered} onPointerDown={onPointerDown}>
@@ -170,20 +182,21 @@ export function Screen() {
       <section className="field" inert={covered || inApp}>
         <Clock now={now} face={shell.face} />
         <div className="apps" aria-label="Apps">
-          {APPS.map(({ label, mark }) => (
-            <button key={label} className="app" onClick={label === "Music" ? () => shellAction({ type: "OpenApp", app: "MUSIC" }) : undefined}>
+          {APPS.map(({ label, mark, app }) => (
+            <button key={label} className="app" onClick={app ? () => shellAction({ type: "OpenApp", app }) : undefined}>
               <span className={`app-mark ${mark}`} /><span>{label}</span>
             </button>
           ))}
         </div>
       </section>
 
-      <section className="panel" aria-label="Now playing" inert={covered || inApp}>
-        <NowPlaying emulator={emulator} />
+      <section className="panel" aria-label="Now playing and navigation" inert={covered || inApp}>
+        <HomeCard emulator={emulator} card={card} />
       </section>
 
       <MusicApp open={shell.app === "MUSIC"} />
       <RadioApp open={shell.app === "RADIO"} />
+      <MapsApp open={shell.app === "MAPS"} inCard={!inApp && card.shown === "NAVIGATION" && shell.screenOn} light={light} />
       {/* over any screen: opened from the music app or by a long press on the drawer's Bluetooth */}
       <DevicesSheet />
       <NetworksSheet />
@@ -207,6 +220,7 @@ export function Screen() {
         </svg>
       ))}
       <ConnectionNotice notice={emulator.notice} hidden={car.call !== "IDLE" || car.camera} />
+      <MapOffer hidden={car.call !== "IDLE" || car.camera || shell.drawer} />
       <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC" || shell.drawer} />
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.dark.toFixed(3) }} />
       {/* always there: it fades in to switch the screen off and lifts to switch it on; a tap on it wakes the screen */}

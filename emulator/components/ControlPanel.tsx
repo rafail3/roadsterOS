@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { CallState, Face, SteeringKey, ThemeMode } from "../car/bridge";
-import { carEvent, replay, setHour, setInRange, setPcMedia, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
+import { carEvent, GPS_PLACES, removePack, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Field, holdToRepeat, Section, Segmented, Switch } from "./controls";
 
 const DEFAULT_TRACK_MS = 228000;
@@ -189,6 +189,37 @@ function DisplayControls() {
   );
 }
 
+const SPEEDS = [{ value: "90", label: "90" }, { value: "400", label: "400" }, { value: "2000", label: "2000" }];
+
+/** The simulated GPS: where the car is, which way it drives and how fast, and the map packs on the unit. */
+function Gps() {
+  const { gps, driving, sweep, country, maps } = useEmulator();
+  return (
+    <Section title="GPS and maps">
+      <div className="keys">
+        {GPS_PLACES.map((p) => <button key={p.name} className="button" onClick={() => setPosition(p)}>{p.name}</button>)}
+      </div>
+      <label className="range">
+        <span>Heading</span>
+        <input type="range" min="0" max="359" value={Math.round(gps.heading)} onChange={(e) => setPosition({ heading: Number(e.target.value) })} />
+        <output>{Math.round(gps.heading)}°</output>
+      </label>
+      <Row label="Speed, km/h"><Segmented label="Speed" options={SPEEDS} value={String(gps.kmh || 90) as "90"} onChange={(v) => setDriving(driving, Number(v))} /></Row>
+      <label className="range">
+        <span>Speed</span>
+        <input type="range" min="0" max="180" value={Math.round(gps.kmh)} disabled={sweep} onChange={(e) => setDriving(driving, Number(e.target.value))} />
+        <output>{Math.round(gps.kmh)} km/h</output>
+      </label>
+      <Switch label="Driving" checked={driving} onChange={(on) => setDriving(on)} />
+      <Switch label="Speed test: up to 130 and down, on repeat" checked={sweep} onChange={setSpeedSweep} />
+      <p className="note">In {country || "no known country"} at {gps.lat.toFixed(4)}, {gps.lon.toFixed(4)}. Map packs on the unit:</p>
+      {maps.installed.map((code) => (
+        <div key={code} className="row"><span>{code}</span><button className="button" onClick={() => removePack(code)}>Remove</button></div>
+      ))}
+    </Section>
+  );
+}
+
 export function ControlPanel() {
   return (
     <div className="controls-scroll">
@@ -200,6 +231,7 @@ export function ControlPanel() {
       <Wifi />
       <Phone />
       <Radio />
+      <Gps />
       <p className="note">Names, tracks and numbers are synthetic.</p>
     </div>
   );

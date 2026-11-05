@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- the unit's own GPS for the map; no network position is used -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application
         android:name=".RdstrApp"
@@ -29,6 +31,13 @@
         </activity>
 
         <activity android:name=".ServiceActivity" android:exported="false" />
+
+        <!-- started over adb until the shell has its maps screen -->
+        <activity
+            android:name=".maps.MapActivity"
+            android:exported="true"
+            android:screenOrientation="landscape"
+            android:hardwareAccelerated="true" />
 
         <service android:name=".CarService" android:exported="false" />
 

@@ -1,0 +1,163 @@
+/* ----- maps: full-screen app ----- */
+/* shares the music app's frame and leave motion (.music-app); the map fills it edge to edge */
+.maps-app { display: block; padding: 0; background: var(--canvas, #0d1015); color: #fff; }
+.map-canvas { position: absolute; inset: 0; }
+.maps-app .maplibregl-canvas:focus-visible { outline: none; }
+.maps-app :is(button):focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* the car: the location arrow alone, in relief, pointing the way the car drives (drawn in MapsApp) */
+/* a 72 unit box drawn at 1.2 times */
+.map-puck { width: 86px; height: 86px; pointer-events: none; }
+.map-puck svg { display: block; }
+
+.map-controls { position: absolute; top: 76px; right: 32px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.map-compass { position: relative; display: block; width: 26px; height: 26px; transition: transform 200ms var(--ease-out); }
+.map-compass i { position: absolute; left: 50%; top: 0; width: 0; height: 0; margin-left: -6px; border: 6px solid transparent; border-bottom: 13px solid #ff453a; border-top: 0; }
+.map-compass::after { content: ""; position: absolute; left: 50%; bottom: 0; margin-left: -6px; border: 6px solid transparent; border-top: 13px solid rgba(255, 255, 255, 0.85); border-bottom: 0; }
+.map-zoom { display: flex; flex-direction: column; width: 56px; border-radius: 28px; overflow: hidden; background: rgba(23, 23, 23, 0.55); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35); }
+.map-zoom button { height: 56px; display: grid; place-items: center; font-size: 30px; font-weight: 400; line-height: 1; color: rgba(235, 235, 245, 0.9); transition: background var(--fast) var(--ease-out); }
+.map-zoom button + button { border-top: 1px solid rgba(255, 255, 255, 0.12); }
+.map-zoom button:active { background: rgba(255, 255, 255, 0.12); }
+/* the location button: the drawer's location arrow, filled while the map follows the car, outlined once moved away */
+.map-locate { color: #0a84ff; }
+.map-locate .icon { transition: transform 300ms var(--spring-glyph); }
+.map-locate:active .icon { transform: scale(0.85); }
+
+/* where the car is: the street it is on, and its speed in a pill of its own to the right; off a named road the
+   street pill folds away and the speed pill slides into its place */
+.map-status { position: absolute; left: 32px; bottom: 44px; display: flex; align-items: center; height: 64px; }
+.map-pill { display: flex; align-items: center; height: 64px; padding: 0 24px; border-radius: 32px; white-space: nowrap; background: rgba(20, 22, 26, 0.82); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+/* the street pill's slot opens to its width and closes to nothing; the gap to the speed pill goes with it */
+.map-street-slot { display: grid; grid-template-columns: 0fr; margin-right: 0; opacity: 0; transform: scale(0.92); transform-origin: left center; transition: grid-template-columns 520ms var(--spring-swap), margin-right 520ms var(--spring-swap), opacity 220ms var(--ease-out), transform 520ms var(--spring-swap); }
+.map-street-slot.is-shown { grid-template-columns: 1fr; margin-right: 12px; opacity: 1; transform: none; }
+.map-street-slot > .map-pill { min-width: 0; overflow: hidden; }
+.map-street { max-width: 520px; font-size: 22px; font-weight: 600; text-overflow: ellipsis; }
+/* the speed: a round dial with a ring of ticks, the number over its unit, and the posted limit's sign over its top
+   right edge; it is taller than the pills and sits on their bottom line */
+.map-status { align-items: flex-end; height: auto; }
+.map-speed { position: relative; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 84px; height: 84px; margin-bottom: -10px; border-radius: 50%; background: rgba(20, 22, 26, 0.9); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); color: rgba(255, 255, 255, 0.85); }
+.map-speed-ticks { position: absolute; inset: -1px; width: 84px; height: 84px; }
+.map-speed-ticks line { stroke: rgba(255, 255, 255, 0.2); stroke-width: 1.7; stroke-linecap: round; transition: stroke 240ms var(--ease-out); }
+.map-speed-ticks line.is-lit { stroke: rgba(255, 255, 255, 0.92); }
+.map-speed-ticks line.is-near { stroke: #ff9f0a; }
+.map-speed-ticks line.is-hot { stroke: #ff453a; }
+.map-speed > b { font-size: 30px; font-weight: 700; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; transition: color 260ms var(--ease-out); }
+.map-speed > small { margin-top: 3px; font-size: 13px; font-weight: 600; line-height: 1; }
+/* over the posted limit: the number and the ticks turn red, with one pulse as the car goes over */
+.map-speed.is-over > b { color: #ff453a; }
+.map-speed.is-over { animation: speed-over 560ms var(--spring-glyph); }
+@keyframes speed-over { 0% { transform: scale(1); } 35% { transform: scale(1.1); } 100% { transform: scale(1); } }
+/* the speed limit sign, as on the road: white disc, red ring, black number; it pops in and shrinks away */
+.map-limit { position: absolute; top: -16px; right: -20px; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: #fff; border: 5px solid #e3141b; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35); color: #111; font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.04em; opacity: 0; transform: scale(0.3); transition: transform 480ms var(--spring-glyph), opacity 160ms var(--ease-out); }
+.map-limit.is-shown { opacity: 1; transform: none; }
+.map-limit b { animation: limit-swap 260ms var(--ease-out); }
+@keyframes limit-swap { from { opacity: 0; transform: scale(0.7); } }
+/* the data credit the licences ask for, behind a glass button: on the axis of the right-hand buttons, level with the
+   street pill (both 64 px tall from 44 px up, so a 44 px button sits 54 px up) */
+.map-credit { position: absolute; right: 38px; bottom: 54px; display: flex; align-items: center; gap: 10px; }
+.map-credit .glass-button { width: 44px; height: 44px; }
+.map-credit .glass-button .icon { width: 22px; height: 22px; }
+.map-credit-text { margin: 0; padding: 8px 14px; border-radius: 16px; font-size: 13px; color: rgba(255, 255, 255, 0.9); background: rgba(20, 22, 26, 0.82); border: 1px solid rgba(255, 255, 255, 0.12); animation: media-fade 200ms var(--ease-out); }
+.screen.light .map-credit-text { color: var(--ink); background: rgba(255, 255, 255, 0.92); border-color: rgba(0, 0, 0, 0.08); }
+
+/* ----- the offer of a country's map, over any screen ----- */
+.map-offer { position: absolute; left: 50%; bottom: 44px; z-index: 8; display: flex; align-items: center; gap: var(--space-4); width: 640px; min-height: 84px; padding: 12px 14px 12px 14px; border-radius: 28px; background: var(--sheet-raised); border: 1px solid var(--hairline-strong); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); color: var(--ink); opacity: 0; pointer-events: none; transform: translate(-50%, 140%); transition: transform 240ms cubic-bezier(0.4, 0, 1, 1), opacity 200ms cubic-bezier(0.4, 0, 1, 1); }
+.map-offer.is-shown { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); transition: transform 600ms var(--spring-rise, cubic-bezier(0.2, 0.9, 0.25, 1)), opacity 220ms var(--ease-out); }
+.map-offer-icon { flex: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 18px; color: #fff; background: #30d158; }
+.map-offer-icon .icon { width: 26px; height: 26px; transform: rotate(45deg); }
+.map-offer-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.map-offer-title { font-size: 19px; font-weight: 600; }
+.map-offer-sub { font-size: 15px; color: var(--ink-muted); }
+.map-offer-bar { display: block; height: 6px; margin-top: 6px; border-radius: 3px; background: var(--hairline-strong); overflow: hidden; }
+.map-offer-bar span { display: block; height: 100%; border-radius: 3px; background: #30d158; transform-origin: left; transition: transform 250ms linear; }
+.map-offer-button { flex: none; height: 52px; padding: 0 22px; border-radius: 26px; font-size: 17px; font-weight: 600; color: #fff; background: #0a84ff; transition: transform 300ms var(--spring-glyph); }
+.map-offer-button.is-quiet { color: var(--ink); background: var(--glass-strong); }
+.map-offer-button:active { transform: scale(0.95); transition-duration: 120ms; }
+.map-offer-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* open-apps card */
+.recents-preview-map { display: grid; place-items: center; width: 100%; aspect-ratio: 1; color: #fff; background: linear-gradient(180deg, #1c2a3b, #0d1015); }
+.recents-preview-map .icon { width: 56px; height: 56px; transform: rotate(45deg); color: #0a84ff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .map-offer, .map-offer.is-shown, .map-compass, .map-street-slot, .map-limit, .map-speed > b, .map-speed-ticks line { transition-duration: 0.01ms; transition-delay: 0ms !important; }
+  .map-speed.is-over, .map-limit b { animation: none; }
+}
+
+/* the day map is light: the status bar, the buttons and the street pill turn light over it */
+.screen.light.in-maps :is(.bar, .bar .bar-text, .bar #bar-theme) { color: var(--ink); }
+.screen.light .maps-app .glass-button, .screen.light .map-zoom { color: var(--ink); background: rgba(255, 255, 255, 0.88); border-color: rgba(0, 0, 0, 0.08); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14); }
+.screen.light .map-zoom button { color: var(--ink); }
+.screen.light .map-zoom button + button { border-top-color: rgba(0, 0, 0, 0.08); }
+.screen.light .map-compass::after { border-top-color: rgba(0, 0, 0, 0.55); }
+.screen.light .map-pill { color: var(--ink); background: rgba(255, 255, 255, 0.92); border-color: rgba(0, 0, 0, 0.08); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14); }
+.screen.light .map-speed { color: var(--ink-muted); background: rgba(255, 255, 255, 0.94); border-color: rgba(0, 0, 0, 0.08); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14); }
+.screen.light .map-speed:not(.is-over) > b { color: var(--ink); }
+.screen.light .map-speed-ticks line:not(.is-lit, .is-hot) { stroke: rgba(0, 0, 0, 0.16); }
+.screen.light .map-speed-ticks line.is-lit { stroke: rgba(0, 0, 0, 0.7); }
+
+/* emulator only: the map previews from the network until a pack is built */
+.map-preview { position: absolute; left: 50%; top: 76px; transform: translateX(-50%); margin: 0; padding: 8px 16px; border-radius: 18px; font-size: 14px; font-weight: 600; color: #000; background: #ffd60a; pointer-events: none; }
+
+/* ----- the one map, in the app or on the card on home (mapHost.ts moves it) ----- */
+.map-host, .map-gl, .map-overlay { position: absolute; inset: 0; }
+.map-overlay { z-index: 1; pointer-events: none; }
+
+/* ----- the card on home: a page per sound that is on and the map, swiped sideways ----- */
+.card-pages { position: relative; height: 100%; overflow: hidden; border-radius: var(--radius); touch-action: pan-y; }
+.card-track { display: flex; height: 100%; transition: transform 520ms var(--spring-swap); }
+.card-track.is-dragging { transition: none; }
+.card-page { flex: 0 0 100%; min-width: 0; height: 100%; }
+/* room for the dots under the sound pages' controls */
+.card-page > .np:not(.np-map) { padding-bottom: calc(var(--space-5) + 14px); }
+.card-dots { position: absolute; left: 50%; bottom: 10px; z-index: 4; display: flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 10px; transform: translateX(-50%); background: rgba(0, 0, 0, 0.32); }
+.card-dots button { width: 7px; height: 7px; padding: 0; border-radius: 4px; background: rgba(255, 255, 255, 0.42); transition: width 360ms var(--spring-swap), background-color 200ms var(--ease-out); }
+.card-dots button.is-on { width: 18px; background: #fff; }
+.screen.light .card-dots { background: rgba(255, 255, 255, 0.7); }
+.screen.light .card-dots button { background: rgba(0, 0, 0, 0.25); }
+.screen.light .card-dots button.is-on { background: var(--ink); }
+
+/* the map page: the map edge to edge, the street and speed smaller in its corner, a tap opens the app */
+.np-map { position: relative; justify-content: flex-end; padding: 0; overflow: hidden; background: var(--canvas, #0d1015); }
+.card-map { position: absolute; inset: 0; }
+.card-map-open { position: absolute; inset: 0; z-index: 2; border-radius: inherit; }
+.card-map-open:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
+.card-map .map-status { left: 14px; bottom: 34px; transform: scale(0.78); transform-origin: left bottom; }
+.card-map .map-street { max-width: 250px; }
+.np-map.has-strip .map-status { bottom: 118px; }
+
+/* under the map, the sound that plays: cover or radio mark, its names, its transport */
+.card-strip { position: relative; z-index: 3; display: flex; align-items: center; gap: 12px; margin: 0 10px 32px; padding: 9px 8px 9px 10px; border-radius: 22px; background: rgba(20, 22, 26, 0.88); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+.card-strip-cover { flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 12px; overflow: hidden; color: #fff; background: rgba(255, 255, 255, 0.08); }
+.card-strip-cover img { width: 100%; height: 100%; object-fit: cover; }
+.card-strip-cover .icon { width: 26px; height: 26px; }
+.card-strip-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.card-strip .np-title { font-size: 17px; color: #fff; }
+.card-strip .np-artist { font-size: 14px; color: rgba(255, 255, 255, 0.62); }
+.card-strip .transport { flex: none; gap: 0; }
+.np .card-strip .tx { --tx-size: 46px; --tx-glyph: 22px; --tx-color: #fff; --tx-bloom: rgba(255, 255, 255, 0.16); }
+.np .card-strip .tx-play { --tx-size: 52px; --tx-glyph: 28px; }
+.screen.light .card-strip { background: rgba(255, 255, 255, 0.94); border-color: rgba(0, 0, 0, 0.08); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14); }
+.screen.light .card-strip .np-title, .screen.light .card-strip-cover { color: var(--ink); }
+.screen.light .card-strip .np-artist { color: var(--ink-muted); }
+.screen.light .np .card-strip .tx { --tx-color: var(--ink); --tx-bloom: rgba(0, 0, 0, 0.08); }
+.screen.light .card-strip-cover { background: rgba(0, 0, 0, 0.06); }
+@media (prefers-reduced-motion: reduce) {
+  .card-track, .card-dots button { transition-duration: 0.01ms; }
+}
+
+/* the Bluetooth page without a phone (the music app's screen, smaller) and with Bluetooth off */
+.np-phone { justify-content: center; align-items: stretch; }
+.np-phone .music-nophone { width: 100%; gap: 8px; color: var(--ink); }
+.np-phone .music-nophone-icon { width: 76px; height: 76px; background: var(--glass-strong); }
+.np-phone .music-nophone-icon .icon { width: 34px; height: 34px; }
+.np-phone .music-nophone h2 { margin-top: 10px; font-size: 24px; }
+.np-phone .music-nophone p { font-size: 15px; color: var(--ink-muted); }
+.np-phone .music-nophone-list { gap: 10px; margin-top: 16px; }
+.np-phone .music-nophone-phone { height: 58px; padding: 0 20px; gap: 14px; font-size: 17px; color: var(--ink); background: var(--glass-strong); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+.np-phone .music-nophone-phone .icon { width: 22px; height: 22px; }
+.np-phone .music-nophone-more { height: 48px; margin-top: 6px; font-size: 16px; color: var(--ink); }
+.np-phone .music-nophone-pair { height: 56px; margin-top: 16px; padding: 0 26px; font-size: 17px; }
+.screen.light .np-phone .music-nophone-icon, .screen.light .np-phone .music-nophone-phone { background: rgba(0, 0, 0, 0.06); box-shadow: none; }
+.card-strip-freq { display: inline-flex; align-items: baseline; gap: 4px; }
+.card-strip-freq-num { font-variant-numeric: tabular-nums; }

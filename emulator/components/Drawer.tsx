@@ -143,6 +143,11 @@ export function Drawer({ emulator, panel, dragging }: { emulator: EmulatorState;
         <Toggle kind="location" on={emulator.locationOn} icon="i-navigation-arrow-fill" title="Location" state={emulator.locationOn ? "On" : "Off"} onClick={() => setLocation(!emulator.locationOn)} />
         <Toggle kind="mute" on={car.muted} icon="i-speaker-slash-fill" title="Mute" state={car.muted ? "On" : "Off"} onClick={() => carCommand({ type: "Audio.Mute", on: !car.muted })} />
         <Toggle kind="theme" on={shell.theme === "AUTO"} icon={THEME_ICON[shell.theme]} title="Theme" state={THEME_LABEL[shell.theme]} onClick={() => shellAction({ type: "CycleTheme" })} />
+        {/* not a switch: it opens the settings, so it has no on state */}
+        <button className="toggle toggle-settings" onClick={() => shellAction({ type: "CloseDrawer" })}>
+          <span className="toggle-disc"><span className="icon i-gear-six" aria-hidden="true" /></span>
+          <span className="toggle-text"><span className="toggle-title">Settings</span></span>
+        </button>
       </div>
       <PillSlider
         className="slider-light"

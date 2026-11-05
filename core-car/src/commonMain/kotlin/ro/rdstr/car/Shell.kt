@@ -8,7 +8,7 @@ enum class Theme { LIGHT, DARK }
 enum class Face { DIGITAL, ANALOG }
 
 /** What fills the screen above home. */
-enum class App { HOME, MUSIC, RADIO }
+enum class App { HOME, MUSIC, RADIO, MAPS }
 
 /** What the shell itself remembers, independent of the car. */
 @Serializable
@@ -31,6 +31,8 @@ data class ShellState(
     val recents: Boolean = false,
     /** When the frame Home key was last pressed, for the double press; null after a double press. */
     val lastHomeMs: Long? = null,
+    /** The card page on home chosen last; [HomeCard.shown] falls back when it is not there. */
+    val card: CardPage? = null,
 )
 
 @Serializable
@@ -64,6 +66,8 @@ sealed class ShellAction {
     /** The swipe up from the bottom edge: the open apps over the current app, without passing through home. */
     @Serializable @SerialName("OpenRecents") data object OpenRecents : ShellAction()
     @Serializable @SerialName("CloseRecents") data object CloseRecents : ShellAction()
+    /** A swipe on the card on home, or a new source, brings this page forward. */
+    @Serializable @SerialName("ShowCard") data class ShowCard(val page: CardPage) : ShellAction()
 }
 
 /**
@@ -135,17 +139,21 @@ object Shell {
         ShellAction.CloseAllApps -> s.copy(running = emptyList(), app = App.HOME, devices = false, recents = false)
         ShellAction.OpenRecents -> s.copy(recents = true, drawer = false, devices = false, lastHomeMs = null)
         ShellAction.CloseRecents -> s.copy(recents = false)
+        is ShellAction.ShowCard -> s.copy(card = a.page)
         // one layer at a time: the drawer, the open apps, a devices or networks sheet, then the app
         ShellAction.Back -> when {
             s.drawer -> s.copy(drawer = false)
             s.recents -> s.copy(recents = false)
             s.devices -> s.copy(devices = false)
             s.networks -> s.copy(networks = false)
-            else -> s.copy(app = App.HOME)
+            else -> s.copy(app = App.HOME, card = cardAfter(s))
         }
     }
 
-    private fun goHome(s: ShellState) = s.copy(app = App.HOME, recents = false, drawer = false, devices = false, networks = false)
+    private fun goHome(s: ShellState) = s.copy(app = App.HOME, recents = false, drawer = false, devices = false, networks = false, card = cardAfter(s))
+
+    /** Leaving the map, the card on home shows it. */
+    private fun cardAfter(s: ShellState) = if (s.app == App.MAPS) CardPage.NAVIGATION else s.card
 
     fun effectiveTheme(s: ShellState, hour: Int): Theme = when (s.theme) {
         ThemeMode.LIGHT -> Theme.LIGHT

@@ -17,6 +17,8 @@ data class RulesState(
     val resumeAfterCall: Boolean = false,
     val lastSource: AudioSource = AudioSource.NONE,
     val volume: Int = Rules.DEFAULT_VOLUME,
+    /** The radio receives its station; false while paused (not muted: the volume is untouched). */
+    val radioOn: Boolean = true,
 )
 
 @Serializable
@@ -97,7 +99,10 @@ object Rules {
 
     /** Commands coming from our own UI that change what the rules must remember. */
     fun onCommand(s: RulesState, c: CarCommand): RulesState = when (c) {
-        is CarCommand.Audio.Source -> if (c.source == s.source) s else s.copy(source = c.source, lastSource = s.source)
+        // choosing the radio, or tuning it, starts receiving again
+        is CarCommand.Audio.Source -> if (c.source == s.source) s else s.copy(source = c.source, lastSource = s.source, radioOn = s.radioOn || c.source == AudioSource.RADIO)
+        CarCommand.Radio.Pause -> s.copy(radioOn = false)
+        CarCommand.Radio.Play, is CarCommand.Radio.Tune, is CarCommand.Radio.Seek, is CarCommand.Radio.Preset, is CarCommand.Radio.Band, CarCommand.Radio.Scan -> s.copy(radioOn = true)
         is CarCommand.Audio.Mute -> s.copy(muted = c.on)
         is CarCommand.Audio.Volume -> s.copy(volume = (s.volume + c.delta).coerceIn(0, MAX_VOLUME))
         else -> s

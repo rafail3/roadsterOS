@@ -1,5 +1,5 @@
 // Puts the files the page loads at runtime into public/: the core-car bundle, rebuilt when its
-// Kotlin sources changed, and the recorded car scenarios with an index of their names.
+// Kotlin sources changed, the country borders the unit uses too, and the recorded car scenarios with an index of their names.
 import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readdirSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -19,6 +19,7 @@ if (!existsSync(bundle) || newest(join(root, "core-car/src")) > statSync(bundle)
   utimesSync(bundle, new Date(), new Date());
 }
 cpSync(bundle, join(pub, "rdstr.js"));
+cpSync(join(root, "core-map/src/main/resources/ro/rdstr/map/countries.geojson"), join(pub, "maps/countries.geojson"));
 
 const recordings = join(root, "sim/recordings");
 mkdirSync(join(pub, "recordings"), { recursive: true });

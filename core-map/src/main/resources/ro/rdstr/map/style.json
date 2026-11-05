@@ -1,0 +1,45 @@
+{
+  "about": "The map's look over the OpenMapTiles schema, read by the unit's renderer and by the browser emulator. Layers draw in order. A layer matches a source layer, optionally `classes` (the feature's class is one of them), `where` (each key equals) and `not` (no key equals). Widths and sizes are a number or {base, stops: [[zoom, value], ...]}, interpolated exponentially by base (1 is linear). Colours name palette entries; `day` / `night` limit a layer to one palette.",
+  "palettes": {
+    "night": {
+      "land": "#0d1015", "landcover": "#10161a", "park": "#0f1a16", "residential": "#11141a", "water": "#0b1824", "waterway": "#10253a", "boundary": "#4a5260",
+      "motorway": "#b58a4f", "trunk": "#8f7248", "primary": "#5a6576", "secondary": "#414a58", "minor": "#272d35", "service": "#1e2229", "path": "#232830", "rail": "#2c323b", "casing": "#0d1015",
+      "label": "#e6e9ee", "labelMuted": "#9aa3ae", "halo": "#0d1015", "roadLabel": "#aab3be", "waterLabel": "#5f87ad", "mask": "#06080b"
+    },
+    "day": {
+      "land": "#eef0f3", "landcover": "#e3eae1", "park": "#d6e8d4", "residential": "#e8eaee", "water": "#bcd6ee", "waterway": "#a9c9e8", "boundary": "#9aa3b0",
+      "motorway": "#f2b35b", "trunk": "#f6c987", "primary": "#ffffff", "secondary": "#ffffff", "minor": "#ffffff", "service": "#f7f8fa", "path": "#d9dde3", "rail": "#c9ced6", "casing": "#cfd4dc",
+      "label": "#1b2028", "labelMuted": "#5a6472", "halo": "#ffffff", "roadLabel": "#4b5563", "waterLabel": "#3f6f9c", "mask": "#d9dde3"
+    }
+  },
+  "layers": [
+    { "id": "land", "type": "background", "color": "land" },
+    { "id": "landcover", "type": "fill", "source": "landcover", "classes": ["wood", "grass", "farmland"], "color": "landcover" },
+    { "id": "residential", "type": "fill", "source": "landuse", "minzoom": 10, "classes": ["residential", "suburb", "neighbourhood"], "color": "residential" },
+    { "id": "park", "type": "fill", "source": "park", "color": "park" },
+    { "id": "water", "type": "fill", "source": "water", "color": "water" },
+    { "id": "waterway", "type": "line", "source": "waterway", "minzoom": 9, "color": "waterway", "width": { "base": 1.6, "stops": [[6, 0.4], [18, 6]] } },
+    { "id": "boundary-country", "type": "line", "source": "boundary", "where": { "admin_level": 2 }, "not": { "maritime": 1 }, "color": "boundary", "width": 1.2, "dash": [3, 2] },
+    { "id": "rail", "type": "line", "source": "transportation", "minzoom": 12, "classes": ["rail"], "color": "rail", "width": { "base": 1.6, "stops": [[6, 0.3], [18, 3]] } },
+
+    { "id": "road-minor-casing", "day": true, "type": "line", "source": "transportation", "minzoom": 11, "classes": ["minor"], "color": "casing", "width": { "base": 1.6, "stops": [[6, 0.9], [18, 15]] } },
+    { "id": "road-tertiary-casing", "day": true, "type": "line", "source": "transportation", "minzoom": 8, "classes": ["tertiary", "secondary"], "color": "casing", "width": { "base": 1.6, "stops": [[6, 1.1], [18, 21]] } },
+    { "id": "road-primary-casing", "day": true, "type": "line", "source": "transportation", "minzoom": 7, "classes": ["primary"], "color": "casing", "width": { "base": 1.6, "stops": [[6, 1.3], [18, 25]] } },
+    { "id": "road-trunk-casing", "day": true, "type": "line", "source": "transportation", "minzoom": 5, "classes": ["trunk"], "color": "casing", "width": { "base": 1.6, "stops": [[6, 1.4], [18, 27]] } },
+    { "id": "road-motorway-casing", "day": true, "type": "line", "source": "transportation", "minzoom": 4, "classes": ["motorway"], "color": "casing", "width": { "base": 1.6, "stops": [[6, 1.6], [18, 29]] } },
+
+    { "id": "road-path", "type": "line", "source": "transportation", "minzoom": 14, "classes": ["path", "track"], "color": "path", "width": { "base": 1.6, "stops": [[6, 0.2], [18, 2]] } },
+    { "id": "road-service", "type": "line", "source": "transportation", "minzoom": 13, "classes": ["service"], "color": "service", "width": { "base": 1.6, "stops": [[6, 0.2], [18, 6]] } },
+    { "id": "road-minor", "type": "line", "source": "transportation", "minzoom": 11, "classes": ["minor"], "color": "minor", "width": { "base": 1.6, "stops": [[6, 0.3], [18, 12]] } },
+    { "id": "road-tertiary", "type": "line", "source": "transportation", "minzoom": 8, "classes": ["tertiary", "secondary"], "color": "secondary", "width": { "base": 1.6, "stops": [[6, 0.5], [18, 18]] } },
+    { "id": "road-primary", "type": "line", "source": "transportation", "minzoom": 7, "classes": ["primary"], "color": "primary", "width": { "base": 1.6, "stops": [[6, 0.7], [18, 22]] } },
+    { "id": "road-trunk", "type": "line", "source": "transportation", "minzoom": 5, "classes": ["trunk"], "color": "trunk", "width": { "base": 1.6, "stops": [[6, 0.8], [18, 24]] } },
+    { "id": "road-motorway", "type": "line", "source": "transportation", "minzoom": 4, "classes": ["motorway"], "color": "motorway", "width": { "base": 1.6, "stops": [[6, 1], [18, 26]] } },
+
+    { "id": "water-name", "type": "text", "source": "water_name", "font": "italic", "size": 13, "color": "waterLabel", "halo": 1.2 },
+    { "id": "road-name", "type": "text", "placement": "line", "source": "transportation_name", "minzoom": 13, "font": "regular", "size": { "base": 1, "stops": [[13, 11], [18, 15]] }, "color": "roadLabel", "halo": 1.4 },
+    { "id": "place-village", "type": "text", "source": "place", "minzoom": 11, "classes": ["village", "suburb", "hamlet"], "font": "regular", "size": 13, "color": "labelMuted", "halo": 1.4 },
+    { "id": "place-town", "type": "text", "source": "place", "minzoom": 8, "classes": ["town"], "font": "regular", "size": { "base": 1, "stops": [[8, 12], [14, 17]] }, "color": "label", "halo": 1.5 },
+    { "id": "place-city", "type": "text", "source": "place", "minzoom": 4, "classes": ["city"], "font": "bold", "size": { "base": 1, "stops": [[4, 12], [12, 22]] }, "color": "label", "halo": 1.6 }
+  ]
+}

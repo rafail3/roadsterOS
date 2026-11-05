@@ -7,7 +7,7 @@ export type Face = "DIGITAL" | "ANALOG";
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";
 export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
 export type Band = "FM" | "AM";
-export type App = "HOME" | "MUSIC" | "RADIO";
+export type App = "HOME" | "MUSIC" | "RADIO" | "MAPS";
 
 export interface CarState {
   source: Source;
@@ -18,6 +18,8 @@ export interface CarState {
   btConnected: boolean;
   night: boolean;
   volume: number;
+  /** the radio receives its station; false while paused */
+  radioOn: boolean;
 }
 
 export interface ShellState {
@@ -34,7 +36,11 @@ export interface ShellState {
   running: App[];
   recents: boolean;
   lastHomeMs: number | null;
+  card: CardPage | null;
 }
+
+export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
+export type CardPress = "PREV" | "PLAY" | "NEXT";
 
 export type CarEvent =
   | { type: "ReverseGear"; on: boolean }
@@ -51,6 +57,7 @@ export type CarEvent =
 
 export type CarCommand =
   | { type: "Media.Play" | "Media.Pause" | "Media.Next" | "Media.Prev" }
+  | { type: "Radio.Play" | "Radio.Pause" }
   | { type: "Radio.Seek"; up: boolean }
   | { type: "Radio.Tune"; khz: number }
   | { type: "Radio.Band"; band: Band }
@@ -76,7 +83,8 @@ export type ShellAction =
   | { type: "SetFont"; name: string }
   | { type: "SetBrightness"; value: number }
   | { type: "Headlights"; on: boolean }
-  | { type: "OpenApp"; app: App };
+  | { type: "OpenApp"; app: App }
+  | { type: "ShowCard"; page: CardPage };
 
 export interface RuleAction {
   type: string;
@@ -100,6 +108,18 @@ interface Kotlin {
       stockCover(title: string, artist: string, count: number): number;
       sharpPx(): number;
       ptyName(code: number): string;
+      loadBorders(geojson: string): void;
+      countryAt(lon: number, lat: number): string;
+      mapOffer(country: string, installed: string, wifi: boolean, declined: string, downloading: string): string;
+      packMb(code: string): number;
+      homeCard(state: string, btOn: boolean, chosen: string): string;
+      freqFormat(band: string, khz: number): string;
+      freqGlide(shown: number, target: number): number;
+      freqCounter(band: string, khz: number, target: number): string;
+      homeCardPress(state: string, page: string, press: string): string;
+      speed(lon: number, lat: number, timeMs: number, chipKmh: number): string;
+      speedWarning(roadLimit: number, timeMs: number): string;
+      countryName(code: string): string;
     };
 }
 
@@ -123,6 +143,28 @@ export const bridge = {
     JSON.parse(K!.Bridge.shell(JSON.stringify(state), JSON.stringify(action))),
   maxVolume: () => K!.Bridge.maxVolume(),
   ptyName: (code: number): string => K!.Bridge.ptyName(code),
+  loadBorders: (geojson: string) => K!.Bridge.loadBorders(geojson),
+  countryAt: (lon: number, lat: number): string => K!.Bridge.countryAt(lon, lat),
+  mapOffer: (country: string, installed: string[], wifi: boolean, declined: string[], downloading: string | null) =>
+    K!.Bridge.mapOffer(country, JSON.stringify(installed), wifi, JSON.stringify(declined), downloading ?? "") as "NONE" | "DOWNLOAD" | "NEEDS_WIFI",
+  packMb: (code: string): number => K!.Bridge.packMb(code),
+  /** The card on home: its pages, the one shown, the sound strip under the map, and the page a source brings forward. */
+  homeCard: (state: CarState, btOn: boolean, chosen: CardPage | null): { pages: CardPage[]; shown: CardPage; strip: "NONE" | "BT" | "RADIO"; forSource: CardPage | "" } =>
+    JSON.parse(K!.Bridge.homeCard(JSON.stringify(state), btOn, chosen ?? "")),
+  freqFormat: (band: Band, khz: number): string => K!.Bridge.freqFormat(band, khz),
+  freqGlide: (shown: number, target: number): number => K!.Bridge.freqGlide(shown, target),
+  freqCounter: (band: Band, khz: number, target: number): { exact: string | null; label: string; decimalAt: number; columns: [number, number][] } =>
+    JSON.parse(K!.Bridge.freqCounter(band, khz, target)),
+  /** What a transport button on a card page, a sound app or the map's strip sends, by the unit's rule. */
+  homeCardPress: (state: CarState, page: "BLUETOOTH" | "RADIO", press: CardPress): CarCommand[] =>
+    JSON.parse(K!.Bridge.homeCardPress(JSON.stringify(state), page, press)),
+  /** The limit sign and over-limit warning for the last speed fix; [roadLimit] null when the car's road has none. */
+  speedWarning: (roadLimit: number | null, timeMs: number): { limit: number | null; over: boolean; chime: boolean; lit: number; tone: "WHITE" | "ORANGE" | "RED" } =>
+    JSON.parse(K!.Bridge.speedWarning(roadLimit ?? -1, timeMs)),
+  /** A GPS fix for the map's speed, through the unit's own calculation; [chipKmh] null when the fix has none. */
+  speed: (lon: number, lat: number, timeMs: number, chipKmh: number | null): { kmh: number; stopped: boolean } =>
+    JSON.parse(K!.Bridge.speed(lon, lat, timeMs, chipKmh ?? -1)),
+  countryName: (code: string): string => K!.Bridge.countryName(code),
   coverColors: (pixels: number[], width: number): { top: string; bottom: string } => JSON.parse(K!.Bridge.coverColors(JSON.stringify(pixels), width)),
   setVolume: (state: CarState, level: number): CarCommand[] => JSON.parse(K!.Bridge.setVolume(JSON.stringify(state), level)),
   effectiveTheme: (state: ShellState, hour: number) => K!.Bridge.effectiveTheme(JSON.stringify(state), hour),

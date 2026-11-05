@@ -1,0 +1,34 @@
+# The roads with a posted speed limit, as lines at zoom 14 only, with their OpenStreetMap maxspeed tags as they are.
+# add-speed-limits.py turns the tags into km/h per direction and adds the lines to the country pack.
+#
+#   java -jar planetiler.jar generate-custom --schema=scripts/speed-limits.yml --osm_path=<extract.osm.pbf> --output=<limits.mbtiles>
+schema_name: rdstr speed limits
+attribution: '<a href="https://www.openstreetmap.org/copyright">&copy; OpenStreetMap contributors</a>'
+args:
+  osm_path: romania-latest.osm.pbf
+  minzoom: 14
+  maxzoom: 14
+sources:
+  osm:
+    type: osm
+    local_path: '${ args.osm_path }'
+layers:
+  - id: maxspeed
+    features:
+      - source: osm
+        geometry: line
+        min_zoom: 14
+        include_when:
+          __all__:
+            - highway: [motorway, motorway_link, trunk, trunk_link, primary, primary_link, secondary, secondary_link,
+                tertiary, tertiary_link, unclassified, residential, living_street, service, road]
+            - maxspeed: __any__
+              "maxspeed:forward": __any__
+              "maxspeed:backward": __any__
+        attributes:
+          - key: maxspeed
+            tag_value: maxspeed
+          - key: forward
+            tag_value: "maxspeed:forward"
+          - key: backward
+            tag_value: "maxspeed:backward"

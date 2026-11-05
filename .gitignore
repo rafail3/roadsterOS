@@ -35,3 +35,4 @@ next-env.d.ts
 *.tsbuildinfo
 emulator/public/rdstr.js
 emulator/public/recordings/
+emulator/public/maps/countries.geojson
