@@ -159,12 +159,18 @@ export function CallBar({ emulator }: { emulator: EmulatorState }) {
     );
   }
   const status = car.call === "OUTGOING" ? "Calling…" : call.held ? "On Hold" : call.since !== null ? bridge.callDuration(now.getTime() - call.since) : "";
+  // the same banner as a ringing call, with the call's clock and the key that ends it
   return (
-    <button className="call-bar" onClick={expand} aria-label={`Call with ${name}, ${status}, open`}>
-      <span className="icon i-phone-fill" aria-hidden="true" />
-      <span className="call-bar-name">{name}</span>
-      <span className="call-bar-time">{status}</span>
-    </button>
+    <section className="call-banner" aria-label={`Call with ${name}`}>
+      <button className="call-banner-open" onClick={expand} aria-label={`Open the call with ${name}, ${status}`}>
+        <span className="phone-avatar" aria-hidden="true">{(!call.conference && bridge.initials(call.name)) || <span className={`icon ${call.conference ? "i-users-fill" : "i-user"}`} />}</span>
+        <span className="message-banner-text">
+          <span className="message-banner-name">{name}</span>
+          <span className="message-banner-body call-banner-time">{[status, call.micMuted && "Muted"].filter(Boolean).join(" · ")}</span>
+        </span>
+      </button>
+      <button className="call-key is-decline is-small" aria-label={call.conference ? "End conference" : "End call"} onClick={() => carCommand({ type: "Phone.HangUp" })}><span className="icon i-phone-disconnect-fill" aria-hidden="true" /></button>
+    </section>
   );
 }
 

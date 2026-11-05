@@ -211,11 +211,8 @@
 .call-add-contacts .phone-letter { background: #111419; }
 
 /* the call folded away: a green pill under the status bar, or the ringing call as a banner */
-.call-bar { position: absolute; top: 60px; left: 50%; z-index: 6; display: flex; align-items: center; gap: 12px; min-width: 260px; height: 52px; padding: 0 22px; border-radius: 999px; transform: translateX(-50%); color: #fff; background: #248a3d; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); animation: banner-in 320ms var(--sheet-in); transition: filter var(--fast); }
-.call-bar:active { filter: brightness(1.12); }
-.call-bar .icon { width: 22px; height: 22px; }
-.call-bar-name { flex: 1; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; font-weight: 600; }
-.call-bar-time { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* a call in progress: the green clock beside the name tells it from a ringing one */
+.call-banner-time { color: var(--call-green); font-variant-numeric: tabular-nums; }
 .call-banner { position: absolute; top: 60px; left: 50%; z-index: 7; display: flex; align-items: center; gap: 12px; width: 560px; padding: 12px 14px 12px 12px; border-radius: 26px; transform: translateX(-50%); color: #fff; background: #1c2129; border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); animation: banner-in 360ms var(--sheet-in); }
 .call-banner-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; text-align: left; color: inherit; }
-@media (prefers-reduced-motion: reduce) { .call-bar, .call-banner { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .call-banner { animation: none; } }
