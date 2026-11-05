@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { CardPage } from "../car/bridge";
 import { setSlot } from "../car/mapHost";
-import { formatFreq } from "../car/radio";
 import { pressSound, setBluetooth, shellAction, type EmulatorState } from "../car/store";
 import { Marquee, TransportRow } from "./media";
 import { NoPhone } from "./MusicApp";
 import { Bluetooth, Radio } from "./NowPlaying";
+import { FreqCounter, useGlidingKhz } from "./RadioApp";
 
 /** A swipe longer than this share of the card, or quicker than this, turns the page. */
 const TURN_SHARE = 0.18;
@@ -20,6 +20,8 @@ type Card = { pages: CardPage[]; shown: CardPage; strip: "NONE" | "BT" | "RADIO"
 /** Under the map, the sound that plays: the track or the station, with its transport. */
 function SoundStrip({ emulator, kind }: { emulator: EmulatorState; kind: "BT" | "RADIO" }) {
   const { car, track, radio } = emulator;
+  // the frequency glides and its digits roll as in the radio app, not jumping step by step
+  const gliding = useGlidingKhz(radio.band, radio.khz);
   return (
     <div className="card-strip">
       {kind === "BT" ? (
@@ -41,7 +43,7 @@ function SoundStrip({ emulator, kind }: { emulator: EmulatorState; kind: "BT" | 
           <span className="card-strip-cover is-radio"><span className="icon i-radio" /></span>
           <span className="card-strip-meta" key={radio.rds}>
             <span className="np-title">{radio.rds || "Radio"}</span>
-            <span className="np-artist">{formatFreq(radio.band, radio.khz)} {radio.band === "FM" ? "MHz" : "kHz"}</span>
+            <span className="np-artist card-strip-freq"><FreqCounter className="card-strip-freq-num" band={radio.band} khz={gliding} target={radio.khz} /> {radio.band === "FM" ? "MHz" : "kHz"}</span>
           </span>
           <TransportRow
             playing={car.radioOn}

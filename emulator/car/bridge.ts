@@ -113,6 +113,9 @@ interface Kotlin {
       mapOffer(country: string, installed: string, wifi: boolean, declined: string, downloading: string): string;
       packMb(code: string): number;
       homeCard(state: string, btOn: boolean, chosen: string): string;
+      freqFormat(band: string, khz: number): string;
+      freqGlide(shown: number, target: number): number;
+      freqCounter(band: string, khz: number, target: number): string;
       homeCardPress(state: string, page: string, press: string): string;
       speed(lon: number, lat: number, timeMs: number, chipKmh: number): string;
       speedWarning(roadLimit: number, timeMs: number): string;
@@ -148,6 +151,10 @@ export const bridge = {
   /** The card on home: its pages, the one shown, the sound strip under the map, and the page a source brings forward. */
   homeCard: (state: CarState, btOn: boolean, chosen: CardPage | null): { pages: CardPage[]; shown: CardPage; strip: "NONE" | "BT" | "RADIO"; forSource: CardPage | "" } =>
     JSON.parse(K!.Bridge.homeCard(JSON.stringify(state), btOn, chosen ?? "")),
+  freqFormat: (band: Band, khz: number): string => K!.Bridge.freqFormat(band, khz),
+  freqGlide: (shown: number, target: number): number => K!.Bridge.freqGlide(shown, target),
+  freqCounter: (band: Band, khz: number, target: number): { exact: string | null; label: string; decimalAt: number; columns: [number, number][] } =>
+    JSON.parse(K!.Bridge.freqCounter(band, khz, target)),
   /** What a transport button on a card page, a sound app or the map's strip sends, by the unit's rule. */
   homeCardPress: (state: CarState, page: "BLUETOOTH" | "RADIO", press: CardPress): CarCommand[] =>
     JSON.parse(K!.Bridge.homeCardPress(JSON.stringify(state), page, press)),

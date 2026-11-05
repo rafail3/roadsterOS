@@ -17,14 +17,12 @@ const GENRE_COLOR: [number[], string][] = [
 ];
 export const genreColor = (pty: number) => GENRE_COLOR.find(([codes]) => codes.includes(pty))?.[1] ?? "#8e8e93";
 
-/** Each frame the shown frequency covers this share of the way left to the tuned one, and lands when this close. */
-const GLIDE = 0.2;
-const SETTLE_KHZ = 0.5;
 const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /**
  * The frequency as the screen shows it while it moves: it glides to the tuned one instead of jumping, so seeks, scans
- * and jumps read as one even count. Returns the frequency to draw, in kHz, not rounded.
+ * and jumps read as one even count, by the unit's rule (core-car FreqDisplay.glide). Returns the frequency to draw, in kHz,
+ * not rounded.
  */
 export function useGlidingKhz(band: Band, khz: number) {
   const [shown, setShown] = useState(khz);
@@ -38,15 +36,10 @@ export function useGlidingKhz(band: Band, khz: number) {
     }
     let frame = 0;
     const step = () => {
-      const left = khz - at.current.khz;
-      if (Math.abs(left) < SETTLE_KHZ) {
-        at.current = { band, khz };
-        setShown(khz);
-        return;
-      }
-      at.current = { band, khz: at.current.khz + left * GLIDE };
-      setShown(at.current.khz);
-      frame = requestAnimationFrame(step);
+      const next = bridge.freqGlide(at.current.khz, khz);
+      at.current = { band, khz: next };
+      setShown(next);
+      if (next !== khz) frame = requestAnimationFrame(step);
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
@@ -60,23 +53,12 @@ export function useGlidingKhz(band: Band, khz: number) {
  * FM counts in tenths of a MHz; a station off that grid (95.35) shows its exact digits once the count settles.
  */
 export function FreqCounter({ band, khz, target, className }: { band: Band; khz: number; target: number; className: string }) {
-  const exact = formatFreq(band, target);
-  // landed off the 100 kHz grid: the exact digits, which the tenths counter cannot show
-  if (khz === target && band === "FM" && target % 100) return <span className={className}>{exact}</span>;
-  const units = band === "FM" ? khz / 100 : khz;
-  const whole = Math.floor(units + 1e-6);
-  const frac = Math.max(0, units - whole);
-  const digits = String(whole);
-  const columns = digits.split("").map((d, i) => {
-    const place = digits.length - 1 - i;
-    // a carry turns this digit only while every digit to its right is a 9 on its way to 0
-    const carry = place === 0 || digits.slice(i + 1).split("").every((x) => x === "9") ? frac : 0;
-    return { place, offset: Number(d) + carry };
-  });
-  const decimalAt = band === "FM" ? 1 : 0;
+  // the unit's counter (core-car FreqDisplay.counter): exact digits once settled off the tenths grid, else the strips
+  const { exact, label, decimalAt, columns } = bridge.freqCounter(band, khz, target);
+  if (exact !== null) return <span className={className}>{exact}</span>;
   return (
-    <span className={`counter ${className}`} aria-label={exact}>
-      {columns.map(({ place, offset }) => (
+    <span className={`counter ${className}`} aria-label={label}>
+      {columns.map(([place, offset]) => (
         <span key={place} className="counter-group" aria-hidden="true">
           {place === decimalAt - 1 && decimalAt > 0 && <span className="counter-point">.</span>}
           <span className="counter-digit">

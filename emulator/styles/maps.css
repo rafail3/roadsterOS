@@ -159,3 +159,5 @@
 .np-phone .music-nophone-more { height: 48px; margin-top: 6px; font-size: 16px; color: var(--ink); }
 .np-phone .music-nophone-pair { height: 56px; margin-top: 16px; padding: 0 26px; font-size: 17px; }
 .screen.light .np-phone .music-nophone-icon, .screen.light .np-phone .music-nophone-phone { background: rgba(0, 0, 0, 0.06); box-shadow: none; }
+.card-strip-freq { display: inline-flex; align-items: baseline; gap: 4px; }
+.card-strip-freq-num { font-variant-numeric: tabular-nums; }
