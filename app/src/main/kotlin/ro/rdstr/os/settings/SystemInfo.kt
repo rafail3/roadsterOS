@@ -19,6 +19,10 @@ data class SystemInfo(
     val totalMemory: String,
     val freeStorage: String,
     val totalStorage: String,
+    /** The Date & Time page: the time zone's id, and whether Android sets the time and the zone from the network and GPS. */
+    val timeZone: String,
+    val autoTime: Boolean,
+    val autoTimeZone: Boolean,
 ) {
     companion object {
         fun read(context: Context): SystemInfo {
@@ -35,6 +39,9 @@ data class SystemInfo(
                 totalMemory = Settings.size(memory.totalMem),
                 freeStorage = Settings.size(disk.availableBytes),
                 totalStorage = Settings.size(disk.totalBytes),
+                timeZone = java.util.TimeZone.getDefault().id,
+                autoTime = android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.AUTO_TIME, 1) == 1,
+                autoTimeZone = android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.AUTO_TIME_ZONE, 1) == 1,
             ).also { Log.i(Radios.TAG, "about $it") }
         }
     }

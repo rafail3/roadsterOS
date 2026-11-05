@@ -1,10 +1,10 @@
 import { useState, type ReactNode } from "react";
 import { bridge, type FaceMode, type ThemeMode } from "../car/bridge";
-import { removePack, setBluetooth, setLocation, setVolume, setWifi, shellAction, useEmulator, type EmulatorState } from "../car/store";
+import { removePack, setBluetooth, setLocation, setVolume, setWifi, shellAction, useEmulator, useNow, type EmulatorState } from "../car/store";
 import { PillSlider } from "./Drawer";
 import { useCloseOntoCard } from "./media";
 
-type Page = "wifi" | "bluetooth" | "location" | "display" | "sound" | "phone" | "home" | "maps" | "about";
+type Page = "wifi" | "bluetooth" | "location" | "display" | "datetime" | "sound" | "phone" | "home" | "maps" | "about";
 
 /** The level a start is capped at when the limit is first switched on. */
 const START_VOLUME_DEFAULT = 12;
@@ -105,7 +105,27 @@ function Display({ e }: { e: EmulatorState }) {
       <Row label="Face">
         <Segmented<FaceMode> label="Clock face" options={[["BOTH", "Both"], ["DIGITAL", "Digital"], ["ANALOG", "Analog"]]} value={shell.faceMode} onChange={(mode) => shellAction({ type: "SetFaceMode", mode })} />
       </Row>
-      <Row label="24-Hour Time"><Switch label="24-Hour Time" on={shell.clock24h} onChange={(on) => shellAction({ type: "SetClock24h", on })} /></Row>
+    </Group>
+  </>);
+}
+
+/** Date and time: the clock's format, and the time and zone Android keeps from the network and GPS (SystemInfo on the unit). */
+function DateTime({ e }: { e: EmulatorState }) {
+  const now = useNow(e.hour);
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const date = now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const time = bridge.clockText(now.getHours(), now.getMinutes(), e.shell.clock24h) + (e.shell.clock24h ? "" : ` ${bridge.meridiem(now.getHours())}`);
+  return (<>
+    <Group>
+      <Row label="Today" value={date} />
+      <Row label="Time" value={time} />
+    </Group>
+    <Group>
+      <Row label="24-Hour Time"><Switch label="24-Hour Time" on={e.shell.clock24h} onChange={(on) => shellAction({ type: "SetClock24h", on })} /></Row>
+    </Group>
+    <Group footer="The unit takes the time and its zone from the network and GPS.">
+      <Row label="Set Automatically" value="On" />
+      <Row label="Time Zone" value={zone.replace("_", " ")} />
     </Group>
   </>);
 }
@@ -237,6 +257,7 @@ const PAGES: { id: Page; label: string; icon: string; tint: string }[] = [
   { id: "bluetooth", label: "Bluetooth", icon: "i-bluetooth", tint: "#0a84ff" },
   { id: "location", label: "Location", icon: "i-navigation-arrow-fill", tint: "#0a84ff" },
   { id: "display", label: "Display", icon: "i-sun-fill", tint: "#5e5ce6" },
+  { id: "datetime", label: "Date & Time", icon: "i-clock-fill", tint: "#8e8e93" },
   { id: "sound", label: "Sound", icon: "i-speaker-high-fill", tint: "#ff375f" },
   { id: "phone", label: "Phone", icon: "i-phone-fill", tint: "#17d847" },
   { id: "home", label: "Home Screen", icon: "i-house-fill", tint: "#5e5ce6" },
@@ -283,6 +304,7 @@ export function SettingsApp({ open }: { open: boolean }) {
         {page === "bluetooth" && <Bluetooth e={e} />}
         {page === "location" && <Location e={e} />}
         {page === "display" && <Display e={e} />}
+        {page === "datetime" && <DateTime e={e} />}
         {page === "sound" && <Sound e={e} />}
         {page === "phone" && <Phone e={e} />}
         {page === "maps" && <Maps e={e} />}
