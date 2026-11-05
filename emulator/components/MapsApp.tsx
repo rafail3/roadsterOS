@@ -1,5 +1,5 @@
 import maplibregl from "maplibre-gl";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { mapStyle } from "../car/mapStyle";
 import { bridge } from "../car/bridge";
 import { chime, limitAt, streetAt } from "../car/roads";
@@ -39,33 +39,26 @@ function turnPuck(el: HTMLElement, degrees: number) {
   el.querySelector("[data-shadow]")?.setAttribute("transform", `translate(0 3) rotate(${degrees})`);
 }
 
-/** The dial's ring: this many ticks, lit from the bottom clockwise, all of them at this speed. */
 const TICKS = 60;
-const TICKS_FULL_KMH = 240;
-const ORANGE = [255, 179, 64];
-const RED = [255, 69, 58];
+const TONE = { WHITE: "is-lit", ORANGE: "is-near", RED: "is-hot" } as const;
 
 /**
- * The ticks around the speed: the share of the ring the speed reaches is lit, white under the limit; over it the lit
- * ticks run from orange at the bottom to red, the colour sweeping round the ring tick by tick.
+ * The ticks around the speed, lit by the unit's rule (core-car SpeedWarning.ring): in proportion to the limit, full at
+ * it, orange close to it, all red over it. Each tick changes a moment after the one before, so a change sweeps round.
  */
-function SpeedTicks({ kmh, over }: { kmh: number; over: boolean }) {
-  const lit = Math.round((Math.min(kmh, TICKS_FULL_KMH) / TICKS_FULL_KMH) * TICKS);
+const SpeedTicks = memo(function SpeedTicks({ lit, tone }: { lit: number; tone: keyof typeof TONE }) {
   return (
     <svg className="map-speed-ticks" viewBox="0 0 84 84" aria-hidden="true">
       {Array.from({ length: TICKS }, (_, i) => {
         const a = ((180 + (i * 360) / TICKS) * Math.PI) / 180;
-        const t = Math.min(1, i / (TICKS * 0.35));
-        const c = ORANGE.map((o, k) => Math.round(o + (RED[k] - o) * t));
-        const state = i < lit ? (over ? "is-hot" : "is-lit") : "";
         return (
-          <line key={i} className={state} x1={42 + 34 * Math.sin(a)} y1={42 - 34 * Math.cos(a)} x2={42 + 39.5 * Math.sin(a)} y2={42 - 39.5 * Math.cos(a)}
-            style={{ "--hot": `rgb(${c.join(",")})`, transitionDelay: `${i * 6}ms` } as CSSProperties} />
+          <line key={i} className={i < lit ? TONE[tone] : undefined} x1={42 + 34 * Math.sin(a)} y1={42 - 34 * Math.cos(a)}
+            x2={42 + 39.5 * Math.sin(a)} y2={42 - 39.5 * Math.cos(a)} style={{ transitionDelay: `${i * 5}ms` }} />
         );
       })}
     </svg>
   );
-}
+});
 
 /** Full-screen map: the car in the middle, heading up while it follows, the street it is on, and the map controls. */
 export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
@@ -77,8 +70,10 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
   const [headingUp, setHeadingUp] = useState(true);
   const [bearing, setBearing] = useState(0);
   const [street, setStreet] = useState("");
-  const [warning, setWarning] = useState<{ limit: number | null; over: boolean }>({ limit: null, over: false });
+  const [warning, setWarning] = useState<{ limit: number | null; over: boolean; lit: number; tone: "WHITE" | "ORANGE" | "RED" }>({ limit: null, over: false, lit: 0, tone: "WHITE" });
   const limitAtMs = useRef(0);
+  // the limit of the car's road, looked up once a second; the warning follows every fix
+  const roadLimit = useRef<number | null>(null);
   // the last limit stays written while its sign shrinks away
   const shownLimit = useRef<number | null>(null);
   if (warning.limit !== null) shownLimit.current = warning.limit;
@@ -127,9 +122,10 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
       const { gps: at, speed: s } = latest.current;
       const heading = s.stopped ? null : at.heading;
       setStreet(streetAt(m, at.lon, at.lat, m.getZoom(), heading));
-      const w = bridge.speedWarning(limitAt(m, at.lon, at.lat, heading), performance.now());
+      roadLimit.current = limitAt(m, at.lon, at.lat, heading);
+      const w = bridge.speedWarning(roadLimit.current, performance.now());
       if (w.chime) chime();
-      setWarning({ limit: w.limit, over: w.over });
+      setWarning((old) => (old.limit === w.limit && old.over === w.over && old.lit === w.lit && old.tone === w.tone ? old : w));
     });
     const el = document.createElement("div");
     el.className = "map-puck";
@@ -157,9 +153,12 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
     // the limit sign and the warning, by the unit's rule (core-car SpeedWarning)
     if (open && now - limitAtMs.current > LIMIT_EVERY_MS && m.isStyleLoaded()) {
       limitAtMs.current = now;
-      const w = bridge.speedWarning(limitAt(m, gps.lon, gps.lat, heading), now);
+      roadLimit.current = limitAt(m, gps.lon, gps.lat, heading);
+    }
+    if (open) {
+      const w = bridge.speedWarning(roadLimit.current, now);
       if (w.chime) chime();
-      setWarning({ limit: w.limit, over: w.over });
+      setWarning((old) => (old.limit === w.limit && old.over === w.over && old.lit === w.lit && old.tone === w.tone ? old : w));
     }
   }, [gps, speed, follow, headingUp, open, driving]);
 
@@ -193,7 +192,7 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
         </div>
         <span className={`map-speed${warning.over ? " is-over" : ""}`} role="img" aria-label={`${speed.kmh} km/h`}>
           {/* the dial's ring of ticks */}
-          <SpeedTicks kmh={speed.kmh} over={warning.over} />
+          <SpeedTicks lit={warning.lit} tone={warning.tone} />
           <b>{speed.kmh}</b>
           <small>km/h</small>
           <span className={`map-limit${warning.limit !== null ? " is-shown" : ""}`} role="img"

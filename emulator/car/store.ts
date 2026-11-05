@@ -33,6 +33,8 @@ export interface EmulatorState {
   /** the car's position from GPS, its heading in degrees from north, its speed */
   gps: { lon: number; lat: number; heading: number; kmh: number };
   driving: boolean;
+  /** a test drive whose speed climbs from 0 to SWEEP_TOP and back, over and over */
+  sweep: boolean;
   /** the speed the map shows, worked out from the GPS fixes as on the unit */
   speed: { kmh: number; stopped: boolean };
   /** the country under the car, by ISO code; empty outside every known border or before the borders load */
@@ -418,13 +420,36 @@ export function setPosition(gps: Partial<EmulatorState["gps"]>) {
   set({ gps: next, speed, country: bordersReady ? bridge.countryAt(next.lon, next.lat) : state.country });
 }
 
+/** The speed test drive: up from 0 at SWEEP_KMH_PER_S, a pause at the top, down again, a pause standing. */
+const SWEEP_TOP = 130;
+const SWEEP_KMH_PER_S = 10;
+const SWEEP_PAUSE_S = 2;
+let sweepStart = 0;
+
+function sweepKmh(seconds: number) {
+  const climb = SWEEP_TOP / SWEEP_KMH_PER_S;
+  const t = seconds % (2 * (climb + SWEEP_PAUSE_S));
+  if (t < climb) return t * SWEEP_KMH_PER_S;
+  if (t < climb + SWEEP_PAUSE_S) return SWEEP_TOP;
+  if (t < 2 * climb + SWEEP_PAUSE_S) return SWEEP_TOP - (t - climb - SWEEP_PAUSE_S) * SWEEP_KMH_PER_S;
+  return 0;
+}
+
+/** Drive straight on while the speed sweeps up and down, to watch the speed dial; off parks the car. */
+export function setSpeedSweep(on: boolean) {
+  sweepStart = performance.now();
+  set({ sweep: on });
+  setDriving(on, on ? 0 : state.gps.kmh);
+}
+
 /** Drive straight along the heading at the set speed. */
 export function setDriving(on: boolean, kmh = state.gps.kmh || 90) {
   clearInterval(driveTimer);
   // the chosen speed stays set while parked, for the next drive
-  set({ driving: on, gps: { ...state.gps, kmh } });
+  set({ driving: on, sweep: on && state.sweep, gps: { ...state.gps, kmh } });
   if (!on) return setPosition({});
   driveTimer = setInterval(() => {
+    if (state.sweep) set({ gps: { ...state.gps, kmh: Math.round(sweepKmh((performance.now() - sweepStart) / 1000)) } });
     const { lon, lat, heading, kmh: speed } = state.gps;
     const km = (speed * DRIVE_TICK_MS) / 3_600_000;
     const rad = (heading * Math.PI) / 180;
@@ -649,6 +674,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     radioScan: null,
     gps: GPS_PLACES[0],
     driving: false,
+    sweep: false,
     speed: { kmh: 0, stopped: true },
     country: "",
     maps: { installed: ["RO"], downloading: null, declined: [] },

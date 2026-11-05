@@ -73,11 +73,15 @@ object Bridge {
 
     /**
      * The limit sign and the over-limit warning for the last fix given to [speed]; [roadLimit] below 0 when the car's
-     * road has none. Answers {"limit":n or null,"over":b,"chime":b}.
+     * road has none. Answers {"limit":n or null,"over":b,"chime":b,"lit":n,"tone":"WHITE"|"ORANGE"|"RED"}, the last two for
+     * the dial's ring.
      */
-    fun speedWarning(roadLimit: Int, timeMs: Double): String =
-        speedWarning.update(speedometer.reading, roadLimit.takeIf { it >= 0 }, timeMs.toLong())
-            .let { """{"limit":${it.limit},"over":${it.over},"chime":${it.chime}}""" }
+    fun speedWarning(roadLimit: Int, timeMs: Double): String {
+        val reading = speedometer.reading
+        val w = speedWarning.update(reading, roadLimit.takeIf { it >= 0 }, timeMs.toLong())
+        val ring = SpeedWarning.ring(reading.kmh, w)
+        return """{"limit":${w.limit},"over":${w.over},"chime":${w.chime},"lit":${ring.lit},"tone":"${ring.tone}"}"""
+    }
 
     /** A pack's size in MB, or 0 when it is not known. */
     fun packMb(code: String): Int = MapPacks.PACK_MB[code] ?: 0

@@ -57,4 +57,15 @@ class SpeedWarningTest {
         assertFalse(missed.chime)
         assertNull(w.update(moving(60), null, 2000 + SpeedWarning.HOLD_MS).limit)
     }
+
+    @Test
+    fun `the ring fills with the speed in proportion to the limit`() {
+        fun ring(kmh: Int, limit: Int?, over: Boolean = false) = SpeedWarning.ring(kmh, SpeedWarning.State(limit, over, false))
+        assertEquals(SpeedWarning.Ring(36, SpeedWarning.Tone.WHITE), ring(30, 50))
+        assertEquals(SpeedWarning.Ring(52, SpeedWarning.Tone.ORANGE), ring(43, 50))
+        assertEquals(SpeedWarning.Ring(60, SpeedWarning.Tone.ORANGE), ring(50, 50))
+        assertEquals(SpeedWarning.Ring(60, SpeedWarning.Tone.RED), ring(53, 50, over = true))
+        assertEquals(SpeedWarning.Ring(30, SpeedWarning.Tone.WHITE), ring(120, null))
+        assertEquals(SpeedWarning.Ring(0, SpeedWarning.Tone.WHITE), ring(0, 50))
+    }
 }

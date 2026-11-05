@@ -25,7 +25,28 @@ class SpeedWarning {
         return State(l, over, chime)
     }
 
+    /** How the speed dial's ring is lit: [lit] of [TICKS] ticks from the bottom clockwise, all in one [tone]. */
+    data class Ring(val lit: Int, val tone: Tone)
+    enum class Tone { WHITE, ORANGE, RED }
+
     companion object {
         const val HOLD_MS = 4000L
+        const val TICKS = 60
+        /** With no limit known, the ring is full at this speed. */
+        const val FULL_KMH = 240
+        /** From this share of the limit up, the lit ticks turn orange: the car is close to it. */
+        const val NEAR_LIMIT = 0.85
+
+        /**
+         * The ring in proportion to the limit: it fills as the speed nears the posted limit and is full at it, white
+         * below [NEAR_LIMIT] of it and orange above; over the limit the whole ring is red. With no limit known it
+         * follows the speed alone, in white.
+         */
+        fun ring(kmh: Int, state: State): Ring {
+            if (state.over) return Ring(TICKS, Tone.RED)
+            val share = kmh.toDouble() / (state.limit ?: FULL_KMH)
+            val lit = (minOf(1.0, share) * TICKS).let { kotlin.math.round(it).toInt() }
+            return Ring(lit, if (state.limit != null && share >= NEAR_LIMIT) Tone.ORANGE else Tone.WHITE)
+        }
     }
 }

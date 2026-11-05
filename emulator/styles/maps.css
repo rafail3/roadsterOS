@@ -39,7 +39,8 @@
 .map-speed-ticks { position: absolute; inset: -1px; width: 84px; height: 84px; }
 .map-speed-ticks line { stroke: rgba(255, 255, 255, 0.2); stroke-width: 1.7; stroke-linecap: round; transition: stroke 240ms var(--ease-out); }
 .map-speed-ticks line.is-lit { stroke: rgba(255, 255, 255, 0.92); }
-.map-speed-ticks line.is-hot { stroke: var(--hot); }
+.map-speed-ticks line.is-near { stroke: #ff9f0a; }
+.map-speed-ticks line.is-hot { stroke: #ff453a; }
 .map-speed > b { font-size: 30px; font-weight: 700; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; transition: color 260ms var(--ease-out); }
 .map-speed > small { margin-top: 3px; font-size: 13px; font-weight: 600; line-height: 1; }
 /* over the posted limit: the number and the ticks turn red, with one pulse as the car goes over */
