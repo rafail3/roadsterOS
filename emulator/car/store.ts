@@ -53,7 +53,11 @@ export interface EmulatorState {
   volumeOpened: number;
   /** the frame key held down right now, for the edge swell beside it */
   pressedKey: PanelKey | null;
+  /** the last time Bluetooth or Wi-Fi connected or dropped, for the notice at the bottom of the screen */
+  notice: ConnectionNotice | null;
 }
+
+export interface ConnectionNotice { id: number; kind: "bt" | "wifi"; connected: boolean; name: string }
 
 /** A Wi-Fi network around the unit; `password` is the simulation's own, shown in the control panel for testing. */
 export interface WifiNetwork { ssid: string; secure: boolean; signal: 1 | 2 | 3; password?: string }
@@ -116,8 +120,20 @@ let logId = 0;
 let replayTimers: ReturnType<typeof setTimeout>[] = [];
 
 function set(patch: Partial<EmulatorState>) {
+  const before = state;
   state = { ...state, ...patch };
+  // every change goes through here, so a connection made by hand, by itself or by a scenario is noticed the same way
+  const notice = connectionNotice(before, state);
+  if (notice) state = { ...state, notice };
   listeners.forEach((listener) => listener());
+}
+
+let noticeId = 0;
+function connectionNotice(a: EmulatorState, b: EmulatorState): ConnectionNotice | null {
+  if (a.car.btConnected !== b.car.btConnected) return { id: ++noticeId, kind: "bt", connected: b.car.btConnected, name: b.device };
+  const network = b.wifi.connected ?? a.wifi.connected;
+  if (a.wifi.connected !== b.wifi.connected && network) return { id: ++noticeId, kind: "wifi", connected: b.wifi.connected !== null, name: network };
+  return null;
 }
 
 function addLog(direction: LogEntry["direction"], value: unknown): LogEntry[] {
@@ -486,6 +502,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     replayError: null,
     volumeOpened: 0,
     pressedKey: null,
+    notice: null,
   };
 }
 

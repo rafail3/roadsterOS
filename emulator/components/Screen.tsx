@@ -6,6 +6,7 @@ import { Drawer, useDrawerDrag } from "./Drawer";
 import { NowPlaying } from "./NowPlaying";
 import { CallOverlay, CameraOverlay } from "./Overlays";
 import { VolumeHud } from "./VolumeHud";
+import { ConnectionNotice } from "./ConnectionNotice";
 import { MusicApp } from "./MusicApp";
 import { DevicesSheet } from "./DevicesSheet";
 import { NetworksSheet } from "./NetworksSheet";
@@ -200,6 +201,7 @@ export function Screen() {
           <path d={BULGE_PATH} />
         </svg>
       ))}
+      <ConnectionNotice notice={emulator.notice} hidden={car.call !== "IDLE" || car.camera} />
       <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC" || shell.drawer} />
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.dark.toFixed(3) }} />
       {/* always there: it fades in to switch the screen off and lifts to switch it on; a tap on it wakes the screen */}
