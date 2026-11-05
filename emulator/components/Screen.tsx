@@ -29,9 +29,10 @@ const RAIL = [
   { id: "maps", label: "Maps", icon: "i-navigation-arrow" },
   { id: "camera", label: "Camera", icon: "i-camera" },
 ];
-const APPS = [
-  { label: "Navigation", mark: "app-mark-nav" },
-  { label: "Music", mark: "app-mark-music" },
+/** The app icons on home and the app each opens; Podcasts has no app yet. */
+const APPS: { label: string; mark: string; app?: "MAPS" | "MUSIC" }[] = [
+  { label: "Maps", mark: "app-mark-nav", app: "MAPS" },
+  { label: "Music", mark: "app-mark-music", app: "MUSIC" },
   { label: "Podcasts", mark: "app-mark-pod" },
 ];
 // ponytail: centres of the volume keys on this frame model, in screen pixels; another frame needs its own
@@ -181,8 +182,8 @@ export function Screen() {
       <section className="field" inert={covered || inApp}>
         <Clock now={now} face={shell.face} />
         <div className="apps" aria-label="Apps">
-          {APPS.map(({ label, mark }) => (
-            <button key={label} className="app" onClick={label === "Music" ? () => shellAction({ type: "OpenApp", app: "MUSIC" }) : undefined}>
+          {APPS.map(({ label, mark, app }) => (
+            <button key={label} className="app" onClick={app ? () => shellAction({ type: "OpenApp", app }) : undefined}>
               <span className={`app-mark ${mark}`} /><span>{label}</span>
             </button>
           ))}
