@@ -81,6 +81,10 @@ interface Kotlin {
       setVolume(state: string, level: number): string;
       coverColors(pixels: string, width: number): string;
       effectiveTheme(state: string, hour: number): "LIGHT" | "DARK";
+      coverFileName(title: string, artist: string): string;
+      coverFind(names: string, title: string, artist: string): string;
+      stockCover(title: string, artist: string, count: number): number;
+      sharpPx(): number;
     };
 }
 
@@ -106,4 +110,8 @@ export const bridge = {
   coverColors: (pixels: number[], width: number): { top: string; bottom: string } => JSON.parse(K!.Bridge.coverColors(JSON.stringify(pixels), width)),
   setVolume: (state: CarState, level: number): CarCommand[] => JSON.parse(K!.Bridge.setVolume(JSON.stringify(state), level)),
   effectiveTheme: (state: ShellState, hour: number) => K!.Bridge.effectiveTheme(JSON.stringify(state), hour),
+  coverFileName: (title: string, artist: string) => K!.Bridge.coverFileName(title, artist),
+  coverFind: (names: string[], title: string, artist: string): string | null => K!.Bridge.coverFind(JSON.stringify(names), title, artist) || null,
+  stockCover: (title: string, artist: string, count: number) => K!.Bridge.stockCover(title, artist, count),
+  sharpPx: () => K!.Bridge.sharpPx(),
 };
