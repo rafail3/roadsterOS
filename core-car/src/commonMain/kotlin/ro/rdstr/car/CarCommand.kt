@@ -38,6 +38,8 @@ sealed class CarCommand {
     sealed class Bluetooth : CarCommand() {
         @Serializable @SerialName("Bt.Connect") data class Connect(val device: String) : Bluetooth()
         @Serializable @SerialName("Bt.Disconnect") data object Disconnect : Bluetooth()
+        /** Remove a saved phone from the unit; a connected one is dropped first. */
+        @Serializable @SerialName("Bt.Forget") data class Forget(val device: String) : Bluetooth()
         @Serializable @SerialName("Bt.Scan") data object Scan : Bluetooth()
         @Serializable @SerialName("Bt.Pair") data class Pair(val device: String) : Bluetooth()
         /** The answer to the pairing code shown on both screens. */
