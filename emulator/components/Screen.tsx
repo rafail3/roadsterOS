@@ -9,6 +9,7 @@ import { VolumeHud } from "./VolumeHud";
 import { MusicApp } from "./MusicApp";
 import { DevicesSheet } from "./DevicesSheet";
 import { NetworksSheet } from "./NetworksSheet";
+import { LocationPrompt } from "./LocationPrompt";
 import { WifiBars } from "./WifiBars";
 import { Recents } from "./Recents";
 import { EdgeBack, NavBar } from "./Gestures";
@@ -160,6 +161,7 @@ export function Screen() {
       {/* over any screen: opened from the music app or by a long press on the drawer's Bluetooth */}
       <DevicesSheet />
       <NetworksSheet />
+      <LocationPrompt />
       <Recents emulator={emulator} />
       {/* always there, as on a phone, except under the drawer, a devices or networks panel (its keyboard reaches the edges), a call or the camera */}
       {!shell.drawer && !shell.devices && !shell.networks && car.call === "IDLE" && !car.camera && (

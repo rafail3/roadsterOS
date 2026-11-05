@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { setWifi, shellAction, useEmulator, WIFI_NETWORKS, wifiConnect, wifiForget, wifiScan, type WifiNetwork } from "../car/store";
+import { setLocation, setWifi, shellAction, useEmulator, WIFI_NETWORKS, wifiConnect, wifiForget, wifiScan, type WifiNetwork } from "../car/store";
 import { SavedRow, type Status } from "./DevicesSheet";
 import { Keyboard } from "./Keyboard";
 import { WifiBars } from "./WifiBars";
@@ -20,7 +20,7 @@ function Signal({ network }: { network: WifiNetwork }) {
 
 /** Wi-Fi networks: the saved ones to join or forget, the ones in range to join, a password with our own keyboard. */
 export function NetworksSheet() {
-  const { shell, wifiOn, wifi } = useEmulator();
+  const { shell, wifiOn, wifi, locationOn } = useEmulator();
   const open = shell.networks;
   const [openRow, setOpenRow] = useState<string | null>(null);
   // the network waiting for its password, and what has been typed so far
@@ -30,11 +30,11 @@ export function NetworksSheet() {
   const close = () => shellAction({ type: "CloseNetworks" });
 
   useEffect(() => {
-    if (!open || !wifiOn) return;
+    if (!open || !wifiOn || !locationOn) return;
     wifiScan();
     const timer = setInterval(wifiScan, RESCAN_MS);
     return () => clearInterval(timer);
-  }, [open, wifiOn]);
+  }, [open, wifiOn, locationOn]);
   // a closed panel or Wi-Fi off leaves nothing half typed
   useEffect(() => { if (!open || !wifiOn) { setJoining(null); setOpenRow(null); } }, [open, wifiOn]);
   useEffect(() => { setPassword(""); setReveal(false); }, [joining]);
@@ -121,8 +121,16 @@ export function NetworksSheet() {
                     </button>
                   </li>
                 ))}
-                {searching && <li className="devices-empty">Searching…</li>}
-                {!searching && others.length === 0 && <li className="devices-empty">No other networks around.</li>}
+                {!locationOn ? (
+                  // a scan needs location on this Android; saved networks above still join
+                  <li className="devices-empty wifi-nolocation">
+                    <span>Turn on Location to find networks.</span>
+                    <button className="wifi-location-on" onClick={() => setLocation(true)}>Turn on Location</button>
+                  </li>
+                ) : (<>
+                  {searching && <li className="devices-empty">Searching…</li>}
+                  {!searching && others.length === 0 && <li className="devices-empty">No other networks around.</li>}
+                </>)}
               </ul>
             </section>
           </div>

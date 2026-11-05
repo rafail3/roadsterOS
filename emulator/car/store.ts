@@ -39,6 +39,10 @@ export interface EmulatorState {
   btOn: boolean;
   wifiOn: boolean;
   wifi: WifiState;
+  /** location services; on at every start, as navigation and the Wi-Fi scan need it */
+  locationOn: boolean;
+  /** Wi-Fi was asked to turn on while location is off: the screen asks to turn location on first */
+  wifiNeedsLocation: boolean;
   acc: boolean;
   /** null = live clock, otherwise a simulated hour 0..23 */
   hour: number | null;
@@ -194,6 +198,8 @@ export function setBluetooth(on: boolean) {
 
 /** Wi-Fi off drops the network and forgets the scan; on again, the strongest saved network joins by itself. */
 export function setWifi(on: boolean) {
+  // on this Android a Wi-Fi scan needs location on: ask for it first instead of a Wi-Fi that finds nothing
+  if (on && !state.locationOn) return set({ wifiNeedsLocation: true });
   clearWifiTimers();
   set({ wifiOn: on, wifi: { ...state.wifi, connected: null, connecting: null, wrongPassword: null, seen: [] } });
   if (!on) return;
@@ -209,8 +215,25 @@ function clearWifiTimers() {
 const patchWifi = (patch: Partial<WifiState>) => set({ wifi: { ...state.wifi, ...patch } });
 
 /** A scan: the networks in range answer one by one; a new scan starts the list again. */
+/** Location off keeps Wi-Fi joined but stops finding networks; the list empties. */
+export function setLocation(on: boolean) {
+  set({ locationOn: on });
+  if (!on) {
+    clearWifiTimers();
+    patchWifi({ seen: [] });
+  }
+}
+
+/** The answer to "Wi-Fi needs location": yes turns location on, then Wi-Fi; no leaves both as they were. */
+export function answerWifiNeedsLocation(turnOn: boolean) {
+  set({ wifiNeedsLocation: false });
+  if (!turnOn) return;
+  setLocation(true);
+  setWifi(true);
+}
+
 export function wifiScan() {
-  if (!state.wifiOn) return;
+  if (!state.wifiOn || !state.locationOn) return;
   patchWifi({ seen: [] });
   WIFI_NETWORKS.forEach((n, i) => wifiTimers.push(setTimeout(() => {
     if (state.wifiOn && !state.wifi.seen.includes(n.ssid)) patchWifi({ seen: [...state.wifi.seen, n.ssid] });
@@ -452,6 +475,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     btOn: true,
     wifiOn: true,
     wifi: { saved: [WIFI_NETWORKS[0].ssid], connected: WIFI_NETWORKS[0].ssid, connecting: null, wrongPassword: null, seen: [] },
+    locationOn: true,
+    wifiNeedsLocation: false,
     acc: true,
     hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : null,
     log: [],
