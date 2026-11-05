@@ -36,7 +36,12 @@ sealed class CarCommand {
         @Serializable @SerialName("Phone.Dial") data class Dial(val number: String) : Phone()
         @Serializable @SerialName("Phone.Answer") data object Answer : Phone()
         @Serializable @SerialName("Phone.HangUp") data object HangUp : Phone()
+        /** The car's microphone, not the call: the other side stops hearing the car. */
         @Serializable @SerialName("Phone.Mute") data class Mute(val on: Boolean) : Phone()
+        /** A keypad tone during a call, for menus that ask for digits: 0-9, * or #. */
+        @Serializable @SerialName("Phone.Dtmf") data class Dtmf(val digit: String) : Phone()
+        /** Hear the call in the car, or move it to the phone. */
+        @Serializable @SerialName("Phone.AudioInCar") data class AudioInCar(val on: Boolean) : Phone()
     }
 
     /** Phones by the name the unit lists them under: connect or drop a saved one, look for new ones and pair. */

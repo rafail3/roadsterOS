@@ -8,7 +8,7 @@ enum class Theme { LIGHT, DARK }
 enum class Face { DIGITAL, ANALOG }
 
 /** What fills the screen above home. */
-enum class App { HOME, MUSIC, RADIO, MAPS }
+enum class App { HOME, MUSIC, RADIO, MAPS, PHONE }
 
 /** What the shell itself remembers, independent of the car. */
 @Serializable

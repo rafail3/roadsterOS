@@ -30,6 +30,10 @@ sealed class CarEvent {
     @Serializable @SerialName("BtConnection")
     data class BtConnection(val connected: Boolean, val device: String = "") : CarEvent()
 
+    /** The phone connected for calls (the hands-free profile), apart from its music. */
+    @Serializable @SerialName("HfpConnection")
+    data class HfpConnection(val connected: Boolean) : CarEvent()
+
     @Serializable @SerialName("Track")
     data class Track(
         val title: String,
@@ -41,10 +45,19 @@ sealed class CarEvent {
     @Serializable @SerialName("Playback")
     data class Playback(val playing: Boolean, val positionMs: Long = 0) : CarEvent()
 
+    /** The phone's calls as one state; OUTGOING while a call is dialled and rings at the other end. */
     @Serializable @SerialName("Call")
     data class Call(val state: State, val number: String = "", val name: String = "") : CarEvent() {
-        enum class State { RINGING, ACTIVE, IDLE }
+        enum class State { RINGING, OUTGOING, ACTIVE, IDLE }
     }
+
+    /** Where the call is heard: in the car, or moved back to the phone itself. */
+    @Serializable @SerialName("CallAudio")
+    data class CallAudio(val inCar: Boolean) : CarEvent()
+
+    /** What the phone reports over the hands-free link: battery and signal 0..5, -1 when not sent; the network's name. */
+    @Serializable @SerialName("PhoneStatus")
+    data class PhoneStatus(val battery: Int = -1, val signal: Int = -1, val operator: String = "", val roaming: Boolean = false) : CarEvent()
 
     /**
      * What the tuner plays: [rds] is the station name (RDS PS), [pty] the programme type code (see [Rds.ptyName]).
