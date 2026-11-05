@@ -1,6 +1,8 @@
 /* Bluetooth music: the home card and the full-screen app. Sizes are for a 1280x720 screen read from arm's length. */
 :root {
   --seamless: cubic-bezier(0.37, 0, 0.63, 1);
+  /* the cover settling into pause and back: long, soft deceleration, no overshoot */
+  --cover-settle: cubic-bezier(0.32, 0.72, 0, 1);
   /* springs sampled from stiffness/damping pairs */
   --spring-cover: linear(0, 0.099 5%, 0.316 10%, 0.559 15%, 0.773 20%, 0.932 25%, 1.032 30%, 1.082 35%, 1.095 40%, 1.085 45%, 1.064 50%, 1.041 55%, 1.021 60%, 1.006 65%, 0.997 70%, 0.992 75%, 0.991 80%, 0.992 85%, 0.994 90%, 0.996 95%, 1);
   --spring-glyph: linear(0, 0.1 5%, 0.319 10%, 0.564 15%, 0.778 20%, 0.937 25%, 1.036 30%, 1.083 35%, 1.095 40%, 1.084 45%, 1.062 50%, 1.039 55%, 1.019 60%, 1.005 65%, 0.996 70%, 0.992 75%, 0.991 80%, 0.992 85%, 0.994 90%, 0.996 95%, 1);
@@ -95,8 +97,8 @@
 .screen:has(.music-app.is-open) .bar, .screen:has(.music-app.is-open) .bar-text, .screen:has(.music-app.is-open) #bar-theme { color: rgba(255, 255, 255, 0.86); }
 
 /* the cover sits back when paused and springs forward when playing */
-.music-cover { position: relative; width: 480px; aspect-ratio: 1; border-radius: 16px; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3); transform: scale(0.73); transition: transform 500ms cubic-bezier(0.2, 0.9, 0.25, 1), box-shadow 500ms var(--seamless); }
-.music-cover.is-playing { transform: scale(1); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); transition: transform 780ms var(--spring-cover), box-shadow 500ms var(--seamless); }
+.music-cover { position: relative; width: 480px; aspect-ratio: 1; border-radius: 16px; box-shadow: 0 14px 36px rgba(0, 0, 0, 0.36); transform: scale(0.92); transition: transform 720ms var(--cover-settle), box-shadow 720ms var(--cover-settle); }
+.music-cover.is-playing { transform: scale(1); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); }
 .music-cover img, .music-cover-empty { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; animation: media-fade 450ms var(--seamless) 90ms backwards; }
 .music-cover-empty { display: grid; place-items: center; background: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.6); }
 .music-cover-empty .icon { width: 120px; height: 120px; }
