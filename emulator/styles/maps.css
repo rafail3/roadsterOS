@@ -5,10 +5,11 @@
 .maps-app .maplibregl-canvas:focus-visible { outline: none; }
 .maps-app :is(button):focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
-/* the car: a blue disc with its heading arrow, ringed in white */
-.map-puck { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #0a84ff; border: 3px solid #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); }
-/* the arrow glyph points to the upper left: turned to point the way the car drives */
-.map-puck .icon { width: 24px; height: 24px; transform: rotate(45deg) translate(-1px, 1px); }
+/* the car: a glass disc with the location arrow of the drawer, in blue, pointing the way the car drives */
+.map-puck { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; color: #0a84ff; background: rgba(28, 31, 37, 0.62); border: 1.5px solid rgba(255, 255, 255, 0.28); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); }
+/* the arrow glyph points to the upper left: turned to point up, centred on its own outline */
+.map-puck .icon { width: 30px; height: 30px; transform: rotate(45deg) translate(-2px, -2px); }
+.screen.light .map-puck { background: rgba(255, 255, 255, 0.82); border-color: rgba(0, 0, 0, 0.1); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
 
 .map-controls { position: absolute; top: 76px; right: 32px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .map-compass { position: relative; display: block; width: 26px; height: 26px; transition: transform 200ms var(--ease-out); }

@@ -3,7 +3,6 @@ package ro.rdstr.os.maps
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
@@ -159,9 +158,17 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     }
 
     private val carPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val arrow = Path()
+    /** The location arrow of the drawer (its icon outline, 256 units, pointing to the upper left), centred and 30 px wide. */
+    private val arrow = Path().apply {
+        val s = 30f / 256f
+        val c = 141.5f
+        val pts = floatArrayOf(234.35f, 129f, 152f, 152f, 129f, 234.35f, 113.8f, 234.6f, 48.5f, 58.6f, 58.6f, 48.5f, 234.6f, 113.7f)
+        moveTo((pts[0] - c) * s, (pts[1] - c) * s)
+        for (i in 2 until pts.size step 2) lineTo((pts[i] - c) * s, (pts[i + 1] - c) * s)
+        close()
+    }
 
-    /** The car: a blue disc ringed in white with its heading arrow, where the GPS puts it. */
+    /** The car where the GPS puts it: a glass disc with the drawer's location arrow in blue, pointing the way it drives. */
     private fun drawCar(canvas: Canvas, v: MapViewState) {
         val dx = TileMath.worldX(carLon, v.zoom) - TileMath.worldX(v.lon, v.zoom)
         val dy = TileMath.worldY(carLat, v.zoom) - TileMath.worldY(v.lat, v.zoom)
@@ -169,15 +176,18 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         val x = (logicalW / 2 + dx * cos(r) - dy * sin(r)).toFloat()
         val y = (logicalH / 2 + dx * sin(r) + dy * cos(r)).toFloat()
         carPaint.style = Paint.Style.FILL
-        carPaint.color = Color.WHITE
-        canvas.drawCircle(x, y, 24f, carPaint)
+        carPaint.color = if (night) 0x9E1C1F25.toInt() else 0xD1FFFFFF.toInt()
+        canvas.drawCircle(x, y, 32f, carPaint)
+        carPaint.style = Paint.Style.STROKE
+        carPaint.strokeWidth = 1.5f
+        carPaint.color = if (night) 0x47FFFFFF else 0x1A000000
+        canvas.drawCircle(x, y, 32f, carPaint)
+        carPaint.style = Paint.Style.FILL
         carPaint.color = 0xFF0A84FF.toInt()
-        canvas.drawCircle(x, y, 21f, carPaint)
         canvas.save()
-        canvas.rotate((carHeading - v.bearing).toFloat(), x, y)
-        arrow.rewind()
-        arrow.moveTo(x, y - 11f); arrow.lineTo(x + 8f, y + 9f); arrow.lineTo(x, y + 5f); arrow.lineTo(x - 8f, y + 9f); arrow.close()
-        carPaint.color = Color.WHITE
+        canvas.translate(x, y)
+        // the icon points to the upper left: a quarter turn less, then the car's heading on the turned map
+        canvas.rotate((carHeading - v.bearing + 45).toFloat())
         canvas.drawPath(arrow, carPaint)
         canvas.restore()
     }
