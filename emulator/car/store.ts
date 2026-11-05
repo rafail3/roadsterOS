@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createCoverDesk } from "./covers";
-import { bridge, type CarCommand, type CarEvent, type CarState, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
+import { bridge, type Band, type CarCommand, type CarEvent, type CarState, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
+import { BANDS, STATIONS, stationAt } from "./radio";
 
 export interface LogEntry {
   id: number;
@@ -19,7 +20,14 @@ export interface EmulatorState {
   /** position at positionAt (ms since epoch); the phone only reports it on changes */
   positionMs: number;
   positionAt: number;
-  radio: { khz: number; band: string; rds: string };
+  /** what the tuner plays; `rds` and `pty` stay empty until the station's RDS arrives */
+  radio: { khz: number; band: Band; rds: string; pty: number; stereo: boolean };
+  /** the stations the last scan found, per band, by frequency */
+  stations: Record<Band, number[]>;
+  /** frequencies starred in our radio app */
+  favorites: number[];
+  /** a scan running, at this frequency now */
+  radioScan: number | null;
   call: { name: string; number: string };
   /** the phone Bluetooth reports as connected */
   device: string;
@@ -152,7 +160,7 @@ function displayData(event: CarEvent): Partial<EmulatorState> {
       // without a reported position, freeze or resume from where playback is now
       return { positionMs: event.positionMs ?? elapsedMs(state), positionAt: Date.now() };
     case "Radio":
-      return { radio: { khz: event.khz, band: event.band, rds: event.rds ?? "" } };
+      return { radio: { khz: event.khz, band: event.band, rds: event.rds ?? "", pty: event.pty ?? 0, stereo: event.stereo ?? false } };
     case "Call":
       return event.state === "RINGING" ? { call: { name: event.name ?? "", number: event.number ?? "" } } : {};
     case "Power":
@@ -296,12 +304,87 @@ function sendToCar(command: CarCommand) {
   // would, and the session's own report confirms or corrects them a moment later
   if (state.pcMedia && command.type in PC_COMMANDS) return void sendToLaptop(PC_COMMANDS[command.type]);
   if (command.type === "Media.Next" || command.type === "Media.Prev") setTimeout(() => phoneSkips(command.type === "Media.Next"), ECHO_DELAY_MS);
+  if (command.type === "Radio.Tune") tune(state.radio.band, command.khz);
+  if (command.type === "Radio.Seek") seek(command.up);
+  if (command.type === "Radio.Scan") scanBand();
+  if (command.type === "Radio.Band") tune(command.band, state.stations[command.band][0] ?? BANDS[command.band].min);
+  if (command.type === "Audio.Source" && command.source === "RADIO") tune(state.radio.band, state.radio.khz);
   if (command.type === "Bt.Connect") tryConnect(command.device);
   if (command.type === "Bt.Scan") scan();
   if (command.type === "Bt.Forget") forget(command.device);
   if (command.type === "Bt.Pair") set({ pairing: { name: command.device, code: String(100000 + Math.floor(Math.random() * 900000)) } });
   if (command.type === "Bt.ConfirmPairing") confirmPairing(command.accept);
   if (command.type === "Bt.Disconnect" && state.car.btConnected) setTimeout(() => carEvent({ type: "BtConnection", connected: false, device: state.device }), ECHO_DELAY_MS);
+}
+
+// The tuner as the vendor library drives it: a station's name and programme type arrive a moment after it is tuned;
+// a seek or a scan moves through the band one step at a time, and the screen follows it
+const RDS_MS = 450;
+/** The screen follows a seek or a scan in ticks of a few steps, so it keeps its frame rate. */
+const TICK_MS = 32;
+const SEEK_STEPS_PER_TICK = 3;
+const SCAN_STEPS_PER_TICK = 4;
+let tunerTimers: ReturnType<typeof setTimeout>[] = [];
+function stopTuner() {
+  tunerTimers.forEach(clearTimeout);
+  tunerTimers = [];
+  if (state.radioScan !== null) set({ radioScan: null });
+}
+
+/** Passing a frequency on the way: no station data yet. */
+const sweepTo = (band: Band, khz: number) => set({ radio: { khz, band, rds: "", pty: 0, stereo: false } });
+
+function tune(band: Band, khz: number) {
+  stopTuner();
+  const { min, max } = BANDS[band];
+  const at = Math.min(max, Math.max(min, khz));
+  const station = stationAt(band, at);
+  carEvent({ type: "Radio", khz: at, band, signal: station?.signal ?? 0, stereo: band === "FM" && Boolean(station) });
+  if (station?.ps) tunerTimers.push(setTimeout(() => carEvent({ type: "Radio", khz: at, band, rds: station.ps, pty: station.pty, signal: station.signal, stereo: true }), RDS_MS));
+}
+
+/** The next station up or down the band, around the end; the frequency runs there step by step. */
+function seek(up: boolean) {
+  const { band, khz } = state.radio;
+  const { min, max, step } = BANDS[band];
+  const on = STATIONS.filter((s) => s.band === band).map((s) => s.khz).sort((a, b) => a - b);
+  if (!on.length) return;
+  const target = up ? on.find((f) => f > khz) ?? on[0] : [...on].reverse().find((f) => f < khz) ?? on[on.length - 1];
+  stopTuner();
+  const span = max - min + step;
+  const steps = ((up ? target - khz : khz - target) + span) % span / step;
+  const ticks = Math.ceil(steps / SEEK_STEPS_PER_TICK);
+  for (let k = 1; k < ticks; k++) {
+    const i = k * SEEK_STEPS_PER_TICK;
+    const f = min + (((khz - min + (up ? i : -i) * step) % span) + span) % span;
+    tunerTimers.push(setTimeout(() => sweepTo(band, f), k * TICK_MS));
+  }
+  tunerTimers.push(setTimeout(() => tune(band, target), ticks * TICK_MS));
+}
+
+/** A whole-band scan: the list empties, fills with each station as the sweep passes it, then the last station plays again. */
+function scanBand() {
+  const { band, khz: was } = state.radio;
+  const { min, max, step } = BANDS[band];
+  stopTuner();
+  set({ stations: { ...state.stations, [band]: [] }, radioScan: min });
+  const count = (max - min) / step;
+  const ticks = Math.ceil(count / SCAN_STEPS_PER_TICK);
+  const onAir = STATIONS.filter((s) => s.band === band).map((s) => s.khz).sort((a, b) => a - b);
+  for (let k = 1; k <= ticks; k++) {
+    const f = min + Math.min(count, k * SCAN_STEPS_PER_TICK) * step;
+    tunerTimers.push(setTimeout(() => set({ radio: { khz: f, band, rds: "", pty: 0, stereo: false }, radioScan: f, stations: { ...state.stations, [band]: onAir.filter((s) => s <= f) } }), k * TICK_MS));
+  }
+  tunerTimers.push(setTimeout(() => {
+    set({ radioScan: null });
+    const found = state.stations[band];
+    tune(band, found.includes(was) ? was : found[0] ?? was);
+  }, (ticks + 1) * TICK_MS));
+}
+
+/** Star or unstar a station in our radio app. */
+export function toggleFavorite(khz: number) {
+  set({ favorites: state.favorites.includes(khz) ? state.favorites.filter((f) => f !== khz) : [...state.favorites, khz].sort((a, b) => a - b) });
 }
 
 /** The unit's side of a connect request: a phone with Bluetooth on answers, one that is off times out. */
@@ -452,6 +535,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   if (q.has("drawer")) shell = bridge.shell(shell, { type: "OpenDrawer" });
   if (q.has("analog")) shell = bridge.shell(shell, { type: "SetFace", face: "ANALOG" });
   if (q.get("app") === "music") shell = bridge.shell(shell, { type: "OpenApp", app: "MUSIC" });
+  if (q.get("app") === "radio") shell = bridge.shell(shell, { type: "OpenApp", app: "RADIO" });
   if (q.has("devices")) shell = bridge.shell(shell, { type: "OpenDevices" });
   const font = q.get("font");
   if (font) shell = bridge.shell(shell, { type: "SetFont", name: font });
@@ -479,7 +563,10 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     track: { ...(SAMPLE_TRACKS[Number(q.get("track"))] ?? SAMPLE_TRACKS[0]) },
     positionMs: 72000,
     positionAt: Date.now(),
-    radio: { khz: 101900, band: "FM", rds: "Radio Nord" },
+    radio: { khz: 101900, band: "FM", rds: "NORD FM", pty: 9, stereo: true },
+    stations: { FM: STATIONS.filter((s) => s.band === "FM").map((s) => s.khz), AM: STATIONS.filter((s) => s.band === "AM").map((s) => s.khz) },
+    favorites: [89200, 91400, 101900],
+    radioScan: null,
     call: CALLER,
     device: "Phone",
     saved: [{ name: "Phone", inRange: true }, { name: "Work phone", inRange: false }, { name: "Tablet", inRange: true }],

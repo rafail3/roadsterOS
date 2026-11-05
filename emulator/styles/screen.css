@@ -46,6 +46,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .i-speaker-high-fill { --m: url(/icons/speaker-high-fill.svg); }
 .i-speaker-slash-fill { --m: url(/icons/speaker-slash-fill.svg); }
 .i-wifi-high { --m: url(/icons/wifi-high.svg); }
+.i-star { --m: url(/icons/star.svg); }
+.i-star-fill { --m: url(/icons/star-fill.svg); }
 .i-moon { --m: url(/icons/moon.svg); }
 .i-moon-fill { --m: url(/icons/moon-fill.svg); }
 .i-sun { --m: url(/icons/sun.svg); }

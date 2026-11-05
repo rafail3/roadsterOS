@@ -5,6 +5,7 @@ import "../styles/tokens.css";
 import "../styles/screen.css";
 import "../styles/clock.css";
 import "../styles/music.css";
+import "../styles/radio.css";
 import "../styles/chrome.css";
 
 export const metadata: Metadata = { title: "roadsterOS emulator" };

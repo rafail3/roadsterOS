@@ -1,10 +1,13 @@
-import { useRef, useState, type PointerEvent } from "react";
-import type { App } from "../car/bridge";
+import { useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { bridge, type App } from "../car/bridge";
+import { formatFreq } from "../car/radio";
+import { genreColor } from "./RadioApp";
 import { shellAction, type EmulatorState } from "../car/store";
 
 /** Our own apps as the open-apps screen shows them; each new screen of the shell adds its entry here. */
 const APP_META: Record<Exclude<App, "HOME">, { label: string; icon: string }> = {
   MUSIC: { label: "Music", icon: "i-music-notes" },
+  RADIO: { label: "Radio", icon: "i-radio" },
 };
 /** A card pushed up past this many pixels, or flicked up, is closed. */
 const CLOSE_DISTANCE = 120;
@@ -24,6 +27,18 @@ function Preview({ app, emulator }: { app: App; emulator: EmulatorState }) {
         <span className="recents-preview-meta">
           <span className="recents-preview-title">{track.title}</span>
           <span className="recents-preview-sub">{track.artist}</span>
+        </span>
+      </span>
+    );
+  }
+  if (app === "RADIO") {
+    const { radio } = emulator;
+    return (
+      <span className="recents-preview recents-preview-radio" style={{ "--genre": genreColor(radio.pty) } as CSSProperties}>
+        <span className="recents-preview-freq">{formatFreq(radio.band, radio.khz)}</span>
+        <span className="recents-preview-meta">
+          <span className="recents-preview-title">{radio.rds || radio.band}</span>
+          <span className="recents-preview-sub">{bridge.ptyName(radio.pty) || (radio.band === "FM" ? "MHz" : "kHz")}</span>
         </span>
       </span>
     );

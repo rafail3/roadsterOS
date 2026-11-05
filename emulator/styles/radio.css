@@ -1,0 +1,125 @@
+/* ----- radio: full-screen app and its home card ----- */
+/* the station's genre colour; it eases from one station to the next */
+@property --genre { syntax: "<color>"; inherits: true; initial-value: #8e8e93; }
+
+/* shares the music app's frame and leave motion (.music-app); its own grid and colour */
+.radio-app {
+  grid-template-columns: minmax(0, 1fr) 420px; grid-template-rows: minmax(0, 1fr); align-items: stretch; column-gap: 48px; padding: 84px 32px 44px 112px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--genre) 44%, #0b0c10) 0%, color-mix(in srgb, var(--genre) 14%, #08090c) 58%, #060709 100%);
+  transition: clip-path 280ms var(--sheet-in), opacity 280ms cubic-bezier(0.4, 0, 1, 1), visibility 0s linear 280ms, --genre 700ms var(--seamless);
+}
+.radio-app.is-open { transition: --genre 700ms var(--seamless); }
+.radio-app :is(button, .dial):focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.radio-main { display: flex; flex-direction: column; justify-content: space-between; gap: 24px; min-width: 0; }
+/* centred in the space left of the list and above the dial */
+.radio-hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-width: 0; text-align: center; }
+.radio-tags { margin: 0; display: flex; justify-content: center; gap: 8px; min-height: 28px; }
+.radio-tag { display: inline-grid; place-items: center; height: 28px; padding: 0 12px; border-radius: 14px; font-size: 14px; font-weight: 600; color: rgba(255, 255, 255, 0.85); background: rgba(255, 255, 255, 0.12); }
+.radio-tag.is-band { color: #000; background: #fff; }
+.radio-freq { margin: 4px 0 0; display: flex; align-items: baseline; gap: 14px; }
+.radio-freq-num { font-size: 152px; line-height: 1; font-weight: 600; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; }
+.radio-freq-unit { font-size: 32px; font-weight: 500; color: rgba(255, 255, 255, 0.6); }
+.radio-station { display: flex; align-items: center; justify-content: center; gap: 16px; min-height: 52px; max-width: 100%; }
+.radio-name { margin: 0; font-size: 40px; line-height: 48px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: media-fade 320ms var(--seamless) backwards; }
+.radio-genre { flex: none; display: inline-grid; place-items: center; height: 34px; padding: 0 16px; border-radius: 17px; font-size: 17px; font-weight: 600; color: #fff; background: color-mix(in srgb, var(--genre) 60%, rgba(255, 255, 255, 0.08)); animation: genre-in 420ms var(--spring-glyph) backwards; }
+@keyframes genre-in { from { opacity: 0; transform: scale(0.8); } }
+.radio-actions { display: flex; align-items: center; justify-content: center; gap: 28px; margin-top: 12px; }
+/* a spacer as wide as the star on the left, so the transport sits on the centre line */
+.radio-actions::before { content: ""; flex: none; width: 56px; }
+.radio-actions .transport { --tx-gap: 16px; }
+.radio-actions .tx { --tx-size: 84px; --tx-glyph: 40px; }
+.radio-actions .tx-play { --tx-size: 100px; --tx-glyph: 52px; }
+.radio-star { flex: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; color: rgba(255, 255, 255, 0.72); background: rgba(255, 255, 255, 0.1); transition: transform 300ms var(--spring-glyph), color var(--fast) var(--ease-out); }
+.radio-star:active { transform: scale(0.88); transition-duration: 120ms; }
+.radio-star.is-on { color: #ffd60a; }
+.radio-star.is-on .icon { animation: star-pop 460ms var(--spring-glyph); }
+@keyframes star-pop { 40% { transform: scale(1.3); } }
+.radio-star .icon { width: 26px; height: 26px; }
+
+/* the dial: a scale of the band slides under a fixed needle; a dot for each station found */
+.dial { position: relative; flex: none; height: 104px; overflow: hidden; touch-action: none; cursor: grab; border-radius: 20px; background: rgba(0, 0, 0, 0.22); border: 1px solid rgba(255, 255, 255, 0.08); -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); }
+.dial.is-dragging { cursor: grabbing; }
+.dial-strip {
+  position: absolute; top: 0; bottom: 0; left: 50%; transition: transform 200ms var(--ease-out);
+  background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.6) 0 2px, transparent 2px var(--major)), repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.24) 0 1px, transparent 1px var(--minor));
+  background-size: 100% 30px, 100% 16px; background-position: var(--first-major) 100%, 0 100%; background-repeat: repeat-x;
+}
+.dial.is-dragging .dial-strip { transition: none; }
+.dial-label { position: absolute; top: 40px; transform: translateX(-50%); font-size: 15px; font-weight: 500; color: rgba(255, 255, 255, 0.6); font-variant-numeric: tabular-nums; pointer-events: none; }
+.dial-station { position: absolute; top: 16px; width: 8px; height: 8px; margin-left: -3px; border-radius: 50%; pointer-events: none; }
+.dial-needle { position: absolute; left: 50%; top: 12px; bottom: 0; width: 4px; margin-left: -1px; border-radius: 2px; background: #fff; pointer-events: none; }
+.dial-needle::before { content: ""; position: absolute; top: -2px; left: 50%; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--genre); border: 2px solid #fff; }
+
+/* the stations: favorites first, then the rest of what the last scan found */
+.radio-list { display: flex; flex-direction: column; min-height: 0; border-radius: 28px; background: rgba(0, 0, 0, 0.28); border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden; }
+.radio-list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 16px 8px; }
+.radio-bands { display: flex; padding: 3px; border-radius: 25px; background: rgba(255, 255, 255, 0.1); }
+.radio-bands button { height: 44px; min-width: 68px; padding: 0 16px; border-radius: 22px; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.7); transition: background var(--base) var(--ease-out), color var(--base) var(--ease-out); }
+.radio-bands button[aria-pressed="true"] { color: #000; background: #fff; }
+.radio-scan { display: flex; align-items: center; justify-content: center; gap: 8px; height: 44px; min-width: 116px; padding: 0 18px 0 14px; border-radius: 22px; color: #fff; background: rgba(255, 255, 255, 0.12); font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; transition: transform 300ms var(--spring-glyph); }
+.radio-scan:active:not(:disabled) { transform: scale(0.94); transition-duration: 120ms; }
+.radio-scan:disabled { cursor: default; }
+.radio-scan .icon { width: 20px; height: 20px; }
+.radio-scan .icon.is-searching { animation: scan-pulse 700ms ease-in-out infinite alternate; }
+@keyframes scan-pulse { from { opacity: 0.35; } }
+.radio-list-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 8px 12px; scrollbar-width: none; }
+.radio-section { margin: 14px 12px 6px; font-size: 14px; font-weight: 600; color: rgba(255, 255, 255, 0.55); }
+.radio-rows { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.radio-row { display: flex; align-items: center; border-radius: 18px; transition: background var(--base) var(--ease-out); animation: row-in 260ms var(--ease-out) backwards; }
+@keyframes row-in { from { opacity: 0; transform: translateY(8px); } }
+.radio-row.is-active { background: rgba(255, 255, 255, 0.14); }
+.radio-row-tune { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; height: 64px; padding: 0 8px 0 16px; border-radius: 18px; color: #fff; text-align: left; transition: background var(--fast) var(--ease-out); }
+.radio-row-tune:active { background: rgba(255, 255, 255, 0.08); }
+.radio-row-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--genre); }
+/* the station playing: three bars that move while the sound is on */
+.radio-live { flex: none; display: flex; align-items: flex-end; gap: 2px; width: 14px; height: 14px; }
+.radio-live i { flex: 1; height: 100%; border-radius: 1px; background: var(--genre); transform-origin: bottom; animation: live-bar 900ms ease-in-out infinite alternate; }
+.radio-live i:nth-child(2) { animation-delay: -300ms; animation-duration: 700ms; }
+.radio-live i:nth-child(3) { animation-delay: -600ms; animation-duration: 1100ms; }
+.radio-app.is-muted .radio-live i { animation-play-state: paused; }
+@keyframes live-bar { from { transform: scaleY(0.25); } }
+.radio-row-text { display: flex; flex-direction: column; min-width: 0; }
+.radio-row-name { font-size: 19px; line-height: 24px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.radio-row-sub { font-size: 15px; line-height: 20px; color: rgba(255, 255, 255, 0.6); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.radio-row .radio-star { width: 48px; height: 48px; margin-right: 6px; background: transparent; }
+.radio-row .radio-star .icon { width: 22px; height: 22px; }
+.radio-empty { margin: 24px 16px; font-size: 16px; color: rgba(255, 255, 255, 0.6); }
+
+/* home card: tinted by the genre, the station large, seek and sound */
+.np.np-radio { justify-content: space-between; background: linear-gradient(180deg, color-mix(in srgb, var(--genre) 26%, var(--glass)), var(--glass) 72%); transition: --genre 700ms var(--seamless); }
+/* by day the genre colour as strong as at night: a saturated top fading into a pale bottom under the transport */
+.screen.light .np.np-radio { background: linear-gradient(180deg, color-mix(in srgb, var(--genre) 58%, #fff), color-mix(in srgb, var(--genre) 22%, #fff) 62%, color-mix(in srgb, var(--genre) 8%, var(--glass-strong))); }
+.screen.light .np-radio .radio-genre { color: var(--ink); background: rgba(255, 255, 255, 0.66); }
+.screen.light .np .radio-tag:not(.is-band) { color: var(--ink); background: rgba(255, 255, 255, 0.6); }
+.np-radio .np-open { justify-content: center; gap: var(--space-2); }
+.np-radio .radio-tags { min-height: 28px; justify-content: flex-start; }
+/* the star on the card: centred over the transport */
+.np-radio .radio-star { align-self: center; width: 52px; height: 52px; color: var(--ink-muted); background: var(--glass-strong); }
+.np-radio .radio-star.is-on { color: #ffd60a; }
+/* by day the yellow star needs a deeper shade to stand out on the light card */
+.screen.light .np-radio .radio-star.is-on { color: #c98f00; }
+.np-radio .radio-star .icon { width: 24px; height: 24px; }
+.np-radio .radio-star:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.np .radio-tag { color: var(--ink-muted); background: var(--glass-strong); }
+.np .radio-tag.is-band { color: var(--sheet); background: var(--ink); }
+.np-radio .freq { margin: var(--space-2) 0 0; }
+.np-radio-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: media-fade 320ms var(--seamless) backwards; }
+.np-radio .radio-genre { align-self: flex-start; color: var(--ink); background: color-mix(in srgb, var(--genre) 34%, var(--glass-strong)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .radio-app, .radio-app.is-open, .np.np-radio { transition-duration: 0.01ms; }
+  .dial-strip { transition: none; }
+  .radio-name, .radio-genre, .radio-row, .radio-star.is-on .icon, .radio-scan .icon.is-searching, .radio-live i, .np-radio-name { animation: none; }
+}
+
+/* open-apps card: the frequency on the genre's colour */
+.recents-preview-freq { display: grid; place-items: center; width: 100%; aspect-ratio: 1; font-size: 64px; font-weight: 600; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: #fff; background: linear-gradient(180deg, color-mix(in srgb, var(--genre) 55%, #0b0c10), #08090c); }
+
+/* the frequency as a mechanical counter: each digit a strip 0-9 under a one-digit window; a hidden 0 sets the width and baseline */
+.counter { display: inline-flex; align-items: baseline; white-space: nowrap; }
+.counter-group { display: inline-flex; align-items: baseline; }
+.counter-digit { position: relative; display: inline-block; line-height: 1; clip-path: inset(0 -0.05em); }
+.counter-ghost { visibility: hidden; }
+.counter-strip { position: absolute; left: 0; top: 0; width: 100%; display: flex; flex-direction: column; text-align: center; will-change: transform; }
+.counter-strip > span { display: block; height: 1em; line-height: 1; }
