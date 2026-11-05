@@ -11,7 +11,9 @@ param(
     [Parameter(Mandatory)] [string] $Code,
     [string] $WorkDir = "",
     [string] $PlanetilerVersion = "v0.10.2",
-    [string] $ExcludeLayers = "building,housenumber"
+    [string] $ExcludeLayers = "building,housenumber",
+    # the area the Natural Earth sea outlines are cut to when the OSM sea outlines cannot be downloaded
+    [string] $SeaBbox = "19.5,41.5,31.5,49"
 )
 
 $ErrorActionPreference = "Stop"
@@ -31,7 +33,22 @@ if (-not (Test-Path $pbf)) {
 
 $out = Join-Path $WorkDir "packs/$Code.mbtiles"
 $sources = Join-Path $WorkDir "sources"
-java -Xmx2g -jar $jar --download "--download_dir=$sources" "--osm_path=$pbf" `
-    "--exclude-layers=$ExcludeLayers" "--output=$out" --force
+New-Item -ItemType Directory -Force $sources | Out-Null
+$water = Join-Path $sources "water-polygons-split-3857.zip"
+$naturalEarth = Join-Path $sources "natural_earth_vector.sqlite.zip"
+if (-not (Test-Path $water) -and (Test-Path $naturalEarth)) {
+    try { Invoke-WebRequest "https://osmdata.openstreetmap.de/download/water-polygons-split-3857.zip" -Method Head -TimeoutSec 30 -UseBasicParsing | Out-Null }
+    catch {
+        "OSM sea outlines unreachable: cutting the Natural Earth ocean to $SeaBbox instead"
+        python -I (Join-Path $PSScriptRoot "water-from-natural-earth.py") $naturalEarth $sources ($SeaBbox -split ",")
+        if ($LASTEXITCODE -ne 0) { throw "sea outlines failed" }
+    }
+}
+# with every source on disk, planetiler is not asked to download (it would check each source online)
+$needed = "natural_earth_vector.sqlite.zip", "lake_centerline.shp.zip", "water-polygons-split-3857.zip"
+$download = @($needed | Where-Object { -not (Test-Path (Join-Path $sources $_)) }).Count -gt 0
+$flags = @("--download_dir=$sources", "--osm_path=$pbf", "--exclude-layers=$ExcludeLayers", "--output=$out", "--force")
+if ($download) { $flags = @("--download") + $flags }
+java -Xmx2g -jar $jar @flags
 if ($LASTEXITCODE -ne 0) { throw "planetiler failed" }
 "{0}: {1:N0} MB" -f $Code, ((Get-Item $out).Length / 1MB)
