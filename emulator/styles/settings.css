@@ -84,3 +84,12 @@
 .app-mark-radio { background: linear-gradient(145deg, #4a3a1f, #24190f); }
 .app-mark-settings { background: linear-gradient(145deg, #3a3d44, #1b1d21); }
 .app-mark-other { background: linear-gradient(145deg, hsl(var(--mark-hue) 40% 26%), hsl(var(--mark-hue) 40% 12%)); }
+
+/* reordering home's apps: the dragged row lifts, the others slide out of its way */
+.i-list { --m: url(/icons/list.svg); }
+.set-reorder { position: relative; transition: transform 220ms var(--seamless); }
+.set-reorder.is-dragged { z-index: 1; transition: none; background: #3a3a3c; border-radius: 12px; }
+.set-grip { display: grid; place-items: center; width: 56px; height: 56px; margin-right: -12px; color: rgba(235, 235, 245, 0.42); touch-action: none; cursor: grab; }
+.set-reorder.is-dragged .set-grip { cursor: grabbing; color: #fff; }
+.set-grip .icon { width: 26px; height: 26px; }
+@media (prefers-reduced-motion: reduce) { .set-reorder { transition-duration: 0.01ms; } }

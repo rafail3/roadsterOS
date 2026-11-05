@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { bridge, type FaceMode, type ThemeMode } from "../car/bridge";
 import { removePack, setBluetooth, setLocation, setVolume, setWifi, shellAction, useEmulator, useNow, type EmulatorState } from "../car/store";
 import { PillSlider } from "./Drawer";
@@ -202,20 +202,48 @@ function HomeScreen({ e }: { e: EmulatorState }) {
   const max = bridge.homeAppsMax();
   const full = chosen.length >= max;
   const act = (a: { type: "ToggleHomeApp"; id: string } | { type: "MoveHomeApp"; id: string; by: number }) => shellAction(a);
+  // a row dragged by its handle: the others make room, the drop moves it (core-car HomeApps.move)
+  const [drag, setDrag] = useState<{ id: string; from: number; dy: number; h: number } | null>(null);
+  const grab = useRef({ y: 0, scale: 1 });
+  const to = drag ? Math.max(0, Math.min(chosen.length - 1, drag.from + Math.round(drag.dy / drag.h))) : -1;
+  const shift = (i: number) => {
+    if (!drag || i === drag.from) return drag ? drag.dy : 0;
+    if (drag.from < i && i <= to) return -drag.h;
+    if (to <= i && i < drag.from) return drag.h;
+    return 0;
+  };
+  const down = (ev: PointerEvent<HTMLButtonElement>, id: string, from: number) => {
+    const row = ev.currentTarget.closest(".set-row") as HTMLElement;
+    ev.currentTarget.setPointerCapture(ev.pointerId);
+    // the screen is drawn scaled: pointer pixels to layout pixels
+    grab.current = { y: ev.clientY, scale: row.getBoundingClientRect().height / row.offsetHeight };
+    setDrag({ id, from, dy: 0, h: row.offsetHeight });
+  };
+  const moveTo = (ev: PointerEvent<HTMLButtonElement>) => drag && setDrag({ ...drag, dy: (ev.clientY - grab.current.y) / grab.current.scale });
+  const drop = () => {
+    if (drag && to !== drag.from) act({ type: "MoveHomeApp", id: drag.id, by: to - drag.from });
+    setDrag(null);
+  };
+  const key = (ev: KeyboardEvent<HTMLButtonElement>, id: string) => {
+    const by = ev.key === "ArrowUp" ? -1 : ev.key === "ArrowDown" ? 1 : 0;
+    if (by) { ev.preventDefault(); act({ type: "MoveHomeApp", id, by }); }
+  };
   return (<>
-    <Group title="On Home" footer={`Up to ${max} apps, in this order beside the card.`}>
+    <Group title="On Home" footer={`Up to ${max} apps, in this order beside the card. Drag to reorder.`}>
       {chosen.map((a, i) => (
-        <Row key={a.id} label={a.label}>
-          <span className="set-stepper">
-            <button aria-label={`Move ${a.label} earlier`} disabled={i === 0} onClick={() => act({ type: "MoveHomeApp", id: a.id, by: -1 })}><span className="icon i-caret-left" aria-hidden="true" /></button>
-            <button aria-label={`Move ${a.label} later`} disabled={i === chosen.length - 1} onClick={() => act({ type: "MoveHomeApp", id: a.id, by: 1 })}><span className="icon i-caret-right" aria-hidden="true" /></button>
-          </span>
+        <div key={a.id} className={`set-row set-reorder${drag?.id === a.id ? " is-dragged" : ""}`} style={drag ? { transform: `translateY(${shift(i)}px)` } : undefined}>
+          <span className="set-row-label">{a.label}</span>
           <button className="set-inline is-remove" onClick={() => act({ type: "ToggleHomeApp", id: a.id })}>Remove</button>
-        </Row>
+          <button className="set-grip" aria-label={`Reorder ${a.label}, place ${i + 1} of ${chosen.length}`}
+            onPointerDown={(ev) => down(ev, a.id, i)} onPointerMove={moveTo} onPointerUp={drop} onPointerCancel={() => setDrag(null)}
+            onKeyDown={(ev) => key(ev, a.id)}>
+            <span className="icon i-list" aria-hidden="true" />
+          </button>
+        </div>
       ))}
       {!chosen.length && <Row label="No apps on home" />}
     </Group>
-    <Group title="More Apps" footer={full ? "Home is full: remove an app to add another." : "Apps installed on the unit, besides roadsterOS's own."}>
+    <Group title="More Apps" footer={full ? "Home is full: remove an app to add another." : "roadsterOS's own apps and the apps installed on the unit."}>
       {others.map((a) => (
         <Row key={a.id} label={a.label}>
           <button className="set-inline" disabled={full} onClick={() => act({ type: "ToggleHomeApp", id: a.id })}>Add</button>

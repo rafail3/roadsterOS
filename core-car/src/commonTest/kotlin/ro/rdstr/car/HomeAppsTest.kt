@@ -29,6 +29,19 @@ class HomeAppsTest {
     }
 
     @Test
+    fun `a drag moves an app several places`() {
+        val row = listOf("MAPS", "MUSIC", "PHONE", "RADIO")
+        assertEquals(listOf("MUSIC", "PHONE", "RADIO", "MAPS"), HomeApps.move(row, "MAPS", 3))
+        assertEquals(listOf("RADIO", "MAPS", "MUSIC", "PHONE"), HomeApps.move(row, "RADIO", -5))
+    }
+
+    @Test
+    fun `a removed app comes off home and frees its place, ours stay`() {
+        val s = ShellState(homeApps = listOf("MAPS", "com.waze", "PHONE", "org.videolan.vlc"))
+        assertEquals(listOf("MAPS", "PHONE", "org.videolan.vlc"), Shell.reduce(s, ShellAction.AppsInstalled(listOf("org.videolan.vlc"))).homeApps)
+    }
+
+    @Test
     fun `an uninstalled app drops off home and the choice is kept across starts`() {
         assertEquals(listOf("Maps", "Waze"), HomeApps.shown(listOf("MAPS", "com.waze", "com.gone"), listOf(waze)).map { it.label })
         val s = ShellState(homeApps = listOf("com.waze", "MAPS"), recordEvents = true)

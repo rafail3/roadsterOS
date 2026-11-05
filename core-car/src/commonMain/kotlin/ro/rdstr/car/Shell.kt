@@ -105,8 +105,10 @@ sealed class ShellAction {
     @Serializable @SerialName("SetTypingLock") data class SetTypingLock(val on: Boolean) : ShellAction()
     /** Put an app on home (at the end, up to [HomeApps.MAX]) or take it off. */
     @Serializable @SerialName("ToggleHomeApp") data class ToggleHomeApp(val id: String) : ShellAction()
-    /** Move an app on home one place earlier (-1) or later (+1). */
+    /** Move an app on home this many places earlier (negative) or later, as a drag drops it. */
     @Serializable @SerialName("MoveHomeApp") data class MoveHomeApp(val id: String, val by: Int) : ShellAction()
+    /** The other apps installed on the unit now (by package); one removed comes off home and frees its place. */
+    @Serializable @SerialName("AppsInstalled") data class AppsInstalled(val ids: List<String>) : ShellAction()
     @Serializable @SerialName("SetRecording") data class SetRecording(val on: Boolean) : ShellAction()
     @Serializable @SerialName("SetSpeedLimitSign") data class SetSpeedLimitSign(val on: Boolean) : ShellAction()
     /** Both faces switched with a tap, or one face that a tap leaves as it is. */
@@ -199,6 +201,7 @@ object Shell {
         is ShellAction.SetTypingLock -> s.copy(lockTypingWhileMoving = a.on)
         is ShellAction.ToggleHomeApp -> s.copy(homeApps = HomeApps.toggle(s.homeApps, a.id))
         is ShellAction.MoveHomeApp -> s.copy(homeApps = HomeApps.move(s.homeApps, a.id, a.by))
+        is ShellAction.AppsInstalled -> s.copy(homeApps = HomeApps.installedOnly(s.homeApps, a.ids))
         is ShellAction.SetRecording -> s.copy(recordEvents = a.on)
         is ShellAction.SetSpeedLimitSign -> s.copy(speedLimitSign = a.on)
         is ShellAction.SetFaceMode -> s.copy(faceMode = a.mode, face = when (a.mode) {

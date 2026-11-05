@@ -184,7 +184,9 @@ object CarRuntime {
     private lateinit var journal: ro.rdstr.os.settings.JournalRecorder
 
     /** The other apps that can go on home, and starting one of them. */
-    fun installedApps() = ro.rdstr.os.settings.InstalledApps.read(app)
+    fun installedApps() = ro.rdstr.os.settings.InstalledApps.read(app).also { apps ->
+        shellAction(ShellAction.AppsInstalled(apps.map { it.id }))
+    }
 
     fun launch(pkg: String) = ro.rdstr.os.settings.InstalledApps.launch(app, pkg)
 

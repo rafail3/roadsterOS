@@ -726,6 +726,16 @@ export function remoteHangUp() {
   publishCalls();
 }
 
+/** Apps the control panel can put on the unit, as if installed with adb; none at start. */
+export const UNIT_APPS: LaunchableApp[] = [{ id: "com.waze", label: "Waze" }, { id: "com.spotify.music", label: "Spotify" }, { id: "org.videolan.vlc", label: "VLC" }];
+
+/** An app installed on the unit or removed from it; a removed one comes off home too. */
+export function setInstalled(app: LaunchableApp, on: boolean) {
+  const installed = on ? [...state.installed.filter((a) => a.id !== app.id), app] : state.installed.filter((a) => a.id !== app.id);
+  set({ installed });
+  shellAction({ type: "AppsInstalled", ids: installed.map((a) => a.id) });
+}
+
 /** An icon on home: our apps open in the shell, another app opens full screen on the unit (only logged here). */
 export function launchApp(id: string) {
   if (id === "PHONE") return openPhone();
@@ -906,7 +916,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     newMessage: null,
     // ?nomap: a unit whose Bluetooth stack has no message client
     messagesSupported: !q.has("nomap"),
-    installed: [{ id: "com.waze", label: "Waze" }, { id: "com.spotify.music", label: "Spotify" }, { id: "org.videolan.vlc", label: "VLC" }],
+    installed: [],
     recorded: 0,
     device: SAMPLE_PHONE,
     // the names phones give themselves in their Bluetooth settings

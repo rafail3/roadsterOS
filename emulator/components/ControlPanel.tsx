@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { Face, SteeringKey, ThemeMode } from "../car/bridge";
 import { SAMPLE_CALLERS, SAMPLE_PHONE } from "../car/phone";
-import { carEvent, GPS_PLACES, incomingCall, incomingMessage, remoteHangUp, removePack, setPhoneStatus, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
+import { carEvent, setInstalled, UNIT_APPS, GPS_PLACES, incomingCall, incomingMessage, remoteHangUp, removePack, setPhoneStatus, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Field, holdToRepeat, Section, Segmented, Switch } from "./controls";
 
 const DEFAULT_TRACK_MS = 228000;
@@ -233,6 +233,19 @@ function Gps() {
   );
 }
 
+/** Other apps on the unit: the ones Settings can put on home. */
+function UnitApps() {
+  const { installed } = useEmulator();
+  return (
+    <Section title="Apps on the unit">
+      <p className="note">Installed apps besides roadsterOS's own; only these can go on home.</p>
+      {UNIT_APPS.map((a) => (
+        <Switch key={a.id} label={a.label} checked={installed.some((i) => i.id === a.id)} onChange={(on) => setInstalled(a, on)} />
+      ))}
+    </Section>
+  );
+}
+
 export function ControlPanel() {
   return (
     <div className="controls-scroll">
@@ -245,6 +258,7 @@ export function ControlPanel() {
       <Phone />
       <Radio />
       <Gps />
+      <UnitApps />
       <p className="note">Names, tracks and numbers are synthetic.</p>
     </div>
   );

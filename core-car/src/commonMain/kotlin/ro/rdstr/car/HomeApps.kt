@@ -28,6 +28,12 @@ object HomeApps {
         return chosen.toMutableList().apply { removeAt(i); add(j, id) }
     }
 
+    /** The choice without the apps no longer installed; ours always stay. */
+    fun installedOnly(chosen: List<String>, installed: List<String>): List<String> {
+        val own = OWN.map { it.id }
+        return chosen.filter { it in own || it in installed }
+    }
+
     /** The icons home shows: the chosen ones still installed, in their order. */
     fun shown(chosen: List<String>, installed: List<LaunchableApp>): List<LaunchableApp> {
         val all = (OWN + installed).associateBy { it.id }

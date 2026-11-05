@@ -123,6 +123,7 @@ export type ShellAction =
   | { type: "SetTypingLock"; on: boolean }
   | { type: "ToggleHomeApp"; id: string }
   | { type: "MoveHomeApp"; id: string; by: number }
+  | { type: "AppsInstalled"; ids: string[] }
   | { type: "SetRecording"; on: boolean }
   | { type: "SetSpeedLimitSign"; on: boolean }
   | { type: "SetFaceMode"; mode: FaceMode };
