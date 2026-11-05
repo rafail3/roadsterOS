@@ -100,6 +100,17 @@ object Bridge {
         return """{"top":"${CoverColors.hex(top)}","bottom":"${CoverColors.hex(bottom)}"}"""
     }
 
+    /**
+     * The card on home for the car's [state] and the page chosen last ([chosen], empty for none): answers
+     * {"pages":[...],"shown":"...","strip":"NONE"|"BT"|"RADIO","forSource":"..."}.
+     */
+    fun homeCard(state: String, chosen: String): String {
+        val car = json.decodeFromString(RulesState.serializer(), state)
+        val pages = HomeCard.pages(car).joinToString(",") { "\"$it\"" }
+        val shown = HomeCard.shown(car, chosen.takeIf { it.isNotEmpty() }?.let { CardPage.valueOf(it) })
+        return """{"pages":[$pages],"shown":"$shown","strip":"${HomeCard.strip(car)}","forSource":"${HomeCard.forSource(car)}"}"""
+    }
+
     fun shellInitial(): String = json.encodeToString(ShellState.serializer(), ShellState())
 
     fun shell(state: String, action: String): String {
