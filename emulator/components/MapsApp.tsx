@@ -15,36 +15,33 @@ let bordersFile: Promise<GeoJSON.FeatureCollection> | null = null;
 const loadBorders = () => (bordersFile ??= fetch("/maps/countries.geojson").then((r) => r.json()));
 
 /**
- * The car, as a disc lying on the road seen at an angle: a white rim with some thickness, a blue face, and a white
- * chevron on it that turns with the heading. Everything is drawn in the road's plane and then flattened by [TILT],
- * so the chevron turns on the disc as it would on the ground. Plain shapes (no blur), the same layers as on the unit.
+ * The car: the navigation arrow seen from above (the Material Icons "navigation" shape), 53 px tall (44 units at 1.2), with a little
+ * volume: one blue gradient brighter towards the tip, a soft gloss on its upper part, a white rim with a fine dark
+ * edge, and a soft shadow that stays below it however it turns. Plain shapes (no blur), the same layers as on the unit.
  */
-const TILT = 0.62;
-const CHEVRON = "M 0 -13 L 11 10 L 0 4.5 L -11 10 Z";
-const PUCK = `<svg viewBox="-36 -36 72 72" width="97" height="97" aria-hidden="true">
+const ARROW = "M 0 -22 L 18 22 L 0 11.5 L -18 22 Z";
+const GLOSS = "M 0 -17 L 10.5 8.5 L 0 3 L -10.5 8.5 Z";
+const PUCK = `<svg viewBox="-36 -36 72 72" width="86" height="86" aria-hidden="true">
   <defs>
-    <linearGradient id="puck-face" x1="0" y1="-21" x2="0" y2="21" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4fb0ff"/><stop offset="1" stop-color="#0a64e8"/></linearGradient>
-    <linearGradient id="puck-gloss" x1="0" y1="-21" x2="0" y2="2" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity="0.35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="puck-fill" x1="-10" y1="-22" x2="10" y2="22" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#5aaeff"/><stop offset="1" stop-color="#0a62e6"/></linearGradient>
+    <linearGradient id="puck-gloss" x1="0" y1="-17" x2="0" y2="8" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity="0.45"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
   </defs>
-  <g transform="translate(0 7) scale(1 ${TILT})" fill="#000">
-    <circle r="31" fill-opacity="0.06"/><circle r="28.5" fill-opacity="0.08"/><circle r="26.5" fill-opacity="0.12"/>
+  <g data-shadow stroke-linejoin="round" fill="#000" stroke="#000">
+    <path d="${ARROW}" fill-opacity="0" stroke-opacity="0.05" stroke-width="13"/>
+    <path d="${ARROW}" fill-opacity="0" stroke-opacity="0.07" stroke-width="9"/>
+    <path d="${ARROW}" fill-opacity="0.2" stroke-opacity="0.1" stroke-width="5.5"/>
   </g>
-  <g transform="translate(0 4.5) scale(1 ${TILT})"><circle r="26" fill="#8e9bb0"/></g>
-  <g transform="translate(0 2.2) scale(1 ${TILT})"><circle r="26" fill="#cdd5e1"/></g>
-  <g transform="scale(1 ${TILT})">
-    <circle r="26" fill="#fff"/>
-    <circle r="20.5" fill="url(#puck-face)"/>
-    <circle r="20.5" fill="url(#puck-gloss)"/>
-    <circle r="20.5" fill="none" stroke="#0a4fc0" stroke-opacity="0.45" stroke-width="1.2"/>
+  <g data-turn stroke-linejoin="round">
+    <path d="${ARROW}" fill="none" stroke="#000" stroke-opacity="0.18" stroke-width="6.5"/>
+    <path d="${ARROW}" fill="#fff" stroke="#fff" stroke-width="5"/>
+    <path d="${ARROW}" fill="url(#puck-fill)" stroke="url(#puck-fill)" stroke-width="1.2"/>
+    <path d="${GLOSS}" fill="url(#puck-gloss)"/>
   </g>
-  <g data-turn-shadow><path d="${CHEVRON}" fill="#06357f" fill-opacity="0.35" stroke="#06357f" stroke-opacity="0.35" stroke-width="2.4" stroke-linejoin="round"/></g>
-  <g data-turn><path d="${CHEVRON}" fill="#fff" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/></g>
 </svg>`;
-/** Turns the chevron on the disc: in the road's plane first, then flattened with it. */
+/** Turns the arrow with the heading; its shadow turns too but stays a little below it on the screen. */
 function turnPuck(el: HTMLElement, degrees: number) {
-  el.querySelector("[data-turn]")?.setAttribute("transform", `scale(1 ${TILT}) rotate(${degrees})`);
-  // the chevron's shadow on the disc, a little below it
-  el.querySelector("[data-turn-shadow]")?.setAttribute("transform", `translate(0 1.4) scale(1 ${TILT}) rotate(${degrees})`);
+  el.querySelector("[data-turn]")?.setAttribute("transform", `rotate(${degrees})`);
+  el.querySelector("[data-shadow]")?.setAttribute("transform", `translate(0 3) rotate(${degrees})`);
 }
 
 /** Squared distance from a point to a segment, in screen pixels. */

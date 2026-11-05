@@ -6,8 +6,8 @@
 .maps-app :is(button):focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
 /* the car: the location arrow alone, in relief, pointing the way the car drives (drawn in MapsApp) */
-/* drawn in a 72 unit box at 1.35 times its size */
-.map-puck { width: 97px; height: 97px; pointer-events: none; }
+/* a 72 unit box drawn at 1.2 times */
+.map-puck { width: 86px; height: 86px; pointer-events: none; }
 .map-puck svg { display: block; }
 
 .map-controls { position: absolute; top: 76px; right: 32px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
