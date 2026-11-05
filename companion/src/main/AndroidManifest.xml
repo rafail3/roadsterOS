@@ -5,10 +5,19 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
+    <!-- the music apps, to show the name of the one playing -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:label="@string/app_name"
         android:allowBackup="false"
-        android:theme="@android:style/Theme.DeviceDefault">
+        android:theme="@style/Cover"
+        android:supportsRtl="true">
 
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
@@ -27,5 +36,11 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+        <!-- one of the few system broadcasts still delivered to a receiver declared here -->
+        <receiver android:name=".BluetoothWake" android:exported="true">
+            <intent-filter>
+                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

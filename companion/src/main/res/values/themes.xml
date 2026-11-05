@@ -1,0 +1,19 @@
+<resources>
+    <style name="Cover" parent="@android:style/Theme.DeviceDefault.Light.NoActionBar">
+        <item name="android:windowBackground">@color/canvas</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:colorAccent">@color/accent</item>
+    </style>
+    <style name="Allow">
+        <item name="android:background">@drawable/button</item>
+        <item name="android:text">@string/allow</item>
+        <item name="android:textColor">@color/accent_ink</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:paddingHorizontal">20dp</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+</resources>

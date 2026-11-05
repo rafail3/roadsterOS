@@ -1,0 +1,13 @@
+<resources>
+    <!-- the product's light palette; values-night holds the dark one -->
+    <color name="canvas">#e6e9ee</color>
+    <color name="glass">#85ffffff</color>
+    <color name="hairline">#17141c26</color>
+    <color name="ink">#171c23</color>
+    <color name="ink_muted">#5a6572</color>
+    <color name="ink_subtle">#76808d</color>
+    <color name="accent">#1d6fb5</color>
+    <color name="accent_ink">#ffffff</color>
+    <color name="accent_tint">#1f1d6fb5</color>
+    <color name="danger">#d8393f</color>
+</resources>

@@ -46,6 +46,7 @@ class CoverSender(private val context: Context) {
     fun send(title: String, artist: String, art: Bitmap) {
         worker.execute {
             val frame = CoverFrame(title, artist, jpeg(art))
+            Status.cover(context, frame.jpeg)
             latest = frame
             deliver(frame)
         }
@@ -75,26 +76,31 @@ class CoverSender(private val context: Context) {
 
     @SuppressLint("MissingPermission") // checked in allowed()
     private fun deliver(frame: CoverFrame) {
-        if (!allowed()) return Status.note(context, "Bluetooth permission needed")
+        if (!allowed()) return Status.delivery(context, Status.Delivery.NEED_PERMISSION)
         val targets = a2dp?.connectedDevices.orEmpty()
-        if (targets.isEmpty()) return Status.note(context, "No car connected")
+        if (targets.isEmpty()) return Status.delivery(context, Status.Delivery.NO_DEVICE)
         val bytes = CoverLink.encode(frame)
+        var sentTo: String? = null
         for (device in targets) {
             val refused = refusedAt[device.address]
             if (refused != null && SystemClock.elapsedRealtime() - refused < RETRY_REFUSED_MS) continue
+            val name = device.name ?: device.address
+            Status.delivery(context, Status.Delivery.SENDING, name)
             if (write(device, bytes)) {
                 refusedAt.remove(device.address)
-                Status.sent(context, frame.title, device.name ?: device.address)
+                sentTo = name
             }
         }
+        if (sentTo != null) Status.delivery(context, Status.Delivery.SENT, sentTo)
+        else Status.delivery(context, Status.Delivery.NO_DISPLAY, targets.first().let { it.name ?: it.address })
     }
 
     @SuppressLint("MissingPermission")
     private fun write(device: BluetoothDevice, bytes: ByteArray): Boolean {
         // a kept socket is tried first; after a write error one fresh connection is made
         repeat(2) { attempt ->
+            // the app never scans, so there is no discovery to cancel before connecting
             val socket = sockets[device.address] ?: try {
-                adapter?.cancelDiscovery()
                 device.createRfcommSocketToServiceRecord(uuid).also { it.connect(); sockets[device.address] = it }
             } catch (e: IOException) {
                 refusedAt[device.address] = SystemClock.elapsedRealtime()
