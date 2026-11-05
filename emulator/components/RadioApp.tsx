@@ -97,7 +97,7 @@ function Dial({ band, khz, stations, onPreview }: { band: Band; khz: number; sta
   );
 }
 
-function Star({ on, label, onToggle }: { on: boolean; label: string; onToggle: () => void }) {
+export function Star({ on, label, onToggle }: { on: boolean; label: string; onToggle: () => void }) {
   return (
     <button className={`radio-star${on ? " is-on" : ""}`} aria-label={label} aria-pressed={on} onClick={onToggle}>
       <span className={`icon ${on ? "i-star-fill" : "i-star"}`} aria-hidden="true" />

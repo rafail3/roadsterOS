@@ -1,8 +1,8 @@
 import type { CSSProperties } from "react";
 import { bridge } from "../car/bridge";
 import { formatFreq } from "../car/radio";
-import { carCommand, setBluetooth, shellAction, type EmulatorState } from "../car/store";
-import { genreColor } from "./RadioApp";
+import { carCommand, setBluetooth, shellAction, toggleFavorite, type EmulatorState } from "../car/store";
+import { genreColor, Star } from "./RadioApp";
 import { Marquee, Progress, time, TransportRow, useCrossfade, usePosition } from "./media";
 
 
@@ -54,8 +54,9 @@ function Bluetooth({ emulator }: { emulator: EmulatorState }) {
 
 /** The station playing, tinted by its genre; a tap opens the radio app. */
 function Radio({ emulator }: { emulator: EmulatorState }) {
-  const { car, radio } = emulator;
+  const { car, radio, favorites } = emulator;
   const genre = bridge.ptyName(radio.pty);
+  const favorite = favorites.includes(radio.khz);
   const freq = formatFreq(radio.band, radio.khz);
   return (
     <div className="np np-radio" style={{ "--genre": genreColor(radio.pty) } as CSSProperties}>
@@ -68,6 +69,7 @@ function Radio({ emulator }: { emulator: EmulatorState }) {
         <span className="np-title np-radio-name" key={radio.rds}>{radio.rds || "Radio"}</span>
         {genre && <span className="radio-genre" key={genre}>{genre}</span>}
       </button>
+      <Star on={favorite} label={favorite ? "Remove from favorites" : "Add to favorites"} onToggle={() => toggleFavorite(radio.khz)} />
       <TransportRow
         playing={!car.muted}
         onPrev={() => carCommand({ type: "Radio.Seek", up: false })}

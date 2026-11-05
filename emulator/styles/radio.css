@@ -12,19 +12,22 @@
 .radio-app :is(button, .dial):focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
 .radio-main { display: flex; flex-direction: column; justify-content: space-between; gap: 24px; min-width: 0; }
-.radio-hero { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.radio-tags { margin: 0; display: flex; gap: 8px; min-height: 28px; }
+/* centred in the space left of the list and above the dial */
+.radio-hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-width: 0; text-align: center; }
+.radio-tags { margin: 0; display: flex; justify-content: center; gap: 8px; min-height: 28px; }
 .radio-tag { display: inline-grid; place-items: center; height: 28px; padding: 0 12px; border-radius: 14px; font-size: 14px; font-weight: 600; color: rgba(255, 255, 255, 0.85); background: rgba(255, 255, 255, 0.12); }
 .radio-tag.is-band { color: #000; background: #fff; }
 .radio-freq { margin: 4px 0 0; display: flex; align-items: baseline; gap: 14px; }
 .radio-freq-num { font-size: 152px; line-height: 1; font-weight: 600; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; }
 .radio-freq-unit { font-size: 32px; font-weight: 500; color: rgba(255, 255, 255, 0.6); }
-.radio-station { display: flex; align-items: center; gap: 16px; min-height: 52px; min-width: 0; }
+.radio-station { display: flex; align-items: center; justify-content: center; gap: 16px; min-height: 52px; max-width: 100%; }
 .radio-name { margin: 0; font-size: 40px; line-height: 48px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: media-fade 320ms var(--seamless) backwards; }
 .radio-genre { flex: none; display: inline-grid; place-items: center; height: 34px; padding: 0 16px; border-radius: 17px; font-size: 17px; font-weight: 600; color: #fff; background: color-mix(in srgb, var(--genre) 60%, rgba(255, 255, 255, 0.08)); animation: genre-in 420ms var(--spring-glyph) backwards; }
 @keyframes genre-in { from { opacity: 0; transform: scale(0.8); } }
-.radio-actions { display: flex; align-items: center; gap: 28px; margin-top: 12px; }
-.radio-actions .transport { --tx-gap: 16px; justify-content: flex-start; }
+.radio-actions { display: flex; align-items: center; justify-content: center; gap: 28px; margin-top: 12px; }
+/* a spacer as wide as the star on the left, so the transport sits on the centre line */
+.radio-actions::before { content: ""; flex: none; width: 56px; }
+.radio-actions .transport { --tx-gap: 16px; }
 .radio-actions .tx { --tx-size: 84px; --tx-glyph: 40px; }
 .radio-actions .tx-play { --tx-size: 100px; --tx-glyph: 52px; }
 .radio-star { flex: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; color: rgba(255, 255, 255, 0.72); background: rgba(255, 255, 255, 0.1); transition: transform 300ms var(--spring-glyph), color var(--fast) var(--ease-out); }
@@ -86,7 +89,13 @@
 /* home card: tinted by the genre, the station large, seek and sound */
 .np.np-radio { justify-content: space-between; background: linear-gradient(180deg, color-mix(in srgb, var(--genre) 26%, var(--glass)), var(--glass) 72%); transition: --genre 700ms var(--seamless); }
 .np-radio .np-open { justify-content: center; gap: var(--space-2); }
-.np-radio .radio-tags { min-height: 28px; }
+.np-radio { position: relative; }
+.np-radio .radio-tags { min-height: 28px; justify-content: flex-start; }
+/* the star on the card: top right, on the line of the band tags */
+.np-radio .radio-star { position: absolute; top: var(--space-5); right: var(--space-5); width: 48px; height: 48px; margin-top: -10px; color: var(--ink-muted); background: var(--glass-strong); }
+.np-radio .radio-star.is-on { color: #ffd60a; }
+.np-radio .radio-star .icon { width: 24px; height: 24px; }
+.np-radio .radio-star:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .np .radio-tag { color: var(--ink-muted); background: var(--glass-strong); }
 .np .radio-tag.is-band { color: var(--sheet); background: var(--ink); }
 .np-radio .freq { margin: var(--space-2) 0 0; }
