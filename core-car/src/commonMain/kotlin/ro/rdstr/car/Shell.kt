@@ -7,6 +7,9 @@ enum class ThemeMode { AUTO, LIGHT, DARK }
 enum class Theme { LIGHT, DARK }
 enum class Face { DIGITAL, ANALOG }
 
+/** How a call shows: not at all, over the whole screen, or as a bar at the top while the rest of the shell is used. */
+enum class CallView { NONE, FULL, BAR }
+
 /** What fills the screen above home. */
 enum class App { HOME, MUSIC, RADIO, MAPS, PHONE }
 
@@ -33,6 +36,7 @@ data class ShellState(
     val lastHomeMs: Long? = null,
     /** The card page on home chosen last; [HomeCard.shown] falls back when it is not there. */
     val card: CardPage? = null,
+    val callView: CallView = CallView.NONE,
 )
 
 @Serializable
@@ -68,6 +72,10 @@ sealed class ShellAction {
     @Serializable @SerialName("CloseRecents") data object CloseRecents : ShellAction()
     /** A swipe on the card on home, or a new source, brings this page forward. */
     @Serializable @SerialName("ShowCard") data class ShowCard(val page: CardPage) : ShellAction()
+    /** The phone's call changed state (sent with every Call event): a new call fills the screen, an ended one goes. */
+    @Serializable @SerialName("CallChanged") data class CallChanged(val state: CarEvent.Call.State) : ShellAction()
+    /** A tap on the call bar brings the call back over the whole screen. */
+    @Serializable @SerialName("ExpandCall") data object ExpandCall : ShellAction()
 }
 
 /**
@@ -140,8 +148,16 @@ object Shell {
         ShellAction.OpenRecents -> s.copy(recents = true, drawer = false, devices = false, lastHomeMs = null)
         ShellAction.CloseRecents -> s.copy(recents = false)
         is ShellAction.ShowCard -> s.copy(card = a.page)
+        is ShellAction.CallChanged -> s.copy(callView = when {
+            a.state == CarEvent.Call.State.IDLE -> CallView.NONE
+            s.callView == CallView.NONE -> CallView.FULL
+            else -> s.callView
+        })
+        ShellAction.ExpandCall -> if (s.callView == CallView.NONE) s else s.copy(callView = CallView.FULL, drawer = false, recents = false)
         // one layer at a time: the drawer, the open apps, a devices or networks sheet, then the app
         ShellAction.Back -> when {
+            // the call over everything is the top layer: Back folds it into its bar, the app under it stays
+            s.callView == CallView.FULL -> s.copy(callView = CallView.BAR)
             s.drawer -> s.copy(drawer = false)
             s.recents -> s.copy(recents = false)
             s.devices -> s.copy(devices = false)
@@ -150,7 +166,11 @@ object Shell {
         }
     }
 
-    private fun goHome(s: ShellState) = s.copy(app = App.HOME, recents = false, drawer = false, devices = false, networks = false, card = cardAfter(s))
+    /** Home goes home in a call too: the call folds into its bar. */
+    private fun goHome(s: ShellState) = s.copy(
+        app = App.HOME, recents = false, drawer = false, devices = false, networks = false, card = cardAfter(s),
+        callView = if (s.callView == CallView.FULL) CallView.BAR else s.callView,
+    )
 
     /** Leaving the map, the card on home shows it. */
     private fun cardAfter(s: ShellState) = if (s.app == App.MAPS) CardPage.NAVIGATION else s.card

@@ -29,6 +29,9 @@ import ro.rdstr.car.Contact
 import ro.rdstr.car.PhoneBook
 import ro.rdstr.car.PhoneGate
 import ro.rdstr.car.Rules
+import ro.rdstr.car.Shell
+import ro.rdstr.car.ShellAction
+import ro.rdstr.car.ShellState
 import ro.rdstr.car.RulesState
 import ro.rdstr.os.cover.Cover
 import ro.rdstr.os.cover.CoverDesk
@@ -117,8 +120,18 @@ object CarRuntime {
                     else -> Unit
                 }
                 _ui.value = _ui.value.reduce(next, actions, event)
+                // a new call fills the screen, an ended one goes; Home folds it into its bar
+                if (event is CarEvent.Call) shellAction(ShellAction.CallChanged(event.state))
             }
         }
+    }
+
+    /** The shell's own state (core-car Shell): for now the way a call shows. */
+    private val _shell = MutableStateFlow(ShellState())
+    val shell: StateFlow<ShellState> = _shell
+
+    fun shellAction(action: ShellAction) {
+        _shell.value = Shell.reduce(_shell.value, action)
     }
 
     fun send(command: CarCommand) {

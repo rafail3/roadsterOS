@@ -39,6 +39,8 @@ export interface ShellState {
   recents: boolean;
   lastHomeMs: number | null;
   card: CardPage | null;
+  /** how the call shows: none, over the whole screen, or as the bar at the top */
+  callView: "NONE" | "FULL" | "BAR";
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -98,7 +100,9 @@ export type ShellAction =
   | { type: "SetBrightness"; value: number }
   | { type: "Headlights"; on: boolean }
   | { type: "OpenApp"; app: App }
-  | { type: "ShowCard"; page: CardPage };
+  | { type: "ShowCard"; page: CardPage }
+  | { type: "CallChanged"; state: CallState }
+  | { type: "ExpandCall" };
 
 export interface PhoneNumber { number: string; label: string }
 export interface Contact { name: string; numbers: PhoneNumber[] }

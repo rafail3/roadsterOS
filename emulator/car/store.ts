@@ -677,6 +677,8 @@ export function carEvent(event: CarEvent) {
     const calls = event.connected && bridge.callCapable(major);
     if (calls !== state.car.hfpConnected) carEvent({ type: "HfpConnection", connected: calls, device: event.device });
   }
+  // a new call fills the screen, an ended one goes; Home folds it into its bar (core-car Shell)
+  if (event.type === "Call") shellAction({ type: "CallChanged", state: event.state });
   // the screen follows the ignition: dark with the car off, back on when it starts
   if (event.type === "Power") shellAction({ type: event.acc ? "Wake" : "Sleep" });
 }
@@ -838,6 +840,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   if (call === "ringing" || call === "active") {
     simCalls = [{ id: ++simCallId, state: call === "active" ? HFP.ACTIVE : HFP.INCOMING, number: CALLER_NUMBER }];
     applyEvent(bridge.hfpCall(simCalls));
+    shell = bridge.shell(shell, { type: "CallChanged", state: call === "active" ? "ACTIVE" : "RINGING" });
+    if (q.has("callbar")) shell = bridge.shell(shell, { type: "Home" });
   }
   if (q.has("camera")) applyEvent({ type: "ReverseGear", on: true });
 

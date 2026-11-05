@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { bridge } from "../car/bridge";
-import { carCommand, carEvent, dismissMessage, openThread, useNow, type EmulatorState } from "../car/store";
+import { carCommand, carEvent, dismissMessage, openThread, shellAction, useNow, type EmulatorState } from "../car/store";
 import { Contacts, PadKey } from "./PhoneApp";
 
 const TONE_KEYS: [string, string][] = [
@@ -131,6 +131,40 @@ export function CallOverlay({ emulator }: { emulator: EmulatorState }) {
         </>)}
       </div>
     </section>
+  );
+}
+
+/**
+ * The call folded away by Home or Back: a ringing call as a banner with its two answers, any other as a green pill
+ * with the name and the clock; a tap brings the whole call screen back.
+ */
+export function CallBar({ emulator }: { emulator: EmulatorState }) {
+  const { car, call } = emulator;
+  const now = useNow(null);
+  const name = call.conference ? "Conference" : call.name || call.number;
+  const expand = () => shellAction({ type: "ExpandCall" });
+  if (car.call === "RINGING") {
+    return (
+      <section className="call-banner" role="alertdialog" aria-label={`Incoming call, ${name}`}>
+        <button className="call-banner-open" onClick={expand} aria-label={`Open the call from ${name}`}>
+          <span className="phone-avatar" aria-hidden="true">{bridge.initials(call.name) || <span className="icon i-user" />}</span>
+          <span className="message-banner-text">
+            <span className="message-banner-name">{name}</span>
+            <span className="message-banner-body">Incoming call</span>
+          </span>
+        </button>
+        <button className="call-key is-decline is-small" aria-label="Decline" onClick={() => carCommand({ type: "Phone.HangUp" })}><span className="icon i-phone-disconnect-fill" aria-hidden="true" /></button>
+        <button className="call-key is-accept is-small" aria-label="Accept" onClick={() => carCommand({ type: "Phone.Answer" })}><span className="icon i-phone-fill" aria-hidden="true" /></button>
+      </section>
+    );
+  }
+  const status = car.call === "OUTGOING" ? "Calling…" : call.held ? "On Hold" : call.since !== null ? bridge.callDuration(now.getTime() - call.since) : "";
+  return (
+    <button className="call-bar" onClick={expand} aria-label={`Call with ${name}, ${status}, open`}>
+      <span className="icon i-phone-fill" aria-hidden="true" />
+      <span className="call-bar-name">{name}</span>
+      <span className="call-bar-time">{status}</span>
+    </button>
   );
 }
 
