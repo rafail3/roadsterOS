@@ -7,6 +7,7 @@ import { NowPlaying } from "./NowPlaying";
 import { CallOverlay, CameraOverlay } from "./Overlays";
 import { VolumeHud } from "./VolumeHud";
 import { MusicApp } from "./MusicApp";
+import { Recents } from "./Recents";
 import { useCoverColors } from "./media";
 import { useFingerMouse } from "./controls";
 
@@ -77,7 +78,7 @@ export function Screen() {
   const glow = car.source === "BT" && emulator.track.art
     ? ({ "--ambient-a": `color-mix(in srgb, ${cover.top} ${light ? 30 : 85}%, transparent)`, "--ambient-b": `color-mix(in srgb, ${cover.bottom} ${light ? 25 : 90}%, transparent)` } as React.CSSProperties)
     : undefined;
-  const covered = shell.drawer || car.call !== "IDLE" || car.camera;
+  const covered = shell.drawer || shell.recents || car.call !== "IDLE" || car.camera;
   const veil = bridge.veil(shell);
   // above neutral the whole screen goes through one colour filter; none at all otherwise
   const boost = veil.brightness > 1 ? { filter: `brightness(${veil.brightness.toFixed(3)}) saturate(${veil.saturation.toFixed(3)})` } : undefined;
@@ -143,6 +144,7 @@ export function Screen() {
       </section>
 
       <MusicApp open={shell.app === "MUSIC"} />
+      <Recents emulator={emulator} />
       <div className={classes("scrim", shell.drawer && "is-open")} onClick={() => shellAction({ type: "CloseDrawer" })} />
       <Drawer emulator={emulator} panel={drawer} dragging={dragging} />
       {car.call !== "IDLE" && <CallOverlay emulator={emulator} />}

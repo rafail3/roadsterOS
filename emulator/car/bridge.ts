@@ -29,6 +29,9 @@ export interface ShellState {
   screenOn: boolean;
   app: App;
   devices: boolean;
+  running: App[];
+  recents: boolean;
+  lastHomeMs: number | null;
 }
 
 export type CarEvent =
@@ -59,7 +62,9 @@ export type CarCommand =
   | { type: "Bt.ConfirmPairing"; accept: boolean };
 
 export type ShellAction =
-  | { type: "CycleTheme" | "OpenDrawer" | "CloseDrawer" | "ToggleFace" | "ToggleScreen" | "Wake" | "Home" | "Back" | "OpenDevices" | "CloseDevices" }
+  | { type: "CycleTheme" | "OpenDrawer" | "CloseDrawer" | "ToggleFace" | "ToggleScreen" | "Wake" | "Home" | "Back" | "OpenDevices" | "CloseDevices" | "CloseAllApps" | "CloseRecents" }
+  | { type: "HomePressed"; atMs: number }
+  | { type: "CloseApp"; app: App }
   | { type: "SetTheme"; mode: ThemeMode }
   | { type: "DrawerReleased"; fraction: number }
   | { type: "SetFace"; face: Face }

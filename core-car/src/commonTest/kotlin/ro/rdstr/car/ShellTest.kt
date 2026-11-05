@@ -125,4 +125,49 @@ class ShellTest {
         // the headlights can take the darkest setting under the minimum; the veil stays at its darkest
         assertEquals(0.95, Shell.veil(ShellState(theme = ThemeMode.AUTO, brightness = 10, headlights = true)).dark)
     }
+
+    private fun home(s: ShellState, atMs: Long) = Shell.reduce(s, ShellAction.HomePressed(atMs))
+
+    @Test
+    fun `one home press goes home, a second one soon after opens the open apps`() {
+        val inApp = Shell.reduce(ShellState(), ShellAction.OpenApp(App.MUSIC))
+        val once = home(inApp, 1_000)
+        assertEquals(App.HOME, once.app)
+        assertEquals(listOf(App.MUSIC), once.running)
+        assertFalse(once.recents)
+        assertTrue(home(once, 1_000 + Shell.DOUBLE_PRESS_MS).recents)
+        assertFalse(home(once, 1_001 + Shell.DOUBLE_PRESS_MS).recents)
+    }
+
+    @Test
+    fun `home or back closes the open apps, and a third quick press does not reopen them`() {
+        val open = home(home(ShellState(), 1_000), 1_200)
+        assertTrue(open.recents)
+        val closed = home(open, 1_400)
+        assertFalse(closed.recents)
+        assertFalse(home(closed, 1_500).recents)
+        assertFalse(Shell.reduce(open, ShellAction.Back).recents)
+    }
+
+    @Test
+    fun `our apps are listed by last use and closed one by one or all at once`() {
+        var s = Shell.reduce(ShellState(), ShellAction.OpenApp(App.MUSIC))
+        s = Shell.reduce(s, ShellAction.OpenApp(App.HOME))
+        assertEquals(listOf(App.MUSIC), s.running)
+        s = Shell.reduce(s, ShellAction.OpenApp(App.MUSIC)).copy(recents = true)
+        val closed = Shell.reduce(s, ShellAction.CloseApp(App.MUSIC))
+        assertEquals(emptyList(), closed.running)
+        assertEquals(App.HOME, closed.app)
+        assertTrue(closed.recents)
+        val none = Shell.reduce(s, ShellAction.CloseAllApps)
+        assertEquals(emptyList(), none.running)
+        assertFalse(none.recents)
+    }
+
+    @Test
+    fun `back and home leave an app open`() {
+        val s = Shell.reduce(ShellState(), ShellAction.OpenApp(App.MUSIC))
+        assertEquals(listOf(App.MUSIC), Shell.reduce(s, ShellAction.Back).running)
+        assertEquals(listOf(App.MUSIC), Shell.reduce(s, ShellAction.Home).running)
+    }
 }

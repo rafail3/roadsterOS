@@ -23,6 +23,12 @@ data class ShellState(
     val app: App = App.HOME,
     /** The saved-devices sheet over the music app. */
     val devices: Boolean = false,
+    /** Our own apps opened since boot and not closed, most recently used first; never [App.HOME]. */
+    val running: List<App> = emptyList(),
+    /** The open-apps screen. */
+    val recents: Boolean = false,
+    /** When the frame Home key was last pressed, for the double press; null after a double press. */
+    val lastHomeMs: Long? = null,
 )
 
 @Serializable
@@ -45,6 +51,11 @@ sealed class ShellAction {
     @Serializable @SerialName("OpenApp") data class OpenApp(val app: App) : ShellAction()
     @Serializable @SerialName("OpenDevices") data object OpenDevices : ShellAction()
     @Serializable @SerialName("CloseDevices") data object CloseDevices : ShellAction()
+    /** The frame Home key; the unit delivers each press as one click, so a hold cannot be told apart. */
+    @Serializable @SerialName("HomePressed") data class HomePressed(val atMs: Long) : ShellAction()
+    @Serializable @SerialName("CloseApp") data class CloseApp(val app: App) : ShellAction()
+    @Serializable @SerialName("CloseAllApps") data object CloseAllApps : ShellAction()
+    @Serializable @SerialName("CloseRecents") data object CloseRecents : ShellAction()
 }
 
 /**
@@ -69,6 +80,8 @@ object Shell {
     const val BOOST_BRIGHTNESS = 0.25
     const val BOOST_SATURATION = 0.3
     const val DRAWER_OPEN_FRACTION = 1.0 / 3
+    /** Two Home presses this close together open the open-apps screen. */
+    const val DOUBLE_PRESS_MS = 500L
 
     fun reduce(s: ShellState, a: ShellAction): ShellState = when (a) {
         ShellAction.CycleTheme -> s.copy(theme = ThemeMode.entries[(s.theme.ordinal + 1) % ThemeMode.entries.size])
@@ -83,17 +96,40 @@ object Shell {
         is ShellAction.Headlights -> s.copy(headlights = a.on)
         ShellAction.ToggleScreen -> s.copy(screenOn = !s.screenOn)
         ShellAction.Wake -> s.copy(screenOn = true)
-        is ShellAction.OpenApp -> s.copy(app = a.app, drawer = false, devices = false)
-        ShellAction.Home -> s.copy(app = App.HOME, drawer = false, devices = false)
+        is ShellAction.OpenApp -> s.copy(
+            app = a.app,
+            running = if (a.app == App.HOME) s.running else listOf(a.app) + (s.running - a.app),
+            drawer = false, devices = false, recents = false,
+        )
+        ShellAction.Home -> goHome(s)
         ShellAction.OpenDevices -> s.copy(devices = true, drawer = false)
         ShellAction.CloseDevices -> s.copy(devices = false)
-        // one layer at a time: the drawer first, then the devices sheet, then the app
+        is ShellAction.HomePressed -> {
+            val last = s.lastHomeMs
+            when {
+                s.recents -> goHome(s).copy(lastHomeMs = null)
+                last != null && a.atMs - last <= DOUBLE_PRESS_MS -> s.copy(recents = true, drawer = false, devices = false, lastHomeMs = null)
+                else -> goHome(s).copy(lastHomeMs = a.atMs)
+            }
+        }
+        // a closed app starts from scratch next time; the host frees what it held
+        is ShellAction.CloseApp -> s.copy(
+            running = s.running - a.app,
+            app = if (s.app == a.app) App.HOME else s.app,
+            devices = s.devices && s.app != a.app,
+        )
+        ShellAction.CloseAllApps -> s.copy(running = emptyList(), app = App.HOME, devices = false, recents = false)
+        ShellAction.CloseRecents -> s.copy(recents = false)
+        // one layer at a time: the drawer, the open apps, the devices sheet, then the app
         ShellAction.Back -> when {
             s.drawer -> s.copy(drawer = false)
+            s.recents -> s.copy(recents = false)
             s.devices -> s.copy(devices = false)
             else -> s.copy(app = App.HOME)
         }
     }
+
+    private fun goHome(s: ShellState) = s.copy(app = App.HOME, recents = false, drawer = false, devices = false)
 
     fun effectiveTheme(s: ShellState, hour: Int): Theme = when (s.theme) {
         ThemeMode.LIGHT -> Theme.LIGHT

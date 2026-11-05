@@ -177,6 +177,36 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .pill-slider.is-muted .pill-readout { color: var(--mute); }
 .handle-bottom { align-self: center; height: var(--target); }
 
+/* open apps: our own apps as cards, pushed up to close; one opaque layer over everything below it */
+.recents { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-7); background: var(--sheet); opacity: 0; pointer-events: none; transition: opacity var(--base) var(--ease-out); }
+.recents.is-open { opacity: 1; pointer-events: auto; }
+.recents-list { display: flex; justify-content: center; gap: var(--space-6); margin: 0; padding: 0; list-style: none; }
+.recents-card { width: 280px; display: flex; flex-direction: column; gap: var(--space-2); transition: transform var(--base) var(--ease-out), opacity var(--base) var(--ease-out); }
+.recents.is-open .recents-card { animation: recents-in 260ms var(--ease-out) backwards; }
+.recents-card.is-dragging { transition: none; }
+.recents-card.is-leaving { transform: translateY(-120%); opacity: 0; transition-duration: 220ms; }
+@keyframes recents-in { from { transform: translateY(24px); opacity: 0; } }
+.recents-card-head { display: flex; align-items: center; gap: var(--space-2); height: var(--target); padding-left: var(--space-2); color: var(--ink); font-size: var(--size-label); font-weight: 500; }
+.recents-card-head .icon { width: 22px; height: 22px; }
+.recents-card-close { margin-left: auto; width: var(--target); height: var(--target); display: grid; place-items: center; border-radius: 50%; color: var(--ink-muted); transition: background var(--fast), color var(--fast); }
+.recents-card-close .icon { width: 22px; height: 22px; }
+.recents-card-close:active { background: var(--glass-pressed); color: var(--ink); }
+.recents-card-body { display: block; width: 100%; height: 360px; padding: 0; overflow: hidden; border-radius: var(--radius); background: var(--sheet-raised); border: 1px solid var(--hairline-strong); touch-action: none; cursor: pointer; text-align: left; }
+.recents-preview { display: flex; flex-direction: column; height: 100%; }
+.recents-preview-music img, .recents-preview-empty { display: grid; place-items: center; width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--glass); color: var(--ink-muted); }
+.recents-preview-empty .icon { width: 56px; height: 56px; }
+.recents-preview-meta { display: flex; flex-direction: column; gap: 4px; padding: var(--space-4); min-width: 0; }
+.recents-preview-title { color: var(--ink); font-size: var(--size-label); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recents-preview-sub { color: var(--ink-muted); font-size: var(--size-label); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recents-clear { height: var(--target); padding: 0 var(--space-6); border-radius: 999px; background: var(--glass); border: 1px solid var(--hairline); color: var(--ink); font-size: var(--size-label); font-weight: 500; transition: background var(--fast); }
+.recents-clear:active { background: var(--glass-pressed); }
+.recents-card-close:focus-visible, .recents-card-body:focus-visible, .recents-clear:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.recents-empty { margin: 0; color: var(--ink-muted); font-size: var(--size-body); }
+@media (prefers-reduced-motion: reduce) {
+  .recents, .recents-card { transition-duration: 0.01ms; }
+  .recents.is-open .recents-card { animation: none; }
+}
+
 /* overlays */
 .overlay { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; }
 .call { background: var(--scrim); }

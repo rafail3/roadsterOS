@@ -126,7 +126,6 @@ function displayData(event: CarEvent): Partial<EmulatorState> {
 
 const SHELL_ACTIONS: Record<string, ShellAction> = {
   ToggleScreen: { type: "ToggleScreen" },
-  Home: { type: "Home" },
   Back: { type: "Back" },
 };
 
@@ -135,6 +134,8 @@ function runAction(action: RuleAction) {
   if (action.type === "Send" && action.command) sendToCar(action.command);
   if (action.type === "Night") shellAction({ type: "Headlights", on: Boolean(action.on) });
   if (SHELL_ACTIONS[action.type]) shellAction(SHELL_ACTIONS[action.type]);
+  // the frame key: the shell tells a single press from a double press by the time between them
+  if (action.type === "Home") shellAction({ type: "HomePressed", atMs: Date.now() });
   if (action.type === "ShowVolume") openVolume();
 }
 
