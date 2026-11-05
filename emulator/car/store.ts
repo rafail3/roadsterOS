@@ -579,6 +579,11 @@ export function stepVolume(delta: number) {
   setVolume(state.car.volume + delta);
 }
 
+/** A transport button on a sound page, its app or the map's strip: the unit's rule (core-car HomeCard.press). */
+export function pressSound(page: "BLUETOOTH" | "RADIO", press: "PREV" | "PLAY" | "NEXT") {
+  bridge.homeCardPress(state.car, page, press).forEach(carCommand);
+}
+
 export function shellAction(action: ShellAction) {
   set({ shell: bridge.shell(state.shell, action) });
 }

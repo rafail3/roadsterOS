@@ -114,13 +114,13 @@ export function Screen() {
     : undefined;
   const covered = shell.drawer || shell.recents || car.call !== "IDLE" || car.camera;
   const veil = bridge.veil(shell);
-  const card = bridge.homeCard(car, shell.card);
+  const card = bridge.homeCard(car, emulator.btOn, shell.card);
   // a new source brings its page forward on the card
   const lastSource = useRef(car.source);
   useEffect(() => {
     if (lastSource.current === car.source) return;
     lastSource.current = car.source;
-    shellAction({ type: "ShowCard", page: card.forSource });
+    if (card.forSource) shellAction({ type: "ShowCard", page: card.forSource });
   }, [car.source, card.forSource]);
   // above neutral the whole screen goes through one colour filter; none at all otherwise
   const boost = veil.brightness > 1 ? { filter: `brightness(${veil.brightness.toFixed(3)}) saturate(${veil.saturation.toFixed(3)})` } : undefined;

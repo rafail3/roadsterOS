@@ -6,7 +6,7 @@ import { useMuteFill } from "./VolumeHud";
 import { Marquee, Progress, time, TransportRow, useCoverColors, useCrossfade, usePosition } from "./media";
 
 /** No phone connected: the saved phones to connect with one tap, and the devices panel for anything else. */
-function NoPhone({ emulator }: { emulator: EmulatorState }) {
+export function NoPhone({ emulator }: { emulator: EmulatorState }) {
   const { saved, connecting, failed } = emulator;
   return (
     <div className="music-nophone">

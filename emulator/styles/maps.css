@@ -145,3 +145,17 @@
 @media (prefers-reduced-motion: reduce) {
   .card-track, .card-dots button { transition-duration: 0.01ms; }
 }
+
+/* the Bluetooth page without a phone (the music app's screen, smaller) and with Bluetooth off */
+.np-phone { justify-content: center; align-items: stretch; }
+.np-phone .music-nophone { width: 100%; gap: 8px; color: var(--ink); }
+.np-phone .music-nophone-icon { width: 76px; height: 76px; background: var(--glass-strong); }
+.np-phone .music-nophone-icon .icon { width: 34px; height: 34px; }
+.np-phone .music-nophone h2 { margin-top: 10px; font-size: 24px; }
+.np-phone .music-nophone p { font-size: 15px; color: var(--ink-muted); }
+.np-phone .music-nophone-list { gap: 10px; margin-top: 16px; }
+.np-phone .music-nophone-phone { height: 58px; padding: 0 20px; gap: 14px; font-size: 17px; color: var(--ink); background: var(--glass-strong); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+.np-phone .music-nophone-phone .icon { width: 22px; height: 22px; }
+.np-phone .music-nophone-more { height: 48px; margin-top: 6px; font-size: 16px; color: var(--ink); }
+.np-phone .music-nophone-pair { height: 56px; margin-top: 16px; padding: 0 26px; font-size: 17px; }
+.screen.light .np-phone .music-nophone-icon, .screen.light .np-phone .music-nophone-phone { background: rgba(0, 0, 0, 0.06); box-shadow: none; }

@@ -18,6 +18,8 @@ export interface CarState {
   btConnected: boolean;
   night: boolean;
   volume: number;
+  /** the radio receives its station; false while paused */
+  radioOn: boolean;
 }
 
 export interface ShellState {
@@ -37,7 +39,8 @@ export interface ShellState {
   card: CardPage | null;
 }
 
-export type CardPage = "BLUETOOTH" | "NO_PHONE" | "RADIO" | "NO_SOURCE" | "NAVIGATION";
+export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
+export type CardPress = "PREV" | "PLAY" | "NEXT";
 
 export type CarEvent =
   | { type: "ReverseGear"; on: boolean }
@@ -54,6 +57,7 @@ export type CarEvent =
 
 export type CarCommand =
   | { type: "Media.Play" | "Media.Pause" | "Media.Next" | "Media.Prev" }
+  | { type: "Radio.Play" | "Radio.Pause" }
   | { type: "Radio.Seek"; up: boolean }
   | { type: "Radio.Tune"; khz: number }
   | { type: "Radio.Band"; band: Band }
@@ -108,7 +112,8 @@ interface Kotlin {
       countryAt(lon: number, lat: number): string;
       mapOffer(country: string, installed: string, wifi: boolean, declined: string, downloading: string): string;
       packMb(code: string): number;
-      homeCard(state: string, chosen: string): string;
+      homeCard(state: string, btOn: boolean, chosen: string): string;
+      homeCardPress(state: string, page: string, press: string): string;
       speed(lon: number, lat: number, timeMs: number, chipKmh: number): string;
       speedWarning(roadLimit: number, timeMs: number): string;
       countryName(code: string): string;
@@ -141,8 +146,11 @@ export const bridge = {
     K!.Bridge.mapOffer(country, JSON.stringify(installed), wifi, JSON.stringify(declined), downloading ?? "") as "NONE" | "DOWNLOAD" | "NEEDS_WIFI",
   packMb: (code: string): number => K!.Bridge.packMb(code),
   /** The card on home: its pages, the one shown, the sound strip under the map, and the page a source brings forward. */
-  homeCard: (state: CarState, chosen: CardPage | null): { pages: CardPage[]; shown: CardPage; strip: "NONE" | "BT" | "RADIO"; forSource: CardPage } =>
-    JSON.parse(K!.Bridge.homeCard(JSON.stringify(state), chosen ?? "")),
+  homeCard: (state: CarState, btOn: boolean, chosen: CardPage | null): { pages: CardPage[]; shown: CardPage; strip: "NONE" | "BT" | "RADIO"; forSource: CardPage | "" } =>
+    JSON.parse(K!.Bridge.homeCard(JSON.stringify(state), btOn, chosen ?? "")),
+  /** What a transport button on a card page, a sound app or the map's strip sends, by the unit's rule. */
+  homeCardPress: (state: CarState, page: "BLUETOOTH" | "RADIO", press: CardPress): CarCommand[] =>
+    JSON.parse(K!.Bridge.homeCardPress(JSON.stringify(state), page, press)),
   /** The limit sign and over-limit warning for the last speed fix; [roadLimit] null when the car's road has none. */
   speedWarning: (roadLimit: number | null, timeMs: number): { limit: number | null; over: boolean; chime: boolean; lit: number; tone: "WHITE" | "ORANGE" | "RED" } =>
     JSON.parse(K!.Bridge.speedWarning(roadLimit ?? -1, timeMs)),

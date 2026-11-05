@@ -2,9 +2,10 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import type { CardPage } from "../car/bridge";
 import { setSlot } from "../car/mapHost";
 import { formatFreq } from "../car/radio";
-import { carCommand, shellAction, type EmulatorState } from "../car/store";
+import { pressSound, setBluetooth, shellAction, type EmulatorState } from "../car/store";
 import { Marquee, TransportRow } from "./media";
-import { Bluetooth, NoPhone, NoSource, Radio } from "./NowPlaying";
+import { NoPhone } from "./MusicApp";
+import { Bluetooth, Radio } from "./NowPlaying";
 
 /** A swipe longer than this share of the card, or quicker than this, turns the page. */
 const TURN_SHARE = 0.18;
@@ -30,9 +31,9 @@ function SoundStrip({ emulator, kind }: { emulator: EmulatorState; kind: "BT" | 
           </span>
           <TransportRow
             playing={car.playing}
-            onPrev={() => carCommand({ type: "Media.Prev" })}
-            onPlay={() => carCommand({ type: car.playing ? "Media.Pause" : "Media.Play" })}
-            onNext={() => carCommand({ type: "Media.Next" })}
+            onPrev={() => pressSound("BLUETOOTH", "PREV")}
+            onPlay={() => pressSound("BLUETOOTH", "PLAY")}
+            onNext={() => pressSound("BLUETOOTH", "NEXT")}
           />
         </>
       ) : (
@@ -43,10 +44,10 @@ function SoundStrip({ emulator, kind }: { emulator: EmulatorState; kind: "BT" | 
             <span className="np-artist">{formatFreq(radio.band, radio.khz)} {radio.band === "FM" ? "MHz" : "kHz"}</span>
           </span>
           <TransportRow
-            playing={!car.muted}
-            onPrev={() => carCommand({ type: "Radio.Seek", up: false })}
-            onPlay={() => carCommand({ type: "Audio.Mute", on: !car.muted })}
-            onNext={() => carCommand({ type: "Radio.Seek", up: true })}
+            playing={car.radioOn}
+            onPrev={() => pressSound("RADIO", "PREV")}
+            onPlay={() => pressSound("RADIO", "PLAY")}
+            onNext={() => pressSound("RADIO", "NEXT")}
           />
         </>
       )}
@@ -65,12 +66,27 @@ function MapPage({ emulator, strip }: { emulator: EmulatorState; strip: Card["st
   );
 }
 
+/** Bluetooth is off: the one thing to do is switch it on; the saved phones then show here. */
+function BluetoothOff() {
+  return (
+    <div className="np np-phone">
+      <div className="music-nophone">
+        <span className="music-nophone-icon" aria-hidden="true"><span className="icon i-bluetooth" /></span>
+        <h2>Bluetooth is off</h2>
+        <p>Turn it on to play music from a phone.</p>
+        <button className="music-nophone-pair" onClick={() => setBluetooth(true)}><span className="icon i-bluetooth" aria-hidden="true" />Turn on Bluetooth</button>
+      </div>
+    </div>
+  );
+}
+
 function Page({ page, emulator, strip }: { page: CardPage; emulator: EmulatorState; strip: Card["strip"] }) {
   switch (page) {
     case "BLUETOOTH": return <Bluetooth emulator={emulator} />;
-    case "NO_PHONE": return <NoPhone />;
+    // the music app's own screen: the saved phones to connect with one tap, and the devices panel
+    case "NO_PHONE": return <div className="np np-phone"><NoPhone emulator={emulator} /></div>;
+    case "BT_OFF": return <BluetoothOff />;
     case "RADIO": return <Radio emulator={emulator} />;
-    case "NO_SOURCE": return <NoSource />;
     case "NAVIGATION": return <MapPage emulator={emulator} strip={strip} />;
   }
 }

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import { bridge, type Band } from "../car/bridge";
 import { BANDS, formatFreq, stationAt } from "../car/radio";
-import { carCommand, shellAction, toggleFavorite, useEmulator } from "../car/store";
+import { carCommand, pressSound, shellAction, toggleFavorite, useEmulator } from "../car/store";
 import { TransportRow } from "./media";
 
 /** Each programme type family has its colour; the screen and the station dots take it. */
@@ -238,7 +238,7 @@ export function RadioApp({ open }: { open: boolean }) {
         <div className="radio-hero">
           <p className="radio-tags">
             <span className="radio-tag is-band">{band}</span>
-            {scanning ? <span className="radio-tag">Scanning</span> : radio.stereo && <span className="radio-tag">Stereo</span>}
+            {scanning ? <span className="radio-tag">Scanning</span> : !car.radioOn ? <span className="radio-tag">Paused</span> : radio.stereo && <span className="radio-tag">Stereo</span>}
           </p>
           <p className="radio-freq">
             <FreqCounter className="radio-freq-num" band={band} khz={preview ?? gliding} target={preview ?? khz} />
@@ -252,10 +252,10 @@ export function RadioApp({ open }: { open: boolean }) {
           </div>
           <div className="radio-actions">
             <TransportRow
-              playing={!car.muted}
-              onPrev={() => carCommand({ type: "Radio.Seek", up: false })}
-              onPlay={() => carCommand({ type: "Audio.Mute", on: !car.muted })}
-              onNext={() => carCommand({ type: "Radio.Seek", up: true })}
+              playing={car.source === "RADIO" && car.radioOn}
+              onPrev={() => pressSound("RADIO", "PREV")}
+              onPlay={() => pressSound("RADIO", "PLAY")}
+              onNext={() => pressSound("RADIO", "NEXT")}
             />
             <Star on={favorite} label={favorite ? "Remove from favorites" : "Add to favorites"} onToggle={() => toggleFavorite(khz)} />
           </div>
