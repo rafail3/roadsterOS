@@ -44,6 +44,9 @@ class BridgeTest {
     fun `bluetooth connect commands through json`() {
         assertEquals(CarCommand.Bluetooth.Connect("Phone"), Json.decodeFromString(CarCommand.serializer(), """{"type":"Bt.Connect","device":"Phone"}"""))
         assertEquals(CarCommand.Bluetooth.Disconnect, Json.decodeFromString(CarCommand.serializer(), """{"type":"Bt.Disconnect"}"""))
+        assertEquals(CarCommand.Bluetooth.Scan, Json.decodeFromString(CarCommand.serializer(), """{"type":"Bt.Scan"}"""))
+        assertEquals(CarCommand.Bluetooth.Pair("Pixel"), Json.decodeFromString(CarCommand.serializer(), """{"type":"Bt.Pair","device":"Pixel"}"""))
+        assertEquals(CarCommand.Bluetooth.ConfirmPairing(true), Json.decodeFromString(CarCommand.serializer(), """{"type":"Bt.ConfirmPairing","accept":true}"""))
     }
 
     @Test

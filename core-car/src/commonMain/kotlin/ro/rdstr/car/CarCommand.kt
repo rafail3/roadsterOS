@@ -33,11 +33,15 @@ sealed class CarCommand {
         @Serializable @SerialName("Phone.Mute") data class Mute(val on: Boolean) : Phone()
     }
 
-    /** Saved phones: connect one by its name as the unit lists it, or drop the current one. */
+    /** Phones by the name the unit lists them under: connect or drop a saved one, look for new ones and pair. */
     @Serializable
     sealed class Bluetooth : CarCommand() {
         @Serializable @SerialName("Bt.Connect") data class Connect(val device: String) : Bluetooth()
         @Serializable @SerialName("Bt.Disconnect") data object Disconnect : Bluetooth()
+        @Serializable @SerialName("Bt.Scan") data object Scan : Bluetooth()
+        @Serializable @SerialName("Bt.Pair") data class Pair(val device: String) : Bluetooth()
+        /** The answer to the pairing code shown on both screens. */
+        @Serializable @SerialName("Bt.ConfirmPairing") data class ConfirmPairing(val accept: Boolean) : Bluetooth()
     }
 
     @Serializable
