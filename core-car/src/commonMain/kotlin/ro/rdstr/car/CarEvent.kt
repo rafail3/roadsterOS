@@ -46,8 +46,19 @@ sealed class CarEvent {
         enum class State { RINGING, ACTIVE, IDLE }
     }
 
+    /**
+     * What the tuner plays: [rds] is the station name (RDS PS), [pty] the programme type code (see [Rds.ptyName]).
+     * The vendor tuner library decodes no radio text (RDS RT), so there is no song title.
+     */
     @Serializable @SerialName("Radio")
-    data class Radio(val khz: Int, val band: Band, val rds: String = "", val signal: Int = 0) : CarEvent() {
+    data class Radio(
+        val khz: Int,
+        val band: Band,
+        val rds: String = "",
+        val signal: Int = 0,
+        val pty: Int = 0,
+        val stereo: Boolean = false,
+    ) : CarEvent() {
         enum class Band { FM, AM }
     }
 

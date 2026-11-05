@@ -44,6 +44,8 @@ object Bridge {
 
     fun maxVolume(): Int = Rules.MAX_VOLUME
 
+    fun ptyName(code: Int): String = Rds.ptyName(code)
+
     fun setVolume(state: String, level: Int): String = json.encodeToString(
         ListSerializer(CarCommand.serializer()),
         Rules.setVolume(json.decodeFromString(RulesState.serializer(), state), level),
