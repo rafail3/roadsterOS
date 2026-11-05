@@ -1,6 +1,6 @@
 package ro.rdstr.car
 
-/** What the phone app sends the unit for one track: the names it played under and the cover as a small JPEG. */
+/** What the phone app sends the unit for one track: the names it played under and the cover as a JPEG. */
 class CoverFrame(val title: String, val artist: String, val jpeg: ByteArray)
 
 /**
@@ -14,8 +14,8 @@ object CoverLink {
     const val SERVICE_UUID = "6f1c3b2e-7c1a-4f0e-9b8d-2f5e1a7c3d90"
     const val SERVICE_NAME = "rdstr cover"
     const val HEADER_SIZE = 8
-    /** A 320 px JPEG is about 25 KB; anything far larger is not a cover from our app. */
-    const val MAX_PAYLOAD = 512 * 1024
+    /** Covers travel at up to 1000 px, about 120 to 200 KB as JPEG; anything far larger is not a cover from our app. */
+    const val MAX_PAYLOAD = 1024 * 1024
     private val MAGIC = byteArrayOf(0x52, 0x44, 0x43, 0x31)
 
     fun encode(frame: CoverFrame): ByteArray {
