@@ -39,9 +39,9 @@ class VendorPhone(private val context: Context) {
         adapter.getProfileProxy(context, object : BluetoothProfile.ServiceListener {
             override fun onServiceConnected(profile: Int, p: BluetoothProfile) {
                 proxy = p
-                val linked = p.connectedDevices.isNotEmpty()
-                Log.i(TAG, "hfp proxy ready, linked=$linked")
-                emit(CarEvent.HfpConnection(linked))
+                val phone = p.connectedDevices.firstOrNull()
+                Log.i(TAG, "hfp proxy ready, linked=${phone != null}")
+                emit(CarEvent.HfpConnection(phone != null, phone?.name.orEmpty()))
                 // a call already in progress when our app starts
                 p.connectedDevices.firstOrNull()?.let { device ->
                     (invoke("getCurrentCalls", device) as? List<*>)?.filterNotNull()?.forEach(::track)
@@ -69,8 +69,10 @@ class VendorPhone(private val context: Context) {
                     val state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, BluetoothProfile.STATE_DISCONNECTED)
                     if (state == BluetoothProfile.STATE_CONNECTED || state == BluetoothProfile.STATE_DISCONNECTED) {
                         if (state == BluetoothProfile.STATE_DISCONNECTED) calls.clear()
-                        Log.i(TAG, "link ${if (state == BluetoothProfile.STATE_CONNECTED) "up" else "down"}")
-                        emit(CarEvent.HfpConnection(state == BluetoothProfile.STATE_CONNECTED))
+                        // the name the phone gives itself in its Bluetooth settings
+                        val name = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)?.name.orEmpty()
+                        Log.i(TAG, "link ${if (state == BluetoothProfile.STATE_CONNECTED) "up" else "down"} name=$name")
+                        emit(CarEvent.HfpConnection(state == BluetoothProfile.STATE_CONNECTED, name))
                     }
                 }
                 Hfp.ACTION_CALL_CHANGED -> intent.getParcelableExtra<Parcelable>(Hfp.EXTRA_CALL)?.let { track(it); publishCalls() }
@@ -84,6 +86,11 @@ class VendorPhone(private val context: Context) {
                     )
                     Log.i(TAG, "status battery=${status.battery} signal=${status.signal} roaming=${status.roaming} operator=${status.operator}")
                     emit(status)
+                    if (e.containsKey(Hfp.EXTRA_VOICE_RECOGNITION)) {
+                        val listening = e.getInt(Hfp.EXTRA_VOICE_RECOGNITION) == 1
+                        Log.i(TAG, "voice assistant $listening")
+                        emit(CarEvent.VoiceAssistant(listening))
+                    }
                 }
                 Hfp.ACTION_AUDIO_STATE_CHANGED -> {
                     val state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, 0)
@@ -102,15 +109,16 @@ class VendorPhone(private val context: Context) {
         if (read(call, "getState") == Hfp.TERMINATED) calls.remove(id) else calls[id] = call
     }
 
+    private fun stateOf(call: Any) = read(call, "getState") as? Int ?: Hfp.TERMINATED
+
     private fun publishCalls() {
-        val states = calls.values.mapNotNull { read(it, "getState") as? Int }
-        val state = Hfp.state(states)
-        // the number of the call the state is about: the incoming one first, else the newest
-        val shown = calls.values.firstOrNull { read(it, "getState") == Hfp.INCOMING } ?: calls.values.lastOrNull()
-        val number = shown?.let { read(it, "getNumber") as? String }.orEmpty()
-        Log.i(TAG, "call $state calls=$states")
-        emit(CarEvent.Call(state, number))
+        val list = calls.map { (id, c) -> Hfp.HfpCall(id, stateOf(c), read(c, "getNumber") as? String ?: "", read(c, "isMultiParty") == true) }
+        val call = Hfp.call(list)
+        Log.i(TAG, "call ${call.state} held=${call.held} conference=${call.conference} other=${call.other?.let { if (it.waiting) "waiting" else "held" }} calls=${list.map { it.state }}")
+        emit(call)
     }
+
+    private fun callIn(vararg states: Int) = calls.values.firstOrNull { stateOf(it) in states }
 
     fun send(command: CarCommand.Phone) {
         val device = proxy?.connectedDevices?.firstOrNull() ?: run { Log.w(TAG, "no phone for $command"); return }
@@ -118,9 +126,23 @@ class VendorPhone(private val context: Context) {
             is CarCommand.Phone.Dial -> invoke("dial", device, command.number)
             // 0: answer without touching other calls (CALL_ACCEPT_NONE)
             CarCommand.Phone.Answer -> invoke("acceptCall", device, 0)
+            // a lone ringing call is declined; otherwise the call talked (or being placed) ends and a waiting one keeps ringing
             CarCommand.Phone.HangUp ->
-                if (calls.values.any { read(it, "getState") == Hfp.INCOMING }) invoke("rejectCall", device)
-                else invoke("terminateCall", device, calls.values.lastOrNull())
+                if (calls.size == 1 && callIn(Hfp.INCOMING) != null) invoke("rejectCall", device)
+                else invoke("terminateCall", device, callIn(Hfp.DIALING, Hfp.ALERTING, Hfp.ACTIVE) ?: calls.values.lastOrNull())
+            // the phone's own last number (AT+BLDN); some stacks name it redial, others take dial with no number
+            CarCommand.Phone.Redial -> invoke("redial", device) ?: invoke("dial", device, null)
+            // alone: hold (AT+CHLD=2) or take back; with one on hold: swap the two, as the vendor's swap key does
+            CarCommand.Phone.Hold ->
+                if (callIn(Hfp.ACTIVE) != null && callIn(Hfp.HELD) == null) invoke("holdCall", device)
+                else invoke("acceptCall", device, Hfp.ACCEPT_HOLD)
+            // with a call on hold, accepting with no flag joins them (AT+CHLD=3), as the vendor's merge key does
+            CarCommand.Phone.Merge -> invoke("acceptCall", device, Hfp.ACCEPT_NONE)
+            is CarCommand.Phone.AnswerWaiting -> invoke("acceptCall", device, if (command.keepCurrent) Hfp.ACCEPT_HOLD else Hfp.ACCEPT_TERMINATE)
+            CarCommand.Phone.DeclineWaiting -> invoke("rejectCall", device)
+            is CarCommand.Phone.VoiceAssistant -> invoke(if (command.on) "startVoiceRecognition" else "stopVoiceRecognition", device)
+            // messages go over their own profile (VendorMessages)
+            is CarCommand.Phone.SendMessage -> null
             is CarCommand.Phone.Dtmf -> command.digit.firstOrNull()?.let { invoke("sendDTMF", device, it.code.toByte()) }
             is CarCommand.Phone.AudioInCar -> invoke(if (command.on) "connectAudio" else "disconnectAudio", device)
             // the car's microphone, as the vendor does it; the call itself stays up

@@ -30,9 +30,9 @@ sealed class CarEvent {
     @Serializable @SerialName("BtConnection")
     data class BtConnection(val connected: Boolean, val device: String = "") : CarEvent()
 
-    /** The phone connected for calls (the hands-free profile), apart from its music. */
+    /** The phone connected for calls (the hands-free profile), apart from its music; [device] is its Bluetooth name. */
     @Serializable @SerialName("HfpConnection")
-    data class HfpConnection(val connected: Boolean) : CarEvent()
+    data class HfpConnection(val connected: Boolean, val device: String = "") : CarEvent()
 
     @Serializable @SerialName("Track")
     data class Track(
@@ -45,11 +45,32 @@ sealed class CarEvent {
     @Serializable @SerialName("Playback")
     data class Playback(val playing: Boolean, val positionMs: Long = 0) : CarEvent()
 
-    /** The phone's calls as one state; OUTGOING while a call is dialled and rings at the other end. */
+    /**
+     * The phone's calls as one state; OUTGOING while a call is dialled and rings at the other end. [held]: the shown
+     * call is on hold; [conference]: calls merged into one; [other]: a second call, ringing ([Other.waiting]) or on hold.
+     */
     @Serializable @SerialName("Call")
-    data class Call(val state: State, val number: String = "", val name: String = "") : CarEvent() {
+    data class Call(
+        val state: State,
+        val number: String = "",
+        val name: String = "",
+        val held: Boolean = false,
+        val conference: Boolean = false,
+        val other: Other? = null,
+    ) : CarEvent() {
         enum class State { RINGING, OUTGOING, ACTIVE, IDLE }
+
+        @Serializable
+        data class Other(val number: String, val name: String = "", val waiting: Boolean)
     }
+
+    /** The phone's voice assistant listens through the car's microphone. */
+    @Serializable @SerialName("VoiceAssistant")
+    data class VoiceAssistant(val active: Boolean) : CarEvent()
+
+    /** A text message the phone received (MAP); [sent] for one sent from the car, kept in the thread. */
+    @Serializable @SerialName("Message")
+    data class Message(val id: String, val number: String, val text: String, val name: String = "", val atMs: Long = 0, val sent: Boolean = false) : CarEvent()
 
     /** Where the call is heard: in the car, or moved back to the phone itself. */
     @Serializable @SerialName("CallAudio")

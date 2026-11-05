@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createCoverDesk } from "./covers";
-import { bridge, type Band, type CallRecord, type CarCommand, type CarEvent, type CarState, type Contact, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
-import { MAJOR_COMPUTER, MAJOR_PHONE, SAMPLE_CONTACTS, sampleCalls } from "./phone";
+import { bridge, HFP, type Band, type CallRecord, type CarCommand, type CarEvent, type CarState, type Contact, type HfpCall, type Message, type OtherCall, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
+import { MAJOR_COMPUTER, MAJOR_PHONE, SAMPLE_CONTACTS, SAMPLE_PHONE, sampleCalls } from "./phone";
 import { BANDS, STATIONS, stationAt } from "./radio";
 import { GPS_PLACES } from "./gps";
 export { GPS_PLACES };
@@ -43,12 +43,19 @@ export interface EmulatorState {
   /** offline map packs: on the unit, the one downloading, and the offers turned down this trip */
   maps: { installed: string[]; downloading: { code: string; progress: number } | null; declined: string[] };
   /** the call on screen: who, since when it is answered (null before), where it is heard, the car's microphone */
-  call: { name: string; number: string; label: string; incoming: boolean; since: number | null; inCar: boolean; micMuted: boolean };
+  call: { name: string; number: string; label: string; incoming: boolean; since: number | null; inCar: boolean; micMuted: boolean; held: boolean; conference: boolean; other: (OtherCall & { name: string }) | null };
+  /** the phone's voice assistant listens through the car's microphone */
+  voiceAssistant: boolean;
+  /** text messages since the phone connected, the ids read, the thread the phone app should open, the last one for the banner */
+  messages: Message[];
+  read: string[];
+  thread: string | null;
+  newMessage: Message | null;
   /** the phone book and history the connected phone shared (PBAP) */
   contacts: Contact[];
   calls: CallRecord[];
   /** what the phone reports over the hands-free link: battery and signal 0..5, the network */
-  phoneStatus: { battery: number; signal: number; operator: string };
+  phoneStatus: { battery: number; signal: number; operator: string; roaming: boolean };
   /** Bluetooth switching on, asked by the phone app */
   btTurningOn: boolean;
   /** the phone Bluetooth reports as connected */
@@ -121,12 +128,19 @@ const NEARBY = [{ name: "Friend's phone", afterMs: 900 }, { name: "Pixel 7", aft
 const BT_ON_MS = 900;
 /** The other side picks up an outgoing call after this long. */
 const ANSWER_MS = 3200;
+/** The phone's own call list, as it would report it over HFP; the screen's call comes from it through core-car. */
+let simCalls: HfpCall[] = [];
+let simCallId = 0;
+/** When each line of the current calls was answered, so a call swapped back keeps its own clock. */
+const callStarts = new Map<string, number>();
+/** Commands the simulated phone answers itself, through its call list, instead of the plain echo. */
+const PHONE_CALLS = new Set(["Phone.Dial", "Phone.Redial", "Phone.Answer", "Phone.HangUp", "Phone.Hold", "Phone.Merge", "Phone.AnswerWaiting", "Phone.DeclineWaiting"]);
 const PAIR_MS = 1200;
 let scanTimers: ReturnType<typeof setTimeout>[] = [];
 const ECHO_DELAY_MS = 120;
 /** The caller of ?call=ringing: a number from the phone book; the phone sends no name, as over HFP. */
 const CALLER_NUMBER = "+40721000101";
-const NO_CALL = { name: "", number: "", label: "", incoming: false, since: null, inCar: true, micMuted: false };
+const NO_CALL = { name: "", number: "", label: "", incoming: false, since: null, inCar: true, micMuted: false, held: false, conference: false, other: null };
 /** Prev restarts the track after this much playback, as phones do; earlier it goes back one track. */
 const RESTART_AFTER_MS = 3000;
 
@@ -190,20 +204,34 @@ function displayData(event: CarEvent): Partial<EmulatorState> {
     case "Radio":
       return { radio: { khz: event.khz, band: event.band, rds: event.rds ?? "", pty: event.pty ?? 0, stereo: event.stereo ?? false } };
     case "Call": {
-      // a new call is named from the phone book, as the unit does; answering starts its clock
-      if (state.car.call === "IDLE" && event.state !== "IDLE") {
-        const number = event.number ?? "";
-        const match = bridge.phoneFind(state.contacts, number);
-        return { call: { ...NO_CALL, number, name: event.name || match?.name || "", label: match?.label ?? "", incoming: event.state === "RINGING", since: event.state === "ACTIVE" ? Date.now() : null } };
-      }
-      if (event.state === "ACTIVE" && state.call.since === null) return { call: { ...state.call, since: Date.now() } };
-      if (event.state === "IDLE" && state.car.call !== "IDLE") return { calls: [finishedCall(state), ...state.calls] };
-      return {};
+      if (event.state === "IDLE") { callStarts.clear(); return state.car.call !== "IDLE" ? { calls: [finishedCall(state), ...state.calls] } : {}; }
+      // calls are named from the phone book, as the unit does; a call taken over from the second line starts its own clock
+      const prev = state.call;
+      const number = event.number ?? "";
+      const match = bridge.phoneFind(state.contacts, number);
+      const same = state.car.call !== "IDLE" && number === prev.number;
+      const other = event.other ? { ...event.other, name: event.other.name || bridge.phoneFind(state.contacts, event.other.number)?.name || "" } : null;
+      if (event.state === "ACTIVE" && !callStarts.has(number)) callStarts.set(number, same && prev.since !== null ? prev.since : Date.now());
+      const since = callStarts.get(number) ?? null;
+      return {
+        call: {
+          ...(same ? prev : NO_CALL), number, name: event.name || match?.name || "", label: match?.label ?? "",
+          incoming: same ? prev.incoming : event.state === "RINGING" || prev.other?.number === number,
+          since, held: Boolean(event.held), conference: Boolean(event.conference), other,
+          inCar: state.car.call === "IDLE" ? true : prev.inCar, micMuted: state.car.call === "IDLE" ? false : prev.micMuted,
+        },
+      };
+    }
+    case "VoiceAssistant":
+      return { voiceAssistant: event.active };
+    case "Message": {
+      const { type: _type, ...message } = event;
+      return { messages: [...state.messages, message], newMessage: message.sent ? state.newMessage : message, read: message.sent ? [...state.read, message.id] : state.read };
     }
     case "CallAudio":
       return { call: { ...state.call, inCar: event.inCar } };
     case "PhoneStatus":
-      return { phoneStatus: { battery: event.battery ?? state.phoneStatus.battery, signal: event.signal ?? state.phoneStatus.signal, operator: event.operator ?? state.phoneStatus.operator } };
+      return { phoneStatus: { battery: event.battery ?? state.phoneStatus.battery, signal: event.signal ?? state.phoneStatus.signal, operator: event.operator ?? state.phoneStatus.operator, roaming: event.roaming ?? state.phoneStatus.roaming } };
     case "Power":
       return { acc: event.acc };
     case "BtConnection":
@@ -216,6 +244,53 @@ function displayData(event: CarEvent): Partial<EmulatorState> {
     default:
       return {};
   }
+}
+
+/** The simulated phone reports its call list changed; the unit folds it with core-car Hfp.call. */
+function publishCalls() {
+  carEvent(bridge.hfpCall(simCalls));
+}
+
+const callIn = (...states: number[]) => simCalls.find((c) => states.includes(c.state));
+const setState = (c: HfpCall | undefined, s: number) => { if (c) c.state = s; };
+const drop = (c: HfpCall | undefined) => { simCalls = simCalls.filter((x) => x !== c); };
+
+/** The phone's side of each call command, as AT+CHLD and the rest behave on a real phone. */
+function phoneCalls(command: CarCommand) {
+  const active = callIn(HFP.ACTIVE), held = callIn(HFP.HELD), ringing = callIn(HFP.INCOMING, HFP.WAITING);
+  switch (command.type) {
+    case "Phone.Dial":
+    case "Phone.Redial": {
+      // the phone's own last number; the emulator's is the last outgoing call in its history
+      const number = command.type === "Phone.Dial" ? command.number : state.calls.find((c) => c.type === "OUTGOING")?.number;
+      if (!number) return;
+      setState(active, HFP.HELD);
+      const call: HfpCall = { id: ++simCallId, state: HFP.ALERTING, number };
+      simCalls = [...simCalls, call];
+      setTimeout(() => { if (simCalls.includes(call) && call.state === HFP.ALERTING) { call.state = HFP.ACTIVE; publishCalls(); } }, ANSWER_MS);
+      break;
+    }
+    case "Phone.Answer": setState(ringing, HFP.ACTIVE); break;
+    case "Phone.HangUp":
+      if (simCalls.length === 1 && ringing) drop(ringing);
+      // a conference ends whole
+      else if (active?.multiparty) simCalls = simCalls.filter((c) => !c.multiparty);
+      else drop(callIn(HFP.ALERTING, HFP.DIALING) ?? active ?? held);
+      break;
+    case "Phone.Hold":
+      if (active && !held) setState(active, HFP.HELD);
+      else { setState(active, HFP.HELD); setState(held, HFP.ACTIVE); }
+      break;
+    case "Phone.Merge":
+      simCalls.forEach((c) => { if (c.state === HFP.ACTIVE || c.state === HFP.HELD) { c.state = HFP.ACTIVE; c.multiparty = true; } });
+      break;
+    case "Phone.AnswerWaiting":
+      if (command.keepCurrent) setState(active, HFP.HELD); else drop(active);
+      setState(ringing, HFP.ACTIVE);
+      break;
+    case "Phone.DeclineWaiting": drop(ringing); break;
+  }
+  publishCalls();
 }
 
 /** The history line a call leaves on the phone: picked up or placed, else missed. */
@@ -345,8 +420,10 @@ export function setPcMedia(on: boolean) {
 /** What the bus does: the rules already accounted for the command, the car answers. */
 function sendToCar(command: CarCommand) {
   set({ log: addLog("out", command) });
+  if (PHONE_CALLS.has(command.type)) return void setTimeout(() => phoneCalls(command), ECHO_DELAY_MS);
   const echo = bridge.echo(command);
   if (echo) setTimeout(() => carEvent(echo), ECHO_DELAY_MS);
+  if (command.type === "Phone.SendMessage") setTimeout(() => carEvent({ type: "Message", id: `sent-${Date.now()}`, number: command.number, text: command.text, atMs: Date.now(), sent: true }), ECHO_DELAY_MS);
   // with the laptop as the source its session plays the tracks: play and pause still answer at once as a phone
   // would, and the session's own report confirms or corrects them a moment later
   if (state.pcMedia && command.type in PC_COMMANDS) return void sendToLaptop(PC_COMMANDS[command.type]);
@@ -362,8 +439,6 @@ function sendToCar(command: CarCommand) {
   if (command.type === "Bt.Pair") set({ pairing: { name: command.device, code: String(100000 + Math.floor(Math.random() * 900000)) } });
   if (command.type === "Bt.ConfirmPairing") confirmPairing(command.accept);
   if (command.type === "Phone.Mute") set({ call: { ...state.call, micMuted: command.on } });
-  // the other side picks up a while after the dial
-  if (command.type === "Phone.Dial") setTimeout(() => { if (state.car.call === "OUTGOING") carEvent({ type: "Call", state: "ACTIVE" }); }, ANSWER_MS);
   if (command.type === "Bt.Disconnect" && state.car.btConnected) setTimeout(() => carEvent({ type: "BtConnection", connected: false, device: state.device }), ECHO_DELAY_MS);
 }
 
@@ -600,8 +675,10 @@ export function carEvent(event: CarEvent) {
   if (event.type === "BtConnection") {
     const major = state.saved.find((d) => d.name === event.device)?.major ?? MAJOR_COMPUTER;
     const calls = event.connected && bridge.callCapable(major);
-    if (calls !== state.car.hfpConnected) carEvent({ type: "HfpConnection", connected: calls });
+    if (calls !== state.car.hfpConnected) carEvent({ type: "HfpConnection", connected: calls, device: event.device });
   }
+  // a new call fills the screen, an ended one goes; Home folds it into its bar (core-car Shell)
+  if (event.type === "Call") shellAction({ type: "CallChanged", state: event.state });
   // the screen follows the ignition: dark with the car off, back on when it starts
   if (event.type === "Power") shellAction({ type: event.acc ? "Wake" : "Sleep" });
   // a loud last level comes down to the start volume chosen in the settings (core-car Settings.startVolume)
@@ -629,16 +706,40 @@ export function turnOnBluetooth() {
 
 /** The phone rings the unit, as a caller from the control panel. */
 export function incomingCall(number: string) {
-  if (!state.car.hfpConnected || state.car.call !== "IDLE") return;
-  carEvent({ type: "Call", state: "RINGING", number });
+  if (!state.car.hfpConnected || callIn(HFP.INCOMING, HFP.WAITING)) return;
+  // during a call the new one waits, as a second line
+  simCalls = [...simCalls, { id: ++simCallId, state: simCalls.length ? HFP.WAITING : HFP.INCOMING, number }];
+  publishCalls();
 }
 
-/** The other side ends the call, or stops ringing. */
+/** The other side ends the call talked, or stops ringing. */
 export function remoteHangUp() {
-  if (state.car.call !== "IDLE") carEvent({ type: "Call", state: "IDLE" });
+  drop(callIn(HFP.ACTIVE, HFP.ALERTING, HFP.DIALING) ?? callIn(HFP.INCOMING, HFP.WAITING) ?? callIn(HFP.HELD));
+  publishCalls();
 }
 
-export function setPhoneStatus(status: { battery?: number; signal?: number }) {
+/** A text message reaches the phone, as the control panel sends one. */
+export function incomingMessage(number: string, text: string) {
+  if (!state.car.hfpConnected) return;
+  carEvent({ type: "Message", id: `m-${Date.now()}`, number, text, atMs: Date.now() });
+}
+
+/** The phone app opens on a thread, from the banner; null back to the list. */
+export function openThread(number: string | null) {
+  set({ thread: number, newMessage: null });
+  if (number) shellAction({ type: "OpenApp", app: "PHONE" });
+}
+
+export function markRead(ids: string[]) {
+  const fresh = ids.filter((id) => !state.read.includes(id));
+  if (fresh.length) set({ read: [...state.read, ...fresh] });
+}
+
+export function dismissMessage() {
+  if (state.newMessage) set({ newMessage: null });
+}
+
+export function setPhoneStatus(status: { battery?: number; signal?: number; operator?: string; roaming?: boolean }) {
   carEvent({ type: "PhoneStatus", ...status });
 }
 
@@ -730,8 +831,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   // ?btoff starts with Bluetooth off, so no phone; ?nophone with it on and no phone
   const source = (q.get("source") ?? (q.has("btoff") || q.has("nophone") ? "none" : "bt")).toUpperCase();
   if (source === "BT") {
-    applyEvent({ type: "BtConnection", connected: true, device: "Phone" });
-    applyEvent({ type: "HfpConnection", connected: true });
+    applyEvent({ type: "BtConnection", connected: true, device: SAMPLE_PHONE });
+    applyEvent({ type: "HfpConnection", connected: true, device: SAMPLE_PHONE });
     applyEvent({ type: "Playback", playing: true, positionMs: 72000 });
   }
   if (source === "RADIO") {
@@ -739,8 +840,12 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     applyEvent({ type: "Playback", playing: true });
   }
   const call = q.get("call");
-  if (call === "ringing" || call === "active") applyEvent({ type: "Call", state: "RINGING", number: CALLER_NUMBER });
-  if (call === "active") applyEvent({ type: "Call", state: "ACTIVE" });
+  if (call === "ringing" || call === "active") {
+    simCalls = [{ id: ++simCallId, state: call === "active" ? HFP.ACTIVE : HFP.INCOMING, number: CALLER_NUMBER }];
+    applyEvent(bridge.hfpCall(simCalls));
+    shell = bridge.shell(shell, { type: "CallChanged", state: call === "active" ? "ACTIVE" : "RINGING" });
+    if (q.has("callbar")) shell = bridge.shell(shell, { type: "Home" });
+  }
   if (q.has("camera")) applyEvent({ type: "ReverseGear", on: true });
 
   const hour = q.get("hour");
@@ -766,10 +871,22 @@ function fromUrl(q: URLSearchParams): EmulatorState {
       : NO_CALL,
     contacts: SAMPLE_CONTACTS,
     calls: sampleCalls(Date.now()),
-    phoneStatus: { battery: 4, signal: 3, operator: "Vela Mobile" },
+    phoneStatus: { battery: 4, signal: 3, operator: "Vela Mobile", roaming: false },
     btTurningOn: false,
-    device: "Phone",
-    saved: [{ name: "Phone", inRange: true, major: MAJOR_PHONE }, { name: "Work phone", inRange: false, major: MAJOR_PHONE }, { name: "Tablet", inRange: true, major: MAJOR_COMPUTER }],
+    voiceAssistant: false,
+    messages: [
+      { id: "m-0", number: "0744 000 303", text: "Are you coming tonight?", atMs: Date.now() - 20 * 60_000 },
+      { id: "m-1", number: "0721 000 111", text: "Did you eat? Call me when you get home.", atMs: Date.now() - 3 * 3_600_000 },
+      { id: "m-2", number: "0721 000 111", text: "On my way, see you at 8.", atMs: Date.now() - 2.5 * 3_600_000, sent: true },
+      { id: "m-3", number: "021 000 1414", text: "Your car is ready for pickup. We are open until 18:00.", atMs: Date.now() - 26 * 3_600_000 },
+      { id: "m-4", number: "021 000 1414", text: "Thanks, I'll come tomorrow morning.", atMs: Date.now() - 25 * 3_600_000, sent: true },
+    ],
+    read: ["m-1", "m-3"],
+    thread: null,
+    newMessage: null,
+    device: SAMPLE_PHONE,
+    // the names phones give themselves in their Bluetooth settings
+    saved: [{ name: SAMPLE_PHONE, inRange: true, major: MAJOR_PHONE }, { name: "Galaxy S23", inRange: false, major: MAJOR_PHONE }, { name: "Galaxy Tab S9", inRange: true, major: MAJOR_COMPUTER }],
     connecting: null,
     failed: null,
     scanning: false,

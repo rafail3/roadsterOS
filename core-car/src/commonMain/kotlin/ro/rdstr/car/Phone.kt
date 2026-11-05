@@ -82,6 +82,18 @@ object PhoneBook {
         .groupBy { letter(it) }
         .map { (letter, list) -> ContactSection(letter, list) }
 
+    /** Names by the start of any word (accents folded, so "stef" finds "Ștefan"), numbers by any run of digits; blank lists all. */
+    fun search(contacts: List<Contact>, query: String): List<Contact> {
+        val all = sections(contacts).flatMap { it.contacts }
+        val q = TrackMatch.fold(query)
+        if (q.isEmpty()) return all
+        val typed = digits(query)
+        val onlyDigits = typed.isNotEmpty() && typed.length == query.count { !it.isWhitespace() && it != '+' }
+        return all.filter { c ->
+            sortKey(c).split(' ').any { it.startsWith(q) } || (onlyDigits && c.numbers.any { digits(it.number).contains(typed) })
+        }
+    }
+
     /** The contact under the digits typed on the keypad: an exact number first, else one that contains them. */
     fun suggest(contacts: List<Contact>, typed: String): Match? {
         val d = digits(typed)
@@ -156,11 +168,71 @@ object Hfp {
     /** SCO audio: 0 disconnected, 2 connected (the call is heard in the car). */
     const val AUDIO_CONNECTED = 2
 
-    /** All the phone's calls as one state for the screen: a call coming in first, then one being placed, then a call in progress. */
-    fun state(calls: Collection<Int>): State = when {
-        INCOMING in calls -> State.RINGING
-        DIALING in calls || ALERTING in calls -> State.OUTGOING
-        calls.any { it == ACTIVE || it == HELD || it == WAITING || it == HELD_BY_RESPONSE_AND_HOLD } -> State.ACTIVE
-        else -> State.IDLE
+    /** One call as the phone reports it: its id, state (the constants above), number, and whether it is in a conference. */
+    data class HfpCall(val id: Int, val state: Int, val number: String, val multiparty: Boolean = false)
+
+    private val HOLDING = setOf(HELD, HELD_BY_RESPONSE_AND_HOLD)
+
+    /**
+     * All the phone's calls as the one call the screen shows: the one being placed, else the one talked, else the one on
+     * hold; a second call beside it, ringing or on hold; calls in a conference as one.
+     */
+    fun call(calls: List<HfpCall>): CarEvent.Call {
+        val live = calls.filter { it.state != TERMINATED }
+        val ringing = live.firstOrNull { it.state == INCOMING || it.state == WAITING }
+        val dialing = live.firstOrNull { it.state == DIALING || it.state == ALERTING }
+        val active = live.filter { it.state == ACTIVE }
+        val held = live.filter { it.state in HOLDING }
+        val main = dialing ?: active.firstOrNull() ?: held.firstOrNull()
+            ?: return ringing?.let { CarEvent.Call(State.RINGING, it.number) } ?: CarEvent.Call(State.IDLE)
+        val conference = active.size > 1 || active.any { it.multiparty }
+        val other = when {
+            ringing != null -> CarEvent.Call.Other(ringing.number, waiting = true)
+            main.state !in HOLDING -> held.firstOrNull()?.let { CarEvent.Call.Other(it.number, waiting = false) }
+            else -> null
+        }
+        return CarEvent.Call(
+            state = if (main == dialing) State.OUTGOING else State.ACTIVE,
+            number = main.number,
+            held = main.state in HOLDING,
+            conference = conference,
+            other = other,
+        )
+    }
+
+    /** acceptCall flags: answer without touching other calls, holding the current one, or ending it. */
+    const val ACCEPT_NONE = 0
+    const val ACCEPT_HOLD = 1
+    const val ACCEPT_TERMINATE = 2
+    /** AG event extra: 1 while the phone's voice assistant listens. */
+    const val EXTRA_VOICE_RECOGNITION = "android.bluetooth.headsetclient.extra.VOICE_RECOGNITION"
+}
+
+/** Text messages from the phone (MAP) as conversations. */
+object Messages {
+    /** Answers a driver can send with one tap. */
+    val QUICK_REPLIES = listOf("I'm driving, I'll call you back.", "On my way.", "OK", "Can't talk now.")
+
+    /** MAP client: Android's BluetoothProfile.MAP_CLIENT and its broadcast for a new message. */
+    const val PROFILE = 18
+    const val ACTION_MESSAGE_RECEIVED = "android.bluetooth.mapmce.profile.action.MESSAGE_RECEIVED"
+    const val EXTRA_MESSAGE_HANDLE = "android.bluetooth.mapmce.profile.extra.MESSAGE_HANDLE"
+    const val EXTRA_SENDER_CONTACT_URI = "android.bluetooth.mapmce.profile.extra.SENDER_CONTACT_URI"
+    const val EXTRA_SENDER_CONTACT_NAME = "android.bluetooth.mapmce.profile.extra.SENDER_CONTACT_NAME"
+
+    /** One thread per number (across formats), newest first; unread counts what was received and not in [read]. */
+    fun conversations(messages: List<CarEvent.Message>, read: Set<String>, contacts: List<Contact>): List<Conversation> {
+        val threads = mutableListOf<MutableList<CarEvent.Message>>()
+        for (m in messages.sortedBy { it.atMs }) {
+            threads.firstOrNull { PhoneBook.same(it[0].number, m.number) }?.add(m) ?: threads.add(mutableListOf(m))
+        }
+        return threads.map { t ->
+            val last = t.last()
+            val name = t.firstOrNull { it.name.isNotEmpty() }?.name ?: PhoneBook.find(contacts, last.number)?.name.orEmpty()
+            Conversation(t[0].number, name, last.text, last.atMs, t.count { !it.sent && it.id !in read }, t)
+        }.sortedByDescending { it.atMs }
     }
 }
+
+@Serializable
+data class Conversation(val number: String, val name: String, val last: String, val atMs: Long, val unread: Int, val messages: List<CarEvent.Message>)

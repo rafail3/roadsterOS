@@ -4,13 +4,13 @@ import { carCommand, carEvent, openPhone, openVolume, setBluetooth, shellAction,
 import { Clock } from "./Clock";
 import { Drawer, useDrawerDrag } from "./Drawer";
 import { HomeCard } from "./HomeCard";
-import { CallOverlay, CameraOverlay } from "./Overlays";
+import { CallBar, CallOverlay, CameraOverlay, MessageBanner, VoiceOverlay } from "./Overlays";
 import { VolumeHud } from "./VolumeHud";
 import { ConnectionNotice } from "./ConnectionNotice";
 import { MusicApp } from "./MusicApp";
 import { RadioApp } from "./RadioApp";
 import { MapsApp } from "./MapsApp";
-import { PhoneApp } from "./PhoneApp";
+import { PhoneApp, PhoneNetwork } from "./PhoneApp";
 import { SettingsApp } from "./SettingsApp";
 import { MapOffer } from "./MapOffer";
 import { DevicesSheet } from "./DevicesSheet";
@@ -116,7 +116,9 @@ export function Screen() {
   const glow = car.source === "BT" && emulator.track.art
     ? ({ "--ambient-a": `color-mix(in srgb, ${cover.top} ${light ? 30 : 85}%, transparent)`, "--ambient-b": `color-mix(in srgb, ${cover.bottom} ${light ? 25 : 90}%, transparent)` } as React.CSSProperties)
     : undefined;
-  const covered = shell.drawer || shell.recents || car.call !== "IDLE" || car.camera;
+  // the call covers the screen only while it is shown whole; folded into its bar, the shell under it works
+  const callFull = car.call !== "IDLE" && shell.callView === "FULL";
+  const covered = shell.drawer || shell.recents || callFull || car.camera;
   const veil = bridge.veil(shell);
   const card = bridge.homeCard(car, emulator.btOn, shell.card);
   // a new source brings its page forward on the card
@@ -145,6 +147,8 @@ export function Screen() {
 
       <header className="bar" inert={covered} onPointerDown={onPointerDown}>
         <div className="bar-group">
+          {/* first, the connected phone's network and battery, as it reports them over the hands-free link */}
+          {car.hfpConnected && <PhoneNetwork status={emulator.phoneStatus} />}
           <span
             className={classes("icon", car.source === "RADIO" ? "i-radio" : "i-bluetooth", car.source !== "NONE" && "is-on", car.source !== "RADIO" && !emulator.btOn && "is-off")}
             aria-hidden="true"
@@ -208,7 +212,8 @@ export function Screen() {
       <LocationPrompt />
       <Recents emulator={emulator} />
       {/* always there, as on a phone, except under the drawer, a devices or networks panel (its keyboard reaches the edges), a call or the camera */}
-      {!shell.drawer && !shell.devices && !shell.networks && car.call === "IDLE" && !car.camera && (
+      {/* the bottom handle stays over a call too, so it can be swiped home into its bar */}
+      {!shell.drawer && !shell.devices && !shell.networks && !car.camera && (
         <>
           <NavBar />
           <EdgeBack side="left" />
@@ -217,15 +222,18 @@ export function Screen() {
       )}
       <div className={classes("scrim", shell.drawer && "is-open")} onClick={() => shellAction({ type: "CloseDrawer" })} />
       <Drawer emulator={emulator} panel={drawer} dragging={dragging} />
-      {car.call !== "IDLE" && <CallOverlay emulator={emulator} />}
+      {callFull && <CallOverlay emulator={emulator} />}
+      {car.call !== "IDLE" && shell.callView === "BAR" && !car.camera && <CallBar emulator={emulator} />}
+      {emulator.voiceAssistant && <VoiceOverlay />}
+      {!callFull && !car.camera && <MessageBanner emulator={emulator} />}
       {car.camera && <CameraOverlay />}
       {(Object.keys(KEY_CENTER) as (keyof typeof KEY_CENTER)[]).map((key) => (
         <svg key={key} className={classes("edge-bulge", emulator.pressedKey === key && "is-pressed")} style={{ top: KEY_CENTER[key] }} viewBox="0 0 12 136" preserveAspectRatio="none" aria-hidden="true">
           <path d={BULGE_PATH} />
         </svg>
       ))}
-      <ConnectionNotice notice={emulator.notice} hidden={car.call !== "IDLE" || car.camera} />
-      <MapOffer hidden={car.call !== "IDLE" || car.camera || shell.drawer} />
+      <ConnectionNotice notice={emulator.notice} hidden={callFull || car.camera} />
+      <MapOffer hidden={callFull || car.camera || shell.drawer} />
       <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC" || shell.drawer} />
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.dark.toFixed(3) }} />
       {/* always there: it fades in to switch the screen off and lifts to switch it on; a tap on it wakes the screen */}

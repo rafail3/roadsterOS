@@ -9,6 +9,9 @@ const DAY = 24 * HOUR;
 export const MAJOR_PHONE = 0x0200;
 export const MAJOR_COMPUTER = 0x0100;
 
+/** The phone the emulator starts connected to, by the name it gives itself over Bluetooth. */
+export const SAMPLE_PHONE = "Pixel 8";
+
 // fictional names and numbers
 export const SAMPLE_CONTACTS: Contact[] = [
   { name: "Ana Petrescu", numbers: [{ number: "+40 721 000 101", label: "mobile" }] },

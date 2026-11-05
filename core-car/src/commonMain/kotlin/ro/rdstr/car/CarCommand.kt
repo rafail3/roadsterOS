@@ -42,6 +42,17 @@ sealed class CarCommand {
         @Serializable @SerialName("Phone.Dtmf") data class Dtmf(val digit: String) : Phone()
         /** Hear the call in the car, or move it to the phone. */
         @Serializable @SerialName("Phone.AudioInCar") data class AudioInCar(val on: Boolean) : Phone()
+        /** The phone calls the last number it called, from its own list. */
+        @Serializable @SerialName("Phone.Redial") data object Redial : Phone()
+        /** Put the call on hold or take it back; with a second call on hold, swap the two. */
+        @Serializable @SerialName("Phone.Hold") data object Hold : Phone()
+        /** Join the call and the one on hold into a conference. */
+        @Serializable @SerialName("Phone.Merge") data object Merge : Phone()
+        /** Take a second call that rings: [keepCurrent] holds the current one, else it ends. */
+        @Serializable @SerialName("Phone.AnswerWaiting") data class AnswerWaiting(val keepCurrent: Boolean) : Phone()
+        @Serializable @SerialName("Phone.DeclineWaiting") data object DeclineWaiting : Phone()
+        @Serializable @SerialName("Phone.VoiceAssistant") data class VoiceAssistant(val on: Boolean) : Phone()
+        @Serializable @SerialName("Phone.SendMessage") data class SendMessage(val number: String, val text: String) : Phone()
     }
 
     /** Phones by the name the unit lists them under: connect or drop a saved one, look for new ones and pair. */

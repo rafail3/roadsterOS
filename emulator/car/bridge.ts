@@ -43,6 +43,10 @@ export interface ShellState {
   speedChime: boolean;
   /** the highest volume level the car starts with; 0 keeps the last one */
   startVolume: number;
+  /** how the call shows: none, over the whole screen, or as the bar at the top */
+  callView: "NONE" | "FULL" | "BAR";
+  /** writing a message is blocked while the car moves (a setting, off by default) */
+  lockTypingWhileMoving: boolean;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -57,8 +61,10 @@ export type CarEvent =
   | { type: "BtConnection"; connected: boolean; device?: string }
   | { type: "Track"; title: string; artist?: string; album?: string; durationMs?: number }
   | { type: "Playback"; playing: boolean; positionMs?: number }
-  | { type: "Call"; state: CallState; number?: string; name?: string }
-  | { type: "HfpConnection"; connected: boolean }
+  | { type: "Call"; state: CallState; number?: string; name?: string; held?: boolean; conference?: boolean; other?: OtherCall | null }
+  | { type: "VoiceAssistant"; active: boolean }
+  | ({ type: "Message" } & Message)
+  | { type: "HfpConnection"; connected: boolean; device?: string }
   | { type: "CallAudio"; inCar: boolean }
   | { type: "PhoneStatus"; battery?: number; signal?: number; operator?: string; roaming?: boolean }
   | { type: "Radio"; khz: number; band: Band; rds?: string; signal?: number; pty?: number; stereo?: boolean }
@@ -77,6 +83,10 @@ export type CarCommand =
   | { type: "Phone.Dial"; number: string }
   | { type: "Phone.Dtmf"; digit: string }
   | { type: "Phone.AudioInCar"; on: boolean }
+  | { type: "Phone.Redial" | "Phone.Hold" | "Phone.Merge" | "Phone.DeclineWaiting" }
+  | { type: "Phone.AnswerWaiting"; keepCurrent: boolean }
+  | { type: "Phone.VoiceAssistant"; on: boolean }
+  | { type: "Phone.SendMessage"; number: string; text: string }
   | { type: "Audio.Mute"; on: boolean }
   | { type: "Audio.Volume"; delta: number }
   | { type: "Audio.Source"; source: Source }
@@ -98,7 +108,10 @@ export type ShellAction =
   | { type: "SetBrightness"; value: number }
   | { type: "Headlights"; on: boolean }
   | { type: "OpenApp"; app: App }
-  | { type: "ShowCard"; page: CardPage };
+  | { type: "ShowCard"; page: CardPage }
+  | { type: "CallChanged"; state: CallState }
+  | { type: "ExpandCall" }
+  | { type: "SetTypingLock"; on: boolean };
 
 export interface PhoneNumber { number: string; label: string }
 export interface Contact { name: string; numbers: PhoneNumber[] }
@@ -107,6 +120,13 @@ export interface CallRecord { number: string; name: string; type: CallType; atMs
 export interface RecentRow { number: string; name: string; label: string; type: CallType; atMs: number; count: number }
 export interface PhoneMatch { name: string; number: string; label: string }
 export type PhoneScreen = "BT_OFF" | "CONNECT" | "READY";
+/** A second call beside the one on screen: ringing (waiting) or on hold. */
+export interface OtherCall { number: string; name?: string; waiting: boolean }
+export interface Message { id: string; number: string; text: string; name?: string; atMs?: number; sent?: boolean }
+export interface Conversation { number: string; name: string; last: string; atMs: number; unread: number; messages: Message[] }
+/** One call as the phone lists it over HFP; states are the Hfp constants of core-car. */
+export interface HfpCall { id: number; state: number; number: string; multiparty?: boolean }
+export const HFP = { ACTIVE: 0, HELD: 1, DIALING: 2, ALERTING: 3, INCOMING: 4, WAITING: 5 } as const;
 
 export interface RuleAction {
   type: string;
@@ -146,9 +166,13 @@ interface Kotlin {
       callCapable(majorClass: number): boolean;
       phoneSections(book: string): string;
       phoneRecents(calls: string, book: string): string;
+      phoneSearch(book: string, query: string): string;
       phoneSuggest(book: string, typed: string): string;
       phoneFind(book: string, number: string): string;
       initials(name: string): string;
+      hfpCall(calls: string): string;
+      conversations(messages: string, read: string, book: string): string;
+      quickReplies(): string;
       callDuration(ms: number): string;
       clockText(hour: number, minute: number, h24: boolean): string;
       meridiem(hour: number): string;
@@ -214,12 +238,19 @@ export const bridge = {
   /** Bluetooth's major device class says whether a device can take calls (phones only). */
   callCapable: (majorClass: number) => K!.Bridge.callCapable(majorClass),
   phoneSections: (book: Contact[]): { letter: string; contacts: Contact[] }[] => JSON.parse(K!.Bridge.phoneSections(JSON.stringify(book))),
+  /** Contacts by any word start of the name, accents folded, or by digits of a number (core-car PhoneBook.search). */
+  phoneSearch: (book: Contact[], query: string): Contact[] => JSON.parse(K!.Bridge.phoneSearch(JSON.stringify(book), query)),
   phoneRecents: (calls: CallRecord[], book: Contact[]): RecentRow[] => JSON.parse(K!.Bridge.phoneRecents(JSON.stringify(calls), JSON.stringify(book))),
   /** The contact under digits typed on the keypad, from three digits on. */
   phoneSuggest: (book: Contact[], typed: string): PhoneMatch | null => JSON.parse(K!.Bridge.phoneSuggest(JSON.stringify(book), typed)),
   /** The contact a caller's number belongs to; the phone sends only the number. */
   phoneFind: (book: Contact[], number: string): PhoneMatch | null => JSON.parse(K!.Bridge.phoneFind(JSON.stringify(book), number)),
   initials: (name: string) => K!.Bridge.initials(name),
+  /** The phone's call list folded into the one call the screen shows, as on the unit (core-car Hfp.call). */
+  hfpCall: (calls: HfpCall[]): CarEvent => JSON.parse(K!.Bridge.hfpCall(JSON.stringify(calls))),
+  conversations: (messages: Message[], read: string[], book: Contact[]): Conversation[] =>
+    JSON.parse(K!.Bridge.conversations(JSON.stringify(messages), JSON.stringify(read), JSON.stringify(book))),
+  quickReplies: (): string[] => JSON.parse(K!.Bridge.quickReplies()),
   callDuration: (ms: number) => K!.Bridge.callDuration(ms),
   /** The big clock's text on the 24- or 12-hour clock, and the half of the day beside a 12-hour one. */
   clockText: (hour: number, minute: number, h24: boolean) => K!.Bridge.clockText(hour, minute, h24),

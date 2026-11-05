@@ -8,6 +8,9 @@ enum class ThemeMode { AUTO, LIGHT, DARK }
 enum class Theme { LIGHT, DARK }
 enum class Face { DIGITAL, ANALOG }
 
+/** How a call shows: not at all, over the whole screen, or as a bar at the top while the rest of the shell is used. */
+enum class CallView { NONE, FULL, BAR }
+
 /** What fills the screen above home. */
 enum class App { HOME, MUSIC, RADIO, MAPS, PHONE, SETTINGS }
 
@@ -40,6 +43,9 @@ data class ShellState(
     val speedChime: Boolean = true,
     /** The highest volume level the car starts with; 0 keeps the level it was switched off with. */
     val startVolume: Int = 0,
+    val callView: CallView = CallView.NONE,
+    /** Writing a message is blocked while the car moves; off unless chosen in the settings. */
+    val lockTypingWhileMoving: Boolean = false,
 )
 
 @Serializable
@@ -80,6 +86,14 @@ sealed class ShellAction {
     @Serializable @SerialName("SetStartVolume") data class SetStartVolume(val level: Int) : ShellAction()
     /** Every preference back to its default; what is open and what the car reports stay. */
     @Serializable @SerialName("ResetSettings") data object ResetSettings : ShellAction()
+    /**
+     * The phone's call changed state (sent with every Call event): a call ringing in shows as the banner at the top,
+     * one placed from here fills the screen, an ended one goes.
+     */
+    @Serializable @SerialName("CallChanged") data class CallChanged(val state: CarEvent.Call.State) : ShellAction()
+    /** A tap on the call bar brings the call back over the whole screen. */
+    @Serializable @SerialName("ExpandCall") data object ExpandCall : ShellAction()
+    @Serializable @SerialName("SetTypingLock") data class SetTypingLock(val on: Boolean) : ShellAction()
 }
 
 /**
@@ -157,10 +171,19 @@ object Shell {
         is ShellAction.SetStartVolume -> s.copy(startVolume = a.level.coerceIn(0, Rules.MAX_VOLUME))
         ShellAction.ResetSettings -> ShellState().copy(
             app = s.app, running = s.running, recents = s.recents, devices = s.devices, networks = s.networks,
-            headlights = s.headlights, screenOn = s.screenOn, card = s.card,
+            headlights = s.headlights, screenOn = s.screenOn, card = s.card, callView = s.callView,
         )
+        is ShellAction.CallChanged -> s.copy(callView = when {
+            a.state == CarEvent.Call.State.IDLE -> CallView.NONE
+            s.callView == CallView.NONE -> if (a.state == CarEvent.Call.State.RINGING) CallView.BAR else CallView.FULL
+            else -> s.callView
+        })
+        is ShellAction.SetTypingLock -> s.copy(lockTypingWhileMoving = a.on)
+        ShellAction.ExpandCall -> if (s.callView == CallView.NONE) s else s.copy(callView = CallView.FULL, drawer = false, recents = false)
         // one layer at a time: the drawer, the open apps, a devices or networks sheet, then the app
         ShellAction.Back -> when {
+            // the call over everything is the top layer: Back folds it into its bar, the app under it stays
+            s.callView == CallView.FULL -> s.copy(callView = CallView.BAR)
             s.drawer -> s.copy(drawer = false)
             s.recents -> s.copy(recents = false)
             s.devices -> s.copy(devices = false)
@@ -169,7 +192,11 @@ object Shell {
         }
     }
 
-    private fun goHome(s: ShellState) = s.copy(app = App.HOME, recents = false, drawer = false, devices = false, networks = false, card = cardAfter(s))
+    /** Home goes home in a call too: the call folds into its bar. */
+    private fun goHome(s: ShellState) = s.copy(
+        app = App.HOME, recents = false, drawer = false, devices = false, networks = false, card = cardAfter(s),
+        callView = if (s.callView == CallView.FULL) CallView.BAR else s.callView,
+    )
 
     /** Leaving the map, the card on home shows it. */
     private fun cardAfter(s: ShellState) = if (s.app == App.MAPS) CardPage.NAVIGATION else s.card
@@ -180,6 +207,7 @@ object Shell {
     fun preferences(s: ShellState) = ShellState(
         theme = s.theme, face = s.face, font = s.font, brightness = s.brightness,
         clock24h = s.clock24h, speedChime = s.speedChime, startVolume = s.startVolume,
+        lockTypingWhileMoving = s.lockTypingWhileMoving,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))

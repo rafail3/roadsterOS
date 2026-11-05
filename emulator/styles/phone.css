@@ -1,8 +1,8 @@
 /* Phone: the app (history, phone book, keypad) and the call over everything. Always on its own dark ground, as the
    other full-screen apps; sizes are for a 1280x750 canvas read at arm's length. */
 :root {
-  --call-green: #30d158;
-  --call-red: #ff453a;
+  --call-green: #17d847;
+  --call-red: #f62b31;
   --phone-ground: #0f1216;
   --phone-ink-2: rgba(235, 235, 245, 0.64);
   --phone-key: rgba(255, 255, 255, 0.14);
@@ -11,6 +11,9 @@
 }
 
 .i-phone-fill { --m: url(/icons/phone-fill.svg); }
+/* the answer and end keys' handsets */
+.i-call-accept { --m: url(/icons/call-accept.svg); }
+.i-call-decline { --m: url(/icons/call-decline.svg); }
 .i-phone-disconnect-fill { --m: url(/icons/phone-disconnect-fill.svg); }
 .i-phone-outgoing { --m: url(/icons/phone-outgoing.svg); }
 .i-phone-x { --m: url(/icons/phone-x.svg); }
@@ -21,6 +24,14 @@
 .i-user { --m: url(/icons/user.svg); }
 .i-device-mobile-speaker-fill { --m: url(/icons/device-mobile-speaker-fill.svg); }
 .i-backspace-fill { --m: url(/icons/backspace-fill.svg); }
+.i-arrows-left-right { --m: url(/icons/arrows-left-right.svg); }
+.i-arrows-merge { --m: url(/icons/arrows-merge.svg); }
+.i-microphone-fill { --m: url(/icons/microphone-fill.svg); }
+.i-chat-circle-text-fill { --m: url(/icons/chat-circle-text-fill.svg); }
+.i-users-fill { --m: url(/icons/users-fill.svg); }
+.i-user-plus-fill { --m: url(/icons/user-plus-fill.svg); }
+.call-hide.is-left { left: auto; right: calc(50% + 72px); }
+
 
 .phone-app { background: var(--phone-ground); }
 .phone-app.is-ready { grid-template-columns: minmax(0, 1fr) 340px; column-gap: 56px; align-items: stretch; padding: 76px 56px 20px 128px; }
@@ -42,6 +53,16 @@
 .phone-bars i:nth-child(1) { height: 5px; } .phone-bars i:nth-child(2) { height: 8px; } .phone-bars i:nth-child(3) { height: 11px; }
 .phone-bars i:nth-child(4) { height: 14px; } .phone-bars i:nth-child(5) { height: 16px; }
 .phone-bars i.is-on { background: #fff; }
+/* in the status bar the bars take the bar's ink, so they read in the day theme too */
+/* the phone's network leads the left group; a gap and a hairline keep it apart from the sound source */
+.bar-network { display: flex; align-items: center; gap: 10px; padding-right: var(--space-4); margin-right: var(--space-1); box-shadow: inset -1px 0 0 var(--hairline-strong); }
+.bar .phone-battery { border-color: color-mix(in srgb, currentColor 60%, transparent); }
+.bar .phone-battery::after { background: color-mix(in srgb, currentColor 60%, transparent); }
+.bar .phone-battery i { background: currentColor; }
+.bar .phone-battery.is-low i { background: var(--call-red); }
+.bar .phone-bars i { background: color-mix(in srgb, currentColor 28%, transparent); }
+.bar .phone-bars i.is-on { background: currentColor; }
+.bar-roaming { padding: 2px 8px; border-radius: 6px; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; color: var(--ink); background: color-mix(in srgb, var(--ink) 14%, transparent); }
 .phone-battery { position: relative; width: 28px; height: 14px; padding: 2px; border-radius: 4px; border: 1.5px solid rgba(255, 255, 255, 0.55); }
 .phone-battery::after { content: ""; position: absolute; top: 3px; right: -4px; width: 2px; height: 5px; border-radius: 0 1px 1px 0; background: rgba(255, 255, 255, 0.55); }
 .phone-battery i { display: block; height: 100%; border-radius: 1.5px; background: #fff; transform-origin: left; }
@@ -98,7 +119,8 @@
 .pad-delete.is-hidden { visibility: hidden; }
 
 .call-key { display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; color: #fff; transition: filter var(--fast), transform 300ms var(--spring-glyph); }
-.call-key .icon { width: 36px; height: 36px; }
+/* the handsets are drawn on their circle's own box, so they fill the key and sit where they belong */
+.call-key .icon { width: 100%; height: 100%; }
 .call-key.is-accept { background: var(--call-green); }
 .call-key.is-decline { background: var(--call-red); }
 .call-key-labelled:active .call-key, .call-key:active:not(:disabled) { transform: scale(0.94); filter: brightness(1.12); transition-duration: var(--fast), 120ms; }
@@ -138,3 +160,92 @@
   .call-key.is-ringing { animation: none; }
   .phone-tabs button, .pad-key, .call-key, .call-toggle-disc { transition-duration: 0.01ms; }
 }
+
+/* a second call, the assistant, messages */
+.call-held { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; padding: 8px 16px; border-radius: 999px; font-size: 17px; color: rgba(255, 255, 255, 0.86); background: rgba(255, 255, 255, 0.1); }
+.call-held .icon { width: 18px; height: 18px; }
+.call-waiting { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 18px 20px; border-radius: 22px; background: rgba(255, 255, 255, 0.1); animation: media-fade 240ms var(--seamless); }
+.call-waiting-text { font-size: 19px; color: rgba(255, 255, 255, 0.86); }
+.call-waiting-text strong { color: #fff; }
+.call-waiting-actions { display: flex; gap: 10px; }
+.call-pill { min-height: 56px; padding: 0 20px; border-radius: 999px; font-size: 17px; font-weight: 600; color: #fff; background: rgba(255, 255, 255, 0.16); transition: background var(--fast), transform 300ms var(--spring-glyph); }
+.call-pill:active { transform: scale(0.96); background: rgba(255, 255, 255, 0.26); transition-duration: var(--fast), 120ms; }
+.call-pill.is-accept { background: var(--call-green); }
+.call-pill.is-decline { background: var(--call-red); }
+
+.pad-side { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; color: #fff; background: rgba(255, 255, 255, 0.1); transition: background var(--fast); }
+.pad-side:active { background: rgba(255, 255, 255, 0.22); }
+.pad-side .icon { width: 28px; height: 28px; }
+
+.voice { position: absolute; left: 50%; bottom: 40px; z-index: 6; display: flex; align-items: center; gap: 16px; padding: 10px 10px 10px 14px; border-radius: 999px; transform: translateX(-50%); background: #1c2129; border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); color: #fff; animation: media-fade 200ms var(--seamless); }
+.voice-mic { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--set-blue, #0a84ff); animation: voice-pulse 1.4s var(--seamless) infinite; }
+.voice-mic .icon { width: 28px; height: 28px; }
+@keyframes voice-pulse { 50% { box-shadow: 0 0 0 10px rgba(10, 132, 255, 0.25); } }
+.voice-text { font-size: 19px; font-weight: 600; }
+
+.message-banner { position: absolute; top: 64px; left: 50%; z-index: 6; display: flex; align-items: center; gap: 14px; width: 520px; padding: 14px 18px; border-radius: 24px; transform: translateX(-50%); text-align: left; color: #fff; background: #1c2129; border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); animation: banner-in 360ms var(--sheet-in); }
+@keyframes banner-in { from { transform: translate(-50%, -24px); opacity: 0; } }
+.message-banner-icon { display: grid; place-items: center; flex: none; width: 48px; height: 48px; border-radius: 12px; background: var(--call-green); }
+.message-banner-icon .icon { width: 28px; height: 28px; }
+.message-banner-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.message-banner-name { font-size: 18px; font-weight: 600; }
+.message-banner-body { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; color: var(--phone-ink-2); }
+
+.phone-tabs button { position: relative; }
+.phone-badge { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; background: var(--call-red); font-variant-numeric: tabular-nums; }
+.phone-row-preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phone-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: #0a84ff; }
+.phone-thread { display: flex; flex-direction: column; gap: 12px; height: 100%; min-height: 0; }
+.phone-thread-head { display: flex; align-items: center; gap: 14px; }
+.phone-thread-head .phone-row-name { flex: 1; }
+.call-key.is-small { width: 56px; height: 56px; }
+
+.phone-bubbles { flex: 1; display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 4px 8px; list-style: none; overflow-y: auto; }
+.bubble { align-self: flex-start; max-width: 70%; padding: 10px 16px; border-radius: 20px; font-size: 18px; line-height: 1.4; background: rgba(255, 255, 255, 0.14); }
+.bubble.is-sent { align-self: flex-end; background: #0a84ff; }
+.phone-replies { display: flex; flex-wrap: wrap; gap: 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-mic, .message-banner, .call-waiting { animation: none; }
+}
+
+/* adding a call from the phone book: the list fills the call screen's right side */
+.call-add-tabs { align-self: center; }
+.call-add-contacts { width: 100%; height: 400px; min-height: 0; }
+.call-add-contacts .phone-letter { background: #111419; }
+
+/* the call folded away: a green pill under the status bar, or the ringing call as a banner */
+/* a call in progress: the green clock beside the name tells it from a ringing one */
+.call-banner-time { color: var(--call-green); font-variant-numeric: tabular-nums; }
+.call-banner { position: absolute; top: 60px; left: 50%; z-index: 7; display: flex; align-items: center; gap: 12px; width: 400px; padding: 10px 12px 10px 10px; border-radius: 26px; transform: translateX(-50%); color: #fff; background: #1c2129; border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); animation: banner-in 360ms var(--sheet-in); }
+.call-banner-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; text-align: left; color: inherit; }
+@media (prefers-reduced-motion: reduce) { .call-banner { animation: none; } }
+
+/* the contacts search: it stays at the top of the list as it scrolls; the letter headers stick under it */
+.phone-search { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 12px; padding: 0 0 12px; background: var(--phone-ground); }
+.phone-search-field { flex: 1; min-width: 0; height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-radius: 14px; background: rgba(118, 118, 128, 0.24); color: #fff; text-align: left; font-size: 18px; transition: box-shadow var(--fast); }
+.phone-search-field.is-focused { box-shadow: inset 0 0 0 2px #0a84ff; }
+.phone-search-field .icon { width: 22px; height: 22px; color: var(--phone-ink-2); }
+.phone-search-placeholder { color: var(--phone-ink-2); }
+.phone-search-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phone-search-caret { width: 2px; height: 24px; margin-left: -8px; background: #0a84ff; animation: caret-blink 1s steps(1) infinite; }
+@keyframes caret-blink { 50% { opacity: 0; } }
+.phone-search-cancel { min-height: 52px; padding: 0 6px; font-size: 18px; font-weight: 600; color: #0a84ff; }
+.phone-contacts.has-search .phone-letter { top: 64px; }
+.phone-contacts.is-searching { grid-template-columns: minmax(0, 1fr); }
+@media (prefers-reduced-motion: reduce) { .phone-search-caret { animation: none; } }
+
+/* an open thread: the messages on their own panel, the answers and the field to write at its foot */
+.i-arrow-up-bold { --m: url(/icons/arrow-up-bold.svg); }
+.phone-chat { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 22px; background: linear-gradient(180deg, #171b22, #12151a); border: 1px solid rgba(255, 255, 255, 0.07); }
+.phone-chat .phone-bubbles { padding: 4px 4px 8px; }
+.phone-compose { display: flex; align-items: center; gap: 10px; }
+.phone-compose-field { flex: 1; min-width: 0; height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 18px; border-radius: 26px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12); color: #fff; text-align: left; font-size: 18px; transition: box-shadow var(--fast); }
+.phone-compose-field.is-focused { box-shadow: inset 0 0 0 2px #0a84ff; }
+.phone-compose-field:disabled { opacity: 0.6; }
+.phone-send { flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; color: #fff; background: #0a84ff; transition: opacity var(--fast), transform 300ms var(--spring-glyph); }
+.phone-send:disabled { opacity: 0.35; }
+.phone-send:active:not(:disabled) { transform: scale(0.92); transition-duration: var(--fast), 120ms; }
+.phone-send .icon { width: 24px; height: 24px; }
+/* writing: the thread rises above the on-screen keyboard */
+.phone-app.is-writing .phone-side { padding-bottom: 350px; }

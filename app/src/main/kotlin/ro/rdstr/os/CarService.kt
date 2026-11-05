@@ -34,7 +34,8 @@ class CarService : Service() {
         dpm.setLockTaskPackages(admin, arrayOf(packageName))
         dpm.setGlobalSetting(admin, Settings.Global.ADB_ENABLED, "1")
         // the phone app reads the phone book and call history the Bluetooth sync copies to the unit
-        for (permission in arrayOf(Manifest.permission.READ_CONTACTS, Manifest.permission.READ_CALL_LOG)) {
+        // and the phone's messages (the MAP client's broadcast needs RECEIVE_SMS, a reply SEND_SMS)
+        for (permission in arrayOf(Manifest.permission.READ_CONTACTS, Manifest.permission.READ_CALL_LOG, Manifest.permission.RECEIVE_SMS, Manifest.permission.SEND_SMS)) {
             dpm.setPermissionGrantState(admin, packageName, permission, DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
         }
     }

@@ -52,6 +52,13 @@ data class UiState(
     val callInCar: Boolean = true,
     val contacts: List<Contact> = emptyList(),
     val calls: List<CallRecord> = emptyList(),
+    /** The connected phone's Bluetooth name, for the phone chip and the call screen; empty with none. */
+    val phoneName: String = "",
+    /** The phone's voice assistant listens. */
+    val voiceAssistant: Boolean = false,
+    /** Text messages since the phone connected, and the ids read on screen. */
+    val messages: List<CarEvent.Message> = emptyList(),
+    val read: Set<String> = emptySet(),
 ) {
     fun reduce(state: RulesState, actions: List<Action>, event: CarEvent): UiState {
         var ui = copy(state = state, lastEvent = event.toString(), track = event as? CarEvent.Track ?: track)
@@ -59,7 +66,7 @@ data class UiState(
             Action.ShowCamera -> ui.copy(camera = true)
             Action.HideCamera -> ui.copy(camera = false)
             // the phone sends only the number; the name comes from its synced phone book
-            is Action.ShowCall -> ui.copy(call = a.call.takeIf { it.name.isNotEmpty() } ?: a.call.copy(name = PhoneBook.find(contacts, a.call.number)?.name.orEmpty()))
+            is Action.ShowCall -> ui.copy(call = named(a.call))
             Action.HideCall -> ui.copy(call = null, callInCar = true)
             is Action.Night -> ui.copy(night = a.on)
             is Action.Send, Action.SaveState, Action.RestoreState, Action.ToggleScreen, Action.Home, Action.Back, Action.ShowVolume -> ui
@@ -67,9 +74,20 @@ data class UiState(
         when (event) {
             is CarEvent.PhoneStatus -> ui = ui.copy(phoneStatus = event)
             is CarEvent.CallAudio -> ui = ui.copy(callInCar = event.inCar)
+            is CarEvent.VoiceAssistant -> ui = ui.copy(voiceAssistant = event.active)
+            is CarEvent.Message -> ui = ui.copy(messages = ui.messages + event, read = if (event.sent) ui.read + event.id else ui.read)
+            // a dropped phone takes its name and its network with it
+            is CarEvent.HfpConnection -> ui = if (event.connected) ui.copy(phoneName = event.device) else ui.copy(phoneName = "", phoneStatus = null)
             else -> Unit
         }
         return ui
+    }
+
+    /** The phone sends only numbers; the names, the second call's too, come from its synced phone book. */
+    private fun named(c: CarEvent.Call): CarEvent.Call {
+        val name = c.name.ifEmpty { PhoneBook.find(contacts, c.number)?.name.orEmpty() }
+        val other = c.other?.let { o -> o.copy(name = o.name.ifEmpty { PhoneBook.find(contacts, o.number)?.name.orEmpty() }) }
+        return c.copy(name = name, other = other)
     }
 }
 
@@ -122,6 +140,8 @@ object CarRuntime {
                     next = Rules.onCommand(next, c)
                 }
                 _ui.value = _ui.value.reduce(next, actions, event)
+                // a new call fills the screen, an ended one goes; Home folds it into its bar
+                if (event is CarEvent.Call) shellAction(ShellAction.CallChanged(event.state))
             }
         }
     }
