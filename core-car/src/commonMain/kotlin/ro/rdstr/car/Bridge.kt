@@ -117,6 +117,19 @@ object Bridge {
         HomeCard.press(CardPage.valueOf(page), HomeCard.Press.valueOf(press), json.decodeFromString(RulesState.serializer(), state)),
     )
 
+    /** A frequency as the screen writes it; [band] is FM or AM. */
+    fun freqFormat(band: String, khz: Int): String = FreqDisplay.format(CarEvent.Radio.Band.valueOf(band), khz)
+
+    /** One frame of the frequency's glide to the tuned one. */
+    fun freqGlide(shown: Double, target: Int): Double = FreqDisplay.glide(shown, target)
+
+    /** The rolling counter: {"exact":"95.35" or null,"label":"...","decimalAt":n,"columns":[[place,offset],...]}. */
+    fun freqCounter(band: String, khz: Double, target: Int): String {
+        val c = FreqDisplay.counter(CarEvent.Radio.Band.valueOf(band), khz, target)
+        val columns = c.columns.joinToString(",") { "[${it.place},${it.offset}]" }
+        return """{"exact":${c.exact?.let { "\"$it\"" } ?: "null"},"label":"${c.label}","decimalAt":${c.decimalAt},"columns":[$columns]}"""
+    }
+
     fun shellInitial(): String = json.encodeToString(ShellState.serializer(), ShellState())
 
     fun shell(state: String, action: String): String {
