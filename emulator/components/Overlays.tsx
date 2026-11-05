@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { bridge } from "../car/bridge";
 import { carCommand, carEvent, dismissMessage, openThread, useNow, type EmulatorState } from "../car/store";
-import { PadKey } from "./PhoneApp";
+import { Contacts, PadKey } from "./PhoneApp";
 
 const TONE_KEYS: [string, string][] = [
   ["1", ""], ["2", "ABC"], ["3", "DEF"], ["4", "GHI"], ["5", "JKL"], ["6", "MNO"],
@@ -41,6 +41,10 @@ export function CallOverlay({ emulator }: { emulator: EmulatorState }) {
   const { car, call } = emulator;
   const now = useNow(null);
   const [tones, setTones] = useState<string | null>(null);
+  // a second number being typed, to place another call and then merge the two
+  const [adding, setAdding] = useState<string | null>(null);
+  const [addFrom, setAddFrom] = useState<"keypad" | "contacts">("keypad");
+  const suggestion = adding ? bridge.phoneSuggest(emulator.contacts, adding) : null;
   const ringing = car.call === "RINGING";
   const timer = call.since !== null ? bridge.callDuration(now.getTime() - call.since) : "";
   const status = ringing ? "Incoming call" : car.call === "OUTGOING" ? "Calling…" : call.held ? "On Hold" : timer;
@@ -60,6 +64,13 @@ export function CallOverlay({ emulator }: { emulator: EmulatorState }) {
       </div>
 
       <div className="call-side">
+        {/* adding a call: from the keypad or the phone book */}
+        {adding !== null && (
+          <div className="phone-tabs call-add-tabs" role="tablist" aria-label="Add a call from">
+            <button role="tab" aria-selected={addFrom === "keypad"} onClick={() => setAddFrom("keypad")}><span className="icon i-dots-nine-fill" aria-hidden="true" />Keypad</button>
+            <button role="tab" aria-selected={addFrom === "contacts"} onClick={() => setAddFrom("contacts")}><span className="icon i-user-circle-fill" aria-hidden="true" />Contacts</button>
+          </div>
+        )}
         {call.other?.waiting && <Waiting name={call.other.name} number={call.other.number} />}
         {ringing ? (
           <div className="call-answer">
@@ -71,7 +82,17 @@ export function CallOverlay({ emulator }: { emulator: EmulatorState }) {
             </button>
           </div>
         ) : (<>
-          {tones !== null ? (
+          {adding !== null && addFrom === "contacts" ? (
+            <div className="call-add-contacts">
+              <Contacts emulator={emulator} onDialed={() => setAdding(null)} />
+            </div>
+          ) : adding !== null ? (
+            <div className="call-tones">
+              <output className="call-tones-typed" aria-label="Number to add">{adding}</output>
+              <span className="phone-typed-match">{suggestion ? `${suggestion.name}${suggestion.label ? ` · ${suggestion.label}` : ""}` : "Add a call, then merge"}</span>
+              <div className="pad-grid is-compact">{TONE_KEYS.map(([d, l]) => <PadKey key={d} digit={d} letters={l} onPress={(k) => setAdding((t) => (t ?? "") + k)} />)}</div>
+            </div>
+          ) : tones !== null ? (
             <div className="call-tones">
               <output className="call-tones-typed" aria-label="Tones sent">{tones}</output>
               <div className="pad-grid is-compact">{TONE_KEYS.map(([d, l]) => <PadKey key={d} digit={d} letters={l} onPress={press} />)}</div>
@@ -84,15 +105,29 @@ export function CallOverlay({ emulator }: { emulator: EmulatorState }) {
               {onHold
                 ? <CallToggle icon="i-arrows-left-right" label="Swap" onPress={() => carCommand({ type: "Phone.Hold" })} />
                 : <CallToggle icon="i-pause-fill" label={call.held ? "Resume" : "Hold"} on={call.held} onPress={() => carCommand({ type: "Phone.Hold" })} />}
-              {onHold && <CallToggle icon="i-arrows-merge" label="Merge" onPress={() => carCommand({ type: "Phone.Merge" })} />}
+              {onHold
+                ? <CallToggle icon="i-arrows-merge" label="Merge" onPress={() => carCommand({ type: "Phone.Merge" })} />
+                // the current call goes on hold while the new one is placed; the two then merge into a conference
+                : !call.other && <CallToggle icon="i-user-plus-fill" label="Add Call" onPress={() => setAdding("")} />}
             </div>
           )}
+          {adding !== null ? (
+            <div className="call-end-row">
+              {addFrom === "contacts" ? <button className="call-pill" onClick={() => setAdding(null)}>Cancel</button> : (<>
+              <button className="call-hide is-left" onClick={() => setAdding(null)}>Cancel</button>
+              <button className="call-key is-accept" aria-label={suggestion ? `Call ${suggestion.name}` : "Call"} disabled={!adding} onClick={() => { carCommand({ type: "Phone.Dial", number: suggestion?.number ?? adding }); setAdding(null); }}>
+                <span className="icon i-phone-fill" aria-hidden="true" />
+              </button>
+              </>)}
+            </div>
+          ) : (
           <div className="call-end-row">
             {tones !== null && <button className="call-hide" onClick={() => setTones(null)}>Hide</button>}
             <button className="call-key is-decline" aria-label={call.conference ? "End conference" : "End call"} onClick={() => carCommand({ type: "Phone.HangUp" })}>
               <span className="icon i-phone-disconnect-fill" aria-hidden="true" />
             </button>
           </div>
+          )}
         </>)}
       </div>
     </section>

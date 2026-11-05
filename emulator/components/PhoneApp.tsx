@@ -87,12 +87,14 @@ function Recents({ emulator }: { emulator: EmulatorState }) {
   );
 }
 
-function Contacts({ emulator }: { emulator: EmulatorState }) {
+/** The phone book with a letter index; [onDialed] runs after a number is called (the call screen closes its picker). */
+export function Contacts({ emulator, onDialed }: { emulator: EmulatorState; onDialed?: () => void }) {
+  const call = (number: string) => { dial(number); onDialed?.(); };
   const sections = useMemo(() => bridge.phoneSections(emulator.contacts), [emulator.contacts]);
   const [open, setOpen] = useState<string | null>(null);
   const heads = useRef<Record<string, HTMLElement | null>>({});
   if (!sections.length) return <p className="phone-empty">Contacts from {emulator.device} show here once the phone shares them.</p>;
-  const pick = (c: Contact) => (c.numbers.length === 1 ? dial(c.numbers[0].number) : setOpen(open === c.name ? null : c.name));
+  const pick = (c: Contact) => (c.numbers.length === 1 ? call(c.numbers[0].number) : setOpen(open === c.name ? null : c.name));
   return (
     <div className="phone-contacts">
       <div className="phone-list" role="list" aria-label="Contacts">
@@ -107,7 +109,7 @@ function Contacts({ emulator }: { emulator: EmulatorState }) {
                   {c.numbers.length > 1 && <span className="phone-row-when">{c.numbers.length} numbers</span>}
                 </button>
                 {open === c.name && c.numbers.map((n) => (
-                  <button key={n.number} className="phone-number" aria-label={`Call ${c.name}, ${n.label || n.number}`} onClick={() => dial(n.number)}>
+                  <button key={n.number} className="phone-number" aria-label={`Call ${c.name}, ${n.label || n.number}`} onClick={() => call(n.number)}>
                     <span className="icon i-phone-fill" aria-hidden="true" />
                     <span className="phone-row-sub">{n.label}</span>
                     <span className="phone-number-digits">{n.number}</span>
@@ -150,7 +152,8 @@ function Keypad({ emulator }: { emulator: EmulatorState }) {
   const [typed, setTyped] = useState("");
   const match = useMemo(() => bridge.phoneSuggest(emulator.contacts, typed), [emulator.contacts, typed]);
   // the call key with nothing typed has the phone call its own last number (HFP redial)
-  const call = () => { if (typed) { dial(typed); setTyped(""); } else carCommand({ type: "Phone.Redial" }); };
+  // the key says whom it calls: the suggested contact's number when there is one, else the digits as typed
+  const call = () => { if (typed) { dial(match?.number ?? typed); setTyped(""); } else carCommand({ type: "Phone.Redial" }); };
   return (
     <div className="phone-pad">
       <div className="phone-typed" aria-live="polite">

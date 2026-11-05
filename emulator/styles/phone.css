@@ -26,6 +26,8 @@
 .i-microphone-fill { --m: url(/icons/microphone-fill.svg); }
 .i-chat-circle-text-fill { --m: url(/icons/chat-circle-text-fill.svg); }
 .i-users-fill { --m: url(/icons/users-fill.svg); }
+.i-user-plus-fill { --m: url(/icons/user-plus-fill.svg); }
+.call-hide.is-left { left: auto; right: calc(50% + 72px); }
 
 
 .phone-app { background: var(--phone-ground); }
@@ -202,3 +204,8 @@
 @media (prefers-reduced-motion: reduce) {
   .voice-mic, .message-banner, .call-waiting { animation: none; }
 }
+
+/* adding a call from the phone book: the list fills the call screen's right side */
+.call-add-tabs { align-self: center; }
+.call-add-contacts { width: 100%; height: 400px; min-height: 0; }
+.call-add-contacts .phone-letter { background: #111419; }
