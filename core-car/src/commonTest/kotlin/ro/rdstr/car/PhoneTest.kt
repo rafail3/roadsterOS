@@ -79,16 +79,57 @@ class PhoneTest {
         assertEquals("1:02:03", PhoneBook.duration(3_723_000))
     }
 
+    private fun hfp(id: Int, state: Int, number: String, multiparty: Boolean = false) = Hfp.HfpCall(id, state, number, multiparty)
+
     @Test
-    fun `hfp call states fold into one call state, an incoming call first`() {
-        assertEquals(State.IDLE, Hfp.state(emptyList()))
-        assertEquals(State.IDLE, Hfp.state(listOf(Hfp.TERMINATED)))
-        assertEquals(State.OUTGOING, Hfp.state(listOf(Hfp.DIALING)))
-        assertEquals(State.OUTGOING, Hfp.state(listOf(Hfp.ALERTING)))
-        assertEquals(State.RINGING, Hfp.state(listOf(Hfp.INCOMING)))
-        assertEquals(State.ACTIVE, Hfp.state(listOf(Hfp.ACTIVE, Hfp.WAITING)))
-        assertEquals(State.ACTIVE, Hfp.state(listOf(Hfp.HELD)))
-        assertEquals(State.RINGING, Hfp.state(listOf(Hfp.TERMINATED, Hfp.INCOMING)))
+    fun `one call at a time reads as its own state`() {
+        assertEquals(CarEvent.Call(State.IDLE), Hfp.call(emptyList()))
+        assertEquals(CarEvent.Call(State.IDLE), Hfp.call(listOf(hfp(1, Hfp.TERMINATED, "112"))))
+        assertEquals(CarEvent.Call(State.RINGING, "0721"), Hfp.call(listOf(hfp(1, Hfp.INCOMING, "0721"))))
+        assertEquals(CarEvent.Call(State.OUTGOING, "0721"), Hfp.call(listOf(hfp(1, Hfp.DIALING, "0721"))))
+        assertEquals(CarEvent.Call(State.OUTGOING, "0721"), Hfp.call(listOf(hfp(1, Hfp.ALERTING, "0721"))))
+        assertEquals(CarEvent.Call(State.ACTIVE, "0721"), Hfp.call(listOf(hfp(1, Hfp.ACTIVE, "0721"))))
+        assertEquals(CarEvent.Call(State.ACTIVE, "0721", held = true), Hfp.call(listOf(hfp(1, Hfp.HELD, "0721"))))
+    }
+
+    @Test
+    fun `a second call shows as waiting or on hold beside the one talked`() {
+        val waiting = Hfp.call(listOf(hfp(1, Hfp.ACTIVE, "0721"), hfp(2, Hfp.WAITING, "0744")))
+        assertEquals(CarEvent.Call(State.ACTIVE, "0721", other = CarEvent.Call.Other("0744", waiting = true)), waiting)
+        val swapped = Hfp.call(listOf(hfp(1, Hfp.HELD, "0721"), hfp(2, Hfp.ACTIVE, "0744")))
+        assertEquals(CarEvent.Call(State.ACTIVE, "0744", other = CarEvent.Call.Other("0721", waiting = false)), swapped)
+        // a call placed while another waits on hold
+        val placing = Hfp.call(listOf(hfp(1, Hfp.HELD, "0721"), hfp(2, Hfp.DIALING, "112")))
+        assertEquals(CarEvent.Call(State.OUTGOING, "112", other = CarEvent.Call.Other("0721", waiting = false)), placing)
+    }
+
+    @Test
+    fun `merged calls read as one conference`() {
+        val merged = Hfp.call(listOf(hfp(1, Hfp.ACTIVE, "0721", multiparty = true), hfp(2, Hfp.ACTIVE, "0744", multiparty = true)))
+        assertEquals(CarEvent.Call(State.ACTIVE, "0721", conference = true), merged)
+    }
+
+    @Test
+    fun `messages group by number, newest first, with unread counts and names from the book`() {
+        val m = listOf(
+            CarEvent.Message("a", "+40 721 111 222", "On my way", atMs = 10),
+            CarEvent.Message("b", "0799000000", "Your parcel", name = "Courier", atMs = 30),
+            CarEvent.Message("c", "0721111222", "Here", atMs = 40),
+            CarEvent.Message("d", "0721111222", "OK", atMs = 50, sent = true),
+        )
+        val threads = Messages.conversations(m, read = setOf("a"), contacts = book)
+        assertEquals(listOf("Ana Petrescu", "Courier"), threads.map { it.name })
+        assertEquals(listOf(1, 1), threads.map { it.unread })
+        assertEquals("OK", threads[0].last)
+        assertEquals(listOf("a", "c", "d"), threads[0].messages.map { it.id })
+        assertTrue(Messages.QUICK_REPLIES.isNotEmpty())
+    }
+
+    @Test
+    fun `voice assistant and messages leave the call rules alone`() {
+        val s = RulesState(call = State.ACTIVE)
+        assertEquals(s to emptyList(), Rules.apply(s, CarEvent.VoiceAssistant(true)))
+        assertEquals(s to emptyList(), Rules.apply(s, CarEvent.Message("x", "0721", "hi")))
     }
 
     @Test
@@ -126,6 +167,8 @@ class PhoneTest {
     @Test
     fun `the car answers a dial and an audio switch`() {
         assertEquals(CarEvent.Call(State.OUTGOING, "112"), CarEcho.respond(CarCommand.Phone.Dial("112")))
+        assertEquals(CarEvent.Call(State.OUTGOING), CarEcho.respond(CarCommand.Phone.Redial))
+        assertEquals(CarEvent.VoiceAssistant(true), CarEcho.respond(CarCommand.Phone.VoiceAssistant(true)))
         assertEquals(CarEvent.CallAudio(false), CarEcho.respond(CarCommand.Phone.AudioInCar(false)))
     }
 }

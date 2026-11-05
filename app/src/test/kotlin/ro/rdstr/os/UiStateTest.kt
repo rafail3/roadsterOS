@@ -48,6 +48,20 @@ class UiStateTest {
     }
 
     @Test
+    fun `a second call is named too, and messages and the assistant are kept`() {
+        val book = listOf(ro.rdstr.car.Contact("Ana", listOf(ro.rdstr.car.PhoneNumber("0721 111 222"))))
+        val call = CarEvent.Call(CarEvent.Call.State.ACTIVE, "0799", other = CarEvent.Call.Other("+40721111222", waiting = true))
+        var ui = UiState(contacts = book).reduce(RulesState(), listOf(Action.ShowCall(call)), call)
+        assertEquals("Ana", ui.call?.other?.name)
+        ui = ui.reduce(RulesState(), emptyList(), CarEvent.VoiceAssistant(true))
+        assertTrue(ui.voiceAssistant)
+        ui = ui.reduce(RulesState(), emptyList(), CarEvent.Message("m", "0721", "hi"))
+        ui = ui.reduce(RulesState(), emptyList(), CarEvent.Message("s", "0721", "OK", sent = true))
+        assertEquals(2, ui.messages.size)
+        assertEquals(setOf("s"), ui.read)
+    }
+
+    @Test
     fun `night action sets night`() {
         val ui = UiState().reduce(RulesState(night = true), listOf(Action.Night(true)), CarEvent.Illumination(true))
         assertTrue(ui.night)

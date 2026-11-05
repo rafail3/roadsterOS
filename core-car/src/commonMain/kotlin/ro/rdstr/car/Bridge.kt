@@ -7,6 +7,9 @@ import kotlinx.serialization.json.Json
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 
+@Serializable
+private data class HfpCallJson(val id: Int, val state: Int, val number: String, val multiparty: Boolean = false)
+
 /** One rules step: the state after an event and the actions it produced. */
 @Serializable
 data class Step(val state: RulesState, val actions: List<Action>)
@@ -155,6 +158,24 @@ object Bridge {
     private fun matchJson(m: PhoneBook.Match?): String = if (m == null) "null" else json.encodeToString(PhoneBook.Match.serializer(), m)
 
     fun initials(name: String): String = PhoneBook.initials(name)
+
+    /** [calls]: a JSON array of {"id","state","number","multiparty"} as the phone reports them; answers the Call event. */
+    fun hfpCall(calls: String): String {
+        val list = json.decodeFromString(ListSerializer(HfpCallJson.serializer()), calls).map { Hfp.HfpCall(it.id, it.state, it.number, it.multiparty) }
+        return Journal.encodeEvent(Hfp.call(list))
+    }
+
+    /** [messages]: Message events; [read]: ids already read; answers the conversations. */
+    fun conversations(messages: String, read: String, book: String): String = json.encodeToString(
+        ListSerializer(Conversation.serializer()),
+        Messages.conversations(
+            json.decodeFromString(ListSerializer(CarEvent.Message.serializer()), messages),
+            json.decodeFromString(ListSerializer(String.serializer()), read).toSet(),
+            json.decodeFromString(contacts, book),
+        ),
+    )
+
+    fun quickReplies(): String = json.encodeToString(ListSerializer(String.serializer()), Messages.QUICK_REPLIES)
 
     fun callDuration(ms: Double): String = PhoneBook.duration(ms.toLong())
 

@@ -9,6 +9,8 @@ object CarEcho {
         CarCommand.Phone.HangUp -> CarEvent.Call(CarEvent.Call.State.IDLE)
         is CarCommand.Phone.Dial -> CarEvent.Call(CarEvent.Call.State.OUTGOING, command.number)
         is CarCommand.Phone.AudioInCar -> CarEvent.CallAudio(command.on)
+        CarCommand.Phone.Redial -> CarEvent.Call(CarEvent.Call.State.OUTGOING)
+        is CarCommand.Phone.VoiceAssistant -> CarEvent.VoiceAssistant(command.on)
         else -> null
     }
 }
