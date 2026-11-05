@@ -7,6 +7,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import ro.rdstr.car.Action
 import ro.rdstr.car.CarBus
@@ -14,16 +16,19 @@ import ro.rdstr.car.CarCommand
 import ro.rdstr.car.CarEvent
 import ro.rdstr.car.Rules
 import ro.rdstr.car.RulesState
+import ro.rdstr.os.cover.Cover
+import ro.rdstr.os.cover.CoverDesk
 
 data class UiState(
     val state: RulesState = RulesState(),
     val camera: Boolean = false,
     val call: CarEvent.Call? = null,
     val night: Boolean = false,
+    val track: CarEvent.Track? = null,
     val lastEvent: String = "",
 ) {
     fun reduce(state: RulesState, actions: List<Action>, event: CarEvent): UiState {
-        var ui = copy(state = state, lastEvent = event.toString())
+        var ui = copy(state = state, lastEvent = event.toString(), track = event as? CarEvent.Track ?: track)
         for (a in actions) ui = when (a) {
             Action.ShowCamera -> ui.copy(camera = true)
             Action.HideCamera -> ui.copy(camera = false)
@@ -43,11 +48,19 @@ object CarRuntime {
     private val _ui = MutableStateFlow(UiState())
     val ui: StateFlow<UiState> = _ui
     private var started = false
+    private var covers: CoverDesk? = null
+    private val noCover = MutableStateFlow<Cover?>(null)
+
+    /** The cover of the playing Bluetooth track, ready before any screen asks for it. */
+    val cover: StateFlow<Cover?> get() = covers?.cover ?: noCover
 
     fun start(context: Context) {
         if (started) return
         started = true
         val prefs = context.getSharedPreferences("rdstr", Context.MODE_PRIVATE)
+        covers = CoverDesk.create(context.applicationContext, scope).also { desk ->
+            desk.follow(ui.map { it.track }.distinctUntilChanged())
+        }
         scope.launch {
             bus.events.collect { event ->
                 val (next, actions) = Rules.apply(_ui.value.state, event)

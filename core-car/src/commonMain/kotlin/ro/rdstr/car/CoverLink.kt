@@ -93,10 +93,12 @@ object TrackMatch {
         'ñ' to 'n', 'ç' to 'c',
     )
     private val EXTRAS = Regex("""\(.*?\)|\[.*?\]""")
-    private val SEPARATORS = Regex("[^a-z0-9]+")
+    private val SPACES = Regex(" +")
 
+    /** Lowercase, accents folded, extras in brackets dropped, punctuation turned into single spaces; any script. */
     fun fold(s: String): String =
-        s.lowercase().map { FOLD[it] ?: it }.joinToString("").replace(EXTRAS, "").replace(SEPARATORS, " ").trim()
+        s.lowercase().replace(EXTRAS, "").map { c -> FOLD[c] ?: if (c.isLetterOrDigit()) c else ' ' }
+            .joinToString("").replace(SPACES, " ").trim()
 
     fun same(title: String, artist: String, otherTitle: String, otherArtist: String): Boolean {
         val t = fold(title); val ot = fold(otherTitle)
