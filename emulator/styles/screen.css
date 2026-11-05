@@ -319,7 +319,9 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .screen-off.is-on { opacity: 1; pointer-events: auto; transition: opacity 240ms cubic-bezier(0.4, 0, 1, 1); }
 .screen-off.is-lifting { animation: screen-lift 520ms var(--ease-out); }
 @keyframes screen-lift { from { opacity: 1; } }
-.screen.waking > :is(.bar, .rail, .field, .panel, .music-app.is-open) { animation: wake-zoom 650ms var(--ease-out); }
+.screen.waking > :is(.bar, .rail, .field, .panel) { animation: wake-zoom 650ms var(--ease-out); }
+/* an open app keeps its opening animation in the list, so it is not counted as new and replayed once the wake ends */
+.screen.waking > .music-app.is-open { animation: music-in 420ms var(--sheet-in), wake-zoom 650ms var(--ease-out); }
 @keyframes wake-zoom { from { transform: scale(1.06); } }
 @media (prefers-reduced-motion: reduce) {
   .screen-off, .screen-off.is-on { transition-duration: 0.01ms; }
