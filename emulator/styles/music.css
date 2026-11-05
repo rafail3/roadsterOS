@@ -275,7 +275,7 @@
 .wifi-bars { width: 24px; height: 24px; }
 .device-icon .wifi-bars { width: 36px; height: 36px; }
 .devices-panel { transition: transform 420ms var(--sheet-in), opacity 260ms var(--seamless), bottom 300ms var(--sheet-in); }
-.devices-panel.has-keyboard { bottom: 324px; }
+.devices-panel.has-keyboard { bottom: 396px; }
 .wifi-join { display: flex; flex-direction: column; gap: 10px; animation: media-fade 220ms var(--seamless) backwards; }
 .wifi-join h3 { margin: 0; font-size: 24px; font-weight: 600; }
 .wifi-join > p { margin: 0 0 6px; font-size: 16px; color: rgba(255, 255, 255, 0.62); }
@@ -293,6 +293,8 @@
 .keyboard { position: absolute; left: 0; right: 0; bottom: 0; z-index: 8; display: flex; flex-direction: column; gap: 12px; padding: 12px 8px 16px; background: #1d1d20; transform: translateY(100%); transition: transform 300ms var(--sheet-in); }
 .keyboard.is-open { transform: none; }
 .kb-row { display: flex; gap: 10px; }
+.kb-row-digits .kb-key { height: 52px; font-size: 24px; }
+.kb-spacer { visibility: hidden; }
 .kb-row-inset { padding: 0 4.6%; }
 .kb-row-keys { flex: 7.4; display: flex; gap: 10px; margin: 0 4%; }
 .kb-key { position: relative; flex: 1; height: 60px; display: grid; place-items: center; border-radius: 10px; background: #505055; color: #fff; font-size: 26px; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5); user-select: none; }

@@ -1,11 +1,11 @@
 import { useRef, useState } from "react";
 import { holdToRepeat } from "./controls";
 
-// the three layers a phone keyboard has; the last row of each changes with the layer
+// digits stay on top of both layers, so a password with numbers never needs a layer switch
+const DIGITS = "1234567890";
 const LETTERS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
-const NUMBERS = ["1234567890", "-/:;()$&@\"", ".,?!'"];
-const SYMBOLS = ["[]{}#%^*+=", "_\\|~<>€£¥•", ".,?!'"];
-type Layer = "letters" | "numbers" | "symbols";
+const SYMBOLS = ["-/:;()$&@\"", "[]{}#%^*+=", ".,?!'_~"];
+type Layer = "letters" | "symbols";
 /** Two Shift taps this close lock capitals on. */
 const CAPS_LOCK_MS = 350;
 
@@ -37,7 +37,7 @@ export function Keyboard({ open, onKey, onBackspace, onSubmit, submitLabel, subm
   const [layer, setLayer] = useState<Layer>("letters");
   const [shift, setShift] = useState<"off" | "once" | "lock">("off");
   const lastShift = useRef(0);
-  const rows = layer === "letters" ? LETTERS : layer === "numbers" ? NUMBERS : SYMBOLS;
+  const rows = layer === "letters" ? LETTERS : SYMBOLS;
 
   const type = (c: string) => {
     onKey(layer === "letters" && shift !== "off" ? c.toUpperCase() : c);
@@ -54,15 +54,17 @@ export function Keyboard({ open, onKey, onBackspace, onSubmit, submitLabel, subm
 
   return (
     <div className={`keyboard${open ? " is-open" : ""}`} aria-hidden={!open} inert={!open} role="group" aria-label="Keyboard">
+      <div className="kb-row kb-row-digits">{[...DIGITS].map((c) => <Key key={c} char={c} onPress={onKey} />)}</div>
       <div className="kb-row">{[...rows[0]].map((c) => <Key key={c} char={shown(c)} onPress={type} />)}</div>
-      <div className="kb-row kb-row-inset">{[...rows[1]].map((c) => <Key key={c} char={shown(c)} onPress={type} />)}</div>
+      <div className={`kb-row${layer === "letters" ? " kb-row-inset" : ""}`}>{[...rows[1]].map((c) => <Key key={c} char={shown(c)} onPress={type} />)}</div>
       <div className="kb-row">
         {layer === "letters" ? (
           <button type="button" className={`kb-key kb-fn${shift !== "off" ? " is-on" : ""}${shift === "lock" ? " is-locked" : ""}`} aria-label={shift === "lock" ? "Caps lock on" : "Shift"} aria-pressed={shift !== "off"} onClick={pressShift}>
             <span className="icon i-arrow-fat-up" aria-hidden="true" />
           </button>
         ) : (
-          <button type="button" className="kb-key kb-fn" onClick={() => setLayer(layer === "numbers" ? "symbols" : "numbers")}>{layer === "numbers" ? "#+=" : "123"}</button>
+          // the symbols layer has no Shift; the slot stays so the row keeps its shape
+          <span className="kb-key kb-fn kb-spacer" aria-hidden="true" />
         )}
         <div className="kb-row-keys">{[...rows[2]].map((c) => <Key key={c} char={shown(c)} onPress={type} wide={layer !== "letters"} />)}</div>
         <button type="button" className="kb-key kb-fn" aria-label="Delete" {...holdToRepeat(onBackspace)}>
@@ -70,7 +72,7 @@ export function Keyboard({ open, onKey, onBackspace, onSubmit, submitLabel, subm
         </button>
       </div>
       <div className="kb-row">
-        <button type="button" className="kb-key kb-fn kb-layer" onClick={() => setLayer(layer === "letters" ? "numbers" : "letters")}>{layer === "letters" ? "123" : "ABC"}</button>
+        <button type="button" className="kb-key kb-fn kb-layer" onClick={() => setLayer(layer === "letters" ? "symbols" : "letters")}>{layer === "letters" ? "#+=" : "ABC"}</button>
         <button type="button" className="kb-key kb-space" onClick={() => onKey(" ")}>space</button>
         <button type="button" className="kb-key kb-fn kb-submit" disabled={!submitEnabled} onClick={onSubmit}>{submitLabel}</button>
       </div>
