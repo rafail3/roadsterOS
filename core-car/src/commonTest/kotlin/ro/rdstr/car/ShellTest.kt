@@ -64,6 +64,33 @@ class ShellTest {
     }
 
     @Test
+    fun `the devices sheet opens over the music app and back closes it first`() {
+        val music = Shell.reduce(ShellState(), ShellAction.OpenApp(App.MUSIC))
+        val sheet = Shell.reduce(music, ShellAction.OpenDevices)
+        assertTrue(sheet.devices)
+        val once = Shell.reduce(sheet, ShellAction.Back)
+        assertFalse(once.devices)
+        assertEquals(App.MUSIC, once.app)
+        assertEquals(App.HOME, Shell.reduce(once, ShellAction.Back).app)
+    }
+
+    @Test
+    fun `back closes the drawer before the devices sheet`() {
+        val both = ShellState(app = App.MUSIC, devices = true, drawer = true)
+        val once = Shell.reduce(both, ShellAction.Back)
+        assertFalse(once.drawer)
+        assertTrue(once.devices)
+    }
+
+    @Test
+    fun `home, another app or close shut the devices sheet`() {
+        val sheet = ShellState(app = App.MUSIC, devices = true)
+        assertFalse(Shell.reduce(sheet, ShellAction.Home).devices)
+        assertFalse(Shell.reduce(sheet, ShellAction.CloseDevices).devices)
+        assertFalse(Shell.reduce(sheet, ShellAction.OpenApp(App.HOME)).devices)
+    }
+
+    @Test
     fun `home and back close the drawer`() {
         assertFalse(Shell.reduce(ShellState(drawer = true), ShellAction.Home).drawer)
         assertFalse(Shell.reduce(ShellState(drawer = true), ShellAction.Back).drawer)

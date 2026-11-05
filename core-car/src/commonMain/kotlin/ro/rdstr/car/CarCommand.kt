@@ -33,6 +33,13 @@ sealed class CarCommand {
         @Serializable @SerialName("Phone.Mute") data class Mute(val on: Boolean) : Phone()
     }
 
+    /** Saved phones: connect one by its name as the unit lists it, or drop the current one. */
+    @Serializable
+    sealed class Bluetooth : CarCommand() {
+        @Serializable @SerialName("Bt.Connect") data class Connect(val device: String) : Bluetooth()
+        @Serializable @SerialName("Bt.Disconnect") data object Disconnect : Bluetooth()
+    }
+
     @Serializable
     sealed class Audio : CarCommand() {
         /** Relative step: +1 / -1. */
