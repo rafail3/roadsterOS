@@ -3,6 +3,8 @@
     <!-- Bluetooth: the legacy pair up to Android 11, the runtime permission from Android 12 -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <!-- large covers from the online music catalogs -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <!-- the music apps, to show the name of the one playing -->

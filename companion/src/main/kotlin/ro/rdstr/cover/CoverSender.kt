@@ -13,6 +13,8 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.os.Build
 import android.os.SystemClock
+import ro.rdstr.car.CoverCatalog
+import ro.rdstr.car.CoverFetch
 import ro.rdstr.car.CoverFrame
 import ro.rdstr.car.CoverLink
 import java.io.ByteArrayOutputStream
@@ -32,6 +34,10 @@ class CoverSender(private val context: Context) {
     private val refusedAt = HashMap<String, Long>()
     @Volatile private var a2dp: BluetoothA2dp? = null
     @Volatile private var latest: CoverFrame? = null
+    // large catalog covers already looked up, a miss kept as null so it is not asked again
+    private val catalog = object : LinkedHashMap<String, ByteArray?>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ByteArray?>) = size > CATALOG_KEPT
+    }
 
     init {
         adapter?.getProfileProxy(context, object : BluetoothProfile.ServiceListener {
@@ -40,15 +46,29 @@ class CoverSender(private val context: Context) {
         }, BluetoothProfile.A2DP)
     }
 
-    /** Shrinks and encodes the artwork off the main thread, then sends it. */
+    /**
+     * Encodes the artwork off the main thread and sends it. A small artwork is followed by the 1000 px cover of the
+     * same track from the online catalogs, when the phone has internet; the car shows whichever came last.
+     */
     // the encoding below runs on [worker], which lint cannot follow through the executor
     @SuppressLint("ThreadConstraint")
     fun send(title: String, artist: String, art: Bitmap) {
         worker.execute {
-            val frame = CoverFrame(title, artist, jpeg(art))
+            val key = "$title|$artist"
+            val known = catalog[key]
+            val frame = CoverFrame(title, artist, known ?: jpeg(art))
             Status.cover(context, frame.jpeg)
             latest = frame
             deliver(frame)
+            if (known != null || maxOf(art.width, art.height) >= CoverCatalog.SHARP_PX || catalog.containsKey(key)) return@execute
+            val large = CoverFetch.large(title, artist)
+            catalog[key] = large
+            // the song may have changed during the lookup
+            if (large == null || latest !== frame) return@execute
+            val better = CoverFrame(title, artist, large)
+            Status.cover(context, large)
+            latest = better
+            deliver(better)
         }
     }
 
@@ -125,5 +145,6 @@ class CoverSender(private val context: Context) {
         /** The same size as the large covers from the online catalogs: about 120 to 200 KB, about a second over Bluetooth. */
         const val COVER_PX = 1000
         const val JPEG_QUALITY = 90
+        const val CATALOG_KEPT = 30
     }
 }
