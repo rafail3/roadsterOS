@@ -4,7 +4,7 @@ import { carCommand, carEvent, setVolume, shellAction, type EmulatorState } from
 import { useMuteFill } from "./VolumeHud";
 
 const THEME_LABEL = { AUTO: "Auto", LIGHT: "Day", DARK: "Night" };
-const THEME_ICON = { AUTO: "i-circle-half", LIGHT: "i-sun", DARK: "i-moon" };
+const THEME_ICON = { AUTO: "i-circle-half", LIGHT: "i-sun-fill", DARK: "i-moon-fill" };
 /** A press that moves less than this stays a tap, so the handle keeps working as a button. */
 const DRAG_THRESHOLD = 6;
 
@@ -106,15 +106,15 @@ export function Drawer({ emulator, panel, dragging }: { emulator: EmulatorState;
       inert={!open && !dragging}
     >
       <div className="drawer-grid">
-        <button className={`toggle${car.btConnected ? " is-on" : ""}`} aria-pressed={car.btConnected} onClick={() => carEvent({ type: "BtConnection", connected: !car.btConnected, device: "Phone" })}>
-          <span className="icon i-bluetooth" /><span>Bluetooth</span>
+        <button className={`toggle toggle-bt${car.btConnected ? " is-on" : ""}`} aria-label="Bluetooth" aria-pressed={car.btConnected} onClick={() => carEvent({ type: "BtConnection", connected: !car.btConnected, device: "Phone" })}>
+          <span className="icon i-bluetooth" aria-hidden="true" />
         </button>
-        <button className="toggle is-on" aria-pressed="true"><span className="icon i-wifi-high" /><span>Wi-Fi</span></button>
-        <button className={`toggle${car.muted ? " is-on" : ""}`} aria-pressed={car.muted} onClick={() => carCommand({ type: "Audio.Mute", on: !car.muted })}>
-          <span className="icon i-speaker-slash" /><span>Mute</span>
+        <button className="toggle toggle-wifi is-on" aria-label="Wi-Fi" aria-pressed="true"><span className="icon i-wifi-high" aria-hidden="true" /></button>
+        <button className={`toggle toggle-mute${car.muted ? " is-on" : ""}`} aria-label="Mute" aria-pressed={car.muted} onClick={() => carCommand({ type: "Audio.Mute", on: !car.muted })}>
+          <span className="icon i-speaker-slash-fill" aria-hidden="true" />
         </button>
-        <button className={`toggle${shell.theme === "AUTO" ? " is-on" : ""}`} aria-label={`Theme: ${THEME_LABEL[shell.theme]}, tap to change`} onClick={() => shellAction({ type: "CycleTheme" })}>
-          <span className={`icon ${THEME_ICON[shell.theme]}`} /><span>{THEME_LABEL[shell.theme]}</span>
+        <button className={`toggle toggle-theme${shell.theme === "AUTO" ? " is-on" : ""}`} aria-label={`Theme: ${THEME_LABEL[shell.theme]}, tap to change`} onClick={() => shellAction({ type: "CycleTheme" })}>
+          <span className={`icon ${THEME_ICON[shell.theme]}`} aria-hidden="true" />
         </button>
       </div>
       <PillSlider
