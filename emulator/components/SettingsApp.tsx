@@ -4,7 +4,7 @@ import { removePack, setBluetooth, setLocation, setVolume, setWifi, shellAction,
 import { PillSlider } from "./Drawer";
 import { useCloseOntoCard } from "./media";
 
-type Page = "wifi" | "bluetooth" | "location" | "display" | "sound" | "maps" | "about";
+type Page = "wifi" | "bluetooth" | "location" | "display" | "sound" | "phone" | "maps" | "about";
 
 /** The level a start is capped at when the limit is first switched on. */
 const START_VOLUME_DEFAULT = 12;
@@ -144,6 +144,15 @@ function Sound({ e }: { e: EmulatorState }) {
   </>);
 }
 
+function Phone({ e }: { e: EmulatorState }) {
+  const on = e.shell.lockTypingWhileMoving;
+  return (
+    <Group title="Messages" footer="With this on, a message can be typed only while the car stands. Quick replies and calls work either way.">
+      <Row label="Block Typing While Driving"><Switch label="Block Typing While Driving" on={on} onChange={(v) => shellAction({ type: "SetTypingLock", on: v })} /></Row>
+    </Group>
+  );
+}
+
 function Maps({ e }: { e: EmulatorState }) {
   const { installed, downloading } = e.maps;
   const [confirm, setConfirm] = useState<string | null>(null);
@@ -192,6 +201,7 @@ const PAGES: { id: Page; label: string; icon: string; tint: string }[] = [
   { id: "location", label: "Location", icon: "i-navigation-arrow-fill", tint: "#0a84ff" },
   { id: "display", label: "Display", icon: "i-sun-fill", tint: "#5e5ce6" },
   { id: "sound", label: "Sound", icon: "i-speaker-high-fill", tint: "#ff375f" },
+  { id: "phone", label: "Phone", icon: "i-phone-fill", tint: "#17d847" },
   { id: "maps", label: "Maps", icon: "i-map-trifold-fill", tint: "#30d158" },
   { id: "about", label: "About", icon: "i-info-fill", tint: "#8e8e93" },
 ];
@@ -236,6 +246,7 @@ export function SettingsApp({ open }: { open: boolean }) {
         {page === "location" && <Location e={e} />}
         {page === "display" && <Display e={e} />}
         {page === "sound" && <Sound e={e} />}
+        {page === "phone" && <Phone e={e} />}
         {page === "maps" && <Maps e={e} />}
         {page === "about" && <About />}
       </div>
