@@ -53,7 +53,9 @@ export type CarEvent =
   | { type: "BtConnection"; connected: boolean; device?: string }
   | { type: "Track"; title: string; artist?: string; album?: string; durationMs?: number }
   | { type: "Playback"; playing: boolean; positionMs?: number }
-  | { type: "Call"; state: CallState; number?: string; name?: string }
+  | { type: "Call"; state: CallState; number?: string; name?: string; held?: boolean; conference?: boolean; other?: OtherCall | null }
+  | { type: "VoiceAssistant"; active: boolean }
+  | ({ type: "Message" } & Message)
   | { type: "HfpConnection"; connected: boolean; device?: string }
   | { type: "CallAudio"; inCar: boolean }
   | { type: "PhoneStatus"; battery?: number; signal?: number; operator?: string; roaming?: boolean }
@@ -73,6 +75,10 @@ export type CarCommand =
   | { type: "Phone.Dial"; number: string }
   | { type: "Phone.Dtmf"; digit: string }
   | { type: "Phone.AudioInCar"; on: boolean }
+  | { type: "Phone.Redial" | "Phone.Hold" | "Phone.Merge" | "Phone.DeclineWaiting" }
+  | { type: "Phone.AnswerWaiting"; keepCurrent: boolean }
+  | { type: "Phone.VoiceAssistant"; on: boolean }
+  | { type: "Phone.SendMessage"; number: string; text: string }
   | { type: "Audio.Mute"; on: boolean }
   | { type: "Audio.Volume"; delta: number }
   | { type: "Audio.Source"; source: Source }
@@ -101,6 +107,13 @@ export interface CallRecord { number: string; name: string; type: CallType; atMs
 export interface RecentRow { number: string; name: string; label: string; type: CallType; atMs: number; count: number }
 export interface PhoneMatch { name: string; number: string; label: string }
 export type PhoneScreen = "BT_OFF" | "CONNECT" | "READY";
+/** A second call beside the one on screen: ringing (waiting) or on hold. */
+export interface OtherCall { number: string; name?: string; waiting: boolean }
+export interface Message { id: string; number: string; text: string; name?: string; atMs?: number; sent?: boolean }
+export interface Conversation { number: string; name: string; last: string; atMs: number; unread: number; messages: Message[] }
+/** One call as the phone lists it over HFP; states are the Hfp constants of core-car. */
+export interface HfpCall { id: number; state: number; number: string; multiparty?: boolean }
+export const HFP = { ACTIVE: 0, HELD: 1, DIALING: 2, ALERTING: 3, INCOMING: 4, WAITING: 5 } as const;
 
 export interface RuleAction {
   type: string;
@@ -143,6 +156,9 @@ interface Kotlin {
       phoneSuggest(book: string, typed: string): string;
       phoneFind(book: string, number: string): string;
       initials(name: string): string;
+      hfpCall(calls: string): string;
+      conversations(messages: string, read: string, book: string): string;
+      quickReplies(): string;
       callDuration(ms: number): string;
     };
 }
@@ -210,5 +226,10 @@ export const bridge = {
   /** The contact a caller's number belongs to; the phone sends only the number. */
   phoneFind: (book: Contact[], number: string): PhoneMatch | null => JSON.parse(K!.Bridge.phoneFind(JSON.stringify(book), number)),
   initials: (name: string) => K!.Bridge.initials(name),
+  /** The phone's call list folded into the one call the screen shows, as on the unit (core-car Hfp.call). */
+  hfpCall: (calls: HfpCall[]): CarEvent => JSON.parse(K!.Bridge.hfpCall(JSON.stringify(calls))),
+  conversations: (messages: Message[], read: string[], book: Contact[]): Conversation[] =>
+    JSON.parse(K!.Bridge.conversations(JSON.stringify(messages), JSON.stringify(read), JSON.stringify(book))),
+  quickReplies: (): string[] => JSON.parse(K!.Bridge.quickReplies()),
   callDuration: (ms: number) => K!.Bridge.callDuration(ms),
 };

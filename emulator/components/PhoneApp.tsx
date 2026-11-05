@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { bridge, type CallType, type Contact } from "../car/bridge";
-import { carCommand, shellAction, turnOnBluetooth, useEmulator, useNow, type EmulatorState } from "../car/store";
+import { carCommand, markRead, openThread, shellAction, turnOnBluetooth, useEmulator, useNow, type EmulatorState } from "../car/store";
 import { holdToRepeat } from "./controls";
 import { useCloseOntoCard } from "./media";
 import { NoPhone } from "./MusicApp";
@@ -149,9 +149,8 @@ export function PadKey({ digit, letters, onPress }: { digit: string; letters: st
 function Keypad({ emulator }: { emulator: EmulatorState }) {
   const [typed, setTyped] = useState("");
   const match = useMemo(() => bridge.phoneSuggest(emulator.contacts, typed), [emulator.contacts, typed]);
-  // the call key with nothing typed brings back the number called last, as phones do
-  const last = emulator.calls.find((c) => c.type === "OUTGOING")?.number ?? "";
-  const call = () => { if (typed) { dial(typed); setTyped(""); } else setTyped(last); };
+  // the call key with nothing typed has the phone call its own last number (HFP redial)
+  const call = () => { if (typed) { dial(typed); setTyped(""); } else carCommand({ type: "Phone.Redial" }); };
   return (
     <div className="phone-pad">
       <div className="phone-typed" aria-live="polite">
@@ -162,13 +161,67 @@ function Keypad({ emulator }: { emulator: EmulatorState }) {
         {KEYS.map(([d, l]) => <PadKey key={d} digit={d} letters={l} onPress={(k) => setTyped((t) => t + k)} />)}
       </div>
       <div className="pad-foot">
-        <span aria-hidden="true" />
-        <button className="call-key is-accept" aria-label={typed ? `Call ${match?.name ?? typed}` : "Last number"} disabled={!typed && !last} onClick={call}>
+        <button className="pad-side" aria-label="Voice assistant" onClick={() => carCommand({ type: "Phone.VoiceAssistant", on: true })}>
+          <span className="icon i-microphone-fill" aria-hidden="true" />
+        </button>
+        <button className="call-key is-accept" aria-label={typed ? `Call ${match?.name ?? typed}` : "Redial"} onClick={call}>
           <span className="icon i-phone-fill" aria-hidden="true" />
         </button>
         <button className={`pad-delete${typed ? "" : " is-hidden"}`} aria-label="Delete" tabIndex={typed ? 0 : -1} {...holdToRepeat(() => setTyped((t) => t.slice(0, -1)))}>
           <span className="icon i-backspace-fill" aria-hidden="true" />
         </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Text messages from the phone, thread by thread (core-car Messages). The words show only while the car stands;
+ * the quick answers and the call key work either way.
+ */
+function Messages({ emulator }: { emulator: EmulatorState }) {
+  const { messages, read, contacts, thread, speed } = emulator;
+  const now = useNow(null);
+  const threads = useMemo(() => bridge.conversations(messages, read, contacts), [messages, read, contacts]);
+  const open = thread ? threads.find((t) => t.messages.some((m) => m.number === thread)) ?? null : null;
+  const replies = useMemo(() => bridge.quickReplies(), []);
+  useEffect(() => { if (open?.unread) markRead(open.messages.filter((m) => !m.sent).map((m) => m.id)); }, [open]);
+
+  if (!open) {
+    if (!threads.length) return <p className="phone-empty">Messages to {emulator.device} show here while it is connected.</p>;
+    return (
+      <ul className="phone-list" aria-label="Messages">
+        {threads.map((t) => (
+          <li key={t.number}>
+            <button className="phone-row" onClick={() => openThread(t.messages[t.messages.length - 1].number)} aria-label={`${t.name || t.number}${t.unread ? `, ${t.unread} unread` : ""}`}>
+              <span className="phone-avatar" aria-hidden="true">{bridge.initials(t.name) || <span className="icon i-user" />}</span>
+              <span className="phone-row-text">
+                <span className="phone-row-name">{t.name || t.number}</span>
+                <span className="phone-row-sub phone-row-preview">{speed.stopped ? t.last : "Stop the car to read"}</span>
+              </span>
+              <span className="phone-row-when">{when(t.atMs, now)}</span>
+              {t.unread > 0 && <span className="phone-dot" aria-hidden="true" />}
+            </button>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  const to = [...open.messages].reverse().find((m) => !m.sent)?.number ?? open.number;
+  return (
+    <div className="phone-thread">
+      <header className="phone-thread-head">
+        <button className="pad-side" aria-label="All messages" onClick={() => openThread(null)}><span className="icon i-caret-left" aria-hidden="true" /></button>
+        <span className="phone-row-name">{open.name || open.number}</span>
+        <button className="call-key is-accept is-small" aria-label={`Call ${open.name || open.number}`} onClick={() => dial(to)}><span className="icon i-phone-fill" aria-hidden="true" /></button>
+      </header>
+      <ol className="phone-bubbles" aria-label="Conversation">
+        {open.messages.map((m) => (
+          <li key={m.id} className={`bubble${m.sent ? " is-sent" : ""}`}>{speed.stopped || m.sent ? m.text : "Stop the car to read"}</li>
+        ))}
+      </ol>
+      <div className="phone-replies" role="group" aria-label="Quick replies">
+        {replies.map((r) => <button key={r} className="call-pill" onClick={() => carCommand({ type: "Phone.SendMessage", number: to, text: r })}>{r}</button>)}
       </div>
     </div>
   );
@@ -194,7 +247,10 @@ export function PhoneApp({ open }: { open: boolean }) {
   const { car, btOn, btTurningOn } = emulator;
   const screen = bridge.phoneScreen(btOn, car.hfpConnected);
   const section = useCloseOntoCard(open);
-  const [tab, setTab] = useState<"recents" | "contacts">("recents");
+  const [tab, setTab] = useState<"recents" | "contacts" | "messages">("recents");
+  const unread = useMemo(() => bridge.conversations(emulator.messages, emulator.read, emulator.contacts).reduce((n, t) => n + t.unread, 0), [emulator.messages, emulator.read, emulator.contacts]);
+  // a tap on a message banner opens its thread here
+  useEffect(() => { if (emulator.thread) setTab("messages"); }, [emulator.thread]);
 
   return (
     <section ref={section} className={`music-app phone-app${open ? " is-open" : ""}${screen === "READY" ? " is-ready" : ""}`} aria-label="Phone" aria-hidden={!open} inert={!open}>
@@ -214,11 +270,15 @@ export function PhoneApp({ open }: { open: boolean }) {
               <button role="tab" id="phone-tab-contacts" aria-selected={tab === "contacts"} aria-controls="phone-panel" onClick={() => setTab("contacts")}>
                 <span className="icon i-user-circle-fill" aria-hidden="true" />Contacts
               </button>
+              <button role="tab" id="phone-tab-messages" aria-selected={tab === "messages"} aria-controls="phone-panel" onClick={() => setTab("messages")}>
+                <span className="icon i-chat-circle-text-fill" aria-hidden="true" />Messages
+                {unread > 0 && <span className="phone-badge" aria-label={`${unread} unread`}>{unread}</span>}
+              </button>
             </div>
             <PhoneChip emulator={emulator} />
           </header>
           <div className="phone-panel" id="phone-panel" role="tabpanel" aria-labelledby={`phone-tab-${tab}`} key={tab}>
-            {tab === "recents" ? <Recents emulator={emulator} /> : <Contacts emulator={emulator} />}
+            {tab === "recents" ? <Recents emulator={emulator} /> : tab === "contacts" ? <Contacts emulator={emulator} /> : <Messages emulator={emulator} />}
           </div>
         </div>
         <Keypad emulator={emulator} />

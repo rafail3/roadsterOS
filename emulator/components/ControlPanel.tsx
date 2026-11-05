@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { Face, SteeringKey, ThemeMode } from "../car/bridge";
 import { SAMPLE_CALLERS, SAMPLE_PHONE } from "../car/phone";
-import { carEvent, GPS_PLACES, incomingCall, remoteHangUp, removePack, setPhoneStatus, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
+import { carEvent, GPS_PLACES, incomingCall, incomingMessage, remoteHangUp, removePack, setPhoneStatus, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Field, holdToRepeat, Section, Segmented, Switch } from "./controls";
 
 const DEFAULT_TRACK_MS = 228000;
@@ -95,6 +95,7 @@ function Wifi() {
 function Phone() {
   const { car, phoneStatus } = useEmulator();
   const [number, setNumber] = useState(SAMPLE_CALLERS[0].number);
+  const [text, setText] = useState("Are you close?");
   const idle = car.call === "IDLE";
   return (
     <Section title="Phone">
@@ -104,12 +105,14 @@ function Phone() {
       </div>
       <Field label="Caller number" value={number} onChange={setNumber} />
       <div className="field-pair">
-        <button className="button" disabled={!car.hfpConnected || !idle} onClick={() => incomingCall(number)}>Ring the unit</button>
+        <button className="button" disabled={!car.hfpConnected} onClick={() => incomingCall(number)}>{idle ? "Ring the unit" : "Second call"}</button>
         <button className="button" disabled={idle} onClick={remoteHangUp}>Other side hangs up</button>
       </div>
       <Row label={`Signal ${phoneStatus.signal}/5`}>
         <input type="range" min="0" max="5" value={phoneStatus.signal} onChange={(e) => setPhoneStatus({ signal: Number(e.target.value) })} />
       </Row>
+      <Field label="Message" value={text} onChange={setText} />
+      <button className="button" disabled={!car.hfpConnected} onClick={() => incomingMessage(number, text)}>Send a text from the caller</button>
       <Field label="Network" value={phoneStatus.operator} onChange={(operator) => setPhoneStatus({ operator })} />
       <Switch label="Roaming" checked={phoneStatus.roaming} onChange={(roaming) => setPhoneStatus({ roaming })} />
       <Row label={`Battery ${phoneStatus.battery}/5`}>

@@ -21,6 +21,12 @@
 .i-user { --m: url(/icons/user.svg); }
 .i-device-mobile-speaker-fill { --m: url(/icons/device-mobile-speaker-fill.svg); }
 .i-backspace-fill { --m: url(/icons/backspace-fill.svg); }
+.i-arrows-left-right { --m: url(/icons/arrows-left-right.svg); }
+.i-arrows-merge { --m: url(/icons/arrows-merge.svg); }
+.i-microphone-fill { --m: url(/icons/microphone-fill.svg); }
+.i-chat-circle-text-fill { --m: url(/icons/chat-circle-text-fill.svg); }
+.i-users-fill { --m: url(/icons/users-fill.svg); }
+
 
 .phone-app { background: var(--phone-ground); }
 .phone-app.is-ready { grid-template-columns: minmax(0, 1fr) 340px; column-gap: 56px; align-items: stretch; padding: 76px 56px 20px 128px; }
@@ -147,4 +153,52 @@
   .call, .phone-panel, .phone-number { animation: none; }
   .call-key.is-ringing { animation: none; }
   .phone-tabs button, .pad-key, .call-key, .call-toggle-disc { transition-duration: 0.01ms; }
+}
+
+/* a second call, the assistant, messages */
+.call-held { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; padding: 8px 16px; border-radius: 999px; font-size: 17px; color: rgba(255, 255, 255, 0.86); background: rgba(255, 255, 255, 0.1); }
+.call-held .icon { width: 18px; height: 18px; }
+.call-waiting { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 18px 20px; border-radius: 22px; background: rgba(255, 255, 255, 0.1); animation: media-fade 240ms var(--seamless); }
+.call-waiting-text { font-size: 19px; color: rgba(255, 255, 255, 0.86); }
+.call-waiting-text strong { color: #fff; }
+.call-waiting-actions { display: flex; gap: 10px; }
+.call-pill { min-height: 56px; padding: 0 20px; border-radius: 999px; font-size: 17px; font-weight: 600; color: #fff; background: rgba(255, 255, 255, 0.16); transition: background var(--fast), transform 300ms var(--spring-glyph); }
+.call-pill:active { transform: scale(0.96); background: rgba(255, 255, 255, 0.26); transition-duration: var(--fast), 120ms; }
+.call-pill.is-accept { background: var(--call-green); }
+.call-pill.is-decline { background: var(--call-red); }
+
+.pad-side { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; color: #fff; background: rgba(255, 255, 255, 0.1); transition: background var(--fast); }
+.pad-side:active { background: rgba(255, 255, 255, 0.22); }
+.pad-side .icon { width: 28px; height: 28px; }
+
+.voice { position: absolute; left: 50%; bottom: 40px; z-index: 6; display: flex; align-items: center; gap: 16px; padding: 10px 10px 10px 14px; border-radius: 999px; transform: translateX(-50%); background: #1c2129; border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); color: #fff; animation: media-fade 200ms var(--seamless); }
+.voice-mic { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--set-blue, #0a84ff); animation: voice-pulse 1.4s var(--seamless) infinite; }
+.voice-mic .icon { width: 28px; height: 28px; }
+@keyframes voice-pulse { 50% { box-shadow: 0 0 0 10px rgba(10, 132, 255, 0.25); } }
+.voice-text { font-size: 19px; font-weight: 600; }
+
+.message-banner { position: absolute; top: 64px; left: 50%; z-index: 6; display: flex; align-items: center; gap: 14px; width: 520px; padding: 14px 18px; border-radius: 24px; transform: translateX(-50%); text-align: left; color: #fff; background: #1c2129; border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); animation: banner-in 360ms var(--sheet-in); }
+@keyframes banner-in { from { transform: translate(-50%, -24px); opacity: 0; } }
+.message-banner-icon { display: grid; place-items: center; flex: none; width: 48px; height: 48px; border-radius: 12px; background: var(--call-green); }
+.message-banner-icon .icon { width: 28px; height: 28px; }
+.message-banner-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.message-banner-name { font-size: 18px; font-weight: 600; }
+.message-banner-body { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; color: var(--phone-ink-2); }
+
+.phone-tabs button { position: relative; }
+.phone-badge { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; background: var(--call-red); font-variant-numeric: tabular-nums; }
+.phone-row-preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phone-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: #0a84ff; }
+.phone-thread { display: flex; flex-direction: column; gap: 12px; height: 100%; min-height: 0; }
+.phone-thread-head { display: flex; align-items: center; gap: 14px; }
+.phone-thread-head .phone-row-name { flex: 1; }
+.call-key.is-small { width: 56px; height: 56px; }
+.call-key.is-small .icon { width: 26px; height: 26px; }
+.phone-bubbles { flex: 1; display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 4px 8px; list-style: none; overflow-y: auto; }
+.bubble { align-self: flex-start; max-width: 70%; padding: 10px 16px; border-radius: 20px; font-size: 18px; line-height: 1.4; background: rgba(255, 255, 255, 0.14); }
+.bubble.is-sent { align-self: flex-end; background: #0a84ff; }
+.phone-replies { display: flex; flex-wrap: wrap; gap: 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-mic, .message-banner, .call-waiting { animation: none; }
 }

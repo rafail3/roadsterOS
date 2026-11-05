@@ -4,7 +4,7 @@ import { carCommand, carEvent, openPhone, openVolume, setBluetooth, shellAction,
 import { Clock } from "./Clock";
 import { Drawer, useDrawerDrag } from "./Drawer";
 import { HomeCard } from "./HomeCard";
-import { CallOverlay, CameraOverlay } from "./Overlays";
+import { CallOverlay, CameraOverlay, MessageBanner, VoiceOverlay } from "./Overlays";
 import { VolumeHud } from "./VolumeHud";
 import { ConnectionNotice } from "./ConnectionNotice";
 import { MusicApp } from "./MusicApp";
@@ -218,6 +218,8 @@ export function Screen() {
       <div className={classes("scrim", shell.drawer && "is-open")} onClick={() => shellAction({ type: "CloseDrawer" })} />
       <Drawer emulator={emulator} panel={drawer} dragging={dragging} />
       {car.call !== "IDLE" && <CallOverlay emulator={emulator} />}
+      {emulator.voiceAssistant && <VoiceOverlay />}
+      {car.call === "IDLE" && !car.camera && <MessageBanner emulator={emulator} />}
       {car.camera && <CameraOverlay />}
       {(Object.keys(KEY_CENTER) as (keyof typeof KEY_CENTER)[]).map((key) => (
         <svg key={key} className={classes("edge-bulge", emulator.pressedKey === key && "is-pressed")} style={{ top: KEY_CENTER[key] }} viewBox="0 0 12 136" preserveAspectRatio="none" aria-hidden="true">
