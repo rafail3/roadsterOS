@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import { bridge, type Band } from "../car/bridge";
 import { BANDS, formatFreq, stationAt } from "../car/radio";
 import { carCommand, shellAction, toggleFavorite, useEmulator } from "../car/store";
@@ -16,6 +16,81 @@ const GENRE_COLOR: [number[], string][] = [
   [[5, 6, 7, 8, 9, 12, 15, 18, 19, 20, 23], "#5e5ce6"],
 ];
 export const genreColor = (pty: number) => GENRE_COLOR.find(([codes]) => codes.includes(pty))?.[1] ?? "#8e8e93";
+
+/** Each frame the shown frequency covers this share of the way left to the tuned one, and lands when this close. */
+const GLIDE = 0.2;
+const SETTLE_KHZ = 0.5;
+const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/**
+ * The frequency as the screen shows it while it moves: it glides to the tuned one instead of jumping, so seeks, scans
+ * and jumps read as one even count. Returns the frequency to draw, in kHz, not rounded.
+ */
+export function useGlidingKhz(band: Band, khz: number) {
+  const [shown, setShown] = useState(khz);
+  const at = useRef({ band, khz });
+  useEffect(() => {
+    // a band change, or reduced motion, jumps straight there
+    if (at.current.band !== band || reducedMotion()) {
+      at.current = { band, khz };
+      setShown(khz);
+      return;
+    }
+    let frame = 0;
+    const step = () => {
+      const left = khz - at.current.khz;
+      if (Math.abs(left) < SETTLE_KHZ) {
+        at.current = { band, khz };
+        setShown(khz);
+        return;
+      }
+      at.current = { band, khz: at.current.khz + left * GLIDE };
+      setShown(at.current.khz);
+      frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [band, khz]);
+  return shown;
+}
+
+/**
+ * The frequency as a mechanical counter: each digit is a strip 0-9 that scrolls with the value. The last digit moves
+ * continuously, the ones before it turn only while a carry passes through, as 101.9 becomes 102.0.
+ * FM counts in tenths of a MHz; a station off that grid (95.35) shows its exact digits once the count settles.
+ */
+export function FreqCounter({ band, khz, target, className }: { band: Band; khz: number; target: number; className: string }) {
+  const exact = formatFreq(band, target);
+  // landed off the 100 kHz grid: the exact digits, which the tenths counter cannot show
+  if (khz === target && band === "FM" && target % 100) return <span className={className}>{exact}</span>;
+  const units = band === "FM" ? khz / 100 : khz;
+  const whole = Math.floor(units + 1e-6);
+  const frac = Math.max(0, units - whole);
+  const digits = String(whole);
+  const columns = digits.split("").map((d, i) => {
+    const place = digits.length - 1 - i;
+    // a carry turns this digit only while every digit to its right is a 9 on its way to 0
+    const carry = place === 0 || digits.slice(i + 1).split("").every((x) => x === "9") ? frac : 0;
+    return { place, offset: Number(d) + carry };
+  });
+  const decimalAt = band === "FM" ? 1 : 0;
+  return (
+    <span className={`counter ${className}`} aria-label={exact}>
+      {columns.map(({ place, offset }) => (
+        <span key={place} className="counter-group" aria-hidden="true">
+          {place === decimalAt - 1 && decimalAt > 0 && <span className="counter-point">.</span>}
+          <span className="counter-digit">
+            <span className="counter-ghost">0</span>
+            <span className="counter-strip" style={{ transform: `translateY(${(-offset / 11) * 100}%)` }}>
+              {STRIP.map((n, i) => <span key={i}>{n}</span>)}
+            </span>
+          </span>
+        </span>
+      ))}
+    </span>
+  );
+}
+const STRIP = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
 
 /** Dial pixels per tuner step, and where the ticks and labels fall, per band. */
 const DIAL: Record<Band, { px: number; minorEvery: number; majorEvery: number; firstMajor: number }> = {
@@ -134,6 +209,7 @@ export function RadioApp({ open }: { open: boolean }) {
   const mine = favorites.filter((f) => f >= BANDS[band].min && f <= BANDS[band].max);
   const others = found.filter((f) => !favorites.includes(f));
   const [preview, setPreview] = useState<number | null>(null);
+  const gliding = useGlidingKhz(band, khz);
   const scanning = radioScan !== null;
   const favorite = favorites.includes(khz);
 
@@ -165,7 +241,7 @@ export function RadioApp({ open }: { open: boolean }) {
             {scanning ? <span className="radio-tag">Scanning</span> : radio.stereo && <span className="radio-tag">Stereo</span>}
           </p>
           <p className="radio-freq">
-            <span className="radio-freq-num">{formatFreq(band, preview ?? khz)}</span>
+            <FreqCounter className="radio-freq-num" band={band} khz={preview ?? gliding} target={preview ?? khz} />
             <span className="radio-freq-unit">{band === "FM" ? "MHz" : "kHz"}</span>
           </p>
           <div className="radio-station" aria-live="polite">

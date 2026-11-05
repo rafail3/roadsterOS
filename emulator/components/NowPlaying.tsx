@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { bridge } from "../car/bridge";
 import { formatFreq } from "../car/radio";
 import { carCommand, setBluetooth, shellAction, toggleFavorite, type EmulatorState } from "../car/store";
-import { genreColor, Star } from "./RadioApp";
+import { FreqCounter, genreColor, Star, useGlidingKhz } from "./RadioApp";
 import { Marquee, Progress, time, TransportRow, useCrossfade, usePosition } from "./media";
 
 
@@ -58,6 +58,7 @@ function Radio({ emulator }: { emulator: EmulatorState }) {
   const genre = bridge.ptyName(radio.pty);
   const favorite = favorites.includes(radio.khz);
   const freq = formatFreq(radio.band, radio.khz);
+  const gliding = useGlidingKhz(radio.band, radio.khz);
   return (
     <div className="np np-radio" style={{ "--genre": genreColor(radio.pty) } as CSSProperties}>
       <button className="np-open" aria-label={`Open radio, ${radio.rds || freq}`} onClick={() => shellAction({ type: "OpenApp", app: "RADIO" })}>
@@ -65,10 +66,11 @@ function Radio({ emulator }: { emulator: EmulatorState }) {
           <span className="radio-tag is-band">{radio.band}</span>
           {radio.stereo && <span className="radio-tag">Stereo</span>}
         </span>
-        <span className="freq"><span className="freq-num">{freq}</span><span className="freq-band">{radio.band === "FM" ? "MHz" : "kHz"}</span></span>
+        <span className="freq"><FreqCounter className="freq-num" band={radio.band} khz={gliding} target={radio.khz} /><span className="freq-band">{radio.band === "FM" ? "MHz" : "kHz"}</span></span>
         <span className="np-title np-radio-name" key={radio.rds}>{radio.rds || "Radio"}</span>
         {genre && <span className="radio-genre" key={genre}>{genre}</span>}
       </button>
+      {/* between the station details and the transport, on its centre line */}
       <Star on={favorite} label={favorite ? "Remove from favorites" : "Add to favorites"} onToggle={() => toggleFavorite(radio.khz)} />
       <TransportRow
         playing={!car.muted}
