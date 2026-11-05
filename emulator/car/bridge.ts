@@ -105,6 +105,7 @@ interface Kotlin {
       mapOffer(country: string, installed: string, wifi: boolean, declined: string, downloading: string): string;
       packMb(code: string): number;
       speed(lon: number, lat: number, timeMs: number, chipKmh: number): string;
+      speedWarning(roadLimit: number, timeMs: number): string;
       countryName(code: string): string;
     };
 }
@@ -134,6 +135,9 @@ export const bridge = {
   mapOffer: (country: string, installed: string[], wifi: boolean, declined: string[], downloading: string | null) =>
     K!.Bridge.mapOffer(country, JSON.stringify(installed), wifi, JSON.stringify(declined), downloading ?? "") as "NONE" | "DOWNLOAD" | "NEEDS_WIFI",
   packMb: (code: string): number => K!.Bridge.packMb(code),
+  /** The limit sign and over-limit warning for the last speed fix; [roadLimit] null when the car's road has none. */
+  speedWarning: (roadLimit: number | null, timeMs: number): { limit: number | null; over: boolean; chime: boolean } =>
+    JSON.parse(K!.Bridge.speedWarning(roadLimit ?? -1, timeMs)),
   /** A GPS fix for the map's speed, through the unit's own calculation; [chipKmh] null when the fix has none. */
   speed: (lon: number, lat: number, timeMs: number, chipKmh: number | null): { kmh: number; stopped: boolean } =>
     JSON.parse(K!.Bridge.speed(lon, lat, timeMs, chipKmh ?? -1)),

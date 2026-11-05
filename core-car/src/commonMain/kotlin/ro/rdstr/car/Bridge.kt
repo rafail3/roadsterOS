@@ -69,6 +69,16 @@ object Bridge {
     fun speed(lon: Double, lat: Double, timeMs: Double, chipKmh: Double): String =
         speedometer.update(lon, lat, timeMs.toLong(), chipKmh.takeIf { it >= 0 }).let { """{"kmh":${it.kmh},"stopped":${it.stopped}}""" }
 
+    private val speedWarning = SpeedWarning()
+
+    /**
+     * The limit sign and the over-limit warning for the last fix given to [speed]; [roadLimit] below 0 when the car's
+     * road has none. Answers {"limit":n or null,"over":b,"chime":b}.
+     */
+    fun speedWarning(roadLimit: Int, timeMs: Double): String =
+        speedWarning.update(speedometer.reading, roadLimit.takeIf { it >= 0 }, timeMs.toLong())
+            .let { """{"limit":${it.limit},"over":${it.over},"chime":${it.chime}}""" }
+
     /** A pack's size in MB, or 0 when it is not known. */
     fun packMb(code: String): Int = MapPacks.PACK_MB[code] ?: 0
 

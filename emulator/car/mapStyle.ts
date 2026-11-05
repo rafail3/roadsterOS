@@ -70,6 +70,8 @@ export function mapStyle(light: boolean, missing: GeoJSON.FeatureCollection, off
     },
     layers: [
       ...layers,
+      // the speed limits are read, not drawn: an invisible layer keeps their lines among the features MapLibre loads
+      { id: "speed-limits", type: "line", source: "omt", "source-layer": "maxspeed", minzoom: 14, paint: { "line-opacity": 0 } },
       // countries whose pack is not on the unit: covered, as the unit has no tiles there
       { id: "missing-pack", type: "fill", source: "missing", paint: { "fill-color": p.mask, "fill-opacity": 0.92 } },
     ],

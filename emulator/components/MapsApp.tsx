@@ -1,6 +1,8 @@
 import maplibregl from "maplibre-gl";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { mapStyle } from "../car/mapStyle";
+import { bridge } from "../car/bridge";
+import { chime, limitAt, streetAt } from "../car/roads";
 import { shellAction, useEmulator } from "../car/store";
 
 /** Driving zoom, and the closest and farthest the buttons go. */
@@ -8,8 +10,8 @@ const DRIVE_ZOOM = 15.5;
 const ZOOM_RANGE = { min: 4, max: 18 };
 /** The street name under the car is looked up this often, not every position. */
 const STREET_EVERY_MS = 1000;
-/** How far from the car a road may be and still be the one it is on, in screen pixels. */
-const STREET_PX = 24;
+/** The speed limit of the car's road is looked up this often, as on the unit. */
+const LIMIT_EVERY_MS = 1000;
 
 let bordersFile: Promise<GeoJSON.FeatureCollection> | null = null;
 const loadBorders = () => (bordersFile ??= fetch("/maps/countries.geojson").then((r) => r.json()));
@@ -37,32 +39,6 @@ function turnPuck(el: HTMLElement, degrees: number) {
   el.querySelector("[data-shadow]")?.setAttribute("transform", `translate(0 3) rotate(${degrees})`);
 }
 
-/** Squared distance from a point to a segment, in screen pixels. */
-function segmentDistance(p: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) {
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const t = dx || dy ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy))) : 0;
-  const x = a.x + t * dx - p.x, y = a.y + t * dy - p.y;
-  return x * x + y * y;
-}
-
-/** The name of the road under the car, from the road names in the tiles already loaded. */
-function streetAt(map: maplibregl.Map, lon: number, lat: number) {
-  const at = map.project([lon, lat]);
-  let best = { d: STREET_PX * STREET_PX, name: "" };
-  for (const f of map.querySourceFeatures("omt", { sourceLayer: "transportation_name" })) {
-    const name = f.properties?.name as string | undefined;
-    if (!name || (f.geometry.type !== "LineString" && f.geometry.type !== "MultiLineString")) continue;
-    const lines = f.geometry.type === "LineString" ? [f.geometry.coordinates] : f.geometry.coordinates;
-    for (const line of lines) {
-      for (let i = 1; i < line.length; i++) {
-        const d = segmentDistance(at, map.project(line[i - 1] as [number, number]), map.project(line[i] as [number, number]));
-        if (d < best.d) best = { d, name };
-      }
-    }
-  }
-  return best.name;
-}
-
 /** Full-screen map: the car in the middle, heading up while it follows, the street it is on, and the map controls. */
 export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
   const { gps, maps, driving, speed } = useEmulator();
@@ -73,14 +49,19 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
   const [headingUp, setHeadingUp] = useState(true);
   const [bearing, setBearing] = useState(0);
   const [street, setStreet] = useState("");
+  const [warning, setWarning] = useState<{ limit: number | null; over: boolean }>({ limit: null, over: false });
+  const limitAtMs = useRef(0);
+  // the last limit stays written while its sign shrinks away
+  const shownLimit = useRef<number | null>(null);
+  if (warning.limit !== null) shownLimit.current = warning.limit;
   // the last street stays written while its pill folds away
   const shownStreet = useRef("");
   if (street) shownStreet.current = street;
   const [credit, setCredit] = useState(false);
   const [borders, setBorders] = useState<GeoJSON.FeatureCollection | null>(null);
   const streetAtMs = useRef(0);
-  const latest = useRef({ gps });
-  latest.current = { gps };
+  const latest = useRef({ gps, speed });
+  latest.current = { gps, speed };
 
   useEffect(() => { loadBorders().then(setBorders).catch(() => {}); }, []);
   // the packs built on this laptop: with one, the map draws from it and needs no network, as on the unit
@@ -113,8 +94,15 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
       setBearing(m.getBearing());
       turnPuck(el, latest.current.gps.heading - m.getBearing());
     });
-    // once the tiles under the car have loaded, the street is known even before the car moves
-    m.on("idle", () => { const { gps: at } = latest.current; setStreet(streetAt(m, at.lon, at.lat)); });
+    // once the tiles under the car have loaded, its street and limit are known even before it moves
+    m.on("idle", () => {
+      const { gps: at, speed: s } = latest.current;
+      const heading = s.stopped ? null : at.heading;
+      setStreet(streetAt(m, at.lon, at.lat, m.getZoom(), heading));
+      const w = bridge.speedWarning(limitAt(m, at.lon, at.lat, heading), performance.now());
+      if (w.chime) chime();
+      setWarning({ limit: w.limit, over: w.over });
+    });
     const el = document.createElement("div");
     el.className = "map-puck";
     el.innerHTML = PUCK;
@@ -133,11 +121,19 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
     if (puck.current) turnPuck(puck.current.getElement(), gps.heading - m.getBearing());
     if (follow) m.easeTo({ center: [gps.lon, gps.lat], bearing: headingUp ? gps.heading : 0, duration: driving ? 260 : 600, easing: (t) => t });
     const now = performance.now();
+    const heading = speed.stopped ? null : gps.heading;
     if (open && now - streetAtMs.current > STREET_EVERY_MS && m.isStyleLoaded()) {
       streetAtMs.current = now;
-      setStreet(streetAt(m, gps.lon, gps.lat));
+      setStreet(streetAt(m, gps.lon, gps.lat, m.getZoom(), heading));
     }
-  }, [gps, follow, headingUp, open, driving]);
+    // the limit sign and the warning, by the unit's rule (core-car SpeedWarning)
+    if (open && now - limitAtMs.current > LIMIT_EVERY_MS && m.isStyleLoaded()) {
+      limitAtMs.current = now;
+      const w = bridge.speedWarning(limitAt(m, gps.lon, gps.lat, heading), now);
+      if (w.chime) chime();
+      setWarning({ limit: w.limit, over: w.over });
+    }
+  }, [gps, speed, follow, headingUp, open, driving]);
 
   const zoom = (by: number) => map.current?.easeTo({ zoom: map.current.getZoom() + by, duration: 250 });
   const recentre = () => { setFollow(true); map.current?.easeTo({ zoom: DRIVE_ZOOM, duration: 500 }); };
@@ -167,8 +163,15 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
         <div className={`map-street-slot${street ? " is-shown" : ""}`} aria-hidden={!street}>
           <span className="map-pill map-street" aria-live="polite">{shownStreet.current}</span>
         </div>
-        <span className="map-pill map-speed" aria-live="off">
-          {speed.stopped ? "Stopped" : <><span className="map-speed-label">Speed:</span> <b>{speed.kmh}</b> km/h</>}
+        <span className={`map-speed${warning.over ? " is-over" : ""}`} role="img" aria-label={`${speed.kmh} km/h`}>
+          {/* the dial's ring of ticks */}
+          <svg className="map-speed-ticks" viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="36" /></svg>
+          <b>{speed.kmh}</b>
+          <small>km/h</small>
+          <span className={`map-limit${warning.limit !== null ? " is-shown" : ""}`} role="img"
+            aria-label={warning.limit !== null ? `Speed limit ${warning.limit} km/h` : undefined} aria-hidden={warning.limit === null}>
+            <b key={shownLimit.current ?? 0}>{shownLimit.current}</b>
+          </span>
         </span>
       </div>
       {offline === false && <p className="map-preview">Online preview: no map pack built on this laptop</p>}

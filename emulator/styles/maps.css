@@ -32,9 +32,24 @@
 .map-street-slot.is-shown { grid-template-columns: 1fr; margin-right: 12px; opacity: 1; transform: none; }
 .map-street-slot > .map-pill { min-width: 0; overflow: hidden; }
 .map-street { max-width: 520px; font-size: 22px; font-weight: 600; text-overflow: ellipsis; }
-/* one size for all of it, as the street's; the number stands out by colour and weight only */
-.map-speed { flex: none; gap: 6px; font-size: 22px; font-weight: 600; color: rgba(255, 255, 255, 0.7); }
-.map-speed b { font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+/* the speed: a round dial with a ring of ticks, the number over its unit, and the posted limit's sign over its top
+   right edge; it is taller than the pills and sits on their bottom line */
+.map-status { align-items: flex-end; height: auto; }
+.map-speed { position: relative; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 84px; height: 84px; margin-bottom: -10px; border-radius: 50%; background: rgba(20, 22, 26, 0.9); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); color: rgba(255, 255, 255, 0.85); }
+.map-speed-ticks { position: absolute; inset: -1px; width: 84px; height: 84px; }
+.map-speed-ticks circle { fill: none; stroke: rgba(255, 255, 255, 0.28); stroke-width: 5; stroke-dasharray: 1.6 3.11; transition: stroke 260ms var(--ease-out); }
+.map-speed > b { font-size: 30px; font-weight: 700; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; transition: color 260ms var(--ease-out); }
+.map-speed > small { margin-top: 3px; font-size: 13px; font-weight: 600; line-height: 1; }
+/* over the posted limit: the number and the ticks turn red, with one pulse as the car goes over */
+.map-speed.is-over > b { color: #ff453a; }
+.map-speed.is-over .map-speed-ticks circle { stroke: #ff453a; }
+.map-speed.is-over { animation: speed-over 560ms var(--spring-glyph); }
+@keyframes speed-over { 0% { transform: scale(1); } 35% { transform: scale(1.1); } 100% { transform: scale(1); } }
+/* the speed limit sign, as on the road: white disc, red ring, black number; it pops in and shrinks away */
+.map-limit { position: absolute; top: -16px; right: -20px; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: #fff; border: 5px solid #e3141b; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35); color: #111; font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.04em; opacity: 0; transform: scale(0.3); transition: transform 480ms var(--spring-glyph), opacity 160ms var(--ease-out); }
+.map-limit.is-shown { opacity: 1; transform: none; }
+.map-limit b { animation: limit-swap 260ms var(--ease-out); }
+@keyframes limit-swap { from { opacity: 0; transform: scale(0.7); } }
 /* the data credit the licences ask for, behind a glass button: on the axis of the right-hand buttons, level with the
    street pill (both 64 px tall from 44 px up, so a 44 px button sits 54 px up) */
 .map-credit { position: absolute; right: 38px; bottom: 54px; display: flex; align-items: center; gap: 10px; }
@@ -63,7 +78,8 @@
 .recents-preview-map .icon { width: 56px; height: 56px; transform: rotate(45deg); color: #0a84ff; }
 
 @media (prefers-reduced-motion: reduce) {
-  .map-offer, .map-offer.is-shown, .map-compass, .map-street-slot { transition-duration: 0.01ms; }
+  .map-offer, .map-offer.is-shown, .map-compass, .map-street-slot, .map-limit, .map-speed > b, .map-speed-ticks circle { transition-duration: 0.01ms; }
+  .map-speed.is-over, .map-limit b { animation: none; }
 }
 
 /* the day map is light: the status bar, the buttons and the street pill turn light over it */
@@ -73,8 +89,9 @@
 .screen.light .map-zoom button + button { border-top-color: rgba(0, 0, 0, 0.08); }
 .screen.light .map-compass::after { border-top-color: rgba(0, 0, 0, 0.55); }
 .screen.light .map-pill { color: var(--ink); background: rgba(255, 255, 255, 0.92); border-color: rgba(0, 0, 0, 0.08); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14); }
-.screen.light .map-speed { color: var(--ink-muted); }
-.screen.light .map-speed b { color: var(--ink); }
+.screen.light .map-speed { color: var(--ink-muted); background: rgba(255, 255, 255, 0.94); border-color: rgba(0, 0, 0, 0.08); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14); }
+.screen.light .map-speed:not(.is-over) > b { color: var(--ink); }
+.screen.light .map-speed:not(.is-over) .map-speed-ticks circle { stroke: rgba(0, 0, 0, 0.22); }
 
 /* emulator only: the map previews from the network until a pack is built */
 .map-preview { position: absolute; left: 50%; top: 76px; transform: translateX(-50%); margin: 0; padding: 8px 16px; border-radius: 18px; font-size: 14px; font-weight: 600; color: #000; background: #ffd60a; pointer-events: none; }
