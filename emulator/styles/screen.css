@@ -144,10 +144,11 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 /* while the brightness slider is held, only it stays: the screen under it shows the level being picked */
 .drawer > * { transition: opacity var(--fast) var(--ease-out); }
 .slider-light { border-radius: var(--radius); transition: box-shadow var(--fast) var(--ease-out); }
-.screen:has(.slider-light:active) .scrim { opacity: 0; }
-.drawer:has(.slider-light:active) { background-color: transparent; border-bottom-color: transparent; }
-.drawer:has(.slider-light:active) > :not(.slider-light) { opacity: 0; }
-.slider-light:active { background: var(--sheet); box-shadow: 0 0 0 var(--space-3) var(--sheet); }
+.screen:has(.slider-light input:active) .scrim { opacity: 0; }
+.drawer:has(.slider-light input:active) { background-color: transparent; border-bottom-color: transparent; }
+.drawer:has(.slider-light input:active) > :not(.slider-light) { opacity: 0; }
+.slider-light:has(input:active) { background: var(--sheet); box-shadow: 0 0 0 var(--space-3) var(--sheet); }
+button.slider-readout { height: var(--target); color: inherit; }
 .drawer.is-dragging { transition: none; }
 .drawer-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
 .toggle { height: 96px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); border-radius: var(--radius-sm); border: 1px solid var(--hairline); background: var(--glass); color: var(--ink-muted); font-size: var(--size-label); font-weight: 500; transition: background var(--fast), color var(--fast); }

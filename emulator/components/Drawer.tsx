@@ -65,11 +65,12 @@ export function Drawer({ emulator, panel, dragging }: { emulator: EmulatorState;
           <span className={`icon ${THEME_ICON[shell.theme]}`} /><span>{THEME_LABEL[shell.theme]}</span>
         </button>
       </div>
-      <label className="slider slider-light">
+      {/* not a label: pressing the reset button inside one would count as holding the slider */}
+      <div className="slider slider-light">
         <span className="icon i-sun-dim" />
         <input type="range" min={bridge.minBrightness()} max={bridge.maxBrightness()} value={shell.brightness} aria-label="Brightness" aria-valuetext={`${shell.brightness} percent`} onChange={(e) => shellAction({ type: "SetBrightness", value: Number(e.target.value) })} />
-        <span className="slider-readout">{shell.brightness}%</span>
-      </label>
+        <button className="slider-readout" aria-label={`Brightness ${shell.brightness} percent, tap to reset to 100`} onClick={() => shellAction({ type: "SetBrightness", value: 100 })}>{shell.brightness}%</button>
+      </div>
       <label className="slider">
         <span className="icon i-speaker-high" />
         <input type="range" min="0" max={bridge.maxVolume()} value={car.volume} aria-label="Volume" aria-valuetext={`${car.volume}`} onChange={(e) => setVolume(Number(e.target.value))} />
