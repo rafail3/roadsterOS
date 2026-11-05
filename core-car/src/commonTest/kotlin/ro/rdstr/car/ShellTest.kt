@@ -155,10 +155,11 @@ class ShellTest {
         s = Shell.reduce(s, ShellAction.OpenApp(App.HOME))
         assertEquals(listOf(App.MUSIC), s.running)
         s = Shell.reduce(s, ShellAction.OpenApp(App.MUSIC)).copy(recents = true)
+        // closing the last one leaves the list for home, as closing all does
         val closed = Shell.reduce(s, ShellAction.CloseApp(App.MUSIC))
         assertEquals(emptyList(), closed.running)
         assertEquals(App.HOME, closed.app)
-        assertTrue(closed.recents)
+        assertFalse(closed.recents)
         val none = Shell.reduce(s, ShellAction.CloseAllApps)
         assertEquals(emptyList(), none.running)
         assertFalse(none.recents)

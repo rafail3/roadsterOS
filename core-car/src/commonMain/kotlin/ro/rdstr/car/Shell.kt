@@ -114,12 +114,15 @@ object Shell {
                 else -> goHome(s).copy(lastHomeMs = a.atMs)
             }
         }
-        // a closed app starts from scratch next time; the host frees what it held
-        is ShellAction.CloseApp -> s.copy(
-            running = s.running - a.app,
-            app = if (s.app == a.app) App.HOME else s.app,
-            devices = s.devices && s.app != a.app,
-        )
+        // a closed app starts from scratch next time; the host frees what it held; with none left the list closes onto home
+        is ShellAction.CloseApp -> (s.running - a.app).let { left ->
+            s.copy(
+                running = left,
+                app = if (s.app == a.app) App.HOME else s.app,
+                devices = s.devices && s.app != a.app,
+                recents = s.recents && left.isNotEmpty(),
+            )
+        }
         ShellAction.CloseAllApps -> s.copy(running = emptyList(), app = App.HOME, devices = false, recents = false)
         ShellAction.OpenRecents -> s.copy(recents = true, drawer = false, devices = false, lastHomeMs = null)
         ShellAction.CloseRecents -> s.copy(recents = false)

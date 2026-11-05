@@ -83,9 +83,9 @@
   display: grid; grid-template-columns: 480px minmax(0, 1fr); align-items: center; column-gap: 80px; padding: 56px 96px 0 112px;
   /* the cover's top colour down to 60%, then its bottom colour */
   background: linear-gradient(180deg, var(--cover-top) 0%, var(--cover-top) 60.6%, var(--cover-bottom) 100%); color: #fff;
-  /* leaving: a short shrink and fade in place, home shows at once underneath */
+  /* leaving: a shrink and fade in place at the pace the app opens with; home shows at once underneath */
   opacity: 0; visibility: hidden; pointer-events: none; transform: scale(0.94);
-  transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out), visibility 0s linear 180ms, --cover-top 800ms var(--seamless), --cover-bottom 800ms var(--seamless);
+  transition: opacity 420ms var(--sheet-in), transform 420ms var(--sheet-in), visibility 0s linear 420ms, --cover-top 800ms var(--seamless), --cover-bottom 800ms var(--seamless);
 }
 .music-app.is-open {
   opacity: 1; visibility: visible; pointer-events: auto; transform: none;
