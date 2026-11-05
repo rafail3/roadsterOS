@@ -122,15 +122,20 @@
 .device-icon.is-large .icon { width: 36px; height: 36px; }
 .device-code { margin: 12px 0 20px; font-size: 56px; font-weight: 600; letter-spacing: 0.06em; line-height: 1; font-variant-numeric: tabular-nums; color: #fff; }
 .devices-pairing-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-self: stretch; }
-.devices-search.is-primary { background: #fff; color: #111; border-color: transparent; }
-.devices-search.is-primary:active { background: rgba(255, 255, 255, 0.86); }
 .devices-foot { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
-.devices-foot p { margin: 0; font-size: 15px; color: rgba(255, 255, 255, 0.55); text-align: center; }
-.devices-search { display: flex; align-items: center; justify-content: center; gap: 10px; height: 64px; border-radius: 32px; font-size: 18px; font-weight: 600; color: #fff; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.12); transition: background var(--fast); }
-.devices-search .icon { width: 24px; height: 24px; }
+.devices-foot p { margin: 0; font-size: 15px; color: rgba(255, 255, 255, 0.55); text-align: center; text-wrap: balance; }
+/* the search key hugs its label: a round chip with the glass inside, flowing into the pill around the word */
+.devices-search { align-self: center; display: inline-flex; align-items: center; gap: 14px; height: 64px; padding: 0 28px 0 8px; border-radius: 32px; font-size: 18px; font-weight: 600; color: #fff; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.12); transition: background var(--fast); }
+.devices-search-chip { flex: none; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: rgba(255, 255, 255, 0.14); transition: background var(--fast); }
+.devices-search-chip .icon { width: 28px; height: 28px; }
 .devices-search:not(:disabled):active { background: rgba(255, 255, 255, 0.18); }
+.devices-search:not(:disabled):active .devices-search-chip { background: rgba(255, 255, 255, 0.24); }
 .devices-search:disabled { cursor: default; color: rgba(255, 255, 255, 0.72); }
-.devices-search:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.devices-search:focus-visible, .devices-answer:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.devices-answer { height: 64px; border-radius: 32px; font-size: 18px; font-weight: 600; color: #fff; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.12); transition: background var(--fast); }
+.devices-answer:active { background: rgba(255, 255, 255, 0.18); }
+.devices-answer.is-primary { background: #fff; color: #111; border-color: transparent; }
+.devices-answer.is-primary:active { background: rgba(255, 255, 255, 0.86); }
 /* while searching, the glass sweeps gently so the wait reads as work in progress */
 .devices-search.is-scanning .icon { animation: device-search 1400ms var(--seamless) infinite; }
 @keyframes device-search { 0%, 100% { transform: translateX(-3px); } 50% { transform: translateX(3px); } }
@@ -155,7 +160,7 @@
 .device-drop:active { background: rgba(255, 255, 255, 0.2); }
 @media (hover: hover) {
   .devices-search:not(:disabled):hover { background: rgba(255, 255, 255, 0.14); }
-  .devices-search.is-primary:hover { background: #fff; }
+  .devices-answer:not(.is-primary):hover { background: rgba(255, 255, 255, 0.14); }
   .device-main:not(:disabled):hover { background: rgba(255, 255, 255, 0.05); }
   .device-drop:hover { background: rgba(255, 255, 255, 0.16); }
 }

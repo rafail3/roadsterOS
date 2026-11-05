@@ -40,8 +40,8 @@ export function DevicesSheet() {
             <p>Check that the phone shows the same code</p>
             <strong className="device-code">{groupCode(pairing.code)}</strong>
             <div className="devices-pairing-actions">
-              <button className="devices-search" onClick={() => carCommand({ type: "Bt.ConfirmPairing", accept: false })}>Cancel</button>
-              <button className="devices-search is-primary" onClick={() => carCommand({ type: "Bt.ConfirmPairing", accept: true })}>Pair</button>
+              <button className="devices-answer" onClick={() => carCommand({ type: "Bt.ConfirmPairing", accept: false })}>Cancel</button>
+              <button className="devices-answer is-primary" onClick={() => carCommand({ type: "Bt.ConfirmPairing", accept: true })}>Pair</button>
             </div>
           </div>
         ) : (<>
@@ -99,8 +99,8 @@ export function DevicesSheet() {
         <footer className="devices-foot">
           <p>New phone? Search here, or pair it from the phone's Bluetooth settings.</p>
           <button className={`devices-search${scanning ? " is-scanning" : ""}`} disabled={scanning} onClick={() => carCommand({ type: "Bt.Scan" })}>
-            <span className="icon i-magnifying-glass" aria-hidden="true" />
-            {scanning ? "Searching…" : "Search"}
+            <span className="devices-search-chip" aria-hidden="true"><span className="icon i-magnifying-glass" /></span>
+            <span>{scanning ? "Searching…" : "Search"}</span>
           </button>
         </footer>
         </>)}
