@@ -2,6 +2,7 @@ import { useRef, useState, type PointerEvent } from "react";
 import { bridge } from "../car/bridge";
 import { carCommand, setVolume, shellAction, stepVolume, useEmulator } from "../car/store";
 import { holdToRepeat } from "./controls";
+import { useMuteFill } from "./VolumeHud";
 import { Marquee, Progress, time, TransportRow, useCoverColors, useCrossfade, usePosition } from "./media";
 
 /** Full-screen Bluetooth music: the cover blurred into the whole background, a large cover, transport and volume. */
@@ -15,6 +16,7 @@ export function MusicApp({ open }: { open: boolean }) {
   const colors = useCoverColors(track.art);
   const [dragging, setDragging] = useState(false);
   const slider = useRef<HTMLDivElement>(null);
+  const muteFill = useMuteFill(car.muted);
 
   const volumeAt = (e: PointerEvent) => {
     const r = slider.current!.getBoundingClientRect();
@@ -61,8 +63,8 @@ export function MusicApp({ open }: { open: boolean }) {
         />
 
         <div className={`music-volume${dragging ? " is-active" : ""}${car.muted ? " is-muted" : ""}`}>
-          <button className="music-volume-step" aria-label="Volume down" {...holdToRepeat(() => stepVolume(-1))}>
-            <span className="icon i-speaker-low" aria-hidden="true" />
+          <button className="music-volume-step music-mute" aria-label={car.muted ? "Sound on" : "Mute"} aria-pressed={car.muted} onClick={() => carCommand({ type: "Audio.Mute", on: !car.muted })}>
+            <span className={`icon ${car.muted ? "i-speaker-slash-fill" : "i-speaker-low-fill"}`} aria-hidden="true" />
           </button>
           <div
             ref={slider}
@@ -83,10 +85,10 @@ export function MusicApp({ open }: { open: boolean }) {
               if (step) { e.preventDefault(); setVolume(car.volume + step); }
             }}
           >
-            <div className="music-volume-bar"><div className="music-volume-fill" style={{ transform: `scaleX(${car.muted ? 0 : car.volume / max})` }} /></div>
+            <div className="music-volume-bar"><div className="music-volume-fill" style={{ transform: `scaleX(${car.muted ? 0 : car.volume / max})`, ...muteFill }} /></div>
           </div>
           <button className="music-volume-step" aria-label="Volume up" {...holdToRepeat(() => stepVolume(1))}>
-            <span className="icon i-speaker-high" aria-hidden="true" />
+            <span className="icon i-speaker-high-fill" aria-hidden="true" />
           </button>
         </div>
       </div>

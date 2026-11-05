@@ -119,8 +119,9 @@
 .music-volume-step:active { background: rgba(255, 255, 255, 0.14); color: #fff; }
 .music-volume-step:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 @media (hover: hover) { .music-volume-step:hover { color: #fff; } }
-.music-volume .icon { width: 24px; height: 24px; }
-.music-volume.is-muted .i-speaker-low { color: var(--mute); }
+/* same glyph size as the mute key of the volume bar */
+.music-volume .icon { width: 28px; height: 28px; }
+.music-volume.is-muted .music-mute { color: var(--mute); }
 /* the finger target is the whole row height; the bar inside thickens while held */
 .music-volume-track { flex: 1; height: 48px; display: flex; align-items: center; touch-action: none; cursor: pointer; border-radius: 12px; }
 .music-volume-bar { position: relative; flex: 1; height: 10px; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, 0.15); transition: height 420ms var(--spring-glyph); }
