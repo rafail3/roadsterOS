@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.0](https://github.com/rafail3/roadsterOS/compare/v1.8.0...v1.9.0) (2026-11-05)
+
+
+### Features
+
+* **emulator:** radio app with tuning dial, seek and scan sweeps, station list with favorites, genre colours and a radio home card ([084676b](https://github.com/rafail3/roadsterOS/commit/084676badec85346445fc55200872dc06882d037))
+* **emulator:** radio frequency glides as a rolling digit counter; favorite star between the station and the transport on the home card ([8ef22fc](https://github.com/rafail3/roadsterOS/commit/8ef22fc189e64efd6650518cd1647c56ff42c1ea))
+* radio app with RDS station names, tuning dial, scan and favorites ([234b8f2](https://github.com/rafail3/roadsterOS/commit/234b8f26482068d47e2f8c5a101f891715730b79))
+* **radio:** RDS programme type names, stereo flag, band scan command and a radio app in the shell rules ([2b6de55](https://github.com/rafail3/roadsterOS/commit/2b6de550165d4bbc22562a06e8cad15c3d1cb979))
+
 ## [1.8.0](https://github.com/rafail3/roadsterOS/compare/v1.7.0...v1.8.0) (2026-11-05)
 
 
