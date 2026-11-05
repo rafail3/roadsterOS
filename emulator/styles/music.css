@@ -16,6 +16,7 @@
 .i-pause-fill { --m: url(/icons/pause-fill.svg); }
 .i-speaker-low { --m: url(/icons/speaker-low.svg); }
 .i-device-mobile { --m: url(/icons/device-mobile.svg); }
+.i-magnifying-glass { --m: url(/icons/magnifying-glass.svg); }
 
 @keyframes media-fade { from { opacity: 0; } }
 /* a see-through layer under a newer one fades out on the same clock, so nothing changes when it is removed */
@@ -109,7 +110,30 @@
 .devices.is-open .devices-panel { opacity: 1; transform: none; }
 .devices-head { display: flex; align-items: center; justify-content: space-between; }
 .devices-head h2 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.01em; }
-.devices-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.devices-scroll { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -8px; padding: 0 8px; }
+.devices-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.devices-nearby h3 { margin: 24px 0 12px; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.62); }
+.devices-empty { padding: 16px; font-size: 16px; color: rgba(255, 255, 255, 0.62); }
+.devices-scroll { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.24) transparent; }
+.devices-pairing { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; animation: media-fade 260ms var(--seamless) backwards; }
+.devices-pairing h3 { margin: 12px 0 0; font-size: 24px; font-weight: 600; }
+.devices-pairing p { margin: 0; font-size: 17px; color: rgba(255, 255, 255, 0.62); }
+.device-icon.is-large { width: 72px; height: 72px; }
+.device-icon.is-large .icon { width: 36px; height: 36px; }
+.device-code { margin: 12px 0 20px; font-size: 56px; font-weight: 600; letter-spacing: 0.06em; line-height: 1; font-variant-numeric: tabular-nums; color: #fff; }
+.devices-pairing-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-self: stretch; }
+.devices-search.is-primary { background: #fff; color: #111; border-color: transparent; }
+.devices-search.is-primary:active { background: rgba(255, 255, 255, 0.86); }
+.devices-foot { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
+.devices-foot p { margin: 0; font-size: 15px; color: rgba(255, 255, 255, 0.55); text-align: center; }
+.devices-search { display: flex; align-items: center; justify-content: center; gap: 10px; height: 64px; border-radius: 32px; font-size: 18px; font-weight: 600; color: #fff; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.12); transition: background var(--fast); }
+.devices-search .icon { width: 24px; height: 24px; }
+.devices-search:not(:disabled):active { background: rgba(255, 255, 255, 0.18); }
+.devices-search:disabled { cursor: default; color: rgba(255, 255, 255, 0.72); }
+.devices-search:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* while searching, the glass sweeps gently so the wait reads as work in progress */
+.devices-search.is-scanning .icon { animation: device-search 1400ms var(--seamless) infinite; }
+@keyframes device-search { 0%, 100% { transform: translateX(-3px); } 50% { transform: translateX(3px); } }
 .saved-device { display: flex; align-items: center; gap: 12px; border-radius: 16px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.06); }
 .saved-device.is-connected { background: rgba(159, 211, 255, 0.1); border-color: rgba(159, 211, 255, 0.24); }
 .device-main { flex: 1; min-width: 0; min-height: 80px; display: flex; align-items: center; gap: 16px; padding: 12px 16px; border-radius: 16px; text-align: left; transition: background var(--fast); }
@@ -130,6 +154,8 @@
 .device-drop { flex: none; height: 56px; margin-right: 12px; padding: 0 20px; border-radius: 28px; font-size: 16px; font-weight: 600; color: #fff; background: rgba(255, 255, 255, 0.12); transition: background var(--fast); }
 .device-drop:active { background: rgba(255, 255, 255, 0.2); }
 @media (hover: hover) {
+  .devices-search:not(:disabled):hover { background: rgba(255, 255, 255, 0.14); }
+  .devices-search.is-primary:hover { background: #fff; }
   .device-main:not(:disabled):hover { background: rgba(255, 255, 255, 0.05); }
   .device-drop:hover { background: rgba(255, 255, 255, 0.16); }
 }
@@ -173,6 +199,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .music-app, .music-cover, .np-cover, .tx-glyph, .tx::before, .glass-button, .music-volume-bar, .devices-scrim, .devices-panel { transition-duration: 0.01ms; }
-  .saved-device.is-connecting .device-icon::after { animation: none; opacity: 0.6; }
+  .saved-device.is-connecting .device-icon::after, .devices-search.is-scanning .icon { animation: none; opacity: 0.6; }
   .tx-glyph, .music-backdrop img, .np-tint img, .music-cover img, .np-cover img, .music-meta, .np-meta, .marquee.is-running .marquee-text { animation: none; }
 }

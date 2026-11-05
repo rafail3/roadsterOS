@@ -53,7 +53,9 @@ export type CarCommand =
   | { type: "Audio.Volume"; delta: number }
   | { type: "Audio.Source"; source: Source }
   | { type: "Bt.Connect"; device: string }
-  | { type: "Bt.Disconnect" };
+  | { type: "Bt.Disconnect" | "Bt.Scan" }
+  | { type: "Bt.Pair"; device: string }
+  | { type: "Bt.ConfirmPairing"; accept: boolean };
 
 export type ShellAction =
   | { type: "CycleTheme" | "OpenDrawer" | "CloseDrawer" | "ToggleFace" | "ToggleScreen" | "Wake" | "Home" | "Back" | "OpenDevices" | "CloseDevices" }
