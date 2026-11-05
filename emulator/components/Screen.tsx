@@ -8,6 +8,7 @@ import { CallOverlay, CameraOverlay } from "./Overlays";
 import { VolumeHud } from "./VolumeHud";
 import { ConnectionNotice } from "./ConnectionNotice";
 import { MusicApp } from "./MusicApp";
+import { RadioApp } from "./RadioApp";
 import { DevicesSheet } from "./DevicesSheet";
 import { NetworksSheet } from "./NetworksSheet";
 import { LocationPrompt } from "./LocationPrompt";
@@ -84,7 +85,10 @@ function pressRail(id: string, cameraOn: boolean) {
     carCommand({ type: "Audio.Source", source: "BT" });
     shellAction({ type: "OpenApp", app: "MUSIC" });
   }
-  if (id === "radio") carCommand({ type: "Audio.Source", source: "RADIO" });
+  if (id === "radio") {
+    carCommand({ type: "Audio.Source", source: "RADIO" });
+    shellAction({ type: "OpenApp", app: "RADIO" });
+  }
   if (id === "camera") carEvent({ type: "ReverseGear", on: !cameraOn });
 }
 
@@ -179,6 +183,7 @@ export function Screen() {
       </section>
 
       <MusicApp open={shell.app === "MUSIC"} />
+      <RadioApp open={shell.app === "RADIO"} />
       {/* over any screen: opened from the music app or by a long press on the drawer's Bluetooth */}
       <DevicesSheet />
       <NetworksSheet />

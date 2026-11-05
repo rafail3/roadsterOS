@@ -6,7 +6,8 @@ export type ThemeMode = "AUTO" | "LIGHT" | "DARK";
 export type Face = "DIGITAL" | "ANALOG";
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";
 export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
-export type App = "HOME" | "MUSIC";
+export type Band = "FM" | "AM";
+export type App = "HOME" | "MUSIC" | "RADIO";
 
 export interface CarState {
   source: Source;
@@ -45,12 +46,15 @@ export type CarEvent =
   | { type: "Track"; title: string; artist?: string; album?: string; durationMs?: number }
   | { type: "Playback"; playing: boolean; positionMs?: number }
   | { type: "Call"; state: CallState; number?: string; name?: string }
-  | { type: "Radio"; khz: number; band: "FM" | "AM"; rds?: string; signal?: number }
+  | { type: "Radio"; khz: number; band: Band; rds?: string; signal?: number; pty?: number; stereo?: boolean }
   | { type: "CarDisplay"; mode: string };
 
 export type CarCommand =
   | { type: "Media.Play" | "Media.Pause" | "Media.Next" | "Media.Prev" }
   | { type: "Radio.Seek"; up: boolean }
+  | { type: "Radio.Tune"; khz: number }
+  | { type: "Radio.Band"; band: Band }
+  | { type: "Radio.Scan" }
   | { type: "Radio.Preset"; index: number }
   | { type: "Phone.Answer" | "Phone.HangUp" }
   | { type: "Phone.Mute"; on: boolean }
@@ -95,6 +99,7 @@ interface Kotlin {
       coverFind(names: string, title: string, artist: string): string;
       stockCover(title: string, artist: string, count: number): number;
       sharpPx(): number;
+      ptyName(code: number): string;
     };
 }
 
@@ -117,6 +122,7 @@ export const bridge = {
   shell: (state: ShellState, action: ShellAction): ShellState =>
     JSON.parse(K!.Bridge.shell(JSON.stringify(state), JSON.stringify(action))),
   maxVolume: () => K!.Bridge.maxVolume(),
+  ptyName: (code: number): string => K!.Bridge.ptyName(code),
   coverColors: (pixels: number[], width: number): { top: string; bottom: string } => JSON.parse(K!.Bridge.coverColors(JSON.stringify(pixels), width)),
   setVolume: (state: CarState, level: number): CarCommand[] => JSON.parse(K!.Bridge.setVolume(JSON.stringify(state), level)),
   effectiveTheme: (state: ShellState, hour: number) => K!.Bridge.effectiveTheme(JSON.stringify(state), hour),

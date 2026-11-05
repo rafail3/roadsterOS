@@ -110,9 +110,9 @@ function Phone() {
   );
 }
 
-// The unit's tuner: FM in 0.1 MHz steps, AM in 9 kHz steps (European ranges).
+// The unit's tuner: FM in 0.05 MHz steps, AM in 9 kHz steps (European region).
 const BANDS = {
-  FM: { label: "Frequency (MHz)", min: 87.5, max: 108, step: 0.1, toKhz: (v: number) => Math.round(v * 1000), start: "101.9" },
+  FM: { label: "Frequency (MHz)", min: 87.5, max: 108, step: 0.05, toKhz: (v: number) => Math.round(v * 1000), start: "101.9" },
   AM: { label: "Frequency (kHz)", min: 522, max: 1620, step: 9, toKhz: (v: number) => Math.round(v), start: "1404" },
 } as const;
 const BAND_OPTIONS: { value: keyof typeof BANDS; label: string }[] = [{ value: "FM", label: "FM" }, { value: "AM", label: "AM" }];

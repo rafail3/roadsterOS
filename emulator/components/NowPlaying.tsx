@@ -1,8 +1,10 @@
-import { useState } from "react";
+import type { CSSProperties } from "react";
+import { bridge } from "../car/bridge";
+import { formatFreq } from "../car/radio";
 import { carCommand, setBluetooth, shellAction, type EmulatorState } from "../car/store";
+import { genreColor } from "./RadioApp";
 import { Marquee, Progress, time, TransportRow, useCrossfade, usePosition } from "./media";
 
-const PRESETS = [1, 2, 3, 4, 5, 6];
 
 /** Bluetooth is the source but no phone is connected: nothing to play, one way to a phone. */
 function NoPhone() {
@@ -50,30 +52,28 @@ function Bluetooth({ emulator }: { emulator: EmulatorState }) {
   );
 }
 
+/** The station playing, tinted by its genre; a tap opens the radio app. */
 function Radio({ emulator }: { emulator: EmulatorState }) {
   const { car, radio } = emulator;
-  const [preset, setPreset] = useState(0);
+  const genre = bridge.ptyName(radio.pty);
+  const freq = formatFreq(radio.band, radio.khz);
   return (
-    <div className="np np-radio">
-      <p className="freq"><span className="freq-num">{radio.band === "AM" ? radio.khz : (radio.khz / 1000).toFixed(1)}</span><span className="freq-band">{radio.band}</span></p>
-      <p className="np-title">{radio.rds}</p>
-      <p className="np-artist">Evening programme</p>
-      <div className="presets">
-        {PRESETS.map((n, i) => (
-          <button
-            key={n}
-            className={`preset${i === preset ? " is-active" : ""}`}
-            aria-label={`Preset ${n}`}
-            aria-pressed={i === preset}
-            onClick={() => { setPreset(i); carCommand({ type: "Radio.Preset", index: i }); }}
-          >{n}</button>
-        ))}
-      </div>
-      <div className="controls">
-        <button className="ctl" aria-label="Seek down" onClick={() => carCommand({ type: "Radio.Seek", up: false })}><span className="icon i-skip-back" /></button>
-        <button className="ctl ctl-primary" aria-label="Mute" onClick={() => carCommand({ type: "Audio.Mute", on: !car.muted })}><span className="icon i-speaker-high" /></button>
-        <button className="ctl" aria-label="Seek up" onClick={() => carCommand({ type: "Radio.Seek", up: true })}><span className="icon i-skip-forward" /></button>
-      </div>
+    <div className="np np-radio" style={{ "--genre": genreColor(radio.pty) } as CSSProperties}>
+      <button className="np-open" aria-label={`Open radio, ${radio.rds || freq}`} onClick={() => shellAction({ type: "OpenApp", app: "RADIO" })}>
+        <span className="radio-tags">
+          <span className="radio-tag is-band">{radio.band}</span>
+          {radio.stereo && <span className="radio-tag">Stereo</span>}
+        </span>
+        <span className="freq"><span className="freq-num">{freq}</span><span className="freq-band">{radio.band === "FM" ? "MHz" : "kHz"}</span></span>
+        <span className="np-title np-radio-name" key={radio.rds}>{radio.rds || "Radio"}</span>
+        {genre && <span className="radio-genre" key={genre}>{genre}</span>}
+      </button>
+      <TransportRow
+        playing={!car.muted}
+        onPrev={() => carCommand({ type: "Radio.Seek", up: false })}
+        onPlay={() => carCommand({ type: "Audio.Mute", on: !car.muted })}
+        onNext={() => carCommand({ type: "Radio.Seek", up: true })}
+      />
     </div>
   );
 }
