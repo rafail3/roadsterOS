@@ -4,6 +4,7 @@ export type Source = "NONE" | "BT" | "RADIO";
 export type CallState = "IDLE" | "RINGING" | "OUTGOING" | "ACTIVE";
 export type ThemeMode = "AUTO" | "LIGHT" | "DARK";
 export type Face = "DIGITAL" | "ANALOG";
+export type FaceMode = "BOTH" | "DIGITAL" | "ANALOG";
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";
 export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
 export type Band = "FM" | "AM";
@@ -52,6 +53,8 @@ export interface ShellState {
   recordEvents: boolean;
   /** the ring of ticks around the map's speed, filled against the limit */
   speedRing: boolean;
+  /** both clock faces switched with a tap, or one fixed face */
+  faceMode: FaceMode;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -121,7 +124,8 @@ export type ShellAction =
   | { type: "ToggleHomeApp"; id: string }
   | { type: "MoveHomeApp"; id: string; by: number }
   | { type: "SetRecording"; on: boolean }
-  | { type: "SetSpeedRing"; on: boolean };
+  | { type: "SetSpeedRing"; on: boolean }
+  | { type: "SetFaceMode"; mode: FaceMode };
 
 export interface PhoneNumber { number: string; label: string }
 export interface Contact { name: string; numbers: PhoneNumber[] }

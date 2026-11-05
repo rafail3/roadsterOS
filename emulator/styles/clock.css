@@ -62,3 +62,6 @@
   .digit .glyph.out, .digit .glyph.in { animation-duration: 0.01ms; }
   .hand-hour, .hand-minute { transition: none; }
 }
+
+/* a fixed face: the clock reads the same, it just does not switch */
+.clock-hit:disabled { cursor: default; opacity: 1; color: inherit; }

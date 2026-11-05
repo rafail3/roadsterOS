@@ -185,7 +185,7 @@ export function Screen() {
       </nav>
 
       <section className="field" inert={covered || inApp}>
-        <Clock now={now} face={shell.face} h24={shell.clock24h} />
+        <Clock now={now} face={shell.face} h24={shell.clock24h} switchable={shell.faceMode === "BOTH"} />
         <div className="apps" aria-label="Apps">
           {/* the icons chosen in the settings (core-car HomeApps) */}
           {bridge.homeApps(shell.homeApps, emulator.installed).map(({ id, label }) => {

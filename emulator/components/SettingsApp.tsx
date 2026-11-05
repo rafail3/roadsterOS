@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { bridge, type Face, type ThemeMode } from "../car/bridge";
+import { bridge, type FaceMode, type ThemeMode } from "../car/bridge";
 import { removePack, setBluetooth, setLocation, setVolume, setWifi, shellAction, useEmulator, type EmulatorState } from "../car/store";
 import { PillSlider } from "./Drawer";
 import { useCloseOntoCard } from "./media";
@@ -101,9 +101,9 @@ function Display({ e }: { e: EmulatorState }) {
         />
       </div>
     </Group>
-    <Group title="Clock">
+    <Group title="Clock" footer={shell.faceMode === "BOTH" ? "A tap on the clock on home switches between the two faces." : undefined}>
       <Row label="Face">
-        <Segmented<Face> label="Clock face" options={[["DIGITAL", "Digital"], ["ANALOG", "Analog"]]} value={shell.face} onChange={(face) => shellAction({ type: "SetFace", face })} />
+        <Segmented<FaceMode> label="Clock face" options={[["BOTH", "Both"], ["DIGITAL", "Digital"], ["ANALOG", "Analog"]]} value={shell.faceMode} onChange={(mode) => shellAction({ type: "SetFaceMode", mode })} />
       </Row>
       <Row label="24-Hour Time"><Switch label="24-Hour Time" on={shell.clock24h} onChange={(on) => shellAction({ type: "SetClock24h", on })} /></Row>
     </Group>

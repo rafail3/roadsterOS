@@ -77,6 +77,17 @@ class SettingsTest {
     }
 
     @Test
+    fun `a tap switches the clock face only while both faces are allowed`() {
+        assertEquals(Face.ANALOG, Shell.reduce(ShellState(), ShellAction.ToggleFace).face)
+        val digital = Shell.reduce(ShellState(face = Face.ANALOG), ShellAction.SetFaceMode(FaceMode.DIGITAL))
+        assertEquals(Face.DIGITAL, digital.face)
+        assertEquals(Face.DIGITAL, Shell.reduce(digital, ShellAction.ToggleFace).face)
+        val both = Shell.reduce(digital, ShellAction.SetFaceMode(FaceMode.BOTH))
+        assertEquals(Face.ANALOG, Shell.reduce(both, ShellAction.ToggleFace).face)
+        assertEquals(FaceMode.DIGITAL, Shell.decodePreferences(Shell.encodePreferences(digital)).faceMode)
+    }
+
+    @Test
     fun `sizes read in the units a person uses`() {
         assertEquals("0 MB", Settings.size(0))
         assertEquals("27 MB", Settings.size(27L * 1024 * 1024 + 300_000))

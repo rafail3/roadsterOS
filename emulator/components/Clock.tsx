@@ -88,14 +88,15 @@ function Dial({ now }: { now: Date }) {
   );
 }
 
-export function Clock({ now, face, h24 }: { now: Date; face: Face; h24: boolean }) {
+/** The clock tile on home; [switchable] while the settings allow both faces, a tap then switches them. */
+export function Clock({ now, face, h24, switchable }: { now: Date; face: Face; h24: boolean; switchable: boolean }) {
   const analog = face === "ANALOG";
   const toggle = () => shellAction({ type: "ToggleFace" });
   return (
     // only the time itself switches the face: the date card and the space beside it do not
     <div className="clock-block">
       <div className="digital" hidden={analog}>
-        <button className="clock-hit" aria-label="Clock, tap for the analog face" onClick={toggle}>
+        <button className="clock-hit" aria-label={switchable ? "Clock, tap for the analog face" : "Clock"} disabled={!switchable} onClick={toggle}>
           <Digits text={bridge.clockText(now.getHours(), now.getMinutes(), h24)} dateTime={now.toISOString()} />
           {!h24 && <span className="clock-meridiem">{bridge.meridiem(now.getHours())}</span>}
         </button>
@@ -106,7 +107,7 @@ export function Clock({ now, face, h24 }: { now: Date; face: Face; h24: boolean 
         </div>
       </div>
       <div className="analog" id="analog" hidden={!analog}>
-        {analog && <button className="clock-hit" aria-label="Clock, tap for the digital face" onClick={toggle}><Dial now={now} /></button>}
+        {analog && <button className="clock-hit" aria-label={switchable ? "Clock, tap for the digital face" : "Clock"} disabled={!switchable} onClick={toggle}><Dial now={now} /></button>}
       </div>
     </div>
   );
