@@ -65,6 +65,18 @@ object Bridge {
         return json.encodeToString(ShellState.serializer(), next)
     }
 
+    /** The name a cover of this track is kept under, as on the unit. */
+    fun coverFileName(title: String, artist: String): String = CoverIndex.fileName(title, artist)
+
+    /** [names]: a JSON array of kept file names; answers the one of this track, or an empty string. */
+    fun coverFind(names: String, title: String, artist: String): String =
+        CoverIndex.find(json.decodeFromString(ListSerializer(String.serializer()), names), title, artist).orEmpty()
+
+    fun stockCover(title: String, artist: String, count: Int): Int = CoverIndex.stockCover(title, artist, count)
+
+    /** The pixel size below which a cover is worth a catalog upgrade, per side. */
+    fun sharpPx(): Int = CoverCatalog.SHARP_PX
+
     fun effectiveTheme(state: String, hour: Int): String =
         Shell.effectiveTheme(json.decodeFromString(ShellState.serializer(), state), hour).name
 }
