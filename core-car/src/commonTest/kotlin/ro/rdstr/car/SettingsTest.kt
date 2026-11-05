@@ -70,6 +70,13 @@ class SettingsTest {
     }
 
     @Test
+    fun `the speed ring is on by default, can be switched off and is kept`() {
+        assertTrue(ShellState().speedRing)
+        val off = Shell.reduce(ShellState(), ShellAction.SetSpeedRing(false))
+        assertFalse(Shell.decodePreferences(Shell.encodePreferences(off)).speedRing)
+    }
+
+    @Test
     fun `sizes read in the units a person uses`() {
         assertEquals("0 MB", Settings.size(0))
         assertEquals("27 MB", Settings.size(27L * 1024 * 1024 + 300_000))

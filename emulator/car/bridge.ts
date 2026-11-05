@@ -50,6 +50,8 @@ export interface ShellState {
   /** the app icons on home, in order: our apps by name, other apps by package */
   homeApps: string[];
   recordEvents: boolean;
+  /** the ring of ticks around the map's speed, filled against the limit */
+  speedRing: boolean;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -118,7 +120,8 @@ export type ShellAction =
   | { type: "SetTypingLock"; on: boolean }
   | { type: "ToggleHomeApp"; id: string }
   | { type: "MoveHomeApp"; id: string; by: number }
-  | { type: "SetRecording"; on: boolean };
+  | { type: "SetRecording"; on: boolean }
+  | { type: "SetSpeedRing"; on: boolean };
 
 export interface PhoneNumber { number: string; label: string }
 export interface Contact { name: string; numbers: PhoneNumber[] }

@@ -222,7 +222,7 @@ export function MapsApp({ open, inCard, light }: { open: boolean; inCard: boolea
         </div>
         <span className={`map-speed${warning.over ? " is-over" : ""}`} role="img" aria-label={`${speed.kmh} km/h`}>
           {/* the dial's ring of ticks */}
-          <SpeedTicks lit={warning.lit} tone={warning.tone} />
+          {shell.speedRing && <SpeedTicks lit={warning.lit} tone={warning.tone} />}
           <b>{speed.kmh}</b>
           <small>km/h</small>
           <span className={`map-limit${warning.limit !== null ? " is-shown" : ""}`} role="img"
