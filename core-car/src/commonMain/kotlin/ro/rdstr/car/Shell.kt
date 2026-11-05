@@ -48,6 +48,8 @@ sealed class ShellAction {
     @Serializable @SerialName("Headlights") data class Headlights(val on: Boolean) : ShellAction()
     @Serializable @SerialName("ToggleScreen") data object ToggleScreen : ShellAction()
     @Serializable @SerialName("Wake") data object Wake : ShellAction()
+    /** The car switched off: the screen goes dark until it starts again. */
+    @Serializable @SerialName("Sleep") data object Sleep : ShellAction()
     @Serializable @SerialName("Home") data object Home : ShellAction()
     @Serializable @SerialName("Back") data object Back : ShellAction()
     @Serializable @SerialName("OpenApp") data class OpenApp(val app: App) : ShellAction()
@@ -102,6 +104,7 @@ object Shell {
         is ShellAction.Headlights -> s.copy(headlights = a.on)
         ShellAction.ToggleScreen -> s.copy(screenOn = !s.screenOn)
         ShellAction.Wake -> s.copy(screenOn = true)
+        ShellAction.Sleep -> s.copy(screenOn = false, drawer = false)
         is ShellAction.OpenApp -> s.copy(
             app = a.app,
             running = if (a.app == App.HOME) s.running else listOf(a.app) + (s.running - a.app),

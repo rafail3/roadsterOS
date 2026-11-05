@@ -58,6 +58,25 @@ function useThemeFade(theme: string) {
   return fading;
 }
 
+/** How long the screen takes to come on: the black lifts while the content settles from a slight zoom. */
+const WAKE_MS = 650;
+
+/** True while the screen is coming on: at start-up, and every time it is switched back on. */
+function useWaking(on: boolean) {
+  const [waking, setWaking] = useState(true);
+  const [shown, setShown] = useState(on);
+  if (on !== shown) {
+    setShown(on);
+    if (on) setWaking(true);
+  }
+  useEffect(() => {
+    if (!waking) return;
+    const timer = setTimeout(() => setWaking(false), WAKE_MS);
+    return () => clearTimeout(timer);
+  }, [waking]);
+  return waking && on;
+}
+
 function pressRail(id: string, cameraOn: boolean) {
   if (id === "music") {
     setBluetooth(true);
@@ -76,6 +95,7 @@ export function Screen() {
   const theme = bridge.effectiveTheme(shell, now.getHours());
   const light = theme === "LIGHT";
   const fading = useThemeFade(theme);
+  const waking = useWaking(shell.screenOn);
   const drawer = useRef<HTMLElement>(null);
   const { dragging, onPointerDown } = useDrawerDrag(drawer);
   const inApp = shell.app !== "HOME";
@@ -100,7 +120,7 @@ export function Screen() {
   }, [car.camera]);
 
   return (
-    <div ref={finger} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming", inApp && "in-app")} style={{ ...glow, ...boost }}>
+    <div ref={finger} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming", inApp && "in-app", waking && "waking")} style={{ ...glow, ...boost }}>
       <div className="ambient" aria-hidden="true" />
 
       <header className="bar" inert={covered} onPointerDown={onPointerDown}>
@@ -182,7 +202,8 @@ export function Screen() {
       ))}
       <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC" || shell.drawer} />
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.dark.toFixed(3) }} />
-      {!shell.screenOn && <button className="screen-off" aria-label="Screen off, tap to wake" onClick={() => shellAction({ type: "Wake" })} />}
+      {/* always there: it fades in to switch the screen off and lifts to switch it on; a tap on it wakes the screen */}
+      <button className={classes("screen-off", !shell.screenOn && "is-on", waking && "is-lifting")} aria-label="Screen off, tap to wake" tabIndex={shell.screenOn ? -1 : 0} aria-hidden={shell.screenOn} onClick={() => shellAction({ type: "Wake" })} />
     </div>
   );
 }

@@ -356,6 +356,8 @@ export function carEvent(event: CarEvent) {
   const step = bridge.apply(state.car, event);
   set({ ...displayData(event), car: step.state, log: addLog("in", event) });
   step.actions.forEach(runAction);
+  // the screen follows the ignition: dark with the car off, back on when it starts
+  if (event.type === "Power") shellAction({ type: event.acc ? "Wake" : "Sleep" });
 }
 
 /** A command from our own UI: the rules remember it, then it goes to the car. */

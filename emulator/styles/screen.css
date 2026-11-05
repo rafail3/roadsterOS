@@ -311,7 +311,17 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .edge-bulge.is-pressed { transform: scale(1, 1); transition: transform 520ms linear(0, 0.22 6%, 0.56 14%, 0.86 24%, 1.03 34%, 1.07 41%, 1.05 50%, 1.01 62%, 0.995 75%, 1); }
 
 /* backlight off after the power key; a tap wakes it */
-.screen-off { position: absolute; inset: 0; z-index: 10; background: #000; cursor: default; }
+/* screen off and on, as on a phone: off is a quick fall to black; on, the black lifts while the content settles from a slight zoom */
+.screen-off { position: absolute; inset: 0; z-index: 10; width: 100%; background: #000; cursor: default; opacity: 0; pointer-events: none; transition: opacity 520ms var(--ease-out); }
+.screen-off.is-on { opacity: 1; pointer-events: auto; transition: opacity 240ms cubic-bezier(0.4, 0, 1, 1); }
+.screen-off.is-lifting { animation: screen-lift 520ms var(--ease-out); }
+@keyframes screen-lift { from { opacity: 1; } }
+.screen.waking > :is(.bar, .rail, .field, .panel, .music-app.is-open) { animation: wake-zoom 650ms var(--ease-out); }
+@keyframes wake-zoom { from { transform: scale(1.06); } }
+@media (prefers-reduced-motion: reduce) {
+  .screen-off, .screen-off.is-on { transition-duration: 0.01ms; }
+  .screen-off.is-lifting, .screen.waking > * { animation: none; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .volume-hud, .volume-fill, .edge-bulge { transition-duration: 0.01ms; }

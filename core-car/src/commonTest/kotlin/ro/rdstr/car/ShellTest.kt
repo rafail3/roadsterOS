@@ -86,6 +86,15 @@ class ShellTest {
     }
 
     @Test
+    fun `the screen sleeps with the car and wakes again`() {
+        val asleep = Shell.reduce(ShellState(drawer = true), ShellAction.Sleep)
+        assertFalse(asleep.screenOn)
+        assertFalse(asleep.drawer)
+        assertTrue(Shell.reduce(asleep, ShellAction.Wake).screenOn)
+        assertFalse(Shell.reduce(ShellState(), ShellAction.ToggleScreen).screenOn)
+    }
+
+    @Test
     fun `back closes the drawer before the devices sheet`() {
         val both = ShellState(app = App.MUSIC, devices = true, drawer = true)
         val once = Shell.reduce(both, ShellAction.Back)
