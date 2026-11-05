@@ -1,4 +1,4 @@
-import { useRef, useState, type PointerEvent } from "react";
+import { useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import { bridge } from "../car/bridge";
 import { carCommand, setVolume, shellAction, stepVolume, useEmulator } from "../car/store";
 import { holdToRepeat } from "./controls";
@@ -19,13 +19,26 @@ export function MusicApp({ open }: { open: boolean }) {
   const slider = useRef<HTMLDivElement>(null);
   const muteFill = useMuteFill(car.muted);
 
+  // leaving, the app's outline closes onto its card on home (now playing); measured from layout, so home's settle zoom does not skew it
+  const section = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const app = section.current;
+    const card = app?.parentElement?.querySelector<HTMLElement>(".panel");
+    if (!app || !card) return;
+    const { offsetLeft: l, offsetTop: t, offsetWidth: w, offsetHeight: h } = card;
+    app.style.setProperty("--to-t", `${t}px`);
+    app.style.setProperty("--to-l", `${l}px`);
+    app.style.setProperty("--to-r", `${app.offsetWidth - l - w}px`);
+    app.style.setProperty("--to-b", `${app.offsetHeight - t - h}px`);
+  }, [open]);
+
   const volumeAt = (e: PointerEvent) => {
     const r = slider.current!.getBoundingClientRect();
     setVolume(Math.round(Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * max));
   };
 
   return (
-    <section className={`music-app${open ? " is-open" : ""}`} aria-label="Music" aria-hidden={!open} inert={!open} style={{ "--cover-top": colors.top, "--cover-bottom": colors.bottom } as React.CSSProperties}>
+    <section ref={section} className={`music-app${open ? " is-open" : ""}`} aria-label="Music" aria-hidden={!open} inert={!open} style={{ "--cover-top": colors.top, "--cover-bottom": colors.bottom } as React.CSSProperties}>
       {/* on the unit the cover is decoded small and blurred once per track; no live blur */}
       <div className="music-backdrop" aria-hidden="true">
         {backdrops.layers.map((layer, i, all) => layer.src && <img key={layer.id} src={layer.src} alt="" className={i < all.length - 1 ? "is-leaving" : undefined} onAnimationEnd={() => backdrops.settle(layer.id)} />)}

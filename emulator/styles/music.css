@@ -83,13 +83,16 @@
   display: grid; grid-template-columns: 480px minmax(0, 1fr); align-items: center; column-gap: 80px; padding: 56px 96px 0 112px;
   /* the cover's top colour down to 60%, then its bottom colour */
   background: linear-gradient(180deg, var(--cover-top) 0%, var(--cover-top) 60.6%, var(--cover-bottom) 100%); color: #fff;
-  /* leaving, as on a phone: the app shrinks into its card on home (now playing, right), rounding its corners,
-     and fades only near the end, so the eye follows it there; home settles underneath at the same time */
-  opacity: 0; visibility: hidden; pointer-events: none; transform: scale(0.3); transform-origin: 84% 52%; border-radius: 64px;
-  transition: transform 380ms var(--sheet-in), border-radius 380ms var(--sheet-in), opacity 380ms cubic-bezier(0.7, 0, 0.9, 0.5), visibility 0s linear 380ms, --cover-top 800ms var(--seamless), --cover-bottom 800ms var(--seamless);
+  /* leaving, as on a phone: the app's outline closes onto its card on home (now playing; edges measured in MusicApp)
+     with the card's rounded corners, its content fading first so nothing squashed shows; the outline fades as it lands */
+  opacity: 0; visibility: hidden; pointer-events: none;
+  clip-path: inset(var(--to-t, 20%) var(--to-r, 2%) var(--to-b, 2%) var(--to-l, 72%) round var(--radius));
+  transition: clip-path 380ms var(--sheet-in), opacity 380ms cubic-bezier(0.7, 0, 0.9, 0.5), visibility 0s linear 380ms, --cover-top 800ms var(--seamless), --cover-bottom 800ms var(--seamless);
 }
+.music-app > * { transition: opacity 140ms var(--ease-out); }
+.music-app:not(.is-open) > * { opacity: 0; }
 .music-app.is-open {
-  opacity: 1; visibility: visible; pointer-events: auto; transform: none; border-radius: 0;
+  opacity: 1; visibility: visible; pointer-events: auto; clip-path: inset(0 round 0);
   transition: --cover-top 800ms var(--seamless), --cover-bottom 800ms var(--seamless);
   animation: music-in 420ms var(--sheet-in);
 }
