@@ -16,15 +16,12 @@ const loadBorders = () => (bordersFile ??= fetch("/maps/countries.geojson").then
 
 /**
  * The car: the navigation arrow seen from above (the Material Icons "navigation" shape), 53 px tall (44 units at 1.2), with a little
- * volume: one blue gradient brighter towards the tip, a soft gloss on its upper part, a white rim with a fine dark
- * edge, and a soft shadow that stays below it however it turns. Plain shapes (no blur), the same layers as on the unit.
+ * volume: the OS blue of the location button, a touch deeper towards the base, a white rim with a fine dark edge, and a soft shadow that stays below it however it turns. Plain shapes (no blur), the same layers as on the unit.
  */
 const ARROW = "M 0 -22 L 18 22 L 0 11.5 L -18 22 Z";
-const GLOSS = "M 0 -17 L 10.5 8.5 L 0 3 L -10.5 8.5 Z";
 const PUCK = `<svg viewBox="-36 -36 72 72" width="86" height="86" aria-hidden="true">
   <defs>
-    <linearGradient id="puck-fill" x1="-10" y1="-22" x2="10" y2="22" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2f97ff"/><stop offset="0.5" stop-color="#0a84ff"/><stop offset="1" stop-color="#0a6fe0"/></linearGradient>
-    <linearGradient id="puck-gloss" x1="0" y1="-17" x2="0" y2="8" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity="0.28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="puck-fill" x1="-10" y1="-22" x2="10" y2="22" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0a84ff"/><stop offset="0.45" stop-color="#0a84ff"/><stop offset="1" stop-color="#0876ea"/></linearGradient>
   </defs>
   <g data-shadow stroke-linejoin="round" fill="#000" stroke="#000">
     <path d="${ARROW}" fill-opacity="0" stroke-opacity="0.05" stroke-width="13"/>
@@ -35,7 +32,6 @@ const PUCK = `<svg viewBox="-36 -36 72 72" width="86" height="86" aria-hidden="t
     <path d="${ARROW}" fill="none" stroke="#000" stroke-opacity="0.18" stroke-width="6.5"/>
     <path d="${ARROW}" fill="#fff" stroke="#fff" stroke-width="5"/>
     <path d="${ARROW}" fill="url(#puck-fill)" stroke="url(#puck-fill)" stroke-width="1.2"/>
-    <path d="${GLOSS}" fill="url(#puck-gloss)"/>
   </g>
 </svg>`;
 /** Turns the arrow with the heading; its shadow turns too but stays a little below it on the screen. */

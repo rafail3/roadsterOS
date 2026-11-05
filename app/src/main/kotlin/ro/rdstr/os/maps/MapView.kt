@@ -158,11 +158,9 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     }
 
     private val carPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeJoin = Paint.Join.ROUND }
-    /** The navigation arrow seen from above, 44 px tall, pointing up and centred; and its upper part for the gloss. */
+    /** The navigation arrow seen from above, 44 units tall, pointing up and centred. */
     private val arrow = Path().apply { moveTo(0f, -22f); lineTo(18f, 22f); lineTo(0f, 11.5f); lineTo(-18f, 22f); close() }
-    private val glossShape = Path().apply { moveTo(0f, -17f); lineTo(10.5f, 8.5f); lineTo(0f, 3f); lineTo(-10.5f, 8.5f); close() }
-    private val fill = android.graphics.LinearGradient(-10f, -22f, 10f, 22f, intArrayOf(0xFF2F97FF.toInt(), 0xFF0A84FF.toInt(), 0xFF0A6FE0.toInt()), floatArrayOf(0f, 0.5f, 1f), android.graphics.Shader.TileMode.CLAMP)
-    private val gloss = android.graphics.LinearGradient(0f, -17f, 0f, 8f, 0x47FFFFFF, 0x00FFFFFF, android.graphics.Shader.TileMode.CLAMP)
+    private val fill = android.graphics.LinearGradient(-10f, -22f, 10f, 22f, intArrayOf(0xFF0A84FF.toInt(), 0xFF0A84FF.toInt(), 0xFF0876EA.toInt()), floatArrayOf(0f, 0.45f, 1f), android.graphics.Shader.TileMode.CLAMP)
 
     private fun stroke(canvas: Canvas, path: Path, color: Int, width: Float) {
         carPaint.shader = null
@@ -173,8 +171,8 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     }
 
     /**
-     * The car where the GPS puts it: the navigation arrow seen from above with a little volume (one blue gradient,
-     * a gloss on its upper part, a white rim with a fine dark edge) and a soft shadow kept below it on the screen.
+     * The car where the GPS puts it: the navigation arrow seen from above with a little volume (the OS blue of the
+     * location button, a touch deeper at the base, a white rim with a fine dark edge) and a soft shadow kept below it on the screen.
      * Same layers as the emulator.
      */
     private fun drawCar(canvas: Canvas, v: MapViewState) {
@@ -196,7 +194,7 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         carPaint.color = 0x33000000
         canvas.drawPath(arrow, carPaint)
         canvas.restore()
-        // the arrow: a fine dark edge, the white rim, the blue body, the gloss
+        // the arrow: a fine dark edge, the white rim, the blue body
         canvas.save()
         canvas.translate(x, y)
         canvas.scale(CAR_SCALE, CAR_SCALE)
@@ -211,8 +209,6 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         carPaint.strokeWidth = 1.2f
         canvas.drawPath(arrow, carPaint)
         carPaint.style = Paint.Style.FILL
-        carPaint.shader = gloss
-        canvas.drawPath(glossShape, carPaint)
         carPaint.shader = null
         canvas.restore()
     }
