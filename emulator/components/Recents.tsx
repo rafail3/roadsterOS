@@ -93,33 +93,6 @@ function Card({ app, emulator }: { app: Exclude<App, "HOME">; emulator: Emulator
   );
 }
 
-/** How far a finger travels up from the bottom edge before the open apps come up, in canvas pixels. */
-const EDGE_OPEN_PX = 80;
-
-/** The strip along the bottom edge: a swipe up from it opens the open apps over whatever is on screen. */
-export function EdgeSwipe() {
-  const start = useRef<{ y: number; scale: number } | null>(null);
-  const end = () => { start.current = null; };
-  return (
-    <div
-      className="edge-swipe"
-      aria-hidden="true"
-      onPointerDown={(e) => {
-        e.currentTarget.setPointerCapture(e.pointerId);
-        start.current = { y: e.clientY, scale: e.currentTarget.getBoundingClientRect().height / e.currentTarget.offsetHeight || 1 };
-      }}
-      onPointerMove={(e) => {
-        const s = start.current;
-        if (!s || (s.y - e.clientY) / s.scale < EDGE_OPEN_PX) return;
-        end();
-        shellAction({ type: "OpenRecents" });
-      }}
-      onPointerUp={end}
-      onPointerCancel={end}
-    />
-  );
-}
-
 /** Our apps open right now, most recent first: tap one to return to it, push it up to close it. */
 export function Recents({ emulator }: { emulator: EmulatorState }) {
   const { shell } = emulator;

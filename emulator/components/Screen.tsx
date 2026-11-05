@@ -7,7 +7,8 @@ import { NowPlaying } from "./NowPlaying";
 import { CallOverlay, CameraOverlay } from "./Overlays";
 import { VolumeHud } from "./VolumeHud";
 import { MusicApp } from "./MusicApp";
-import { EdgeSwipe, Recents } from "./Recents";
+import { Recents } from "./Recents";
+import { EdgeBack, NavBar } from "./Gestures";
 import { useCoverColors } from "./media";
 import { useFingerMouse } from "./controls";
 
@@ -113,7 +114,7 @@ export function Screen() {
           <button className="bar-button" aria-label={car.muted ? "Volume, muted" : "Volume"} onClick={openVolume}>
             <span className={`icon ${car.muted ? "i-speaker-slash-fill is-muted" : "i-speaker-high-fill"}`} aria-hidden="true" />
           </button>
-          <span className={`icon ${light ? "i-sun" : "i-moon"}`} id="bar-theme" role="img" aria-label={light ? "Day theme" : "Night theme"} />
+          <span className={`icon ${light ? "i-sun-fill" : "i-moon-fill"}`} id="bar-theme" role="img" aria-label={light ? "Day theme" : "Night theme"} />
         </div>
       </header>
 
@@ -145,7 +146,14 @@ export function Screen() {
 
       <MusicApp open={shell.app === "MUSIC"} />
       <Recents emulator={emulator} />
-      {!covered && <EdgeSwipe />}
+      {/* always there, as on a phone, except under the drawer, a call or the camera */}
+      {!shell.drawer && car.call === "IDLE" && !car.camera && (
+        <>
+          <NavBar />
+          <EdgeBack side="left" />
+          <EdgeBack side="right" />
+        </>
+      )}
       <div className={classes("scrim", shell.drawer && "is-open")} onClick={() => shellAction({ type: "CloseDrawer" })} />
       <Drawer emulator={emulator} panel={drawer} dragging={dragging} />
       {car.call !== "IDLE" && <CallOverlay emulator={emulator} />}

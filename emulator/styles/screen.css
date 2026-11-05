@@ -46,6 +46,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .i-speaker-slash-fill { --m: url(/icons/speaker-slash-fill.svg); }
 .i-wifi-high { --m: url(/icons/wifi-high.svg); }
 .i-moon { --m: url(/icons/moon.svg); }
+.i-moon-fill { --m: url(/icons/moon-fill.svg); }
 .i-sun { --m: url(/icons/sun.svg); }
 .i-sun-dim { --m: url(/icons/sun-dim.svg); }
 .i-sun-fill { --m: url(/icons/sun-fill.svg); }
@@ -59,6 +60,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .i-x { --m: url(/icons/x.svg); }
 .i-circle-half { --m: url(/icons/circle-half.svg); }
 .i-caret-down { --m: url(/icons/caret-down.svg); }
+.i-caret-left { --m: url(/icons/caret-left.svg); }
 .i-power { --m: url(/icons/power.svg); }
 .i-house { --m: url(/icons/house.svg); }
 .i-back { --m: url(/icons/arrow-u-up-left.svg); }
@@ -177,8 +179,9 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .pill-slider.is-muted .pill-readout { color: var(--mute); }
 .handle-bottom { align-self: center; height: var(--target); }
 
-/* open apps: our own apps as cards, pushed up to close; one opaque layer over everything below it */
-.recents { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-7); background: var(--sheet); opacity: 0; pointer-events: none; transition: opacity var(--base) var(--ease-out); }
+/* open apps: our own apps as cards, pushed up to close, over the screen they were opened from, blurred.
+   The browser blurs live; the unit has no live blur, so it blurs one small snapshot of the screen when the list opens */
+.recents { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-7); background: color-mix(in srgb, var(--sheet) 55%, transparent); -webkit-backdrop-filter: blur(28px) saturate(1.2); backdrop-filter: blur(28px) saturate(1.2); opacity: 0; pointer-events: none; transition: opacity var(--base) var(--ease-out); }
 .recents.is-open { opacity: 1; pointer-events: auto; }
 .recents-list { display: flex; justify-content: center; gap: var(--space-6); margin: 0; padding: 0; list-style: none; }
 .recents-card { width: 280px; display: flex; flex-direction: column; gap: var(--space-2); transition: transform var(--base) var(--ease-out), opacity var(--base) var(--ease-out); }
@@ -202,10 +205,18 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .recents-clear:active { background: var(--glass-pressed); }
 .recents-card-close:focus-visible, .recents-card-body:focus-visible, .recents-clear:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .recents-empty { margin: 0; color: var(--ink-muted); font-size: var(--size-body); }
-/* the bottom-edge strip a swipe up starts from; its handle shows only while a finger is on it */
-.edge-swipe { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; height: 28px; touch-action: none; }
-.edge-swipe::after { content: ""; position: absolute; left: 50%; bottom: 8px; width: 120px; height: 4px; margin-left: -60px; border-radius: 2px; background: var(--ink); opacity: 0; transition: opacity var(--fast) var(--ease-out); }
-.edge-swipe:active::after { opacity: 0.4; }
+/* phone-style navigation: the bottom handle (flick up = home, push up and hold = open apps) and the side edges (pull in = back) */
+.nav-bar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; height: 28px; display: grid; place-items: end center; padding-bottom: 10px; touch-action: none; }
+.nav-handle { width: 120px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--ink) 55%, transparent); transition: transform 160ms var(--ease-out), background var(--fast) var(--ease-out); }
+.nav-bar:active .nav-handle { background: color-mix(in srgb, var(--ink) 85%, transparent); transition-duration: 0s, var(--fast); }
+.edge-back { position: absolute; top: var(--bar); bottom: 28px; z-index: 6; width: 20px; touch-action: none; }
+.edge-back-left { left: 0; }
+.edge-back-right { right: 0; }
+.edge-back-arrow { position: absolute; width: 44px; height: 44px; margin-top: -22px; display: grid; place-items: center; border-radius: 50%; background: var(--sheet-raised); border: 1px solid var(--hairline-strong); color: var(--ink-muted); pointer-events: none; transition: background var(--fast), color var(--fast); }
+.edge-back-left .edge-back-arrow { left: 4px; }
+.edge-back-right .edge-back-arrow { right: 4px; }
+.edge-back-arrow.is-armed { background: var(--ink); color: var(--sheet); }
+.edge-back-arrow .icon { width: 22px; height: 22px; }
 @media (prefers-reduced-motion: reduce) {
   .recents, .recents-card { transition-duration: 0.01ms; }
   .recents.is-open .recents-card { animation: none; }
