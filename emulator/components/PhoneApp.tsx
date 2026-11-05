@@ -3,6 +3,7 @@ import { bridge, type CallType, type Contact } from "../car/bridge";
 import { carCommand, markRead, openThread, shellAction, turnOnBluetooth, useEmulator, useNow, type EmulatorState } from "../car/store";
 import { holdToRepeat } from "./controls";
 import { useCloseOntoCard } from "./media";
+import { Keyboard } from "./Keyboard";
 import { NoPhone } from "./MusicApp";
 
 const KEYS: [string, string][] = [
@@ -87,45 +88,68 @@ function Recents({ emulator }: { emulator: EmulatorState }) {
   );
 }
 
-/** The phone book with a letter index; [onDialed] runs after a number is called (the call screen closes its picker). */
-export function Contacts({ emulator, onDialed }: { emulator: EmulatorState; onDialed?: () => void }) {
+/** What a contacts list searches: the text typed, whether the keyboard is up, and the field's two taps. */
+export interface ContactSearch { query: string; typing: boolean; onFocus: () => void; onClear: () => void }
+
+/**
+ * The phone book with a letter index; [onDialed] runs after a number is called (the call screen closes its picker).
+ * With [search], a field stays at the top of the list while it scrolls, and typed text narrows the list to matches.
+ */
+export function Contacts({ emulator, onDialed, search }: { emulator: EmulatorState; onDialed?: () => void; search?: ContactSearch }) {
   const call = (number: string) => { dial(number); onDialed?.(); };
+  const query = search?.query.trim() ?? "";
+  const found = useMemo(() => (query ? bridge.phoneSearch(emulator.contacts, query) : null), [emulator.contacts, query]);
   const sections = useMemo(() => bridge.phoneSections(emulator.contacts), [emulator.contacts]);
   const [open, setOpen] = useState<string | null>(null);
   const heads = useRef<Record<string, HTMLElement | null>>({});
   if (!sections.length) return <p className="phone-empty">Contacts from {emulator.device} show here once the phone shares them.</p>;
+  const row = (c: Contact) => (
+    <div key={c.name} className={`phone-contact${open === c.name ? " is-open" : ""}`}>
+      <button className="phone-row" aria-expanded={c.numbers.length > 1 ? open === c.name : undefined} aria-label={c.numbers.length === 1 ? `Call ${c.name}` : `${c.name}, ${c.numbers.length} numbers`} onClick={() => pick(c)}>
+        <span className="phone-avatar" aria-hidden="true">{bridge.initials(c.name) || <span className="icon i-user" />}</span>
+        <span className="phone-row-text"><span className="phone-row-name">{c.name}</span></span>
+        {c.numbers.length > 1 && <span className="phone-row-when">{c.numbers.length} numbers</span>}
+      </button>
+      {open === c.name && c.numbers.map((n) => (
+        <button key={n.number} className="phone-number" aria-label={`Call ${c.name}, ${n.label || n.number}`} onClick={() => call(n.number)}>
+          <span className="icon i-phone-fill" aria-hidden="true" />
+          <span className="phone-row-sub">{n.label}</span>
+          <span className="phone-number-digits">{n.number}</span>
+        </button>
+      ))}
+    </div>
+  );
   const pick = (c: Contact) => (c.numbers.length === 1 ? call(c.numbers[0].number) : setOpen(open === c.name ? null : c.name));
   return (
-    <div className="phone-contacts">
-      <div className="phone-list" role="list" aria-label="Contacts">
-        {sections.map(({ letter, contacts }) => (
+    <div className={`phone-contacts${found ? " is-searching" : ""}${search ? " has-search" : ""}`}>
+      <div className="phone-list" role="list" aria-label={found ? "Matching contacts" : "Contacts"}>
+        {search && (
+          <div className="phone-search" role="search">
+            <button className={`phone-search-field${search.typing ? " is-focused" : ""}`} aria-label={search.query ? `Search, ${search.query}` : "Search contacts"} onClick={search.onFocus}>
+              <span className="icon i-magnifying-glass" aria-hidden="true" />
+              <span className={search.query ? "phone-search-text" : "phone-search-placeholder"}>{search.query || "Search"}</span>
+              {search.typing && <span className="phone-search-caret" aria-hidden="true" />}
+            </button>
+            {(search.query || search.typing) && <button className="phone-search-cancel" onClick={search.onClear}>Cancel</button>}
+          </div>
+        )}
+        {found ? (
+          found.length ? <section role="listitem" aria-label="Matches">{found.map(row)}</section> : <p className="phone-empty">No contacts match “{query}”.</p>
+        ) : sections.map(({ letter, contacts }) => (
           <section key={letter} role="listitem" aria-label={letter} ref={(el) => { heads.current[letter] = el; }}>
             <h2 className="phone-letter">{letter}</h2>
-            {contacts.map((c) => (
-              <div key={c.name} className={`phone-contact${open === c.name ? " is-open" : ""}`}>
-                <button className="phone-row" aria-expanded={c.numbers.length > 1 ? open === c.name : undefined} aria-label={c.numbers.length === 1 ? `Call ${c.name}` : `${c.name}, ${c.numbers.length} numbers`} onClick={() => pick(c)}>
-                  <span className="phone-avatar" aria-hidden="true">{bridge.initials(c.name) || <span className="icon i-user" />}</span>
-                  <span className="phone-row-text"><span className="phone-row-name">{c.name}</span></span>
-                  {c.numbers.length > 1 && <span className="phone-row-when">{c.numbers.length} numbers</span>}
-                </button>
-                {open === c.name && c.numbers.map((n) => (
-                  <button key={n.number} className="phone-number" aria-label={`Call ${c.name}, ${n.label || n.number}`} onClick={() => call(n.number)}>
-                    <span className="icon i-phone-fill" aria-hidden="true" />
-                    <span className="phone-row-sub">{n.label}</span>
-                    <span className="phone-number-digits">{n.number}</span>
-                  </button>
-                ))}
-              </div>
-            ))}
+            {contacts.map(row)}
           </section>
         ))}
       </div>
       {/* the letters down the edge jump to their section; scrolling a long phone book while parked is slow */}
-      <nav className="phone-index" aria-label="Jump to letter">
-        {sections.map(({ letter }) => (
-          <button key={letter} onClick={() => heads.current[letter]?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })}>{letter}</button>
-        ))}
-      </nav>
+      {!found && (
+        <nav className="phone-index" aria-label="Jump to letter">
+          {sections.map(({ letter }) => (
+            <button key={letter} onClick={() => heads.current[letter]?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })}>{letter}</button>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }
@@ -251,6 +275,12 @@ export function PhoneApp({ open }: { open: boolean }) {
   const screen = bridge.phoneScreen(btOn, car.hfpConnected);
   const section = useCloseOntoCard(open);
   const [tab, setTab] = useState<"recents" | "contacts" | "messages">("recents");
+  // the contacts search: its text and whether the on-screen keyboard is up for it
+  const [query, setQuery] = useState("");
+  const [typing, setTyping] = useState(false);
+  const search: ContactSearch = { query, typing, onFocus: () => setTyping(true), onClear: () => { setQuery(""); setTyping(false); } };
+  // leaving the contacts or the app puts the keyboard away
+  useEffect(() => { if (tab !== "contacts" || !open) setTyping(false); }, [tab, open]);
   const unread = useMemo(() => bridge.conversations(emulator.messages, emulator.read, emulator.contacts).reduce((n, t) => n + t.unread, 0), [emulator.messages, emulator.read, emulator.contacts]);
   // a tap on a message banner opens its thread here
   useEffect(() => { if (emulator.thread) setTab("messages"); }, [emulator.thread]);
@@ -281,10 +311,11 @@ export function PhoneApp({ open }: { open: boolean }) {
             <PhoneChip emulator={emulator} />
           </header>
           <div className="phone-panel" id="phone-panel" role="tabpanel" aria-labelledby={`phone-tab-${tab}`} key={tab}>
-            {tab === "recents" ? <Recents emulator={emulator} /> : tab === "contacts" ? <Contacts emulator={emulator} /> : <Messages emulator={emulator} />}
+            {tab === "recents" ? <Recents emulator={emulator} /> : tab === "contacts" ? <Contacts emulator={emulator} search={search} /> : <Messages emulator={emulator} />}
           </div>
         </div>
         <Keypad emulator={emulator} />
+        <Keyboard open={typing} onKey={(c) => setQuery((q) => q + c)} onBackspace={() => setQuery((q) => q.slice(0, -1))} onSubmit={() => setTyping(false)} submitLabel="Search" submitEnabled />
       </>)}
     </section>
   );

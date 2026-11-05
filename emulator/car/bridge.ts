@@ -157,6 +157,7 @@ interface Kotlin {
       callCapable(majorClass: number): boolean;
       phoneSections(book: string): string;
       phoneRecents(calls: string, book: string): string;
+      phoneSearch(book: string, query: string): string;
       phoneSuggest(book: string, typed: string): string;
       phoneFind(book: string, number: string): string;
       initials(name: string): string;
@@ -224,6 +225,8 @@ export const bridge = {
   /** Bluetooth's major device class says whether a device can take calls (phones only). */
   callCapable: (majorClass: number) => K!.Bridge.callCapable(majorClass),
   phoneSections: (book: Contact[]): { letter: string; contacts: Contact[] }[] => JSON.parse(K!.Bridge.phoneSections(JSON.stringify(book))),
+  /** Contacts by any word start of the name, accents folded, or by digits of a number (core-car PhoneBook.search). */
+  phoneSearch: (book: Contact[], query: string): Contact[] => JSON.parse(K!.Bridge.phoneSearch(JSON.stringify(book), query)),
   phoneRecents: (calls: CallRecord[], book: Contact[]): RecentRow[] => JSON.parse(K!.Bridge.phoneRecents(JSON.stringify(calls), JSON.stringify(book))),
   /** The contact under digits typed on the keypad, from three digits on. */
   phoneSuggest: (book: Contact[], typed: string): PhoneMatch | null => JSON.parse(K!.Bridge.phoneSuggest(JSON.stringify(book), typed)),

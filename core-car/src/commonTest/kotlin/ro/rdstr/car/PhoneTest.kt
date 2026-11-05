@@ -46,6 +46,16 @@ class PhoneTest {
     }
 
     @Test
+    fun `search finds names by any word start and numbers by digits`() {
+        assertEquals(listOf(stefan), PhoneBook.search(book, "stef"))
+        assertEquals(listOf(stefan), PhoneBook.search(book, "Ște"))
+        assertEquals(listOf(bogdan), PhoneBook.search(book, "ione"))
+        assertEquals(listOf(bogdan), PhoneBook.search(book, "555"))
+        assertEquals(emptyList(), PhoneBook.search(book, "zz"))
+        assertEquals(PhoneBook.sections(book).flatMap { it.contacts }, PhoneBook.search(book, " "))
+    }
+
+    @Test
     fun `typed digits suggest a contact from three digits on`() {
         assertNull(PhoneBook.suggest(book, "07"))
         assertEquals("Ștefan Matei", PhoneBook.suggest(book, "0733")?.name)

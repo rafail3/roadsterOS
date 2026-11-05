@@ -82,6 +82,18 @@ object PhoneBook {
         .groupBy { letter(it) }
         .map { (letter, list) -> ContactSection(letter, list) }
 
+    /** Names by the start of any word (accents folded, so "stef" finds "Ștefan"), numbers by any run of digits; blank lists all. */
+    fun search(contacts: List<Contact>, query: String): List<Contact> {
+        val all = sections(contacts).flatMap { it.contacts }
+        val q = TrackMatch.fold(query)
+        if (q.isEmpty()) return all
+        val typed = digits(query)
+        val onlyDigits = typed.isNotEmpty() && typed.length == query.count { !it.isWhitespace() && it != '+' }
+        return all.filter { c ->
+            sortKey(c).split(' ').any { it.startsWith(q) } || (onlyDigits && c.numbers.any { digits(it.number).contains(typed) })
+        }
+    }
+
     /** The contact under the digits typed on the keypad: an exact number first, else one that contains them. */
     fun suggest(contacts: List<Contact>, typed: String): Match? {
         val d = digits(typed)

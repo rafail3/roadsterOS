@@ -220,3 +220,17 @@
 .call-banner { position: absolute; top: 60px; left: 50%; z-index: 7; display: flex; align-items: center; gap: 12px; width: 400px; padding: 10px 12px 10px 10px; border-radius: 26px; transform: translateX(-50%); color: #fff; background: #1c2129; border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); animation: banner-in 360ms var(--sheet-in); }
 .call-banner-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; text-align: left; color: inherit; }
 @media (prefers-reduced-motion: reduce) { .call-banner { animation: none; } }
+
+/* the contacts search: it stays at the top of the list as it scrolls; the letter headers stick under it */
+.phone-search { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 12px; padding: 0 0 12px; background: var(--phone-ground); }
+.phone-search-field { flex: 1; min-width: 0; height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-radius: 14px; background: rgba(118, 118, 128, 0.24); color: #fff; text-align: left; font-size: 18px; transition: box-shadow var(--fast); }
+.phone-search-field.is-focused { box-shadow: inset 0 0 0 2px #0a84ff; }
+.phone-search-field .icon { width: 22px; height: 22px; color: var(--phone-ink-2); }
+.phone-search-placeholder { color: var(--phone-ink-2); }
+.phone-search-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phone-search-caret { width: 2px; height: 24px; margin-left: -8px; background: #0a84ff; animation: caret-blink 1s steps(1) infinite; }
+@keyframes caret-blink { 50% { opacity: 0; } }
+.phone-search-cancel { min-height: 52px; padding: 0 6px; font-size: 18px; font-weight: 600; color: #0a84ff; }
+.phone-contacts.has-search .phone-letter { top: 64px; }
+.phone-contacts.is-searching { grid-template-columns: minmax(0, 1fr); }
+@media (prefers-reduced-motion: reduce) { .phone-search-caret { animation: none; } }
