@@ -9,12 +9,14 @@
 param(
     [Parameter(Mandatory)] [string] $Area,
     [Parameter(Mandatory)] [string] $Code,
-    [string] $WorkDir = (Join-Path $PSScriptRoot "../../map-build"),
+    [string] $WorkDir = "",
     [string] $PlanetilerVersion = "v0.10.2",
     [string] $ExcludeLayers = "building,housenumber"
 )
 
 $ErrorActionPreference = "Stop"
+if (-not $WorkDir) { $WorkDir = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "../../map-build" }
+$WorkDir = [System.IO.Path]::GetFullPath($WorkDir)
 New-Item -ItemType Directory -Force $WorkDir, (Join-Path $WorkDir "packs") | Out-Null
 $jar = Join-Path $WorkDir "planetiler.jar"
 if (-not (Test-Path $jar)) {
