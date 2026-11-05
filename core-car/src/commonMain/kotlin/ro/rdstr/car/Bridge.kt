@@ -194,6 +194,16 @@ object Bridge {
 
     fun size(bytes: Double): String = Settings.size(bytes.toLong())
 
+    /** [installed]: a JSON array of {"id","label"}; answers the icons home shows. */
+    fun homeApps(chosen: String, installed: String): String {
+        val apps = ListSerializer(LaunchableApp.serializer())
+        return json.encodeToString(apps, HomeApps.shown(json.decodeFromString(ListSerializer(String.serializer()), chosen), json.decodeFromString(apps, installed)))
+    }
+
+    fun homeAppsMax(): Int = HomeApps.MAX
+
+    fun ownApps(): String = json.encodeToString(ListSerializer(LaunchableApp.serializer()), HomeApps.OWN)
+
     fun shellInitial(): String = json.encodeToString(ShellState.serializer(), ShellState())
 
     fun shell(state: String, action: String): String {

@@ -27,6 +27,8 @@ import ro.rdstr.car.CarEvent
 import ro.rdstr.car.Contact
 import ro.rdstr.car.PhoneBook
 import ro.rdstr.car.PhoneGate
+import ro.rdstr.car.Journal
+import ro.rdstr.car.JournalLine
 import ro.rdstr.car.Rules
 import ro.rdstr.car.Settings
 import ro.rdstr.car.Shell
@@ -143,6 +145,7 @@ object CarRuntime {
                     next = Rules.onCommand(next, c)
                 }
                 _ui.value = _ui.value.reduce(next, actions, event)
+                if (_shell.value.recordEvents) record(event)
                 // a new call fills the screen, an ended one goes; Home folds it into its bar
                 if (event is CarEvent.Call) shellAction(ShellAction.CallChanged(event.state))
             }
@@ -164,6 +167,23 @@ object CarRuntime {
             Log.i(Radios.TAG, "saved ${Shell.encodePreferences(after)}")
         }
     }
+
+    private val startedAt = android.os.SystemClock.elapsedRealtime()
+
+    /**
+     * One line per car event in files/journal/events.jsonl, the format car-sim replays (adb pull it from the app's
+     * files). ponytail: one growing file; split by day if a long recording gets too big to pull.
+     */
+    private fun record(event: CarEvent) {
+        val dir = java.io.File(app.filesDir, "journal").apply { mkdirs() }
+        val line = Journal.encode(JournalLine(android.os.SystemClock.elapsedRealtime() - startedAt, event))
+        runCatching { java.io.File(dir, "events.jsonl").appendText(line + "\n") }.onFailure { Log.w(Radios.TAG, "journal not written", it) }
+    }
+
+    /** The other apps that can go on home, and starting one of them. */
+    fun installedApps() = ro.rdstr.os.settings.InstalledApps.read(app)
+
+    fun launch(pkg: String) = ro.rdstr.os.settings.InstalledApps.launch(app, pkg)
 
     /** The About page, read when it opens. */
     fun systemInfo(): SystemInfo = SystemInfo.read(app)

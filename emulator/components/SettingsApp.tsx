@@ -4,7 +4,7 @@ import { removePack, setBluetooth, setLocation, setVolume, setWifi, shellAction,
 import { PillSlider } from "./Drawer";
 import { useCloseOntoCard } from "./media";
 
-type Page = "wifi" | "bluetooth" | "location" | "display" | "sound" | "phone" | "maps" | "about";
+type Page = "wifi" | "bluetooth" | "location" | "display" | "sound" | "phone" | "home" | "maps" | "about";
 
 /** The level a start is capped at when the limit is first switched on. */
 const START_VOLUME_DEFAULT = 12;
@@ -171,7 +171,38 @@ function Maps({ e }: { e: EmulatorState }) {
   );
 }
 
-function About() {
+/** Which apps sit on home and in which order: ours and the other apps installed on the unit (core-car HomeApps). */
+function HomeScreen({ e }: { e: EmulatorState }) {
+  const chosen = bridge.homeApps(e.shell.homeApps, e.installed);
+  const all = [...bridge.ownApps(), ...e.installed];
+  const others = all.filter((a) => !e.shell.homeApps.includes(a.id));
+  const max = bridge.homeAppsMax();
+  const full = chosen.length >= max;
+  const act = (a: { type: "ToggleHomeApp"; id: string } | { type: "MoveHomeApp"; id: string; by: number }) => shellAction(a);
+  return (<>
+    <Group title="On Home" footer={`Up to ${max} apps, in this order beside the card.`}>
+      {chosen.map((a, i) => (
+        <Row key={a.id} label={a.label}>
+          <span className="set-stepper">
+            <button aria-label={`Move ${a.label} earlier`} disabled={i === 0} onClick={() => act({ type: "MoveHomeApp", id: a.id, by: -1 })}><span className="icon i-caret-left" aria-hidden="true" /></button>
+            <button aria-label={`Move ${a.label} later`} disabled={i === chosen.length - 1} onClick={() => act({ type: "MoveHomeApp", id: a.id, by: 1 })}><span className="icon i-caret-right" aria-hidden="true" /></button>
+          </span>
+          <button className="set-inline is-remove" onClick={() => act({ type: "ToggleHomeApp", id: a.id })}>Remove</button>
+        </Row>
+      ))}
+      {!chosen.length && <Row label="No apps on home" />}
+    </Group>
+    <Group title="More Apps" footer={full ? "Home is full: remove an app to add another." : "Apps installed on the unit, besides roadsterOS's own."}>
+      {others.map((a) => (
+        <Row key={a.id} label={a.label}>
+          <button className="set-inline" disabled={full} onClick={() => act({ type: "ToggleHomeApp", id: a.id })}>Add</button>
+        </Row>
+      ))}
+    </Group>
+  </>);
+}
+
+function About({ e }: { e: EmulatorState }) {
   const [confirm, setConfirm] = useState(false);
   return (<>
     <Group>
@@ -186,6 +217,9 @@ function About() {
     </Group>
     <Group title="Storage">
       <Row label="Free" value={`${bridge.size(ABOUT.freeStorage)} of ${bridge.size(ABOUT.totalStorage)}`} />
+    </Group>
+    <Group title="Troubleshooting" footer={e.shell.recordEvents ? `Writing every car event to the unit's journal: ${e.recorded} so far. Read it with adb.` : "Writes every car event to a file on the unit, to replay or send for help."}>
+      <Row label="Record Car Events"><Switch label="Record Car Events" on={e.shell.recordEvents} onChange={(on) => shellAction({ type: "SetRecording", on })} /></Row>
     </Group>
     <Group footer={confirm ? "Theme, brightness, clock and sound settings go back to their defaults. Phones, networks and maps stay." : undefined}>
       {confirm
@@ -202,6 +236,7 @@ const PAGES: { id: Page; label: string; icon: string; tint: string }[] = [
   { id: "display", label: "Display", icon: "i-sun-fill", tint: "#5e5ce6" },
   { id: "sound", label: "Sound", icon: "i-speaker-high-fill", tint: "#ff375f" },
   { id: "phone", label: "Phone", icon: "i-phone-fill", tint: "#17d847" },
+  { id: "home", label: "Home Screen", icon: "i-house-fill", tint: "#5e5ce6" },
   { id: "maps", label: "Maps", icon: "i-map-trifold-fill", tint: "#30d158" },
   { id: "about", label: "About", icon: "i-info-fill", tint: "#8e8e93" },
 ];
@@ -248,7 +283,8 @@ export function SettingsApp({ open }: { open: boolean }) {
         {page === "sound" && <Sound e={e} />}
         {page === "phone" && <Phone e={e} />}
         {page === "maps" && <Maps e={e} />}
-        {page === "about" && <About />}
+        {page === "home" && <HomeScreen e={e} />}
+        {page === "about" && <About e={e} />}
       </div>
     </section>
   );

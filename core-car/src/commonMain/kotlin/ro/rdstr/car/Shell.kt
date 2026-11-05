@@ -46,6 +46,10 @@ data class ShellState(
     val callView: CallView = CallView.NONE,
     /** Writing a message is blocked while the car moves; off unless chosen in the settings. */
     val lockTypingWhileMoving: Boolean = false,
+    /** The app icons on home, in order: our apps by name (MAPS, MUSIC...), other apps by package. */
+    val homeApps: List<String> = HomeApps.DEFAULT,
+    /** Every car event is written to a file on the unit, for troubleshooting. */
+    val recordEvents: Boolean = false,
 )
 
 @Serializable
@@ -94,6 +98,11 @@ sealed class ShellAction {
     /** A tap on the call bar brings the call back over the whole screen. */
     @Serializable @SerialName("ExpandCall") data object ExpandCall : ShellAction()
     @Serializable @SerialName("SetTypingLock") data class SetTypingLock(val on: Boolean) : ShellAction()
+    /** Put an app on home (at the end, up to [HomeApps.MAX]) or take it off. */
+    @Serializable @SerialName("ToggleHomeApp") data class ToggleHomeApp(val id: String) : ShellAction()
+    /** Move an app on home one place earlier (-1) or later (+1). */
+    @Serializable @SerialName("MoveHomeApp") data class MoveHomeApp(val id: String, val by: Int) : ShellAction()
+    @Serializable @SerialName("SetRecording") data class SetRecording(val on: Boolean) : ShellAction()
 }
 
 /**
@@ -179,6 +188,9 @@ object Shell {
             else -> s.callView
         })
         is ShellAction.SetTypingLock -> s.copy(lockTypingWhileMoving = a.on)
+        is ShellAction.ToggleHomeApp -> s.copy(homeApps = HomeApps.toggle(s.homeApps, a.id))
+        is ShellAction.MoveHomeApp -> s.copy(homeApps = HomeApps.move(s.homeApps, a.id, a.by))
+        is ShellAction.SetRecording -> s.copy(recordEvents = a.on)
         ShellAction.ExpandCall -> if (s.callView == CallView.NONE) s else s.copy(callView = CallView.FULL, drawer = false, recents = false)
         // one layer at a time: the drawer, the open apps, a devices or networks sheet, then the app
         ShellAction.Back -> when {
@@ -207,7 +219,7 @@ object Shell {
     fun preferences(s: ShellState) = ShellState(
         theme = s.theme, face = s.face, font = s.font, brightness = s.brightness,
         clock24h = s.clock24h, speedChime = s.speedChime, startVolume = s.startVolume,
-        lockTypingWhileMoving = s.lockTypingWhileMoving,
+        lockTypingWhileMoving = s.lockTypingWhileMoving, homeApps = s.homeApps, recordEvents = s.recordEvents,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))

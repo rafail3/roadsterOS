@@ -47,6 +47,9 @@ export interface ShellState {
   callView: "NONE" | "FULL" | "BAR";
   /** writing a message is blocked while the car moves (a setting, off by default) */
   lockTypingWhileMoving: boolean;
+  /** the app icons on home, in order: our apps by name, other apps by package */
+  homeApps: string[];
+  recordEvents: boolean;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -112,7 +115,10 @@ export type ShellAction =
   | { type: "ShowCard"; page: CardPage }
   | { type: "CallChanged"; state: CallState }
   | { type: "ExpandCall" }
-  | { type: "SetTypingLock"; on: boolean };
+  | { type: "SetTypingLock"; on: boolean }
+  | { type: "ToggleHomeApp"; id: string }
+  | { type: "MoveHomeApp"; id: string; by: number }
+  | { type: "SetRecording"; on: boolean };
 
 export interface PhoneNumber { number: string; label: string }
 export interface Contact { name: string; numbers: PhoneNumber[] }
@@ -128,6 +134,9 @@ export interface Conversation { number: string; name: string; last: string; atMs
 /** One call as the phone lists it over HFP; states are the Hfp constants of core-car. */
 export interface HfpCall { id: number; state: number; number: string; multiparty?: boolean }
 export const HFP = { ACTIVE: 0, HELD: 1, DIALING: 2, ALERTING: 3, INCOMING: 4, WAITING: 5 } as const;
+
+/** An app the unit can start: ours by name, another by its package. */
+export interface LaunchableApp { id: string; label: string }
 
 export interface RuleAction {
   type: string;
@@ -174,6 +183,9 @@ interface Kotlin {
       hfpCall(calls: string): string;
       conversations(messages: string, read: string, book: string): string;
       quickReplies(): string;
+      homeApps(chosen: string, installed: string): string;
+      homeAppsMax(): number;
+      ownApps(): string;
       callDuration(ms: number): string;
       clockText(hour: number, minute: number, h24: boolean): string;
       meridiem(hour: number): string;
@@ -252,6 +264,10 @@ export const bridge = {
   conversations: (messages: Message[], read: string[], book: Contact[]): Conversation[] =>
     JSON.parse(K!.Bridge.conversations(JSON.stringify(messages), JSON.stringify(read), JSON.stringify(book))),
   quickReplies: (): string[] => JSON.parse(K!.Bridge.quickReplies()),
+  /** The icons home shows: the chosen ones still installed, in order (core-car HomeApps). */
+  homeApps: (chosen: string[], installed: LaunchableApp[]): LaunchableApp[] => JSON.parse(K!.Bridge.homeApps(JSON.stringify(chosen), JSON.stringify(installed))),
+  homeAppsMax: () => K!.Bridge.homeAppsMax(),
+  ownApps: (): LaunchableApp[] => JSON.parse(K!.Bridge.ownApps()),
   callDuration: (ms: number) => K!.Bridge.callDuration(ms),
   /** The big clock's text on the 24- or 12-hour clock, and the half of the day beside a 12-hour one. */
   clockText: (hour: number, minute: number, h24: boolean) => K!.Bridge.clockText(hour, minute, h24),

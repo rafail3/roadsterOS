@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createCoverDesk } from "./covers";
-import { bridge, HFP, type Band, type CallRecord, type CarCommand, type CarEvent, type CarState, type Contact, type HfpCall, type Message, type OtherCall, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
+import { bridge, HFP, type Band, type LaunchableApp, type CallRecord, type CarCommand, type CarEvent, type CarState, type Contact, type HfpCall, type Message, type OtherCall, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
 import { MAJOR_COMPUTER, MAJOR_PHONE, SAMPLE_CONTACTS, SAMPLE_PHONE, sampleCalls } from "./phone";
 import { BANDS, STATIONS, stationAt } from "./radio";
 import { GPS_PLACES } from "./gps";
@@ -53,6 +53,10 @@ export interface EmulatorState {
   newMessage: Message | null;
   /** the unit's Bluetooth stack carries text messages (MAP client on); many units have it off */
   messagesSupported: boolean;
+  /** other apps installed on the unit, as its launcher lists them */
+  installed: LaunchableApp[];
+  /** car events written to the unit's journal while recording is on */
+  recorded: number;
   /** the phone book and history the connected phone shared (PBAP) */
   contacts: Contact[];
   calls: CallRecord[];
@@ -673,7 +677,7 @@ function phoneSkips(forward: boolean) {
 
 export function carEvent(event: CarEvent) {
   const step = bridge.apply(state.car, event);
-  set({ ...displayData(event), car: step.state, log: addLog("in", event) });
+  set({ ...displayData(event), car: step.state, log: addLog("in", event), recorded: state.shell.recordEvents ? state.recorded + 1 : state.recorded });
   step.actions.forEach(runAction);
   // a phone brings its hands-free link up and down with it; a tablet or the laptop has none
   if (event.type === "BtConnection") {
@@ -720,6 +724,13 @@ export function incomingCall(number: string) {
 export function remoteHangUp() {
   drop(callIn(HFP.ACTIVE, HFP.ALERTING, HFP.DIALING) ?? callIn(HFP.INCOMING, HFP.WAITING) ?? callIn(HFP.HELD));
   publishCalls();
+}
+
+/** An icon on home: our apps open in the shell, another app opens full screen on the unit (only logged here). */
+export function launchApp(id: string) {
+  if (id === "PHONE") return openPhone();
+  if (id === "MAPS" || id === "MUSIC" || id === "RADIO" || id === "SETTINGS") return shellAction({ type: "OpenApp", app: id });
+  set({ log: addLog("out", { type: "LaunchApp", package: id }) });
 }
 
 /** A text message reaches the phone, as the control panel sends one. */
@@ -890,6 +901,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     newMessage: null,
     // ?nomap: a unit whose Bluetooth stack has no message client
     messagesSupported: !q.has("nomap"),
+    installed: [{ id: "com.waze", label: "Waze" }, { id: "com.spotify.music", label: "Spotify" }, { id: "org.videolan.vlc", label: "VLC" }],
+    recorded: 0,
     device: SAMPLE_PHONE,
     // the names phones give themselves in their Bluetooth settings
     saved: [{ name: SAMPLE_PHONE, inRange: true, major: MAJOR_PHONE }, { name: "Galaxy S23", inRange: false, major: MAJOR_PHONE }, { name: "Galaxy Tab S9", inRange: true, major: MAJOR_COMPUTER }],

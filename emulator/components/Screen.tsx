@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { bridge, type Source } from "../car/bridge";
-import { carCommand, carEvent, openPhone, openVolume, setBluetooth, shellAction, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
+import { carCommand, carEvent, launchApp, openPhone, openVolume, setBluetooth, shellAction, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Clock } from "./Clock";
 import { Drawer, useDrawerDrag } from "./Drawer";
 import { HomeCard } from "./HomeCard";
@@ -31,12 +31,9 @@ const RAIL = [
   { id: "maps", label: "Maps", icon: "i-navigation-arrow" },
   { id: "camera", label: "Camera", icon: "i-camera" },
 ];
-/** The app icons on home and the app each opens. */
-const APPS: { label: string; mark: string; app: "MAPS" | "MUSIC" | "PHONE" }[] = [
-  { label: "Maps", mark: "app-mark-nav", app: "MAPS" },
-  { label: "Music", mark: "app-mark-music", app: "MUSIC" },
-  { label: "Phone", mark: "app-mark-phone", app: "PHONE" },
-];
+/** The tile colour of each of our apps on home; other apps get one from their name. */
+const MARKS: Record<string, string> = { MAPS: "app-mark-nav", MUSIC: "app-mark-music", PHONE: "app-mark-phone", RADIO: "app-mark-radio", SETTINGS: "app-mark-settings" };
+const hue = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
 // ponytail: centres of the volume keys on this frame model, in screen pixels; another frame needs its own
 // centres of the frame's volume keys, in canvas units (the screen is drawn at 0.8)
 const KEY_CENTER = { VOL_UP: 520, VOL_DOWN: 645 } as const;
@@ -190,13 +187,16 @@ export function Screen() {
       <section className="field" inert={covered || inApp}>
         <Clock now={now} face={shell.face} h24={shell.clock24h} />
         <div className="apps" aria-label="Apps">
-          {APPS.map(({ label, mark, app }) => {
+          {/* the icons chosen in the settings (core-car HomeApps) */}
+          {bridge.homeApps(shell.homeApps, emulator.installed).map(({ id, label }) => {
             // the phone's icon counts its unread messages, as a phone's does
-            const badge = app === "PHONE" ? unread : 0;
+            const badge = id === "PHONE" ? unread : 0;
             return (
-              <button key={label} className="app" aria-label={badge ? `${label}, ${badge} unread messages` : label}
-                onClick={() => (app === "PHONE" ? openPhone() : shellAction({ type: "OpenApp", app }))}>
-                <span className={`app-mark ${mark}`}>{badge > 0 && <span className="app-badge" aria-hidden="true">{badge}</span>}</span><span>{label}</span>
+              <button key={id} className="app" aria-label={badge ? `${label}, ${badge} unread messages` : label} onClick={() => launchApp(id)}>
+                <span className={`app-mark ${MARKS[id] ?? "app-mark-other"}`} style={MARKS[id] ? undefined : { "--mark-hue": hue(id) } as CSSProperties}>
+                  {badge > 0 && <span className="app-badge" aria-hidden="true">{badge}</span>}
+                </span>
+                <span>{label}</span>
               </button>
             );
           })}
