@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.11.0](https://github.com/rafail3/roadsterOS/compare/v1.10.0...v1.11.0) (2026-11-05)
+
+
+### Features
+
+* **phone:** a ringing call shows as the banner at the top ([ed2ccfa](https://github.com/rafail3/roadsterOS/commit/ed2ccfabaa286229cc65ab73501daa652f68bb59))
+* **phone:** add a call from the keypad or the contacts ([29892e1](https://github.com/rafail3/roadsterOS/commit/29892e1d66fe5ceb97508c3cd9f87275f05d1c8c))
+* **phone:** answer and end handset icons, call colours, shorter call banner ([834c94f](https://github.com/rafail3/roadsterOS/commit/834c94fe93b1d6eeebc991528fb4a64d32b1e326))
+* **phone:** chat panel and a field to write messages ([9d23eb4](https://github.com/rafail3/roadsterOS/commit/9d23eb426a2ac935cf0179d8814ebad77d7db7d2))
+* **phone:** contacts search that stays at the top ([e6979ed](https://github.com/rafail3/roadsterOS/commit/e6979edfed91877cc388aa4eec21049afe9d0f50))
+* **phone:** fold a call into a bar with Home and Back ([4d520b6](https://github.com/rafail3/roadsterOS/commit/4d520b66def78109357510696acfd09664300ca2))
+* **phone:** folded call as a banner with an end key ([be10222](https://github.com/rafail3/roadsterOS/commit/be10222b58e7a867539ba04e04e4744bb60d225c))
+* **phone:** hands-free calls, phone book and phone app gate in core-car and on the unit ([75af601](https://github.com/rafail3/roadsterOS/commit/75af601d65fac90567cd744246e93914f6838b33))
+* **phone:** phone app and call screen in the emulator ([c6ceafd](https://github.com/rafail3/roadsterOS/commit/c6ceafd1f8df675db8d2c43e5a935786699976a4))
+* **phone:** phone app, hands-free calls, contacts and messages ([be27527](https://github.com/rafail3/roadsterOS/commit/be275274be07fae9c6026c024a70136f5cc04606))
+* **phone:** phone icon on home with unread count, notice on units without messages ([b72a8ff](https://github.com/rafail3/roadsterOS/commit/b72a8ffc6cd88906c3c441af85dd08707ea4b098))
+* **phone:** phone name from the Bluetooth link and its network in the status bar ([3342612](https://github.com/rafail3/roadsterOS/commit/3342612871c0fdd5f218e1e1de93911e3fb77d5f))
+* **phone:** redial, second calls, conference, voice assistant and messages on the unit ([c02115a](https://github.com/rafail3/roadsterOS/commit/c02115ad1950d11abaea65068b389f410def0c07))
+* **phone:** second calls, conference, redial, voice assistant and messages in the emulator ([7f40ca1](https://github.com/rafail3/roadsterOS/commit/7f40ca1a046478ae5b284c90a4b683eef901cb95))
+* **phone:** voice assistant key off the keypad ([480ec9b](https://github.com/rafail3/roadsterOS/commit/480ec9b737e7bb969d54a3ecf9f7ad4d0acc51cd))
+
+
+### Bug Fixes
+
+* **emulator:** Latin Extended subsets of Geist and Inter for Romanian letters ([a552703](https://github.com/rafail3/roadsterOS/commit/a552703e596b32eeda994888840d282ea93335bf))
+* **phone:** lint for runtime receivers and optional telephony ([ec96a9e](https://github.com/rafail3/roadsterOS/commit/ec96a9e1e6c4e46405fe63bf189a82e061032ed8))
+
 ## [1.10.0](https://github.com/rafail3/roadsterOS/compare/v1.9.0...v1.10.0) (2026-11-05)
 
 
