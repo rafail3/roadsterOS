@@ -83,10 +83,17 @@
   display: grid; grid-template-columns: 480px minmax(0, 1fr); align-items: center; column-gap: 80px; padding: 56px 96px 0 112px;
   /* the cover's top colour down to 60%, then its bottom colour */
   background: linear-gradient(180deg, var(--cover-top) 0%, var(--cover-top) 60.6%, var(--cover-bottom) 100%); color: #fff;
-  transform: translateY(100%);
-  transition: transform 420ms var(--sheet-in), --cover-top 800ms var(--seamless), --cover-bottom 800ms var(--seamless);
+  /* leaving: a short shrink and fade in place, home shows at once underneath */
+  opacity: 0; visibility: hidden; pointer-events: none; transform: scale(0.94);
+  transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out), visibility 0s linear 180ms, --cover-top 800ms var(--seamless), --cover-bottom 800ms var(--seamless);
 }
-.music-app.is-open { transform: none; }
+.music-app.is-open {
+  opacity: 1; visibility: visible; pointer-events: auto; transform: none;
+  transition: --cover-top 800ms var(--seamless), --cover-bottom 800ms var(--seamless);
+  animation: music-in 420ms var(--sheet-in);
+}
+/* opening still rises from the bottom */
+@keyframes music-in { from { transform: translateY(100%); } }
 /* the cover blurred across the whole screen, under a darkening scrim; on the unit it is baked once per track */
 .music-backdrop { position: absolute; inset: 0; z-index: -1; overflow: hidden; }
 .music-backdrop img { position: absolute; inset: -15%; width: 130%; height: 130%; object-fit: cover; opacity: 0.5; filter: blur(80px) saturate(1.5); animation: media-fade 1100ms var(--seamless) 360ms backwards; }
@@ -219,6 +226,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .music-app, .music-cover, .np-cover, .tx-glyph, .tx::before, .glass-button, .music-volume-bar, .devices-scrim, .devices-panel { transition-duration: 0.01ms; }
+  .music-app.is-open { animation: none; }
   .saved-device.is-connecting .device-icon::after, .devices-search.is-scanning .icon { animation: none; opacity: 0.6; }
   .device-swipe, .saved-device.is-swipeable, .device-trash .icon { transition-duration: 0.01ms !important; }
   .tx-glyph, .music-backdrop img, .np-tint img, .music-cover img, .np-cover img, .music-meta, .np-meta, .marquee.is-running .marquee-text { animation: none; }
