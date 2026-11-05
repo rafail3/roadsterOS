@@ -25,7 +25,10 @@ function NoPhone({ emulator }: { emulator: EmulatorState }) {
           ))}
         </ul>
       )}
-      <button className="music-nophone-more" onClick={() => shellAction({ type: "OpenDevices" })}>{saved.length ? "Other devices" : "Pair a phone"}</button>
+      {saved.length > 0
+        ? <button className="music-nophone-more" onClick={() => shellAction({ type: "OpenDevices" })}>Other devices</button>
+        // nothing saved: pairing is the only way forward, so it is the one solid button
+        : <button className="music-nophone-pair" onClick={() => shellAction({ type: "OpenDevices" })}><span className="icon i-bluetooth" aria-hidden="true" />Pair a phone</button>}
     </div>
   );
 }

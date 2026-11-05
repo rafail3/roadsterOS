@@ -226,6 +226,10 @@
 .music-nophone-phone:disabled { opacity: 0.55; }
 .music-nophone-more { margin-top: 12px; height: 56px; padding: 0 28px; border-radius: 999px; color: rgba(255, 255, 255, 0.86); font-size: 18px; font-weight: 600; }
 .music-nophone-more:active { background: rgba(255, 255, 255, 0.12); }
+.music-nophone-pair { margin-top: 24px; height: 64px; display: flex; align-items: center; gap: 12px; padding: 0 36px; border-radius: 999px; background: #0a84ff; color: #fff; font-size: 20px; font-weight: 600; transition: background var(--fast), transform 420ms var(--spring-glyph); }
+.music-nophone-pair .icon { width: 24px; height: 24px; }
+.music-nophone-pair:active { transform: scale(0.96); background: #0070e0; transition-duration: var(--fast), 120ms; }
+.music-nophone-pair:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 .music-nophone-phone:focus-visible, .music-nophone-more:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .music-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; animation: media-fade 380ms var(--seamless) 200ms backwards; }
 .music-title { margin: 0; font-size: 36px; line-height: 44px; font-weight: 600; letter-spacing: -0.02em; color: #fff; }
