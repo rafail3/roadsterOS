@@ -161,7 +161,7 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     /** The navigation arrow seen from above, 44 px tall, pointing up and centred; and its upper part for the gloss. */
     private val arrow = Path().apply { moveTo(0f, -22f); lineTo(18f, 22f); lineTo(0f, 11.5f); lineTo(-18f, 22f); close() }
     private val glossShape = Path().apply { moveTo(0f, -17f); lineTo(10.5f, 8.5f); lineTo(0f, 3f); lineTo(-10.5f, 8.5f); close() }
-    private val fill = android.graphics.LinearGradient(-10f, -22f, 10f, 22f, 0xFF2A7FE8.toInt(), 0xFF0A3F9E.toInt(), android.graphics.Shader.TileMode.CLAMP)
+    private val fill = android.graphics.LinearGradient(-10f, -22f, 10f, 22f, intArrayOf(0xFF2F97FF.toInt(), 0xFF0A84FF.toInt(), 0xFF0A6FE0.toInt()), floatArrayOf(0f, 0.5f, 1f), android.graphics.Shader.TileMode.CLAMP)
     private val gloss = android.graphics.LinearGradient(0f, -17f, 0f, 8f, 0x47FFFFFF, 0x00FFFFFF, android.graphics.Shader.TileMode.CLAMP)
 
     private fun stroke(canvas: Canvas, path: Path, color: Int, width: Float) {

@@ -23,7 +23,7 @@ const ARROW = "M 0 -22 L 18 22 L 0 11.5 L -18 22 Z";
 const GLOSS = "M 0 -17 L 10.5 8.5 L 0 3 L -10.5 8.5 Z";
 const PUCK = `<svg viewBox="-36 -36 72 72" width="86" height="86" aria-hidden="true">
   <defs>
-    <linearGradient id="puck-fill" x1="-10" y1="-22" x2="10" y2="22" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2a7fe8"/><stop offset="1" stop-color="#0a3f9e"/></linearGradient>
+    <linearGradient id="puck-fill" x1="-10" y1="-22" x2="10" y2="22" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2f97ff"/><stop offset="0.5" stop-color="#0a84ff"/><stop offset="1" stop-color="#0a6fe0"/></linearGradient>
     <linearGradient id="puck-gloss" x1="0" y1="-17" x2="0" y2="8" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity="0.28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
   </defs>
   <g data-shadow stroke-linejoin="round" fill="#000" stroke="#000">
