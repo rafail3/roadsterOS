@@ -8,6 +8,8 @@ const REVEAL = 96;
 const OPEN_AT = REVEAL / 2;
 /** A drag is sideways once it has moved this far more across than down; until then the list may scroll. */
 const INTENT_PX = 8;
+/** Past the remove key the row gives a little and then stops, so it never pulls away from the key. */
+const OVERDRAG_PX = 10;
 const LEAVE_MS = 240;
 const COLLAPSE_MS = 300;
 
@@ -18,6 +20,7 @@ function SavedRow({ name, status, open, onOpen, connectLocked }: { name: string;
   const row = useRef<HTMLLIElement>(null);
   const drag = useRef<{ x: number; y: number; from: number; scale: number; sideways: boolean | null; moved: boolean } | null>(null);
   const [offset, setOffset] = useState(0);
+  const offsetRef = useRef(0);
   const [dragging, setDragging] = useState(false);
   const [leaving, setLeaving] = useState<"" | "slide" | "collapse">("");
   const [height, setHeight] = useState<number | undefined>(undefined);
@@ -26,9 +29,19 @@ function SavedRow({ name, status, open, onOpen, connectLocked }: { name: string;
   const shown = leaving ? "-100%" : `${dragging ? offset : open ? -REVEAL : 0}px`;
   const progress = Math.min(1, Math.max(0, -(dragging ? offset : open ? -REVEAL : 0) / REVEAL));
 
+  // the release is caught anywhere on the page: a finger or mouse let go outside the row still ends the drag
+  const endRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    const end = () => endRef.current();
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+    return () => { window.removeEventListener("pointerup", end); window.removeEventListener("pointercancel", end); };
+  }, []);
+
   const down = (e: PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 || leaving) return;
     const el = e.currentTarget;
+    offsetRef.current = open ? -REVEAL : 0;
     drag.current = { x: e.clientX, y: e.clientY, from: open ? -REVEAL : 0, scale: el.getBoundingClientRect().width / el.offsetWidth || 1, sideways: null, moved: false };
   };
   const move = (e: PointerEvent<HTMLDivElement>) => {
@@ -45,11 +58,14 @@ function SavedRow({ name, status, open, onOpen, connectLocked }: { name: string;
       } else if (Math.abs(dy) > INTENT_PX) d.sideways = false;
     }
     if (!d.sideways) return;
+    // no button held any more: the release happened where the row could not hear it
+    if (e.buttons === 0 && e.pointerType === "mouse") return up();
     d.moved = true;
     let x = d.from + dx;
-    // past either end the row follows the finger less and less
-    if (x > 0) x *= 0.25;
-    if (x < -REVEAL) x = -REVEAL + (x + REVEAL) * 0.35;
+    // past either end the row follows the finger less and less, and stops a few pixels past the key
+    if (x > 0) x = Math.min(OVERDRAG_PX, x * 0.25);
+    if (x < -REVEAL) x = Math.max(-REVEAL - OVERDRAG_PX, -REVEAL + (x + REVEAL) * 0.25);
+    offsetRef.current = x;
     setOffset(x);
   };
   const up = () => {
@@ -58,8 +74,9 @@ function SavedRow({ name, status, open, onOpen, connectLocked }: { name: string;
     if (!d?.sideways) return;
     suppressClick.current = d.moved;
     setDragging(false);
-    onOpen(offset < -OPEN_AT ? name : null);
+    onOpen(offsetRef.current < -OPEN_AT ? name : null);
   };
+  endRef.current = up;
   // a drag never counts as a tap, and a tap on an open row only closes it
   const click = (e: MouseEvent) => {
     if (suppressClick.current || open) {
