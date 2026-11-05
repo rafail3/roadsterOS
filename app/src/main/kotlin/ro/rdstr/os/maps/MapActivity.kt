@@ -24,13 +24,16 @@ import kotlin.math.cos
  *   adb shell am start -n ro.rdstr.os/.maps.MapActivity [--ez demo true] [--ez day true] [--ef zoom 15.5]
  *
  * `demo` drives the car along its heading at 50 km/h, turning slowly, to measure the map without driving;
- * the frame and picture times go to logcat under the tag `rdstr.map`.
+ * the frame and picture times go to logcat under the tag `rdstr.map`, with the speed and the street the car is on.
  */
 class MapActivity : Activity(), LocationListener {
     private var map: MapView? = null
     private var packs: MapPacks? = null
     private val main = Handler(Looper.getMainLooper())
     private var demo: Runnable? = null
+    /** The speed shown while the car drives, in km/h; null while it stands. */
+    private var kmh: Int? = null
+    private var status = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,6 +50,7 @@ class MapActivity : Activity(), LocationListener {
             zoom = intent.getFloatExtra("zoom", 15.5f).toDouble()
         }
         map = view
+        view.onChange = ::logStatus
         setContentView(view)
         if (intent.getBooleanExtra("demo", false)) startDemo(view)
     }
@@ -83,7 +87,18 @@ class MapActivity : Activity(), LocationListener {
 
     override fun onLocationChanged(l: Location) {
         // the GPS heading means something only while the car moves
-        map?.setCar(l.longitude, l.latitude, if (l.hasBearing() && l.speed > MOVING_MPS) l.bearing.toDouble() else null)
+        val moving = l.hasSpeed() && l.speed > MOVING_MPS
+        kmh = if (moving) Math.round(l.speed * 3.6f) else null
+        map?.setCar(l.longitude, l.latitude, if (l.hasBearing() && moving) l.bearing.toDouble() else null)
+    }
+
+    /** What the street pill shows: the speed while driving and the street, logged when it changes. */
+    private fun logStatus() {
+        val view = map ?: return
+        val now = listOfNotNull(kmh?.let { "$it km/h" }, view.street.ifEmpty { null }).joinToString(" | ")
+        if (now == status) return
+        status = now
+        android.util.Log.i(MapView.TAG, "status: ${now.ifEmpty { "(hidden)" }}")
     }
 
     @Deprecated("Deprecated in Java")
@@ -102,6 +117,7 @@ class MapActivity : Activity(), LocationListener {
                 lat += km * cos(r) / 111.32
                 lon += km * kotlin.math.sin(r) / (111.32 * cos(Math.toRadians(lat)))
                 heading = (heading + 0.4) % 360
+                kmh = DEMO_KMH.toInt()
                 view.setCar(lon, lat, heading)
                 main.postDelayed(this, DEMO_TICK_MS)
             }

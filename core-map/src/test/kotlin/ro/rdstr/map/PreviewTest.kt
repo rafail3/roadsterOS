@@ -89,5 +89,6 @@ class PreviewTest {
             println("preview ${out.name}: $ms ms")
             assertTrue(out.length() > 0)
         }
+        println("street at the view: " + Street.at(25.5887, 45.6427, 15.5, tiles))
     }
 }

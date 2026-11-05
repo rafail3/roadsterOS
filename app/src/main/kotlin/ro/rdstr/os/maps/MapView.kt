@@ -20,9 +20,12 @@ import ro.rdstr.map.GridTile
 import ro.rdstr.map.LabelCandidate
 import ro.rdstr.map.MapStyle
 import ro.rdstr.map.Mvt
+import ro.rdstr.map.Street
 import ro.rdstr.map.TileMath
 import ro.rdstr.map.TileRenderer
+import ro.rdstr.map.VectorTile
 import ro.rdstr.map.VisibleTile
+import kotlin.math.atan2
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.ln
@@ -32,8 +35,8 @@ import ro.rdstr.map.View as MapViewState
 /**
  * The map on the unit. Each picture of the map grid is drawn once, off the main thread, into a small bitmap kept in a
  * bounded cache; a frame only moves and turns the finished pictures and sets the names on top, so panning, zooming
- * and turning with the car stay cheap on the Mali-450. The car follows at the centre, heading up, until a finger
- * moves the map.
+ * and turning with the car stay cheap on the Mali-450. The car follows at the centre, heading up (or north up), until a
+ * finger moves the map; the screen's controls read [street], [follow], [headingUp] and [bearing] on [onChange].
  */
 class MapView(context: Context, private val packs: MapPacks) : View(context) {
     private val renderer = TileRenderer(MapStyle.load())
@@ -44,8 +47,22 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     var bearing = 0.0
     var night = true
         set(value) { if (field != value) { field = value; pictures.evictAll(); invalidate() } }
-    /** Whether the map keeps the car in the middle, heading up. */
+    /** Whether the map keeps the car in the middle. */
     var follow = true
+        private set(value) { if (field != value) { field = value; changed() } }
+    /** While following: the map turns with the car, or keeps north up. */
+    var headingUp = true
+        set(value) {
+            if (field == value) return
+            field = value
+            if (follow) bearing = if (value) carHeading else 0.0
+            invalidate(); changed()
+        }
+    /** The name of the street the car is on, empty off any named road. */
+    var street = ""
+        private set
+    /** On the main thread, whenever [street], [follow], [headingUp] or [bearing] changed. */
+    var onChange: (() -> Unit)? = null
     private var carLon = lon
     private var carLat = lat
     private var carHeading = 0.0
@@ -79,11 +96,45 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     fun setCar(lon: Double, lat: Double, heading: Double?) {
         carLon = lon; carLat = lat
         if (heading != null) carHeading = heading
-        if (follow) { this.lon = lon; this.lat = lat; bearing = carHeading }
+        if (follow) { this.lon = lon; this.lat = lat; bearing = if (headingUp) carHeading else 0.0 }
         invalidate()
+        changed()
+        if (SystemClock.elapsedRealtime() - streetAt >= Street.EVERY_MS) lookUpStreet()
     }
 
-    fun recentre() { follow = true; setCar(carLon, carLat, null) }
+    /** The zoom buttons: a whole step in or out. */
+    fun zoomBy(steps: Double) {
+        zoom = (zoom + steps).coerceIn(MIN_ZOOM, MAX_ZOOM)
+        invalidate()
+        lookUpStreet()
+    }
+
+    /** The location button: back on the car at the driving zoom. */
+    fun recentre() {
+        follow = true
+        zoom = DRIVE_ZOOM
+        setCar(carLon, carLat, null)
+        lookUpStreet()
+    }
+
+    private fun changed() = onChange?.invoke()
+
+    // the tiles the street is looked up in, decoded on the worker and kept only there
+    private val streetTiles = LruCache<String, Any>(STREET_TILES)
+    private var streetAt = 0L
+
+    /** Finds the street under the car on the worker, from the pack, as the emulator does from its loaded tiles. */
+    private fun lookUpStreet() {
+        streetAt = SystemClock.elapsedRealtime()
+        val at = Triple(carLon, carLat, zoom)
+        workerHandler.post {
+            val name = Street.at(at.first, at.second, at.third, TileRenderer.Tiles { z, x, y ->
+                val key = "$z/$x/$y"
+                (streetTiles.get(key) ?: (packs.tile(z, x, y)?.let { Mvt.decode(it) } ?: NO_TILE).also { streetTiles.put(key, it) }) as? VectorTile
+            })
+            main.post { if (name != street) { street = name; Log.i(TAG, "street: $name"); changed() } }
+        }
+    }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         scale = w / 1280f
@@ -251,11 +302,26 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
             invalidate()
             return true
         }
+        override fun onScaleEnd(d: ScaleGestureDetector) = lookUpStreet()
     })
+
+    // two fingers also turn the map, as on the emulator; while following, the next position turns it back
+    private var twoFingerAngle = Double.NaN
+
+    private fun angle(e: MotionEvent) = Math.toDegrees(atan2((e.getY(1) - e.getY(0)).toDouble(), (e.getX(1) - e.getX(0)).toDouble()))
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         pinch.onTouchEvent(event)
+        if (event.pointerCount == 2 && event.actionMasked == MotionEvent.ACTION_MOVE) {
+            val a = angle(event)
+            if (!twoFingerAngle.isNaN()) {
+                bearing = ((bearing - (a - twoFingerAngle)) % 360 + 360) % 360
+                invalidate(); changed()
+            }
+            twoFingerAngle = a
+        } else if (event.pointerCount != 2 || event.actionMasked == MotionEvent.ACTION_POINTER_UP) twoFingerAngle = Double.NaN
         if (!pinch.isInProgress) gestures.onTouchEvent(event)
+        if (event.actionMasked == MotionEvent.ACTION_UP) lookUpStreet()
         return true
     }
 
@@ -269,6 +335,11 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         const val TAG = "rdstr.map"
         const val MIN_ZOOM = 4.0
         const val MAX_ZOOM = 18.0
+        /** Where the location button brings the map back to, as in the emulator. */
+        const val DRIVE_ZOOM = 15.5
+        /** Decoded tiles kept for the street lookup: the car's tile and its neighbours. */
+        const val STREET_TILES = 4
+        private val NO_TILE = Any()
         /** Bitmaps of finished pictures kept: about 36 at the unit's size, enough for the screen and some around it. */
         const val PICTURE_BUDGET = 12 * 1024 * 1024
         const val CANDIDATE_TILES = 48
