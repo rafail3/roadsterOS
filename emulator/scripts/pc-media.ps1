@@ -34,6 +34,8 @@ $stdin = New-Object System.IO.StreamReader([Console]::OpenStandardInput())
 $pending = $stdin.ReadLineAsync()
 $lastTrack = ''; $lastCover = ''; $coverChecks = 0
 $lastPlaying = $null; $lastPos = -1; $lastAt = [DateTime]::UtcNow; $hadSession = $false
+# a site closes its session for a moment between two tracks; only a longer absence counts as the player gone
+$goneAfterMs = 3000; $missingSince = $null
 $chosenId = $null
 
 # Follow one session: the one already followed while it exists, unless another app starts playing.
@@ -72,10 +74,12 @@ while ($true) {
   }
 
   if (-not $session) {
-    if ($hadSession) { Emit @{ type = 'session'; active = $false }; $hadSession = $false; $lastTrack = '' }
-    Start-Sleep -Milliseconds 500
+    if (-not $missingSince) { $missingSince = [DateTime]::UtcNow }
+    if ($hadSession -and ([DateTime]::UtcNow - $missingSince).TotalMilliseconds -gt $goneAfterMs) { Emit @{ type = 'session'; active = $false }; $hadSession = $false; $lastTrack = '' }
+    Start-Sleep -Milliseconds 150
     continue
   }
+  $missingSince = $null
   if (-not $hadSession) { Emit @{ type = 'session'; active = $true; app = $session.SourceAppUserModelId }; $hadSession = $true }
 
   try {
