@@ -604,6 +604,8 @@ export function carEvent(event: CarEvent) {
   }
   // the screen follows the ignition: dark with the car off, back on when it starts
   if (event.type === "Power") shellAction({ type: event.acc ? "Wake" : "Sleep" });
+  // a loud last level comes down to the start volume chosen in the settings (core-car Settings.startVolume)
+  if (event.type === "Power" && event.acc) bridge.startVolume(state.car, state.shell.startVolume).forEach(carCommand);
 }
 
 /** A command from our own UI: the rules remember it, then it goes to the car. */
@@ -718,6 +720,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   if (q.get("app") === "radio") shell = bridge.shell(shell, { type: "OpenApp", app: "RADIO" });
   if (q.get("app") === "maps") shell = bridge.shell(shell, { type: "OpenApp", app: "MAPS" });
   if (q.get("app") === "phone") shell = bridge.shell(shell, { type: "OpenApp", app: "PHONE" });
+  if (q.get("app") === "settings") shell = bridge.shell(shell, { type: "OpenApp", app: "SETTINGS" });
   if (q.has("devices")) shell = bridge.shell(shell, { type: "OpenDevices" });
   const font = q.get("font");
   if (font) shell = bridge.shell(shell, { type: "SetFont", name: font });

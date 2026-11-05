@@ -11,6 +11,7 @@ import { MusicApp } from "./MusicApp";
 import { RadioApp } from "./RadioApp";
 import { MapsApp } from "./MapsApp";
 import { PhoneApp } from "./PhoneApp";
+import { SettingsApp } from "./SettingsApp";
 import { MapOffer } from "./MapOffer";
 import { DevicesSheet } from "./DevicesSheet";
 import { NetworksSheet } from "./NetworksSheet";
@@ -182,7 +183,7 @@ export function Screen() {
       </nav>
 
       <section className="field" inert={covered || inApp}>
-        <Clock now={now} face={shell.face} />
+        <Clock now={now} face={shell.face} h24={shell.clock24h} />
         <div className="apps" aria-label="Apps">
           {APPS.map(({ label, mark, app }) => (
             <button key={label} className="app" onClick={app ? () => shellAction({ type: "OpenApp", app }) : undefined}>
@@ -198,6 +199,7 @@ export function Screen() {
 
       <MusicApp open={shell.app === "MUSIC"} />
       <PhoneApp open={shell.app === "PHONE"} />
+      <SettingsApp open={shell.app === "SETTINGS"} />
       <RadioApp open={shell.app === "RADIO"} />
       <MapsApp open={shell.app === "MAPS"} inCard={!inApp && card.shown === "NAVIGATION" && shell.screenOn} light={light} />
       {/* over any screen: opened from the music app or by a long press on the drawer's Bluetooth */}

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from "react";
-import type { Face } from "../car/bridge";
+import { bridge, type Face } from "../car/bridge";
 import { shellAction } from "../car/store";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -35,7 +35,8 @@ function Digits({ text, dateTime }: { text: string; dateTime: string }) {
 
   return (
     <time className="clock" ref={clock} dateTime={dateTime}>
-      <span className="digit" /><span className="digit" /><span className="digit colon" /><span className="digit" /><span className="digit" />
+      {/* one cell per character, keyed from the right, so 12:59 to 1:00 drops the first cell and keeps the minutes' */}
+      {text.split("").map((ch, i) => <span key={text.length - i} className={ch === ":" ? "digit colon" : "digit"} />)}
     </time>
   );
 }
@@ -87,7 +88,7 @@ function Dial({ now }: { now: Date }) {
   );
 }
 
-export function Clock({ now, face }: { now: Date; face: Face }) {
+export function Clock({ now, face, h24 }: { now: Date; face: Face; h24: boolean }) {
   const analog = face === "ANALOG";
   const toggle = () => shellAction({ type: "ToggleFace" });
   return (
@@ -95,7 +96,8 @@ export function Clock({ now, face }: { now: Date; face: Face }) {
     <div className="clock-block">
       <div className="digital" hidden={analog}>
         <button className="clock-hit" aria-label="Clock, tap for the analog face" onClick={toggle}>
-          <Digits text={`${pad(now.getHours())}:${pad(now.getMinutes())}`} dateTime={now.toISOString()} />
+          <Digits text={bridge.clockText(now.getHours(), now.getMinutes(), h24)} dateTime={now.toISOString()} />
+          {!h24 && <span className="clock-meridiem">{bridge.meridiem(now.getHours())}</span>}
         </button>
         <div className="date-card">
           <span className="dc-weekday">{now.toLocaleDateString("en-GB", { weekday: "short" })}</span>

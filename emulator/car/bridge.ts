@@ -7,7 +7,7 @@ export type Face = "DIGITAL" | "ANALOG";
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";
 export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
 export type Band = "FM" | "AM";
-export type App = "HOME" | "MUSIC" | "RADIO" | "MAPS" | "PHONE";
+export type App = "HOME" | "MUSIC" | "RADIO" | "MAPS" | "PHONE" | "SETTINGS";
 
 export interface CarState {
   source: Source;
@@ -39,6 +39,10 @@ export interface ShellState {
   recents: boolean;
   lastHomeMs: number | null;
   card: CardPage | null;
+  clock24h: boolean;
+  speedChime: boolean;
+  /** the highest volume level the car starts with; 0 keeps the last one */
+  startVolume: number;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -82,7 +86,9 @@ export type CarCommand =
   | { type: "Bt.ConfirmPairing"; accept: boolean };
 
 export type ShellAction =
-  | { type: "CycleTheme" | "OpenDrawer" | "CloseDrawer" | "ToggleFace" | "ToggleScreen" | "Wake" | "Home" | "Back" | "OpenDevices" | "CloseDevices" | "OpenNetworks" | "CloseNetworks" | "CloseAllApps" | "OpenRecents" | "CloseRecents" | "Sleep" }
+  | { type: "CycleTheme" | "OpenDrawer" | "CloseDrawer" | "ToggleFace" | "ToggleScreen" | "Wake" | "Home" | "Back" | "OpenDevices" | "CloseDevices" | "OpenNetworks" | "CloseNetworks" | "CloseAllApps" | "OpenRecents" | "CloseRecents" | "Sleep" | "ResetSettings" }
+  | { type: "SetClock24h" | "SetSpeedChime"; on: boolean }
+  | { type: "SetStartVolume"; level: number }
   | { type: "HomePressed"; atMs: number }
   | { type: "CloseApp"; app: App }
   | { type: "SetTheme"; mode: ThemeMode }
@@ -144,6 +150,10 @@ interface Kotlin {
       phoneFind(book: string, number: string): string;
       initials(name: string): string;
       callDuration(ms: number): string;
+      clockText(hour: number, minute: number, h24: boolean): string;
+      meridiem(hour: number): string;
+      startVolume(state: string, cap: number): string;
+      size(bytes: number): string;
     };
 }
 
@@ -211,4 +221,10 @@ export const bridge = {
   phoneFind: (book: Contact[], number: string): PhoneMatch | null => JSON.parse(K!.Bridge.phoneFind(JSON.stringify(book), number)),
   initials: (name: string) => K!.Bridge.initials(name),
   callDuration: (ms: number) => K!.Bridge.callDuration(ms),
+  /** The big clock's text on the 24- or 12-hour clock, and the half of the day beside a 12-hour one. */
+  clockText: (hour: number, minute: number, h24: boolean) => K!.Bridge.clockText(hour, minute, h24),
+  meridiem: (hour: number) => K!.Bridge.meridiem(hour),
+  /** The commands a car start sends to bring a loud last level down to the settings' start volume. */
+  startVolume: (state: CarState, cap: number): CarCommand[] => JSON.parse(K!.Bridge.startVolume(JSON.stringify(state), cap)),
+  size: (bytes: number) => K!.Bridge.size(bytes),
 };
