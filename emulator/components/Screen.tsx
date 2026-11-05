@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { bridge, type Source } from "../car/bridge";
-import { carCommand, carEvent, openVolume, shellAction, useEmulator, useNow } from "../car/store";
+import { carCommand, carEvent, openVolume, setBluetooth, shellAction, useEmulator, useNow } from "../car/store";
 import { Clock } from "./Clock";
 import { Drawer, useDrawerDrag } from "./Drawer";
 import { NowPlaying } from "./NowPlaying";
@@ -56,6 +56,7 @@ function useThemeFade(theme: string) {
 
 function pressRail(id: string, cameraOn: boolean) {
   if (id === "music") {
+    setBluetooth(true);
     carCommand({ type: "Audio.Source", source: "BT" });
     shellAction({ type: "OpenApp", app: "MUSIC" });
   }
@@ -101,7 +102,7 @@ export function Screen() {
       <header className="bar" inert={covered} onPointerDown={onPointerDown}>
         <div className="bar-group">
           <span
-            className={classes("icon", car.source === "RADIO" ? "i-radio" : "i-bluetooth", car.source !== "NONE" && "is-on", car.source !== "RADIO" && !car.btConnected && "is-off")}
+            className={classes("icon", car.source === "RADIO" ? "i-radio" : "i-bluetooth", car.source !== "NONE" && "is-on", car.source !== "RADIO" && !emulator.btOn && "is-off")}
             aria-hidden="true"
           />
           <span className="bar-text">{car.source === "NONE" && car.btConnected ? "Bluetooth" : SOURCE_LABEL[car.source]}</span>

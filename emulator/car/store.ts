@@ -160,9 +160,13 @@ function fromLaptop(line: string) {
   if (m.type === "playback") carEvent({ type: "Playback", playing: Boolean(m.playing), positionMs: m.positionMs ?? 0 });
 }
 
-/** Bluetooth off drops the connected phone, as on the unit; on again, a saved phone reconnects on its own later. */
+/**
+ * Bluetooth off drops the connected phone, as on the unit, and a Bluetooth source with it: home then offers the sources.
+ * On again, nothing switches by itself; a saved phone reconnects on its own later.
+ */
 export function setBluetooth(on: boolean) {
   if (!on && state.car.btConnected) carEvent({ type: "BtConnection", connected: false, device: state.device });
+  if (!on && state.car.source === "BT") carCommand({ type: "Audio.Source", source: "NONE" });
   set({ btOn: on });
 }
 
