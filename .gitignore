@@ -28,6 +28,8 @@ unit-dumps/raw/
 
 # browser emulator
 node_modules/
+# covers the emulator keeps, as the unit does on its disk
+emulator/.covers/
 .next/
 next-env.d.ts
 *.tsbuildinfo

@@ -2,6 +2,8 @@
 // open emulator tab. GET streams its JSON lines as server-sent events; POST sends play, pause, toggle, next or prev.
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { resolve } from "node:path";
+import { largeCover } from "../../../server/catalog";
+import { contentType } from "../../../server/coverStore";
 
 export const dynamic = "force-dynamic";
 
@@ -15,45 +17,17 @@ const listeners = new Set<(line: string) => void>();
 const latest = new Map<string, string>();
 let idleTimer: ReturnType<typeof setTimeout> | undefined;
 
-// Windows passes on only a small cover (about 120 px), so a large one is looked up by title and artist in a public
-// music catalog, Deezer first, then Apple's. A result counts only when its title and artist match the track.
-const LOOKUP_TIMEOUT_MS = 4000;
+// Windows passes on only a small cover (about 120 px); like the phone app, the large one is looked up in the
+// public catalogs and sent after it.
 const hqCovers = new Map<string, string | null>();
-const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\(.*?\)|\[.*?\]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
-const sameTrack = (title: string, artist: string, foundTitle: string, foundArtist: string) => {
-  const t = fold(title), ft = fold(foundTitle), a = fold(artist), fa = fold(foundArtist);
-  return (ft === t || ft.startsWith(t) || t.startsWith(ft)) && (!a || fa.includes(a) || a.includes(fa));
-};
-
-async function json(url: string) {
-  const response = await fetch(url, { signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS) });
-  return response.ok ? response.json() : null;
-}
 
 async function largeCoverUrl(title: string, artist: string): Promise<string | null> {
-  const q = encodeURIComponent(`${title} ${artist}`);
-  const deezer = await json(`https://api.deezer.com/search?q=${q}&limit=5`).catch(() => null);
-  const dz = deezer?.data?.find((d: { title: string; artist: { name: string } }) => sameTrack(title, artist, d.title, d.artist.name));
-  if (dz?.album?.cover_xl) return dz.album.cover_xl;
-  const apple = await json(`https://itunes.apple.com/search?term=${q}&entity=song&limit=5`).catch(() => null);
-  const ap = apple?.results?.find((r: { trackName: string; artistName: string }) => sameTrack(title, artist, r.trackName, r.artistName));
-  return ap?.artworkUrl100 ? ap.artworkUrl100.replace("100x100bb", "1000x1000bb") : null;
-}
-
-/** The large cover as a data URL, so the page can read its pixels for the background colours. */
-async function largeCover(title: string, artist: string): Promise<string | null> {
   const key = `${title}|${artist}`;
   if (hqCovers.has(key)) return hqCovers.get(key)!;
-  let result: string | null = null;
-  try {
-    const url = await largeCoverUrl(title, artist);
-    if (url) {
-      const image = await fetch(url, { signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS) });
-      if (image.ok) result = `data:${image.headers.get("content-type") ?? "image/jpeg"};base64,${Buffer.from(await image.arrayBuffer()).toString("base64")}`;
-    }
-  } catch { /* no network or no match: the small cover stays */ }
-  hqCovers.set(key, result);
-  return result;
+  const bytes = await largeCover(title, artist);
+  const url = bytes ? `data:${contentType(bytes)};base64,${bytes.toString("base64")}` : null;
+  hqCovers.set(key, url);
+  return url;
 }
 
 function broadcast(kind: string, line: string) {
@@ -80,7 +54,7 @@ function start() {
       broadcast(message.type, line);
       if (message.type === "track" && message.title) {
         const { title, artist = "" } = message;
-        largeCover(title, artist).then((url) => { if (url) broadcast("cover", JSON.stringify({ type: "cover", title, url })); });
+        largeCoverUrl(title, artist).then((url) => { if (url) broadcast("cover", JSON.stringify({ type: "cover", title, artist, url })); });
       }
     }
   });
