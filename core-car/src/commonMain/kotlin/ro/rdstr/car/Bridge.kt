@@ -84,7 +84,7 @@ object Bridge {
 
     fun maxBrightness(): Int = Shell.MAX_BRIGHTNESS
 
-    /** Answers {"white":bool,"opacity":0..1}. */
+    /** Answers {"dark":0..1,"brightness":factor,"saturation":factor}. */
     fun veil(state: String): String =
         json.encodeToString(Veil.serializer(), Shell.veil(json.decodeFromString(ShellState.serializer(), state)))
 }

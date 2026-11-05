@@ -79,6 +79,8 @@ export function Screen() {
     : undefined;
   const covered = shell.drawer || car.call !== "IDLE" || car.camera;
   const veil = bridge.veil(shell);
+  // above neutral the whole screen goes through one colour filter; none at all otherwise
+  const boost = veil.brightness > 1 ? { filter: `brightness(${veil.brightness.toFixed(3)}) saturate(${veil.saturation.toFixed(3)})` } : undefined;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -91,7 +93,7 @@ export function Screen() {
   }, [car.camera]);
 
   return (
-    <div ref={finger} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming")} style={glow}>
+    <div ref={finger} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming")} style={{ ...glow, ...boost }}>
       <div className="ambient" aria-hidden="true" />
 
       <header className="bar" inert={covered} onPointerDown={onPointerDown}>
@@ -151,7 +153,7 @@ export function Screen() {
         </svg>
       ))}
       <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC"} />
-      <div className={classes("dimmer", veil.white && "is-white")} aria-hidden="true" style={{ opacity: veil.opacity.toFixed(3) }} />
+      <div className="dimmer" aria-hidden="true" style={{ opacity: veil.dark.toFixed(3) }} />
       {!shell.screenOn && <button className="screen-off" aria-label="Screen off, tap to wake" onClick={() => shellAction({ type: "Wake" })} />}
     </div>
   );

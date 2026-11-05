@@ -15,9 +15,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 }
 .screen [inert] { pointer-events: none; }
 .screen.theming, .screen.theming * { transition: background-color var(--theme) var(--ease-out), color var(--theme) var(--ease-out), border-color var(--theme) var(--ease-out), opacity var(--theme) var(--ease-out), filter var(--theme) var(--ease-out); }
-.dimmer { position: absolute; inset: 0; z-index: 9; background: #000; opacity: 0; pointer-events: none; transition: opacity var(--theme) var(--ease-out); }
-.dimmer.is-white { background: #fff; }
-.screen { transition: --ambient-a 800ms cubic-bezier(0.37, 0, 0.63, 1), --ambient-b 800ms cubic-bezier(0.37, 0, 0.63, 1); }
+.dimmer { position: absolute; inset: 0; z-index: 9; background: #000; opacity: 0; pointer-events: none; transition: opacity var(--theme) var(--ease-out); }.screen { transition: --ambient-a 800ms cubic-bezier(0.37, 0, 0.63, 1), --ambient-b 800ms cubic-bezier(0.37, 0, 0.63, 1); }
 .ambient {
   position: absolute; inset: 0; pointer-events: none;
   background:

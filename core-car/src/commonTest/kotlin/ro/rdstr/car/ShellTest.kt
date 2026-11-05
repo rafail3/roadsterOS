@@ -118,11 +118,11 @@ class ShellTest {
     }
 
     @Test
-    fun `the veil darkens below neutral and lightens above it`() {
-        assertEquals(0.0, Shell.veil(ShellState()).opacity)
-        assertEquals(Veil(white = false, opacity = 0.95), Shell.veil(ShellState(brightness = 10)))
-        assertEquals(Veil(white = true, opacity = 0.2), Shell.veil(ShellState(brightness = 150)))
+    fun `the veil darkens below neutral and boosts colours above it`() {
+        assertEquals(Veil(dark = 0.0, brightness = 1.0, saturation = 1.0), Shell.veil(ShellState()))
+        assertEquals(Veil(dark = 0.95, brightness = 1.0, saturation = 1.0), Shell.veil(ShellState(brightness = 10)))
+        assertEquals(Veil(dark = 0.0, brightness = 1.25, saturation = 1.3), Shell.veil(ShellState(brightness = 150)))
         // the headlights can take the darkest setting under the minimum; the veil stays at its darkest
-        assertEquals(0.95, Shell.veil(ShellState(theme = ThemeMode.AUTO, brightness = 10, headlights = true)).opacity)
+        assertEquals(0.95, Shell.veil(ShellState(theme = ThemeMode.AUTO, brightness = 10, headlights = true)).dark)
     }
 }

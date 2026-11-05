@@ -47,9 +47,12 @@ sealed class ShellAction {
     @Serializable @SerialName("CloseDevices") data object CloseDevices : ShellAction()
 }
 
-/** The layer drawn over the whole screen: black below neutral brightness, white above it. */
+/**
+ * How the screen is drawn for a brightness: below neutral a black layer of opacity [dark] over it,
+ * above neutral a colour filter multiplying [brightness] and [saturation] (1.0 = unchanged).
+ */
 @Serializable
-data class Veil(val white: Boolean, val opacity: Double)
+data class Veil(val dark: Double, val brightness: Double, val saturation: Double)
 
 /** Shell behaviour shared by the unit and the browser emulator. Pure. */
 object Shell {
@@ -62,7 +65,9 @@ object Shell {
     const val MIN_BRIGHTNESS = 10
     const val MAX_BRIGHTNESS = 150
     const val DARKEST_VEIL = 0.95
-    const val BRIGHTEST_VEIL = 0.2
+    /** Extra brightness and saturation at the maximum, as fractions. */
+    const val BOOST_BRIGHTNESS = 0.25
+    const val BOOST_SATURATION = 0.3
     const val DRAWER_OPEN_FRACTION = 1.0 / 3
 
     fun reduce(s: ShellState, a: ShellAction): ShellState = when (a) {
@@ -103,10 +108,11 @@ object Shell {
     /** The panel's own brightness is the vendor's; ours is drawn over it, linear on each side of neutral. */
     fun veil(s: ShellState): Veil {
         val b = effectiveBrightness(s)
-        return if (b < FULL_BRIGHTNESS) {
-            Veil(white = false, opacity = ((FULL_BRIGHTNESS - b) * DARKEST_VEIL / (FULL_BRIGHTNESS - MIN_BRIGHTNESS)).coerceAtMost(DARKEST_VEIL))
-        } else {
-            Veil(white = true, opacity = (b - FULL_BRIGHTNESS) * BRIGHTEST_VEIL / (MAX_BRIGHTNESS - FULL_BRIGHTNESS))
+        if (b < FULL_BRIGHTNESS) {
+            val dark = ((FULL_BRIGHTNESS - b) * DARKEST_VEIL / (FULL_BRIGHTNESS - MIN_BRIGHTNESS)).coerceAtMost(DARKEST_VEIL)
+            return Veil(dark = dark, brightness = 1.0, saturation = 1.0)
         }
+        val boost = (b - FULL_BRIGHTNESS).toDouble() / (MAX_BRIGHTNESS - FULL_BRIGHTNESS)
+        return Veil(dark = 0.0, brightness = 1.0 + BOOST_BRIGHTNESS * boost, saturation = 1.0 + BOOST_SATURATION * boost)
     }
 }
