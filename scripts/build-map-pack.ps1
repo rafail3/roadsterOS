@@ -30,7 +30,8 @@ if (-not (Test-Path $pbf)) {
 }
 
 $out = Join-Path $WorkDir "packs/$Code.mbtiles"
-java -Xmx2g -jar $jar --download --download_dir=(Join-Path $WorkDir "sources") --osm_path=$pbf `
-    --exclude-layers=$ExcludeLayers --output=$out --force
+$sources = Join-Path $WorkDir "sources"
+java -Xmx2g -jar $jar --download "--download_dir=$sources" "--osm_path=$pbf" `
+    "--exclude-layers=$ExcludeLayers" "--output=$out" --force
 if ($LASTEXITCODE -ne 0) { throw "planetiler failed" }
 "{0}: {1:N0} MB" -f $Code, ((Get-Item $out).Length / 1MB)
