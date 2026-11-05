@@ -15,6 +15,52 @@ const listeners = new Set<(line: string) => void>();
 const latest = new Map<string, string>();
 let idleTimer: ReturnType<typeof setTimeout> | undefined;
 
+// Windows passes on only a small cover (about 120 px), so a large one is looked up by title and artist in a public
+// music catalog, Deezer first, then Apple's. A result counts only when its title and artist match the track.
+const LOOKUP_TIMEOUT_MS = 4000;
+const hqCovers = new Map<string, string | null>();
+const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\(.*?\)|\[.*?\]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+const sameTrack = (title: string, artist: string, foundTitle: string, foundArtist: string) => {
+  const t = fold(title), ft = fold(foundTitle), a = fold(artist), fa = fold(foundArtist);
+  return (ft === t || ft.startsWith(t) || t.startsWith(ft)) && (!a || fa.includes(a) || a.includes(fa));
+};
+
+async function json(url: string) {
+  const response = await fetch(url, { signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS) });
+  return response.ok ? response.json() : null;
+}
+
+async function largeCoverUrl(title: string, artist: string): Promise<string | null> {
+  const q = encodeURIComponent(`${title} ${artist}`);
+  const deezer = await json(`https://api.deezer.com/search?q=${q}&limit=5`).catch(() => null);
+  const dz = deezer?.data?.find((d: { title: string; artist: { name: string } }) => sameTrack(title, artist, d.title, d.artist.name));
+  if (dz?.album?.cover_xl) return dz.album.cover_xl;
+  const apple = await json(`https://itunes.apple.com/search?term=${q}&entity=song&limit=5`).catch(() => null);
+  const ap = apple?.results?.find((r: { trackName: string; artistName: string }) => sameTrack(title, artist, r.trackName, r.artistName));
+  return ap?.artworkUrl100 ? ap.artworkUrl100.replace("100x100bb", "1000x1000bb") : null;
+}
+
+/** The large cover as a data URL, so the page can read its pixels for the background colours. */
+async function largeCover(title: string, artist: string): Promise<string | null> {
+  const key = `${title}|${artist}`;
+  if (hqCovers.has(key)) return hqCovers.get(key)!;
+  let result: string | null = null;
+  try {
+    const url = await largeCoverUrl(title, artist);
+    if (url) {
+      const image = await fetch(url, { signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS) });
+      if (image.ok) result = `data:${image.headers.get("content-type") ?? "image/jpeg"};base64,${Buffer.from(await image.arrayBuffer()).toString("base64")}`;
+    }
+  } catch { /* no network or no match: the small cover stays */ }
+  hqCovers.set(key, result);
+  return result;
+}
+
+function broadcast(kind: string, line: string) {
+  latest.set(kind, line);
+  listeners.forEach((send) => send(line));
+}
+
 function start() {
   if (reader) return;
   const child = spawn("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", resolve("scripts/pc-media.ps1")]);
@@ -27,10 +73,15 @@ function start() {
     buffered = lines.pop() ?? "";
     for (const line of lines) {
       if (!line.startsWith("{")) continue;
-      const kind = JSON.parse(line).type as string;
-      if (kind === "session" && line.includes('"active":false')) latest.clear();
-      latest.set(kind, line);
-      listeners.forEach((send) => send(line));
+      const message = JSON.parse(line) as { type: string; title?: string; artist?: string };
+      if (message.type === "session" && line.includes('"active":false')) latest.clear();
+      // once a large cover is known for the track, the small one from Windows is dropped
+      if (message.type === "cover" && [...hqCovers.entries()].some(([key, url]) => url && key.startsWith(`${message.title}|`))) continue;
+      broadcast(message.type, line);
+      if (message.type === "track" && message.title) {
+        const { title, artist = "" } = message;
+        largeCover(title, artist).then((url) => { if (url) broadcast("cover", JSON.stringify({ type: "cover", title, url })); });
+      }
     }
   });
   child.on("exit", () => {

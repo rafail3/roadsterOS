@@ -86,16 +86,9 @@ while ($true) {
 
     $key = "$($props.Title)|$($props.Artist)|$($props.AlbumTitle)"
     if ($key -ne $lastTrack -and $props.Title) {
-      $lastTrack = $key; $coverChecks = 8; $lastCover = ''
+      $lastTrack = $key; $coverChecks = 20; $lastCover = ''
       Emit @{ type = 'track'; title = $props.Title; artist = $props.Artist; album = $props.AlbumTitle; durationMs = $durationMs }
     }
-    # sites often set the artwork a moment after the title: look again for a few rounds after a track change
-    if ($coverChecks -gt 0) {
-      $coverChecks--
-      $cover = CoverOf $props
-      if ($cover -and $cover -ne $lastCover) { $lastCover = $cover; Emit @{ type = 'cover'; title = $props.Title; url = $cover } }
-    }
-
     # the session reports its position only on changes; carry it forward while playing
     $pos = $timeline.Position.TotalMilliseconds
     if ($playing) { $pos += ([DateTimeOffset]::UtcNow - $timeline.LastUpdatedTime).TotalMilliseconds }
@@ -107,5 +100,14 @@ while ($true) {
   } catch {
     # the session can change or close between two reads; the next round starts fresh
   }
-  Start-Sleep -Milliseconds 400
+  # the cover is read on its own: a failed read of the image never holds back a play or pause report
+  try {
+    # sites often set the artwork a moment after the title: look again for a few rounds after a track change
+    if ($coverChecks -gt 0) {
+      $coverChecks--
+      $cover = CoverOf $props
+      if ($cover -and $cover -ne $lastCover) { $lastCover = $cover; Emit @{ type = 'cover'; title = $props.Title; url = $cover } }
+    }
+  } catch { $coverChecks = [Math]::Max(0, $coverChecks - 1) }
+  Start-Sleep -Milliseconds 150
 }

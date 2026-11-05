@@ -168,10 +168,11 @@ export function setPcMedia(on: boolean) {
 /** What the bus does: the rules already accounted for the command, the car answers. */
 function sendToCar(command: CarCommand) {
   set({ log: addLog("out", command) });
-  // with the laptop as the source its session answers, not the simulated phone
-  if (state.pcMedia && command.type in PC_COMMANDS) return void sendToLaptop(PC_COMMANDS[command.type]);
   const echo = bridge.echo(command);
   if (echo) setTimeout(() => carEvent(echo), ECHO_DELAY_MS);
+  // with the laptop as the source its session plays the tracks: play and pause still answer at once as a phone
+  // would, and the session's own report confirms or corrects them a moment later
+  if (state.pcMedia && command.type in PC_COMMANDS) return void sendToLaptop(PC_COMMANDS[command.type]);
   if (command.type === "Media.Next" || command.type === "Media.Prev") setTimeout(() => phoneSkips(command.type === "Media.Next"), ECHO_DELAY_MS);
   if (command.type === "Bt.Connect") tryConnect(command.device);
   if (command.type === "Bt.Scan") scan();
