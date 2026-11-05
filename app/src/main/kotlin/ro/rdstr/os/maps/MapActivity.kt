@@ -10,9 +10,11 @@ import android.location.LocationManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.view.View
 import android.widget.TextView
 import ro.rdstr.car.MapPacks as Packs
+import ro.rdstr.car.Speedometer
 import ro.rdstr.map.MapBorders
 import java.io.File
 import kotlin.math.cos
@@ -33,8 +35,8 @@ class MapActivity : Activity(), LocationListener {
     private var packs: MapPacks? = null
     private val main = Handler(Looper.getMainLooper())
     private var demo: Runnable? = null
-    /** The speed shown while the car drives, in km/h; null while it stands. */
-    private var kmh: Int? = null
+    /** The speed pill's reading, from the GPS fixes by the same calculation as the emulator. */
+    private val speedometer = Speedometer()
     private var status = ""
     private var offer: PackOffer? = null
     private var offered = ""
@@ -96,7 +98,8 @@ class MapActivity : Activity(), LocationListener {
     override fun onLocationChanged(l: Location) {
         // the GPS heading means something only while the car moves
         val moving = l.hasSpeed() && l.speed > MOVING_MPS
-        kmh = if (moving) Math.round(l.speed * 3.6f) else null
+        // the chip's Doppler speed when the fix has it, else the distance over the last seconds
+        speedometer.update(l.longitude, l.latitude, l.time, if (l.hasSpeed()) l.speed * 3.6 else null)
         map?.setCar(l.longitude, l.latitude, if (l.hasBearing() && moving) l.bearing.toDouble() else null)
         logOffer(l.longitude, l.latitude)
     }
@@ -110,13 +113,14 @@ class MapActivity : Activity(), LocationListener {
         android.util.Log.i(MapView.TAG, "offer: $now")
     }
 
-    /** What the street pill shows: the speed while driving and the street, logged when it changes. */
+    /** What the two pills show: the street (none off a named road) and "Speed: n km/h" or "Stopped"; logged when it changes. */
     private fun logStatus() {
         val view = map ?: return
-        val now = listOfNotNull(kmh?.let { "$it km/h" }, view.street.ifEmpty { null }).joinToString(" | ")
+        val r = speedometer.reading
+        val now = "street: ${view.street.ifEmpty { "(folded)" }} | " + if (r.stopped) "Stopped" else "Speed: ${r.kmh} km/h"
         if (now == status) return
         status = now
-        android.util.Log.i(MapView.TAG, "status: ${now.ifEmpty { "(hidden)" }}")
+        android.util.Log.i(MapView.TAG, "status: $now")
     }
 
     @Deprecated("Deprecated in Java")
@@ -135,7 +139,7 @@ class MapActivity : Activity(), LocationListener {
                 lat += km * cos(r) / 111.32
                 lon += km * kotlin.math.sin(r) / (111.32 * cos(Math.toRadians(lat)))
                 heading = (heading + 0.4) % 360
-                kmh = DEMO_KMH.toInt()
+                speedometer.update(lon, lat, SystemClock.elapsedRealtime(), DEMO_KMH)
                 view.setCar(lon, lat, heading)
                 logOffer(lon, lat)
                 main.postDelayed(this, DEMO_TICK_MS)

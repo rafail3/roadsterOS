@@ -104,6 +104,7 @@ interface Kotlin {
       countryAt(lon: number, lat: number): string;
       mapOffer(country: string, installed: string, wifi: boolean, declined: string, downloading: string): string;
       packMb(code: string): number;
+      speed(lon: number, lat: number, timeMs: number, chipKmh: number): string;
       countryName(code: string): string;
     };
 }
@@ -133,6 +134,9 @@ export const bridge = {
   mapOffer: (country: string, installed: string[], wifi: boolean, declined: string[], downloading: string | null) =>
     K!.Bridge.mapOffer(country, JSON.stringify(installed), wifi, JSON.stringify(declined), downloading ?? "") as "NONE" | "DOWNLOAD" | "NEEDS_WIFI",
   packMb: (code: string): number => K!.Bridge.packMb(code),
+  /** A GPS fix for the map's speed, through the unit's own calculation; [chipKmh] null when the fix has none. */
+  speed: (lon: number, lat: number, timeMs: number, chipKmh: number | null): { kmh: number; stopped: boolean } =>
+    JSON.parse(K!.Bridge.speed(lon, lat, timeMs, chipKmh ?? -1)),
   countryName: (code: string): string => K!.Bridge.countryName(code),
   coverColors: (pixels: number[], width: number): { top: string; bottom: string } => JSON.parse(K!.Bridge.coverColors(JSON.stringify(pixels), width)),
   setVolume: (state: CarState, level: number): CarCommand[] => JSON.parse(K!.Bridge.setVolume(JSON.stringify(state), level)),

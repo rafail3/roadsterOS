@@ -33,6 +33,8 @@ export interface EmulatorState {
   /** the car's position from GPS, its heading in degrees from north, its speed */
   gps: { lon: number; lat: number; heading: number; kmh: number };
   driving: boolean;
+  /** the speed the map shows, worked out from the GPS fixes as on the unit */
+  speed: { kmh: number; stopped: boolean };
   /** the country under the car, by ISO code; empty outside every known border or before the borders load */
   country: string;
   /** offline map packs: on the unit, the one downloading, and the offers turned down this trip */
@@ -410,7 +412,10 @@ fetch("/maps/countries.geojson").then((r) => r.text()).then((geojson) => {
 
 export function setPosition(gps: Partial<EmulatorState["gps"]>) {
   const next = { ...state.gps, ...gps };
-  set({ gps: next, country: bordersReady ? bridge.countryAt(next.lon, next.lat) : state.country });
+  // each position is a fix of the simulated chip, which reports its speed as a real one does: the set speed while
+  // driving, nothing while parked
+  const speed = bridge.speed(next.lon, next.lat, performance.now(), state.driving ? next.kmh : 0);
+  set({ gps: next, speed, country: bordersReady ? bridge.countryAt(next.lon, next.lat) : state.country });
 }
 
 /** Drive straight along the heading at the set speed. */
@@ -418,7 +423,7 @@ export function setDriving(on: boolean, kmh = state.gps.kmh || 90) {
   clearInterval(driveTimer);
   // the chosen speed stays set while parked, for the next drive
   set({ driving: on, gps: { ...state.gps, kmh } });
-  if (!on) return;
+  if (!on) return setPosition({});
   driveTimer = setInterval(() => {
     const { lon, lat, heading, kmh: speed } = state.gps;
     const km = (speed * DRIVE_TICK_MS) / 3_600_000;
@@ -644,6 +649,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     radioScan: null,
     gps: GPS_PLACES[0],
     driving: false,
+    speed: { kmh: 0, stopped: true },
     country: "",
     maps: { installed: ["RO"], downloading: null, declined: [] },
     call: CALLER,

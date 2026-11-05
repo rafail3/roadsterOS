@@ -63,6 +63,12 @@ object Bridge {
         downloading.ifEmpty { null },
     ).name
 
+    private val speedometer = Speedometer()
+
+    /** A GPS fix for the map's speed; [chipKmh] below 0 when the fix has no speed. Answers {"kmh":n,"stopped":b}. */
+    fun speed(lon: Double, lat: Double, timeMs: Double, chipKmh: Double): String =
+        speedometer.update(lon, lat, timeMs.toLong(), chipKmh.takeIf { it >= 0 }).let { """{"kmh":${it.kmh},"stopped":${it.stopped}}""" }
+
     /** A pack's size in MB, or 0 when it is not known. */
     fun packMb(code: String): Int = MapPacks.PACK_MB[code] ?: 0
 

@@ -65,7 +65,7 @@ function streetAt(map: maplibregl.Map, lon: number, lat: number) {
 
 /** Full-screen map: the car in the middle, heading up while it follows, the street it is on, and the map controls. */
 export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
-  const { gps, maps, driving } = useEmulator();
+  const { gps, maps, driving, speed } = useEmulator();
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const puck = useRef<maplibregl.Marker | null>(null);
@@ -73,6 +73,9 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
   const [headingUp, setHeadingUp] = useState(true);
   const [bearing, setBearing] = useState(0);
   const [street, setStreet] = useState("");
+  // the last street stays written while its pill folds away
+  const shownStreet = useRef("");
+  if (street) shownStreet.current = street;
   const [credit, setCredit] = useState(false);
   const [borders, setBorders] = useState<GeoJSON.FeatureCollection | null>(null);
   const streetAtMs = useRef(0);
@@ -160,12 +163,14 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
         </button>
       </div>
 
-      {(street || driving) && (
-        <div className="map-status" aria-live="polite">
-          {driving && <span className="map-speed"><b>{Math.round(gps.kmh)}</b> km/h</span>}
-          {street && <span className="map-street">{street}</span>}
+      <div className="map-status">
+        <div className={`map-street-slot${street ? " is-shown" : ""}`} aria-hidden={!street}>
+          <span className="map-pill map-street" aria-live="polite">{shownStreet.current}</span>
         </div>
-      )}
+        <span className="map-pill map-speed" aria-live="off">
+          {speed.stopped ? "Stopped" : <><span className="map-speed-label">Speed:</span> <b>{speed.kmh}</b> km/h</>}
+        </span>
+      </div>
       {offline === false && <p className="map-preview">Online preview: no map pack built on this laptop</p>}
       <div className="map-credit">
         {credit && <p className="map-credit-text">© OpenMapTiles © OpenStreetMap contributors</p>}

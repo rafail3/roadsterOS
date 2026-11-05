@@ -23,12 +23,18 @@
 .map-locate .icon { transition: transform 300ms var(--spring-glyph); }
 .map-locate:active .icon { transform: scale(0.85); }
 
-/* where the car is: the speed while it drives and the street it is on */
-.map-status { position: absolute; left: 32px; bottom: 44px; display: flex; align-items: center; gap: 14px; height: 64px; padding: 0 24px; max-width: 560px; border-radius: 32px; background: rgba(20, 22, 26, 0.82); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
-.map-speed { flex: none; font-size: 15px; color: rgba(255, 255, 255, 0.7); }
+/* where the car is: the street it is on, and its speed in a pill of its own to the right; off a named road the
+   street pill folds away and the speed pill slides into its place */
+.map-status { position: absolute; left: 32px; bottom: 44px; display: flex; align-items: center; height: 64px; }
+.map-pill { display: flex; align-items: center; height: 64px; padding: 0 24px; border-radius: 32px; white-space: nowrap; background: rgba(20, 22, 26, 0.82); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+/* the street pill's slot opens to its width and closes to nothing; the gap to the speed pill goes with it */
+.map-street-slot { display: grid; grid-template-columns: 0fr; margin-right: 0; opacity: 0; transform: scale(0.92); transform-origin: left center; transition: grid-template-columns 520ms var(--spring-swap), margin-right 520ms var(--spring-swap), opacity 220ms var(--ease-out), transform 520ms var(--spring-swap); }
+.map-street-slot.is-shown { grid-template-columns: 1fr; margin-right: 12px; opacity: 1; transform: none; }
+.map-street-slot > .map-pill { min-width: 0; overflow: hidden; }
+.map-street { max-width: 520px; font-size: 22px; font-weight: 600; text-overflow: ellipsis; }
+.map-speed { flex: none; gap: 6px; font-size: 15px; font-weight: 500; color: rgba(255, 255, 255, 0.7); }
+.map-speed .map-speed-label { font-size: 17px; }
 .map-speed b { font-size: 26px; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; }
-.map-speed + .map-street { padding-left: 14px; border-left: 1px solid rgba(255, 255, 255, 0.18); }
-.map-street { font-size: 22px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* the data credit the licences ask for, behind a glass button: on the axis of the right-hand buttons, level with the
    street pill (both 64 px tall from 44 px up, so a 44 px button sits 54 px up) */
 .map-credit { position: absolute; right: 38px; bottom: 54px; display: flex; align-items: center; gap: 10px; }
@@ -57,7 +63,7 @@
 .recents-preview-map .icon { width: 56px; height: 56px; transform: rotate(45deg); color: #0a84ff; }
 
 @media (prefers-reduced-motion: reduce) {
-  .map-offer, .map-offer.is-shown, .map-compass { transition-duration: 0.01ms; }
+  .map-offer, .map-offer.is-shown, .map-compass, .map-street-slot { transition-duration: 0.01ms; }
 }
 
 /* the day map is light: the status bar, the buttons and the street pill turn light over it */
@@ -66,10 +72,9 @@
 .screen.light .map-zoom button { color: var(--ink); }
 .screen.light .map-zoom button + button { border-top-color: rgba(0, 0, 0, 0.08); }
 .screen.light .map-compass::after { border-top-color: rgba(0, 0, 0, 0.55); }
-.screen.light .map-status { color: var(--ink); background: rgba(255, 255, 255, 0.92); border-color: rgba(0, 0, 0, 0.08); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14); }
+.screen.light .map-pill { color: var(--ink); background: rgba(255, 255, 255, 0.92); border-color: rgba(0, 0, 0, 0.08); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14); }
 .screen.light .map-speed { color: var(--ink-muted); }
 .screen.light .map-speed b { color: var(--ink); }
-.screen.light .map-speed + .map-street { border-left-color: rgba(0, 0, 0, 0.12); }
 
 /* emulator only: the map previews from the network until a pack is built */
 .map-preview { position: absolute; left: 50%; top: 76px; transform: translateX(-50%); margin: 0; padding: 8px 16px; border-radius: 18px; font-size: 14px; font-weight: 600; color: #000; background: #ffd60a; pointer-events: none; }
