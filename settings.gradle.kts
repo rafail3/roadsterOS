@@ -28,4 +28,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "roadsterOS"
-include(":app", ":core-car", ":core-ui", ":car-sim", ":car-vendor", ":companion")
+include(":app", ":core-car", ":core-map", ":core-ui", ":car-sim", ":car-vendor", ":companion")
