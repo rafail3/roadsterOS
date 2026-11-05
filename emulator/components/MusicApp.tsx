@@ -1,19 +1,46 @@
 import { useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import { bridge } from "../car/bridge";
-import { carCommand, setVolume, shellAction, stepVolume, useEmulator } from "../car/store";
+import { carCommand, setVolume, shellAction, stepVolume, useEmulator, type EmulatorState } from "../car/store";
 import { holdToRepeat } from "./controls";
 import { useMuteFill } from "./VolumeHud";
 import { Marquee, Progress, time, TransportRow, useCoverColors, useCrossfade, usePosition } from "./media";
+
+/** No phone connected: the saved phones to connect with one tap, and the devices panel for anything else. */
+function NoPhone({ emulator }: { emulator: EmulatorState }) {
+  const { saved, connecting, failed } = emulator;
+  return (
+    <div className="music-nophone">
+      <span className="music-nophone-icon" aria-hidden="true"><span className="icon i-device-mobile" /></span>
+      <h2>No phone connected</h2>
+      <p>{saved.length ? "Connect a phone to play its music." : "Pair a phone to play its music."}</p>
+      {saved.length > 0 && (
+        <ul className="music-nophone-list" aria-label="Saved phones">
+          {saved.map(({ name }) => (
+            <li key={name}>
+              <button className="music-nophone-phone" disabled={connecting !== null} onClick={() => carCommand({ type: "Bt.Connect", device: name })}>
+                <span className="icon i-bluetooth" aria-hidden="true" />
+                <span>{connecting === name ? "Connecting…" : failed === name ? `${name} · not available` : name}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <button className="music-nophone-more" onClick={() => shellAction({ type: "OpenDevices" })}>{saved.length ? "Other devices" : "Pair a phone"}</button>
+    </div>
+  );
+}
 
 /** Full-screen Bluetooth music: the cover blurred into the whole background, a large cover, transport and volume. */
 export function MusicApp({ open }: { open: boolean }) {
   const emulator = useEmulator();
   const { car, track, device } = emulator;
   const { elapsed, duration } = usePosition();
-  const backdrops = useCrossfade(track.art);
-  const covers = useCrossfade(track.art);
+  // without a phone there is no track: no cover, no cover colours, the screen asks for a phone instead
+  const art = car.btConnected ? track.art : null;
+  const backdrops = useCrossfade(art);
+  const covers = useCrossfade(art);
   const max = bridge.maxVolume();
-  const colors = useCoverColors(track.art);
+  const colors = useCoverColors(art);
   const [dragging, setDragging] = useState(false);
   const slider = useRef<HTMLDivElement>(null);
   const muteFill = useMuteFill(car.muted);
@@ -50,6 +77,7 @@ export function MusicApp({ open }: { open: boolean }) {
         <span className="icon i-bluetooth" aria-hidden="true" />
       </button>
 
+      {!car.btConnected ? <NoPhone emulator={emulator} /> : (<>
       <div className={`music-cover${car.playing ? " is-playing" : ""}`}>
         {covers.layers.map((layer) => (layer.src
           ? <img key={layer.id} src={layer.src} alt={`Cover of ${track.title}`} onAnimationEnd={() => covers.settle(layer.id)} />
@@ -108,6 +136,7 @@ export function MusicApp({ open }: { open: boolean }) {
           </button>
         </div>
       </div>
+      </>)}
     </section>
   );
 }

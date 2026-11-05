@@ -4,6 +4,19 @@ import { Marquee, Progress, time, TransportRow, useCrossfade, usePosition } from
 
 const PRESETS = [1, 2, 3, 4, 5, 6];
 
+/** Bluetooth is the source but no phone is connected: nothing to play, one way to a phone. */
+function NoPhone() {
+  return (
+    <div className="np np-empty">
+      <p className="np-title">No phone connected</p>
+      <p className="np-artist">Connect a phone to play its music</p>
+      <div className="controls">
+        <button className="ctl ctl-wide" onClick={() => shellAction({ type: "OpenDevices" })}><span className="icon i-bluetooth" /><span>Connect</span></button>
+      </div>
+    </div>
+  );
+}
+
 function Bluetooth({ emulator }: { emulator: EmulatorState }) {
   const { car, track } = emulator;
   const { elapsed, duration } = usePosition();
@@ -81,7 +94,7 @@ function NoSource() {
 
 export function NowPlaying({ emulator }: { emulator: EmulatorState }) {
   const { source } = emulator.car;
-  if (source === "BT") return <Bluetooth emulator={emulator} />;
+  if (source === "BT") return emulator.car.btConnected ? <Bluetooth emulator={emulator} /> : <NoPhone />;
   if (source === "RADIO") return <Radio emulator={emulator} />;
   return <NoSource />;
 }
