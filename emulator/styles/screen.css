@@ -109,8 +109,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 /* glass panel */
 .panel { grid-row: 2; margin: 0 var(--space-5) var(--space-5) 0; position: relative; z-index: 1; }
 /* home settles from a slight zoom while an app shrinks away; behind an open app it waits, already zoomed, out of sight */
-.rail, .field, .panel { transition: transform 380ms var(--ease-out), opacity 380ms var(--ease-out); }
-.screen.in-app .rail, .screen.in-app .field, .screen.in-app .panel { transform: scale(1.04); opacity: 0.4; transition-delay: 420ms; }
+.rail, .field { transition: transform 280ms var(--ease-out), opacity 280ms var(--ease-out); }
+/* the card an app closes onto stays as it is, so the landing has nothing to cross-fade with */
+.screen.in-app .rail, .screen.in-app .field { transform: scale(1.02); opacity: 0.6; transition-delay: 420ms; }
 .np { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; gap: var(--space-4); padding: var(--space-5); border-radius: var(--radius); background: var(--glass); border: 1px solid var(--hairline); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06); }
 .np-meta { display: flex; flex-direction: column; gap: 2px; }
 .np-title { margin: 0; font-size: var(--size-title); font-weight: 600; letter-spacing: -0.01em; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
