@@ -1,5 +1,6 @@
 # Builds one country's offline map pack: OpenMapTiles vector tiles in an MBTiles file, made with planetiler
-# from the Geofabrik extract. Buildings and house numbers are left out to keep the pack small.
+# from the Geofabrik extract. Buildings and house numbers are left out, then slim-map-pack.py drops what the unit
+# neither draws nor searches (other languages, mountain peaks, airports, zoom 14 landcover).
 #
 #   ./scripts/build-map-pack.ps1 -Area europe/romania -Code RO
 #
@@ -32,6 +33,8 @@ if (-not (Test-Path $pbf)) {
 }
 
 $out = Join-Path $WorkDir "packs/$Code.mbtiles"
+New-Item -ItemType Directory -Force (Join-Path $WorkDir "raw") | Out-Null
+$raw = Join-Path $WorkDir "raw/$Code.mbtiles"
 $sources = Join-Path $WorkDir "sources"
 New-Item -ItemType Directory -Force $sources | Out-Null
 $water = Join-Path $sources "water-polygons-split-3857.zip"
@@ -47,8 +50,10 @@ if (-not (Test-Path $water) -and (Test-Path $naturalEarth)) {
 # with every source on disk, planetiler is not asked to download (it would check each source online)
 $needed = "natural_earth_vector.sqlite.zip", "lake_centerline.shp.zip", "water-polygons-split-3857.zip"
 $download = @($needed | Where-Object { -not (Test-Path (Join-Path $sources $_)) }).Count -gt 0
-$flags = @("--download_dir=$sources", "--osm_path=$pbf", "--exclude-layers=$ExcludeLayers", "--output=$out", "--force")
+$flags = @("--download_dir=$sources", "--osm_path=$pbf", "--exclude-layers=$ExcludeLayers", "--output=$raw", "--force")
 if ($download) { $flags = @("--download") + $flags }
 java -Xmx2g -jar $jar @flags
 if ($LASTEXITCODE -ne 0) { throw "planetiler failed" }
+python -I (Join-Path $PSScriptRoot "slim-map-pack.py") $raw $out
+if ($LASTEXITCODE -ne 0) { throw "slimming failed" }
 "{0}: {1:N0} MB" -f $Code, ((Get-Item $out).Length / 1MB)
