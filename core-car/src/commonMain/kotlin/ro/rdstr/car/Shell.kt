@@ -18,6 +18,7 @@ data class ShellState(
     val face: Face = Face.DIGITAL,
     val font: String = "geist",
     val brightness: Int = 100,
+    val headlights: Boolean = false,
     val screenOn: Boolean = true,
     val app: App = App.HOME,
     /** The saved-devices sheet over the music app. */
@@ -50,7 +51,8 @@ sealed class ShellAction {
 object Shell {
     const val DAY_START = 5
     const val DAY_END = 19
-    const val HEADLIGHTS_BRIGHTNESS = 40
+    /** Percent of the chosen brightness kept while the headlights are on, in the auto theme only. */
+    const val HEADLIGHTS_DIM = 80
     const val FULL_BRIGHTNESS = 100
     const val MIN_BRIGHTNESS = 10
     const val DRAWER_OPEN_FRACTION = 1.0 / 3
@@ -65,7 +67,7 @@ object Shell {
         is ShellAction.SetFace -> s.copy(face = a.face)
         is ShellAction.SetFont -> s.copy(font = a.name)
         is ShellAction.SetBrightness -> s.copy(brightness = a.value.coerceIn(MIN_BRIGHTNESS, FULL_BRIGHTNESS))
-        is ShellAction.Headlights -> s.copy(brightness = if (a.on) HEADLIGHTS_BRIGHTNESS else FULL_BRIGHTNESS)
+        is ShellAction.Headlights -> s.copy(headlights = a.on)
         ShellAction.ToggleScreen -> s.copy(screenOn = !s.screenOn)
         ShellAction.Wake -> s.copy(screenOn = true)
         is ShellAction.OpenApp -> s.copy(app = a.app, drawer = false, devices = false)
@@ -85,4 +87,8 @@ object Shell {
         ThemeMode.DARK -> Theme.DARK
         ThemeMode.AUTO -> if (hour in DAY_START until DAY_END) Theme.LIGHT else Theme.DARK
     }
+
+    /** The brightness to draw: the chosen one, dimmed while the headlights are on in the auto theme. */
+    fun effectiveBrightness(s: ShellState): Int =
+        if (s.theme == ThemeMode.AUTO && s.headlights) s.brightness * HEADLIGHTS_DIM / 100 else s.brightness
 }

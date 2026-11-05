@@ -80,7 +80,7 @@ export function Screen() {
     ? ({ "--ambient-a": `color-mix(in srgb, ${cover.top} ${light ? 30 : 85}%, transparent)`, "--ambient-b": `color-mix(in srgb, ${cover.bottom} ${light ? 25 : 90}%, transparent)` } as React.CSSProperties)
     : undefined;
   const covered = shell.drawer || car.call !== "IDLE" || car.camera;
-  const veil = Math.max(0, Math.min(MAX_VEIL, (1 - shell.brightness / 100) * VEIL_PER_DIM));
+  const veil = Math.max(0, Math.min(MAX_VEIL, (1 - bridge.effectiveBrightness(shell) / 100) * VEIL_PER_DIM));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

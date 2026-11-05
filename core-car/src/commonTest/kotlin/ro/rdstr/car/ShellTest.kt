@@ -102,8 +102,17 @@ class ShellTest {
         assertEquals(Face.DIGITAL, Shell.reduce(ShellState(face = Face.ANALOG), ShellAction.ToggleFace).face)
         assertEquals(10, Shell.reduce(ShellState(), ShellAction.SetBrightness(0)).brightness)
         assertEquals(100, Shell.reduce(ShellState(), ShellAction.SetBrightness(140)).brightness)
-        assertEquals(40, Shell.reduce(ShellState(), ShellAction.Headlights(true)).brightness)
-        assertEquals(100, Shell.reduce(ShellState(brightness = 40), ShellAction.Headlights(false)).brightness)
         assertEquals("inter", Shell.reduce(ShellState(), ShellAction.SetFont("inter")).font)
+    }
+
+    @Test
+    fun `headlights dim the auto theme and leave the slider alone`() {
+        val auto = ShellState(theme = ThemeMode.AUTO, brightness = 50)
+        val lit = Shell.reduce(auto, ShellAction.Headlights(true))
+        assertEquals(50, lit.brightness)
+        assertEquals(40, Shell.effectiveBrightness(lit))
+        assertEquals(50, Shell.effectiveBrightness(Shell.reduce(lit, ShellAction.Headlights(false))))
+        assertEquals(50, Shell.effectiveBrightness(Shell.reduce(ShellState(theme = ThemeMode.DARK, brightness = 50), ShellAction.Headlights(true))))
+        assertEquals(100, Shell.effectiveBrightness(Shell.reduce(ShellState(), ShellAction.Headlights(true))))
     }
 }
