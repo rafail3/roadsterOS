@@ -188,9 +188,8 @@ function Keypad({ emulator }: { emulator: EmulatorState }) {
         {KEYS.map(([d, l]) => <PadKey key={d} digit={d} letters={l} onPress={(k) => setTyped((t) => t + k)} />)}
       </div>
       <div className="pad-foot">
-        <button className="pad-side" aria-label="Voice assistant" onClick={() => carCommand({ type: "Phone.VoiceAssistant", on: true })}>
-          <span className="icon i-microphone-fill" aria-hidden="true" />
-        </button>
+        {/* the phone's voice assistant key waits for later; Phone.VoiceAssistant stays in core-car and on the unit */}
+        <span aria-hidden="true" />
         <button className="call-key is-accept" aria-label={typed ? `Call ${match?.name ?? typed}` : "Redial"} onClick={call}>
           <span className="icon i-call-accept" aria-hidden="true" />
         </button>
