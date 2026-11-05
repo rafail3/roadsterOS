@@ -55,6 +55,8 @@ sealed class ShellAction {
     @Serializable @SerialName("HomePressed") data class HomePressed(val atMs: Long) : ShellAction()
     @Serializable @SerialName("CloseApp") data class CloseApp(val app: App) : ShellAction()
     @Serializable @SerialName("CloseAllApps") data object CloseAllApps : ShellAction()
+    /** The swipe up from the bottom edge: the open apps over the current app, without passing through home. */
+    @Serializable @SerialName("OpenRecents") data object OpenRecents : ShellAction()
     @Serializable @SerialName("CloseRecents") data object CloseRecents : ShellAction()
 }
 
@@ -119,6 +121,7 @@ object Shell {
             devices = s.devices && s.app != a.app,
         )
         ShellAction.CloseAllApps -> s.copy(running = emptyList(), app = App.HOME, devices = false, recents = false)
+        ShellAction.OpenRecents -> s.copy(recents = true, drawer = false, devices = false, lastHomeMs = null)
         ShellAction.CloseRecents -> s.copy(recents = false)
         // one layer at a time: the drawer, the open apps, the devices sheet, then the app
         ShellAction.Back -> when {

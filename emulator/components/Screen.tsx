@@ -7,7 +7,7 @@ import { NowPlaying } from "./NowPlaying";
 import { CallOverlay, CameraOverlay } from "./Overlays";
 import { VolumeHud } from "./VolumeHud";
 import { MusicApp } from "./MusicApp";
-import { Recents } from "./Recents";
+import { EdgeSwipe, Recents } from "./Recents";
 import { useCoverColors } from "./media";
 import { useFingerMouse } from "./controls";
 
@@ -145,6 +145,7 @@ export function Screen() {
 
       <MusicApp open={shell.app === "MUSIC"} />
       <Recents emulator={emulator} />
+      {!covered && <EdgeSwipe />}
       <div className={classes("scrim", shell.drawer && "is-open")} onClick={() => shellAction({ type: "CloseDrawer" })} />
       <Drawer emulator={emulator} panel={drawer} dragging={dragging} />
       {car.call !== "IDLE" && <CallOverlay emulator={emulator} />}

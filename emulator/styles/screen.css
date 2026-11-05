@@ -202,6 +202,10 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .recents-clear:active { background: var(--glass-pressed); }
 .recents-card-close:focus-visible, .recents-card-body:focus-visible, .recents-clear:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .recents-empty { margin: 0; color: var(--ink-muted); font-size: var(--size-body); }
+/* the bottom-edge strip a swipe up starts from; its handle shows only while a finger is on it */
+.edge-swipe { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; height: 28px; touch-action: none; }
+.edge-swipe::after { content: ""; position: absolute; left: 50%; bottom: 8px; width: 120px; height: 4px; margin-left: -60px; border-radius: 2px; background: var(--ink); opacity: 0; transition: opacity var(--fast) var(--ease-out); }
+.edge-swipe:active::after { opacity: 0.4; }
 @media (prefers-reduced-motion: reduce) {
   .recents, .recents-card { transition-duration: 0.01ms; }
   .recents.is-open .recents-card { animation: none; }

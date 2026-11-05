@@ -62,7 +62,7 @@ export type CarCommand =
   | { type: "Bt.ConfirmPairing"; accept: boolean };
 
 export type ShellAction =
-  | { type: "CycleTheme" | "OpenDrawer" | "CloseDrawer" | "ToggleFace" | "ToggleScreen" | "Wake" | "Home" | "Back" | "OpenDevices" | "CloseDevices" | "CloseAllApps" | "CloseRecents" }
+  | { type: "CycleTheme" | "OpenDrawer" | "CloseDrawer" | "ToggleFace" | "ToggleScreen" | "Wake" | "Home" | "Back" | "OpenDevices" | "CloseDevices" | "CloseAllApps" | "OpenRecents" | "CloseRecents" }
   | { type: "HomePressed"; atMs: number }
   | { type: "CloseApp"; app: App }
   | { type: "SetTheme"; mode: ThemeMode }

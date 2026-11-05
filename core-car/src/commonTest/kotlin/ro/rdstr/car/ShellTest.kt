@@ -165,6 +165,15 @@ class ShellTest {
     }
 
     @Test
+    fun `the edge swipe opens the open apps straight from an app`() {
+        val inMusic = Shell.reduce(ShellState(drawer = true), ShellAction.OpenApp(App.MUSIC))
+        val open = Shell.reduce(inMusic, ShellAction.OpenRecents)
+        assertTrue(open.recents)
+        assertEquals(App.MUSIC, open.app)
+        assertFalse(open.drawer)
+    }
+
+    @Test
     fun `back and home leave an app open`() {
         val s = Shell.reduce(ShellState(), ShellAction.OpenApp(App.MUSIC))
         assertEquals(listOf(App.MUSIC), Shell.reduce(s, ShellAction.Back).running)
