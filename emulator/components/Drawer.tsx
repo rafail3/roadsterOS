@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from "react";
+import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from "react";
 import { bridge } from "../car/bridge";
 import { carCommand, setBluetooth, setVolume, setWifi, shellAction, type EmulatorState } from "../car/store";
 import { useMuteFill } from "./VolumeHud";
@@ -41,10 +41,29 @@ export function useDrawerDrag(drawer: RefObject<HTMLElement | null>) {
   return { dragging, onPointerDown };
 }
 
+/** Held this long, a toggle opens its details instead of switching. */
+const LONG_PRESS_MS = 500;
+
 /** A quick toggle: an icon disc, its name and its state; the disc takes the function's colour while on. */
-function Toggle({ kind, on, icon, title, state, onClick }: { kind: string; on: boolean; icon: string; title: string; state: string; onClick: () => void }) {
+function Toggle({ kind, on, icon, title, state, onClick, onLongPress }: { kind: string; on: boolean; icon: string; title: string; state: string; onClick: () => void; onLongPress?: () => void }) {
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const held = useRef(false);
+  const cancel = () => clearTimeout(timer.current);
   return (
-    <button className={`toggle toggle-${kind}${on ? " is-on" : ""}`} aria-pressed={on} onClick={onClick}>
+    <button
+      className={`toggle toggle-${kind}${on ? " is-on" : ""}`}
+      aria-pressed={on}
+      aria-description={onLongPress ? "Hold for details" : undefined}
+      onPointerDown={() => {
+        held.current = false;
+        if (onLongPress) timer.current = setTimeout(() => { held.current = true; onLongPress(); }, LONG_PRESS_MS);
+      }}
+      onPointerUp={cancel}
+      onPointerLeave={cancel}
+      onPointerCancel={cancel}
+      // the click that ends a long press is not a tap
+      onClick={() => { if (held.current) held.current = false; else onClick(); }}
+    >
       <span className="toggle-disc"><span className={`icon ${icon}`} aria-hidden="true" /></span>
       <span className="toggle-text">
         <span className="toggle-title">{title}</span>
@@ -119,7 +138,7 @@ export function Drawer({ emulator, panel, dragging }: { emulator: EmulatorState;
       inert={!open && !dragging}
     >
       <div className="drawer-grid">
-        <Toggle kind="bt" on={emulator.btOn} icon="i-bluetooth" title="Bluetooth" state={!emulator.btOn ? "Off" : car.btConnected ? emulator.device : "On"} onClick={() => setBluetooth(!emulator.btOn)} />
+        <Toggle kind="bt" on={emulator.btOn} icon="i-bluetooth" title="Bluetooth" state={!emulator.btOn ? "Off" : car.btConnected ? emulator.device : "On"} onClick={() => setBluetooth(!emulator.btOn)} onLongPress={() => shellAction({ type: "OpenDevices" })} />
         <Toggle kind="wifi" on={emulator.wifiOn} icon="i-wifi-high" title="Wi-Fi" state={emulator.wifiOn ? "On" : "Off"} onClick={() => setWifi(!emulator.wifiOn)} />
         <Toggle kind="mute" on={car.muted} icon="i-speaker-slash-fill" title="Mute" state={car.muted ? "On" : "Off"} onClick={() => carCommand({ type: "Audio.Mute", on: !car.muted })} />
         <Toggle kind="theme" on={shell.theme === "AUTO"} icon={THEME_ICON[shell.theme]} title="Theme" state={THEME_LABEL[shell.theme]} onClick={() => shellAction({ type: "CycleTheme" })} />

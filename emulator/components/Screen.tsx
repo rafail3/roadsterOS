@@ -7,6 +7,7 @@ import { NowPlaying } from "./NowPlaying";
 import { CallOverlay, CameraOverlay } from "./Overlays";
 import { VolumeHud } from "./VolumeHud";
 import { MusicApp } from "./MusicApp";
+import { DevicesSheet } from "./DevicesSheet";
 import { Recents } from "./Recents";
 import { EdgeBack, NavBar } from "./Gestures";
 import { useCoverColors } from "./media";
@@ -146,6 +147,8 @@ export function Screen() {
       </section>
 
       <MusicApp open={shell.app === "MUSIC"} />
+      {/* over any screen: opened from the music app or by a long press on the drawer's Bluetooth */}
+      <DevicesSheet />
       <Recents emulator={emulator} />
       {/* always there, as on a phone, except under the drawer, a call or the camera */}
       {!shell.drawer && car.call === "IDLE" && !car.camera && (

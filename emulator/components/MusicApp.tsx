@@ -3,7 +3,6 @@ import { bridge } from "../car/bridge";
 import { carCommand, setVolume, shellAction, stepVolume, useEmulator } from "../car/store";
 import { holdToRepeat } from "./controls";
 import { useMuteFill } from "./VolumeHud";
-import { DevicesSheet } from "./DevicesSheet";
 import { Marquee, Progress, time, TransportRow, useCoverColors, useCrossfade, usePosition } from "./media";
 
 /** Full-screen Bluetooth music: the cover blurred into the whole background, a large cover, transport and volume. */
@@ -109,7 +108,6 @@ export function MusicApp({ open }: { open: boolean }) {
           </button>
         </div>
       </div>
-      <DevicesSheet />
     </section>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
-import { carCommand, shellAction, useEmulator } from "../car/store";
+import { carCommand, setBluetooth, shellAction, useEmulator } from "../car/store";
 
 const groupCode = (code: string) => `${code.slice(0, 3)} ${code.slice(3)}`;
 
@@ -127,7 +127,7 @@ function SavedRow({ name, status, open, onOpen, connectLocked }: { name: string;
 
 /** Phones the unit has paired with, and a search for new ones: tap a saved phone to connect, a found one to pair. */
 export function DevicesSheet() {
-  const { shell, car, device, saved, connecting, failed, scanning, searched, nearby, pairing } = useEmulator();
+  const { shell, car, device, saved, connecting, failed, scanning, searched, nearby, pairing, btOn } = useEmulator();
   const open = shell.devices;
   const close = () => shellAction({ type: "CloseDevices" });
   const nearbyRef = useRef<HTMLElement>(null);
@@ -154,10 +154,22 @@ export function DevicesSheet() {
       <section className="devices-panel" role="dialog" aria-modal="true" aria-labelledby="devices-title">
         <header className="devices-head">
           <h2 id="devices-title">Devices</h2>
-          <button className="glass-button" aria-label="Close devices" onClick={close}><span className="icon i-x" aria-hidden="true" /></button>
+          <div className="devices-head-end">
+            <button className={`switch${btOn ? " is-on" : ""}`} role="switch" aria-checked={btOn} aria-label="Bluetooth" onClick={() => setBluetooth(!btOn)}>
+              <span className="switch-knob" aria-hidden="true" />
+            </button>
+            <button className="glass-button" aria-label="Close devices" onClick={close}><span className="icon i-x" aria-hidden="true" /></button>
+          </div>
         </header>
 
-        {pairing && !pairing.confirmed ? (
+        {!btOn ? (
+          // nothing to list or search for: the switch above is the way back
+          <div className="devices-off">
+            <span className="device-icon is-large" aria-hidden="true"><span className="icon i-bluetooth" /></span>
+            <h3>Bluetooth is off</h3>
+            <p>Turn on Bluetooth to see your devices and connect a phone.</p>
+          </div>
+        ) : pairing && !pairing.confirmed ? (
           // the code check gets the whole panel: big digits read at a glance, two large answers
           <div className="devices-pairing" role="group" aria-labelledby="pairing-title">
             <span className="device-icon is-large" aria-hidden="true"><span className="icon i-device-mobile" /></span>
