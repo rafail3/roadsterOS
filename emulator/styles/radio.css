@@ -88,6 +88,10 @@
 
 /* home card: tinted by the genre, the station large, seek and sound */
 .np.np-radio { justify-content: space-between; background: linear-gradient(180deg, color-mix(in srgb, var(--genre) 26%, var(--glass)), var(--glass) 72%); transition: --genre 700ms var(--seamless); }
+/* by day the genre colour as strong as at night: a saturated top fading into a pale bottom under the transport */
+.screen.light .np.np-radio { background: linear-gradient(180deg, color-mix(in srgb, var(--genre) 58%, #fff), color-mix(in srgb, var(--genre) 22%, #fff) 62%, color-mix(in srgb, var(--genre) 8%, var(--glass-strong))); }
+.screen.light .np-radio .radio-genre { color: var(--ink); background: rgba(255, 255, 255, 0.66); }
+.screen.light .np .radio-tag:not(.is-band) { color: var(--ink); background: rgba(255, 255, 255, 0.6); }
 .np-radio .np-open { justify-content: center; gap: var(--space-2); }
 .np-radio .radio-tags { min-height: 28px; justify-content: flex-start; }
 /* the star on the card: centred over the transport */
