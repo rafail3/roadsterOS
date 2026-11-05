@@ -162,7 +162,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .drawer.is-dragging { transition: none; }
 /* quick toggles: glass pills, icon then name and state on one line of reading; on, the pill turns solid white
    and only the icon keeps the function's colour */
-.drawer-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-4); }
+.drawer-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--space-4); }
 .toggle { height: 72px; display: flex; align-items: center; gap: var(--space-4); padding: 0 var(--space-5) 0 var(--space-6); border-radius: 999px; text-align: left; color: #fff; background: rgba(255, 255, 255, 0.14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14); transition: background var(--fast) var(--ease-out), color var(--fast) var(--ease-out), transform 420ms var(--spring-glyph); }
 .toggle-disc { flex: none; display: grid; place-items: center; width: 30px; height: 30px; }
 .toggle-disc .icon { width: 30px; height: 30px; }

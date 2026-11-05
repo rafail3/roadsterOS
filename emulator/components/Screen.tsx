@@ -24,8 +24,8 @@ const RAIL = [
   { id: "music", label: "Music", icon: "i-music-notes" },
   { id: "radio", label: "Radio", icon: "i-radio" },
   { id: "phone", label: "Phone", icon: "i-phone" },
+  { id: "maps", label: "Maps", icon: "i-navigation-arrow" },
   { id: "camera", label: "Camera", icon: "i-camera" },
-  { id: "settings", label: "Settings", icon: "i-gear-six" },
 ];
 const APPS = [
   { label: "Navigation", mark: "app-mark-nav" },
