@@ -202,11 +202,14 @@ function Keypad({ emulator }: { emulator: EmulatorState }) {
   );
 }
 
+/** The message being written in an open thread: its text, whether the keyboard is up for it, and its two actions. */
+export interface Compose { draft: string; typing: boolean; onFocus: () => void; onSend: (to: string) => void }
+
 /**
  * Text messages from the phone, thread by thread (core-car Messages). The words show only while the car stands;
- * the quick answers and the call key work either way.
+ * typing too when the setting locks it in motion. The quick answers and the call key work either way.
  */
-function Messages({ emulator }: { emulator: EmulatorState }) {
+function Messages({ emulator, compose }: { emulator: EmulatorState; compose: Compose }) {
   const { messages, read, contacts, thread, speed } = emulator;
   const now = useNow(null);
   const threads = useMemo(() => bridge.conversations(messages, read, contacts), [messages, read, contacts]);
@@ -234,6 +237,8 @@ function Messages({ emulator }: { emulator: EmulatorState }) {
       </ul>
     );
   }
+  // typing in motion is blocked only when the setting asks for it (core-car ShellState.lockTypingWhileMoving)
+  const locked = emulator.shell.lockTypingWhileMoving && !speed.stopped;
   const to = [...open.messages].reverse().find((m) => !m.sent)?.number ?? open.number;
   return (
     <div className="phone-thread">
@@ -242,16 +247,36 @@ function Messages({ emulator }: { emulator: EmulatorState }) {
         <span className="phone-row-name">{open.name || open.number}</span>
         <button className="call-key is-accept is-small" aria-label={`Call ${open.name || open.number}`} onClick={() => dial(to)}><span className="icon i-call-accept" aria-hidden="true" /></button>
       </header>
-      <ol className="phone-bubbles" aria-label="Conversation">
-        {open.messages.map((m) => (
-          <li key={m.id} className={`bubble${m.sent ? " is-sent" : ""}`}>{speed.stopped || m.sent ? m.text : "Stop the car to read"}</li>
-        ))}
-      </ol>
-      <div className="phone-replies" role="group" aria-label="Quick replies">
-        {replies.map((r) => <button key={r} className="call-pill" onClick={() => carCommand({ type: "Phone.SendMessage", number: to, text: r })}>{r}</button>)}
+      <div className="phone-chat">
+        <ol className="phone-bubbles" aria-label="Conversation">
+          {open.messages.map((m) => (
+            <li key={m.id} className={`bubble${m.sent ? " is-sent" : ""}`}>{speed.stopped || m.sent ? m.text : "Stop the car to read"}</li>
+          ))}
+        </ol>
+        {!compose.typing && (
+          <div className="phone-replies" role="group" aria-label="Quick replies">
+            {replies.map((r) => <button key={r} className="call-pill" onClick={() => carCommand({ type: "Phone.SendMessage", number: to, text: r })}>{r}</button>)}
+          </div>
+        )}
+        <div className="phone-compose">
+          <button className={`phone-compose-field${compose.typing ? " is-focused" : ""}`} disabled={locked} onClick={compose.onFocus}
+            aria-label={locked ? "Stop the car to type" : compose.draft ? `Message, ${compose.draft}` : "Write a message"}>
+            <span className={compose.draft ? "phone-search-text" : "phone-search-placeholder"}>{compose.draft || (locked ? "Stop the car to type" : "Message")}</span>
+            {compose.typing && <span className="phone-search-caret" aria-hidden="true" />}
+          </button>
+          <button className="phone-send" aria-label="Send" disabled={!compose.draft.trim()} onClick={() => compose.onSend(to)}>
+            <span className="icon i-arrow-up-bold" aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </div>
   );
+}
+
+/** Who a reply in the open thread goes to: the number the last message came from. */
+function threadNumber(e: EmulatorState): string {
+  const thread = bridge.conversations(e.messages, e.read, e.contacts).find((t) => t.messages.some((m) => m.number === e.thread));
+  return [...(thread?.messages ?? [])].reverse().find((m) => !m.sent)?.number ?? e.thread ?? "";
 }
 
 function BluetoothOff({ turningOn }: { turningOn: boolean }) {
@@ -279,14 +304,23 @@ export function PhoneApp({ open }: { open: boolean }) {
   const [query, setQuery] = useState("");
   const [typing, setTyping] = useState(false);
   const search: ContactSearch = { query, typing, onFocus: () => setTyping(true), onClear: () => { setQuery(""); setTyping(false); } };
-  // leaving the contacts or the app puts the keyboard away
+  // the message being written in an open thread, on the same keyboard
+  const [draft, setDraft] = useState("");
+  const [writing, setWriting] = useState(false);
+  const compose: Compose = {
+    draft, typing: writing, onFocus: () => setWriting(true),
+    onSend: (to) => { carCommand({ type: "Phone.SendMessage", number: to, text: draft.trim() }); setDraft(""); setWriting(false); },
+  };
+  // leaving the tab or the app, or a car that starts moving, puts the keyboard away
   useEffect(() => { if (tab !== "contacts" || !open) setTyping(false); }, [tab, open]);
+  const typingLocked = emulator.shell.lockTypingWhileMoving && !emulator.speed.stopped;
+  useEffect(() => { if (tab !== "messages" || !open || !emulator.thread || typingLocked) setWriting(false); }, [tab, open, emulator.thread, typingLocked]);
   const unread = useMemo(() => bridge.conversations(emulator.messages, emulator.read, emulator.contacts).reduce((n, t) => n + t.unread, 0), [emulator.messages, emulator.read, emulator.contacts]);
   // a tap on a message banner opens its thread here
   useEffect(() => { if (emulator.thread) setTab("messages"); }, [emulator.thread]);
 
   return (
-    <section ref={section} className={`music-app phone-app${open ? " is-open" : ""}${screen === "READY" ? " is-ready" : ""}`} aria-label="Phone" aria-hidden={!open} inert={!open}>
+    <section ref={section} className={`music-app phone-app${open ? " is-open" : ""}${screen === "READY" ? " is-ready" : ""}${writing ? " is-writing" : ""}`} aria-label="Phone" aria-hidden={!open} inert={!open}>
       <button className="glass-button music-close" aria-label="Close phone" onClick={() => shellAction({ type: "Home" })}>
         <span className="icon i-caret-down" aria-hidden="true" />
       </button>
@@ -311,11 +345,19 @@ export function PhoneApp({ open }: { open: boolean }) {
             <PhoneChip emulator={emulator} />
           </header>
           <div className="phone-panel" id="phone-panel" role="tabpanel" aria-labelledby={`phone-tab-${tab}`} key={tab}>
-            {tab === "recents" ? <Recents emulator={emulator} /> : tab === "contacts" ? <Contacts emulator={emulator} search={search} /> : <Messages emulator={emulator} />}
+            {tab === "recents" ? <Recents emulator={emulator} /> : tab === "contacts" ? <Contacts emulator={emulator} search={search} /> : <Messages emulator={emulator} compose={compose} />}
           </div>
         </div>
         <Keypad emulator={emulator} />
-        <Keyboard open={typing} onKey={(c) => setQuery((q) => q + c)} onBackspace={() => setQuery((q) => q.slice(0, -1))} onSubmit={() => setTyping(false)} submitLabel="Search" submitEnabled />
+        {/* one keyboard for both fields: the search while it is up, else the message */}
+        <Keyboard
+          open={typing || writing}
+          onKey={(c) => (typing ? setQuery((q) => q + c) : setDraft((d) => d + c))}
+          onBackspace={() => (typing ? setQuery((q) => q.slice(0, -1)) : setDraft((d) => d.slice(0, -1)))}
+          onSubmit={() => { if (typing) setTyping(false); else if (draft.trim() && emulator.thread) compose.onSend(threadNumber(emulator)); }}
+          submitLabel={typing ? "Search" : "Send"}
+          submitEnabled={typing || Boolean(draft.trim())}
+        />
       </>)}
     </section>
   );

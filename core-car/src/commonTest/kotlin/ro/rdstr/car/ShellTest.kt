@@ -7,6 +7,12 @@ import kotlin.test.assertTrue
 
 class ShellTest {
     @Test
+    fun `typing in motion is allowed unless the setting locks it`() {
+        assertFalse(ShellState().lockTypingWhileMoving)
+        assertTrue(Shell.reduce(ShellState(), ShellAction.SetTypingLock(true)).lockTypingWhileMoving)
+    }
+
+    @Test
     fun `a ringing call shows as the banner, a placed one fills the screen, Home and Back fold it, a tap brings it back`() {
         assertEquals(CallView.BAR, Shell.reduce(ShellState(), ShellAction.CallChanged(CarEvent.Call.State.RINGING)).callView)
         val ringing = Shell.reduce(ShellState(), ShellAction.CallChanged(CarEvent.Call.State.OUTGOING))

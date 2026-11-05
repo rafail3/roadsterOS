@@ -37,6 +37,8 @@ data class ShellState(
     /** The card page on home chosen last; [HomeCard.shown] falls back when it is not there. */
     val card: CardPage? = null,
     val callView: CallView = CallView.NONE,
+    /** Writing a message is blocked while the car moves; off unless chosen in the settings. */
+    val lockTypingWhileMoving: Boolean = false,
 )
 
 @Serializable
@@ -79,6 +81,7 @@ sealed class ShellAction {
     @Serializable @SerialName("CallChanged") data class CallChanged(val state: CarEvent.Call.State) : ShellAction()
     /** A tap on the call bar brings the call back over the whole screen. */
     @Serializable @SerialName("ExpandCall") data object ExpandCall : ShellAction()
+    @Serializable @SerialName("SetTypingLock") data class SetTypingLock(val on: Boolean) : ShellAction()
 }
 
 /**
@@ -156,6 +159,7 @@ object Shell {
             s.callView == CallView.NONE -> if (a.state == CarEvent.Call.State.RINGING) CallView.BAR else CallView.FULL
             else -> s.callView
         })
+        is ShellAction.SetTypingLock -> s.copy(lockTypingWhileMoving = a.on)
         ShellAction.ExpandCall -> if (s.callView == CallView.NONE) s else s.copy(callView = CallView.FULL, drawer = false, recents = false)
         // one layer at a time: the drawer, the open apps, a devices or networks sheet, then the app
         ShellAction.Back -> when {
