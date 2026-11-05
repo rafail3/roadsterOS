@@ -1,7 +1,110 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 import { carCommand, shellAction, useEmulator } from "../car/store";
 
 const groupCode = (code: string) => `${code.slice(0, 3)} ${code.slice(3)}`;
+
+/** How far a saved row slides to show its remove key, and how far a drag must go to leave it open (canvas px). */
+const REVEAL = 96;
+const OPEN_AT = REVEAL / 2;
+/** A drag is sideways once it has moved this far more across than down; until then the list may scroll. */
+const INTENT_PX = 8;
+const LEAVE_MS = 240;
+const COLLAPSE_MS = 300;
+
+type Status = { key: string; text: string };
+
+/** A saved phone that slides left to reveal its remove key; removing it slides it out, then closes the gap. */
+function SavedRow({ name, status, open, onOpen, connectLocked }: { name: string; status: Status; open: boolean; onOpen: (name: string | null) => void; connectLocked: boolean }) {
+  const row = useRef<HTMLLIElement>(null);
+  const drag = useRef<{ x: number; y: number; from: number; scale: number; sideways: boolean | null; moved: boolean } | null>(null);
+  const [offset, setOffset] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [leaving, setLeaving] = useState<"" | "slide" | "collapse">("");
+  const [height, setHeight] = useState<number | undefined>(undefined);
+  const suppressClick = useRef(false);
+
+  const shown = leaving ? "-100%" : `${dragging ? offset : open ? -REVEAL : 0}px`;
+  const progress = Math.min(1, Math.max(0, -(dragging ? offset : open ? -REVEAL : 0) / REVEAL));
+
+  const down = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 || leaving) return;
+    const el = e.currentTarget;
+    drag.current = { x: e.clientX, y: e.clientY, from: open ? -REVEAL : 0, scale: el.getBoundingClientRect().width / el.offsetWidth || 1, sideways: null, moved: false };
+  };
+  const move = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    const dx = (e.clientX - d.x) / d.scale;
+    const dy = (e.clientY - d.y) / d.scale;
+    if (d.sideways === null) {
+      if (Math.abs(dx) > INTENT_PX && Math.abs(dx) > Math.abs(dy)) {
+        d.sideways = true;
+        // keeps the drag when the finger leaves the row; a pointer that is already gone cannot be captured
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* the drag still follows moves over the row */ }
+        setDragging(true);
+      } else if (Math.abs(dy) > INTENT_PX) d.sideways = false;
+    }
+    if (!d.sideways) return;
+    d.moved = true;
+    let x = d.from + dx;
+    // past either end the row follows the finger less and less
+    if (x > 0) x *= 0.25;
+    if (x < -REVEAL) x = -REVEAL + (x + REVEAL) * 0.35;
+    setOffset(x);
+  };
+  const up = () => {
+    const d = drag.current;
+    drag.current = null;
+    if (!d?.sideways) return;
+    suppressClick.current = d.moved;
+    setDragging(false);
+    onOpen(offset < -OPEN_AT ? name : null);
+  };
+  // a drag never counts as a tap, and a tap on an open row only closes it
+  const click = (e: MouseEvent) => {
+    if (suppressClick.current || open) {
+      e.preventDefault();
+      e.stopPropagation();
+      suppressClick.current = false;
+      if (open) onOpen(null);
+    }
+  };
+  const remove = () => {
+    setHeight(row.current?.offsetHeight);
+    setLeaving("slide");
+    setTimeout(() => { setLeaving("collapse"); setHeight(0); }, LEAVE_MS);
+    setTimeout(() => { onOpen(null); carCommand({ type: "Bt.Forget", device: name }); }, LEAVE_MS + COLLAPSE_MS);
+  };
+
+  return (
+    <li
+      ref={row}
+      className={`saved-device is-swipeable is-${status.key}${dragging ? " is-dragging" : ""}${leaving ? ` is-${leaving}` : ""}`}
+      style={{ height, ["--reveal" as string]: progress } as React.CSSProperties}
+    >
+      <button className="device-trash" tabIndex={open ? 0 : -1} aria-label={`Remove ${name}`} onFocus={() => onOpen(name)} onClick={remove}>
+        <span className="icon i-trash" aria-hidden="true" />
+      </button>
+      <div className="device-swipe" style={{ transform: `translateX(${shown})` }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onClickCapture={click}>
+        <button
+          className="device-main"
+          disabled={status.key === "connected" || connectLocked}
+          aria-label={status.key === "connected" ? `${name}, connected` : `Connect to ${name}`}
+          onClick={() => carCommand({ type: "Bt.Connect", device: name })}
+        >
+          <span className="device-icon" aria-hidden="true"><span className="icon i-device-mobile" /></span>
+          <span className="device-text">
+            <span className="device-name">{name}</span>
+            <span className="device-status" aria-live="polite">{status.text}</span>
+          </span>
+        </button>
+        {status.key === "connected" && (
+          <button className="device-drop" onClick={() => carCommand({ type: "Bt.Disconnect" })}>Disconnect</button>
+        )}
+      </div>
+    </li>
+  );
+}
 
 /** Phones the unit has paired with, and a search for new ones: tap a saved phone to connect, a found one to pair. */
 export function DevicesSheet() {
@@ -13,10 +116,13 @@ export function DevicesSheet() {
   const scrollTo = (el: HTMLElement | null, block: ScrollLogicalPosition) =>
     el?.scrollIntoView({ block, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   useEffect(() => { if (scanning) scrollTo(nearbyRef.current, "start"); }, [scanning]);
+  // a closed panel leaves no row open
+  useEffect(() => { if (!open) setOpenRow(null); }, [open]);
   // closing the panel while the code is on screen answers no, so no pairing is left waiting
   useEffect(() => { if (!open && pairing && !pairing.confirmed) carCommand({ type: "Bt.ConfirmPairing", accept: false }); }, [open, pairing]);
 
-  const statusOf = (name: string) => {
+  const [openRow, setOpenRow] = useState<string | null>(null);
+  const statusOf = (name: string): Status => {
     if (car.btConnected && device === name) return { key: "connected", text: "Connected" };
     if (connecting === name) return { key: "connecting", text: "Connecting…" };
     if (failed === name) return { key: "failed", text: "Not available. Turn on Bluetooth on the phone." };
@@ -47,28 +153,9 @@ export function DevicesSheet() {
         ) : (<>
         <div className="devices-scroll">
           <ul className="devices-list" aria-label="Saved devices">
-            {saved.map(({ name }) => {
-              const status = statusOf(name);
-              return (
-                <li key={name} className={`saved-device is-${status.key}`}>
-                  <button
-                    className="device-main"
-                    disabled={status.key === "connected" || connecting !== null}
-                    aria-label={status.key === "connected" ? `${name}, connected` : `Connect to ${name}`}
-                    onClick={() => carCommand({ type: "Bt.Connect", device: name })}
-                  >
-                    <span className="device-icon" aria-hidden="true"><span className="icon i-device-mobile" /></span>
-                    <span className="device-text">
-                      <span className="device-name">{name}</span>
-                      <span className="device-status" aria-live="polite">{status.text}</span>
-                    </span>
-                  </button>
-                  {status.key === "connected" && (
-                    <button className="device-drop" onClick={() => carCommand({ type: "Bt.Disconnect" })}>Disconnect</button>
-                  )}
-                </li>
-              );
-            })}
+            {saved.map(({ name }) => (
+              <SavedRow key={name} name={name} status={statusOf(name)} open={openRow === name} onOpen={setOpenRow} connectLocked={connecting !== null} />
+            ))}
           </ul>
 
           {searched && (

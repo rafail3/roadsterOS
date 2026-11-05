@@ -54,7 +54,7 @@ export type CarCommand =
   | { type: "Audio.Source"; source: Source }
   | { type: "Bt.Connect"; device: string }
   | { type: "Bt.Disconnect" | "Bt.Scan" }
-  | { type: "Bt.Pair"; device: string }
+  | { type: "Bt.Pair" | "Bt.Forget"; device: string }
   | { type: "Bt.ConfirmPairing"; accept: boolean };
 
 export type ShellAction =

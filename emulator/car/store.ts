@@ -133,6 +133,7 @@ function sendToCar(command: CarCommand) {
   if (command.type === "Media.Next" || command.type === "Media.Prev") setTimeout(() => phoneSkips(command.type === "Media.Next"), ECHO_DELAY_MS);
   if (command.type === "Bt.Connect") tryConnect(command.device);
   if (command.type === "Bt.Scan") scan();
+  if (command.type === "Bt.Forget") forget(command.device);
   if (command.type === "Bt.Pair") set({ pairing: { name: command.device, code: String(100000 + Math.floor(Math.random() * 900000)) } });
   if (command.type === "Bt.ConfirmPairing") confirmPairing(command.accept);
   if (command.type === "Bt.Disconnect" && state.car.btConnected) setTimeout(() => carEvent({ type: "BtConnection", connected: false, device: state.device }), ECHO_DELAY_MS);
@@ -149,6 +150,16 @@ function tryConnect(name: string) {
     set({ connecting: null });
     carEvent({ type: "BtConnection", connected: true, device: name });
   }, reachable ? CONNECT_MS : CONNECT_FAIL_MS);
+}
+
+/** The unit forgets a saved phone; it drops the connection first when that phone is the connected one. */
+function forget(name: string) {
+  if (state.car.btConnected && state.device === name) carEvent({ type: "BtConnection", connected: false, device: name });
+  set({
+    saved: state.saved.filter((d) => d.name !== name),
+    connecting: state.connecting === name ? null : state.connecting,
+    failed: state.failed === name ? null : state.failed,
+  });
 }
 
 /** A search: phones with Bluetooth on and not yet saved answer one by one, then it stops. */
