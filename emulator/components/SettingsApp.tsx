@@ -138,9 +138,6 @@ function Sound({ e }: { e: EmulatorState }) {
         </Row>
       )}
     </Group>
-    <Group footer="Two short notes when the car goes over the speed limit. The limit sign and the red dial stay either way.">
-      <Row label="Speed Limit Chime"><Switch label="Speed Limit Chime" on={shell.speedChime} onChange={(on) => shellAction({ type: "SetSpeedChime", on })} /></Row>
-    </Group>
   </>);
 }
 
@@ -156,7 +153,10 @@ function Phone({ e }: { e: EmulatorState }) {
 function Maps({ e }: { e: EmulatorState }) {
   const { installed, downloading } = e.maps;
   const [confirm, setConfirm] = useState<string | null>(null);
-  return (
+  return (<>
+    <Group footer="Two short notes when the car goes over the speed limit. The limit sign and the red dial stay either way.">
+      <Row label="Speed Limit Chime"><Switch label="Speed Limit Chime" on={e.shell.speedChime} onChange={(on) => shellAction({ type: "SetSpeedChime", on })} /></Row>
+    </Group>
     <Group title="Offline Maps" footer="Another country's map is offered when the car enters it, and downloads over Wi-Fi.">
       {installed.map((code) => (
         <Row key={code} label={bridge.countryName(code)} value={`${bridge.packMb(code) || "?"} MB`}>
@@ -168,7 +168,7 @@ function Maps({ e }: { e: EmulatorState }) {
       {downloading && <Row label={bridge.countryName(downloading.code)} value={`Downloading ${Math.round(downloading.progress * 100)}%`} />}
       {!installed.length && !downloading && <Row label="No maps on the unit" />}
     </Group>
-  );
+  </>);
 }
 
 /** Which apps sit on home and in which order: ours and the other apps installed on the unit (core-car HomeApps). */
