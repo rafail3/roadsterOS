@@ -32,9 +32,9 @@
 .map-street-slot.is-shown { grid-template-columns: 1fr; margin-right: 12px; opacity: 1; transform: none; }
 .map-street-slot > .map-pill { min-width: 0; overflow: hidden; }
 .map-street { max-width: 520px; font-size: 22px; font-weight: 600; text-overflow: ellipsis; }
-.map-speed { flex: none; gap: 7px; font-size: 19px; font-weight: 600; color: rgba(255, 255, 255, 0.75); }
-.map-speed .map-speed-label { font-size: 20px; }
-.map-speed b { font-size: 30px; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; }
+/* one size for all of it, as the street's; the number stands out by colour and weight only */
+.map-speed { flex: none; gap: 6px; font-size: 22px; font-weight: 600; color: rgba(255, 255, 255, 0.7); }
+.map-speed b { font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
 /* the data credit the licences ask for, behind a glass button: on the axis of the right-hand buttons, level with the
    street pill (both 64 px tall from 44 px up, so a 44 px button sits 54 px up) */
 .map-credit { position: absolute; right: 38px; bottom: 54px; display: flex; align-items: center; gap: 10px; }
