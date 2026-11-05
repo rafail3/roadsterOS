@@ -14,6 +14,7 @@ import android.os.SystemClock
 import android.view.View
 import android.widget.TextView
 import ro.rdstr.car.MapPacks as Packs
+import ro.rdstr.car.SpeedWarning
 import ro.rdstr.car.Speedometer
 import ro.rdstr.map.MapBorders
 import java.io.File
@@ -37,6 +38,10 @@ class MapActivity : Activity(), LocationListener {
     private var demo: Runnable? = null
     /** The speed pill's reading, from the GPS fixes by the same calculation as the emulator. */
     private val speedometer = Speedometer()
+    /** The limit sign, the dial's ring and its red over the limit, with a chime each time the car goes over (core-car). */
+    private val speedWarning = SpeedWarning()
+    /** Made at the first chime, so a drive under the limits never builds it. */
+    private var chime: Chime? = null
     private var status = ""
     private var offer: PackOffer? = null
     private var offered = ""
@@ -80,6 +85,7 @@ class MapActivity : Activity(), LocationListener {
     }
 
     override fun onDestroy() {
+        chime?.release()
         demo?.let { main.removeCallbacks(it) }
         packs?.close()
         super.onDestroy()
@@ -113,11 +119,14 @@ class MapActivity : Activity(), LocationListener {
         android.util.Log.i(MapView.TAG, "offer: $now")
     }
 
-    /** What the two pills show: the street (none off a named road) and "Speed: n km/h" or "Stopped"; logged when it changes. */
+    /** What the street pill and the speed dial show, logged when it changes; the chime plays as the car goes over. */
     private fun logStatus() {
         val view = map ?: return
         val r = speedometer.reading
-        val now = "street: ${view.street.ifEmpty { "(folded)" }} | " + if (r.stopped) "Stopped" else "Speed: ${r.kmh} km/h"
+        val w = speedWarning.update(r, view.roadLimit, SystemClock.elapsedRealtime())
+        if (w.chime) (chime ?: Chime().also { chime = it }).play()
+        val ring = SpeedWarning.ring(r.kmh, w)
+        val now = "street: ${view.street.ifEmpty { "(folded)" }} | ${r.kmh} km/h | limit: ${w.limit ?: "none"} | ring: ${ring.lit} ${ring.tone}"
         if (now == status) return
         status = now
         android.util.Log.i(MapView.TAG, "status: $now")

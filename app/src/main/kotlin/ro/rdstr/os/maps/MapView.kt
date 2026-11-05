@@ -21,6 +21,7 @@ import ro.rdstr.map.GridTile
 import ro.rdstr.map.LabelCandidate
 import ro.rdstr.map.MapStyle
 import ro.rdstr.map.Mvt
+import ro.rdstr.map.SpeedLimit
 import ro.rdstr.map.Street
 import ro.rdstr.map.TileMath
 import ro.rdstr.map.TileRenderer
@@ -64,15 +65,20 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     /** The name of the street the car is on, empty off any named road. */
     var street = ""
         private set
+    /** The posted limit of the car's road for its direction, in km/h; null when the road has none in the pack. */
+    var roadLimit: Int? = null
+        private set
     /** The countries whose pack is not on the unit: covered, as the unit has no tiles there. */
     var missing: List<Country> = emptyList()
         set(value) { field = value; maskBoxes = value.flatMap { c -> c.polygons.map { box(it[0]) to it } }; invalidate() }
     private var maskBoxes: List<Pair<DoubleArray, List<DoubleArray>>> = emptyList()
-    /** On the main thread, whenever [street], [follow], [headingUp] or [bearing] changed. */
+    /** On the main thread, whenever [street], [roadLimit], [follow], [headingUp] or [bearing] changed. */
     var onChange: (() -> Unit)? = null
     private var carLon = lon
     private var carLat = lat
     private var carHeading = 0.0
+    /** The car's heading while it moves; the road it is on is then looked for along it. */
+    private var movingHeading: Double? = null
 
     /** The style is written for a 1280 px wide screen; the unit's screen is drawn at this fraction of it. */
     private var scale = 1f
@@ -103,6 +109,7 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     fun setCar(lon: Double, lat: Double, heading: Double?) {
         carLon = lon; carLat = lat
         if (heading != null) carHeading = heading
+        movingHeading = heading
         if (follow) { this.lon = lon; this.lat = lat; bearing = if (headingUp) carHeading else 0.0 }
         invalidate()
         changed()
@@ -130,16 +137,30 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     private val streetTiles = LruCache<String, Any>(STREET_TILES)
     private var streetAt = 0L
 
-    /** Finds the street under the car on the worker, from the pack, as the emulator does from its loaded tiles. */
+    /**
+     * Finds the street and the speed limit of the car's road on the worker, from the pack, as the emulator does from its
+     * loaded tiles: along the car's heading while it moves. Once a second; the decoded tiles stay in a small cache.
+     */
     private fun lookUpStreet() {
         streetAt = SystemClock.elapsedRealtime()
-        val at = Triple(carLon, carLat, zoom)
+        val lon = carLon
+        val lat = carLat
+        val z = zoom
+        val heading = movingHeading
         workerHandler.post {
-            val name = Street.at(at.first, at.second, at.third, TileRenderer.Tiles { z, x, y ->
-                val key = "$z/$x/$y"
-                (streetTiles.get(key) ?: (packs.tile(z, x, y)?.let { Mvt.decode(it) } ?: NO_TILE).also { streetTiles.put(key, it) }) as? VectorTile
-            })
-            main.post { if (name != street) { street = name; Log.i(TAG, "street: $name"); changed() } }
+            val tiles = TileRenderer.Tiles { tz, x, y ->
+                val key = "$tz/$x/$y"
+                (streetTiles.get(key) ?: (packs.tile(tz, x, y)?.let { Mvt.decode(it) } ?: NO_TILE).also { streetTiles.put(key, it) }) as? VectorTile
+            }
+            val name = Street.at(lon, lat, z, tiles, heading)
+            val limit = SpeedLimit.at(lon, lat, heading, tiles)
+            main.post {
+                if (name == street && limit == roadLimit) return@post
+                if (name != street) Log.i(TAG, "street: $name")
+                street = name
+                roadLimit = limit
+                changed()
+            }
         }
     }
 
@@ -387,8 +408,8 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         const val MAX_ZOOM = 18.0
         /** Where the location button brings the map back to, as in the emulator. */
         const val DRIVE_ZOOM = 15.5
-        /** Decoded tiles kept for the street lookup: the car's tile and its neighbours. */
-        const val STREET_TILES = 4
+        /** Decoded tiles kept for the street and limit lookups: the car's tiles and their neighbours, at two zooms. */
+        const val STREET_TILES = 6
         private val NO_TILE = Any()
         /** The mask's opacity, 0.92 as in the emulator's style. */
         const val MASK_ALPHA = 235
