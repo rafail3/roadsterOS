@@ -110,7 +110,7 @@ export function Screen() {
         <div className="bar-group">
           <span className="icon i-wifi-high" role="img" aria-label="Wi-Fi connected" />
           <button className="bar-button" aria-label={car.muted ? "Volume, muted" : "Volume"} onClick={openVolume}>
-            <span className={`icon ${car.muted ? "i-speaker-slash is-off" : "i-speaker-high"}`} aria-hidden="true" />
+            <span className={`icon ${car.muted ? "i-speaker-slash-fill is-muted" : "i-speaker-high-fill"}`} aria-hidden="true" />
           </button>
           <span className={`icon ${light ? "i-sun" : "i-moon"}`} id="bar-theme" role="img" aria-label={light ? "Day theme" : "Night theme"} />
         </div>
@@ -152,7 +152,7 @@ export function Screen() {
           <path d={BULGE_PATH} />
         </svg>
       ))}
-      <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC"} />
+      <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC" || shell.drawer} />
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.dark.toFixed(3) }} />
       {!shell.screenOn && <button className="screen-off" aria-label="Screen off, tap to wake" onClick={() => shellAction({ type: "Wake" })} />}
     </div>
