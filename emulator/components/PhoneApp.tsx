@@ -168,7 +168,7 @@ function Keypad({ emulator }: { emulator: EmulatorState }) {
           <span className="icon i-microphone-fill" aria-hidden="true" />
         </button>
         <button className="call-key is-accept" aria-label={typed ? `Call ${match?.name ?? typed}` : "Redial"} onClick={call}>
-          <span className="icon i-phone-fill" aria-hidden="true" />
+          <span className="icon i-call-accept" aria-hidden="true" />
         </button>
         <button className={`pad-delete${typed ? "" : " is-hidden"}`} aria-label="Delete" tabIndex={typed ? 0 : -1} {...holdToRepeat(() => setTyped((t) => t.slice(0, -1)))}>
           <span className="icon i-backspace-fill" aria-hidden="true" />
@@ -216,7 +216,7 @@ function Messages({ emulator }: { emulator: EmulatorState }) {
       <header className="phone-thread-head">
         <button className="pad-side" aria-label="All messages" onClick={() => openThread(null)}><span className="icon i-caret-left" aria-hidden="true" /></button>
         <span className="phone-row-name">{open.name || open.number}</span>
-        <button className="call-key is-accept is-small" aria-label={`Call ${open.name || open.number}`} onClick={() => dial(to)}><span className="icon i-phone-fill" aria-hidden="true" /></button>
+        <button className="call-key is-accept is-small" aria-label={`Call ${open.name || open.number}`} onClick={() => dial(to)}><span className="icon i-call-accept" aria-hidden="true" /></button>
       </header>
       <ol className="phone-bubbles" aria-label="Conversation">
         {open.messages.map((m) => (

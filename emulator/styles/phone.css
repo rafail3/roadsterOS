@@ -1,8 +1,8 @@
 /* Phone: the app (history, phone book, keypad) and the call over everything. Always on its own dark ground, as the
    other full-screen apps; sizes are for a 1280x750 canvas read at arm's length. */
 :root {
-  --call-green: #30d158;
-  --call-red: #ff453a;
+  --call-green: #17d847;
+  --call-red: #f62b31;
   --phone-ground: #0f1216;
   --phone-ink-2: rgba(235, 235, 245, 0.64);
   --phone-key: rgba(255, 255, 255, 0.14);
@@ -11,6 +11,9 @@
 }
 
 .i-phone-fill { --m: url(/icons/phone-fill.svg); }
+/* the answer and end keys' handsets */
+.i-call-accept { --m: url(/icons/call-accept.svg); }
+.i-call-decline { --m: url(/icons/call-decline.svg); }
 .i-phone-disconnect-fill { --m: url(/icons/phone-disconnect-fill.svg); }
 .i-phone-outgoing { --m: url(/icons/phone-outgoing.svg); }
 .i-phone-x { --m: url(/icons/phone-x.svg); }
@@ -116,7 +119,8 @@
 .pad-delete.is-hidden { visibility: hidden; }
 
 .call-key { display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; color: #fff; transition: filter var(--fast), transform 300ms var(--spring-glyph); }
-.call-key .icon { width: 36px; height: 36px; }
+/* the handsets are drawn on their circle's own box, so they fill the key and sit where they belong */
+.call-key .icon { width: 100%; height: 100%; }
 .call-key.is-accept { background: var(--call-green); }
 .call-key.is-decline { background: var(--call-red); }
 .call-key-labelled:active .call-key, .call-key:active:not(:disabled) { transform: scale(0.94); filter: brightness(1.12); transition-duration: var(--fast), 120ms; }
@@ -195,7 +199,7 @@
 .phone-thread-head { display: flex; align-items: center; gap: 14px; }
 .phone-thread-head .phone-row-name { flex: 1; }
 .call-key.is-small { width: 56px; height: 56px; }
-.call-key.is-small .icon { width: 26px; height: 26px; }
+
 .phone-bubbles { flex: 1; display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 4px 8px; list-style: none; overflow-y: auto; }
 .bubble { align-self: flex-start; max-width: 70%; padding: 10px 16px; border-radius: 20px; font-size: 18px; line-height: 1.4; background: rgba(255, 255, 255, 0.14); }
 .bubble.is-sent { align-self: flex-end; background: #0a84ff; }
@@ -213,6 +217,6 @@
 /* the call folded away: a green pill under the status bar, or the ringing call as a banner */
 /* a call in progress: the green clock beside the name tells it from a ringing one */
 .call-banner-time { color: var(--call-green); font-variant-numeric: tabular-nums; }
-.call-banner { position: absolute; top: 60px; left: 50%; z-index: 7; display: flex; align-items: center; gap: 12px; width: 560px; padding: 12px 14px 12px 12px; border-radius: 26px; transform: translateX(-50%); color: #fff; background: #1c2129; border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); animation: banner-in 360ms var(--sheet-in); }
+.call-banner { position: absolute; top: 60px; left: 50%; z-index: 7; display: flex; align-items: center; gap: 12px; width: 400px; padding: 10px 12px 10px 10px; border-radius: 26px; transform: translateX(-50%); color: #fff; background: #1c2129; border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); animation: banner-in 360ms var(--sheet-in); }
 .call-banner-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; text-align: left; color: inherit; }
 @media (prefers-reduced-motion: reduce) { .call-banner { animation: none; } }

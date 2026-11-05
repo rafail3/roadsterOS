@@ -75,10 +75,10 @@ export function CallOverlay({ emulator }: { emulator: EmulatorState }) {
         {ringing ? (
           <div className="call-answer">
             <button className="call-key-labelled" onClick={() => carCommand({ type: "Phone.HangUp" })}>
-              <span className="call-key is-decline"><span className="icon i-phone-disconnect-fill" aria-hidden="true" /></span>Decline
+              <span className="call-key is-decline"><span className="icon i-call-decline" aria-hidden="true" /></span>Decline
             </button>
             <button className="call-key-labelled" onClick={() => carCommand({ type: "Phone.Answer" })}>
-              <span className="call-key is-accept is-ringing"><span className="icon i-phone-fill" aria-hidden="true" /></span>Accept
+              <span className="call-key is-accept is-ringing"><span className="icon i-call-accept" aria-hidden="true" /></span>Accept
             </button>
           </div>
         ) : (<>
@@ -116,7 +116,7 @@ export function CallOverlay({ emulator }: { emulator: EmulatorState }) {
               {addFrom === "contacts" ? <button className="call-pill" onClick={() => setAdding(null)}>Cancel</button> : (<>
               <button className="call-hide is-left" onClick={() => setAdding(null)}>Cancel</button>
               <button className="call-key is-accept" aria-label={suggestion ? `Call ${suggestion.name}` : "Call"} disabled={!adding} onClick={() => { carCommand({ type: "Phone.Dial", number: suggestion?.number ?? adding }); setAdding(null); }}>
-                <span className="icon i-phone-fill" aria-hidden="true" />
+                <span className="icon i-call-accept" aria-hidden="true" />
               </button>
               </>)}
             </div>
@@ -124,7 +124,7 @@ export function CallOverlay({ emulator }: { emulator: EmulatorState }) {
           <div className="call-end-row">
             {tones !== null && <button className="call-hide" onClick={() => setTones(null)}>Hide</button>}
             <button className="call-key is-decline" aria-label={call.conference ? "End conference" : "End call"} onClick={() => carCommand({ type: "Phone.HangUp" })}>
-              <span className="icon i-phone-disconnect-fill" aria-hidden="true" />
+              <span className="icon i-call-decline" aria-hidden="true" />
             </button>
           </div>
           )}
@@ -153,8 +153,8 @@ export function CallBar({ emulator }: { emulator: EmulatorState }) {
             <span className="message-banner-body">Incoming call</span>
           </span>
         </button>
-        <button className="call-key is-decline is-small" aria-label="Decline" onClick={() => carCommand({ type: "Phone.HangUp" })}><span className="icon i-phone-disconnect-fill" aria-hidden="true" /></button>
-        <button className="call-key is-accept is-small" aria-label="Accept" onClick={() => carCommand({ type: "Phone.Answer" })}><span className="icon i-phone-fill" aria-hidden="true" /></button>
+        <button className="call-key is-decline is-small" aria-label="Decline" onClick={() => carCommand({ type: "Phone.HangUp" })}><span className="icon i-call-decline" aria-hidden="true" /></button>
+        <button className="call-key is-accept is-small" aria-label="Accept" onClick={() => carCommand({ type: "Phone.Answer" })}><span className="icon i-call-accept" aria-hidden="true" /></button>
       </section>
     );
   }
@@ -169,7 +169,7 @@ export function CallBar({ emulator }: { emulator: EmulatorState }) {
           <span className="message-banner-body call-banner-time">{[status, call.micMuted && "Muted"].filter(Boolean).join(" · ")}</span>
         </span>
       </button>
-      <button className="call-key is-decline is-small" aria-label={call.conference ? "End conference" : "End call"} onClick={() => carCommand({ type: "Phone.HangUp" })}><span className="icon i-phone-disconnect-fill" aria-hidden="true" /></button>
+      <button className="call-key is-decline is-small" aria-label={call.conference ? "End conference" : "End call"} onClick={() => carCommand({ type: "Phone.HangUp" })}><span className="icon i-call-decline" aria-hidden="true" /></button>
     </section>
   );
 }
