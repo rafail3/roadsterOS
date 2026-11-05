@@ -67,15 +67,15 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 /* status bar */
 /* an icon that opens something: a 48x56 touch target around a 24px glyph, without moving the glyph */
 .bar-button { display: grid; place-items: center; width: 48px; height: var(--bar); margin: 0 -12px; color: inherit; }
-.bar { touch-action: none; grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-5); position: relative; z-index: 3; color: var(--ink-muted); }
+.bar { touch-action: none; grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-5); position: relative; z-index: 3; color: var(--ink); }
 .bar-group { display: flex; align-items: center; gap: var(--space-4); min-width: 200px; }
 .bar-group:last-child { justify-content: flex-end; }
 .bar .icon { width: 24px; height: 24px; }
-.bar-text { font-size: var(--size-label); font-weight: 500; color: var(--ink-muted); }
+.bar-text { font-size: var(--size-label); font-weight: 500; color: var(--ink); }
 .bar .is-on { color: var(--ink); }
 .bar .is-off { opacity: 0.45; }
 .bar .is-muted { color: var(--mute); }
-#bar-theme { color: var(--ink-muted); }
+#bar-theme { color: var(--ink); }
 .handle { width: 160px; height: var(--bar); display: grid; place-items: center; }
 .handle-line { width: 48px; height: 4px; border-radius: 2px; background: var(--ink-subtle); transition: background var(--fast); }
 .handle:hover .handle-line, .handle:active .handle-line { background: var(--ink-muted); }
@@ -157,19 +157,21 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .toggle.is-on { color: var(--accent); background: var(--accent-tint); border-color: var(--accent-line); }
 .toggle:active { filter: brightness(1.3); }
 /* drawer sliders: a thick track filled from the left; the icon rides inside the filled end */
-.pill-slider { display: flex; align-items: center; gap: var(--space-4); }
-.pill { position: relative; flex: 1; display: flex; height: var(--target-lg); border-radius: 999px; overflow: hidden; background: var(--glass); border: 1px solid var(--hairline); transition: transform var(--fast) var(--ease-out), border-color var(--fast) var(--ease-out); }
+.pill-slider { --pill: 48px; display: flex; align-items: center; gap: var(--space-4); }
+.pill { position: relative; flex: 1; display: flex; height: var(--pill); border-radius: 999px; background: var(--glass); border: 1px solid var(--hairline); transition: transform var(--fast) var(--ease-out), border-color var(--fast) var(--ease-out); }
 .pill-slider.is-held .pill { transform: scale(1.012); border-color: var(--hairline-strong); }
-.pill-fill { position: absolute; inset: 0 auto 0 0; width: calc(var(--target-lg) + (100% - var(--target-lg)) * var(--fill)); border-radius: inherit; background: color-mix(in srgb, var(--ink) 76%, transparent); transition: width 120ms linear; }
+.pill-fill { position: absolute; inset: 0 auto 0 0; width: calc(var(--pill) + (100% - var(--pill)) * var(--fill)); border-radius: inherit; background: color-mix(in srgb, var(--ink) 76%, transparent); transition: width 120ms linear; }
 /* toned down from full ink: a wide bright bar glares at night */
 .pill-slider:not(.is-filled) .pill-fill { width: 0; }
-.pill-icon { position: relative; z-index: 1; flex: none; display: grid; place-items: center; width: var(--target-lg); height: 100%; border-radius: 999px; color: var(--ink); transition: color var(--fast) var(--ease-out); }
-.pill-icon .icon { width: 28px; height: 28px; }
+.pill-icon { position: relative; z-index: 1; flex: none; display: grid; place-items: center; width: var(--pill); height: 100%; border-radius: 999px; color: var(--ink); transition: color var(--fast) var(--ease-out); }
+.pill-icon .icon { width: 22px; height: 22px; }
+/* the drawn track is slimmer than a finger; the touch area keeps the full target height */
+.pill-track::before, button.pill-icon::before { content: ""; position: absolute; inset: calc((var(--pill) - var(--target)) / 2) 0; }
 .pill-slider.is-filled .pill-icon { color: var(--sheet); }
 .pill-slider.is-muted .pill-icon { color: var(--mute); }
 .pill-track { position: relative; z-index: 1; flex: 1; touch-action: none; cursor: pointer; border-radius: 999px; }
 .pill-track:focus-visible, button.pill-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
-.pill-readout { flex: none; min-width: 72px; height: var(--target-lg); display: grid; place-items: center end; color: var(--ink-muted); font-size: var(--size-label); font-weight: 600; font-variant-numeric: tabular-nums; transition: color var(--fast) var(--ease-out); }
+.pill-readout { flex: none; min-width: 64px; height: var(--target); display: grid; place-items: center end; color: var(--ink-muted); font-size: var(--size-label); font-weight: 500; font-variant-numeric: tabular-nums; transition: color var(--fast) var(--ease-out); }
 button.pill-readout:active { color: var(--ink); }
 button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
 .pill-slider.is-muted .pill-readout { color: var(--mute); }
