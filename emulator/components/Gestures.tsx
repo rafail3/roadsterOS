@@ -7,6 +7,10 @@ const HOME_PX = 40;
 /** Past this height a finger that stops for a moment brings up the open apps instead of going home. */
 const RECENTS_PX = 80;
 const RECENTS_HOLD_MS = 150;
+/** A resting finger still drifts a little; drift under this does not restart the pause. */
+const HOLD_SLOP_PX = 8;
+/** Released past RECENTS_PX slower than this (canvas pixels per millisecond) is a slow push: open apps, not home. */
+const FLICK_SPEED = 0.5;
 /** A pull in from a side edge past this goes back. */
 const BACK_PX = 72;
 
@@ -18,6 +22,9 @@ function scaleOf(el: HTMLElement) {
 /** The handle along the bottom edge, as on a phone: flick up for home, push up and hold for the open apps. */
 export function NavBar() {
   const start = useRef<{ y: number; scale: number } | null>(null);
+  // where the finger was when the pause timer last restarted, and the last two moves for the release speed
+  const anchor = useRef(0);
+  const last = useRef<{ t: number; travel: number }[]>([]);
   const opened = useRef(false);
   const hold = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [lift, setLift] = useState(0);
@@ -27,9 +34,17 @@ export function NavBar() {
     const s = start.current;
     return s ? (s.y - e.clientY) / s.scale : 0;
   };
+  const openRecents = () => { opened.current = true; shellAction({ type: "OpenRecents" }); };
   const end = (e: PointerEvent<HTMLDivElement>) => {
     clearTimeout(hold.current);
-    if (start.current && !opened.current && travel(e) >= HOME_PX) shellAction({ type: "Home" });
+    hold.current = undefined;
+    if (start.current && !opened.current) {
+      const t = travel(e);
+      const [a, b] = last.current;
+      const speed = a && b ? (b.travel - a.travel) / Math.max(1, b.t - a.t) : Infinity;
+      if (t >= RECENTS_PX && speed < FLICK_SPEED) openRecents();
+      else if (t >= HOME_PX) shellAction({ type: "Home" });
+    }
     start.current = null;
     setLift(0);
   };
@@ -41,20 +56,25 @@ export function NavBar() {
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture(e.pointerId);
         start.current = { y: e.clientY, scale: scaleOf(e.currentTarget) };
+        anchor.current = 0;
+        last.current = [];
         opened.current = false;
       }}
       onPointerMove={(e) => {
-        if (!start.current) return;
+        if (!start.current || opened.current) return;
         const t = travel(e);
+        last.current = [...last.current, { t: e.timeStamp, travel: t }].slice(-2);
         setLift(Math.max(0, Math.min(t, RECENTS_PX)));
-        clearTimeout(hold.current);
-        // pointer moves stop while the finger rests, so a timer that every move restarts fires on the pause
-        if (t >= RECENTS_PX && !opened.current) {
-          hold.current = setTimeout(() => { opened.current = true; shellAction({ type: "OpenRecents" }); }, RECENTS_HOLD_MS);
+        if (t < RECENTS_PX) { clearTimeout(hold.current); hold.current = undefined; return; }
+        // the timer fires once the finger rests; only real movement, not drift, restarts it
+        if (hold.current === undefined || Math.abs(t - anchor.current) > HOLD_SLOP_PX) {
+          clearTimeout(hold.current);
+          anchor.current = t;
+          hold.current = setTimeout(openRecents, RECENTS_HOLD_MS);
         }
       }}
       onPointerUp={end}
-      onPointerCancel={() => { clearTimeout(hold.current); start.current = null; setLift(0); }}
+      onPointerCancel={() => { clearTimeout(hold.current); hold.current = undefined; start.current = null; setLift(0); }}
     >
       <span className="nav-handle" style={{ transform: `translateY(${-lift * 0.25}px)` }} />
     </div>

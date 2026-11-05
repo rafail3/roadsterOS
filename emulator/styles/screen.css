@@ -217,6 +217,10 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .edge-back-right .edge-back-arrow { right: 4px; }
 .edge-back-arrow.is-armed { background: var(--ink); color: var(--sheet); }
 .edge-back-arrow .icon { width: 22px; height: 22px; }
+/* the arrow points at the edge it was pulled from */
+.edge-back-right .edge-back-arrow .icon { transform: scaleX(-1); }
+/* at night the armed arrow stays a dark grey instead of a bright disc; by day it keeps the dark disc */
+.screen:not(.light) .edge-back-arrow.is-armed { background: color-mix(in srgb, var(--ink) 22%, var(--sheet-raised)); color: var(--ink); }
 @media (prefers-reduced-motion: reduce) {
   .recents, .recents-card { transition-duration: 0.01ms; }
   .recents.is-open .recents-card { animation: none; }
