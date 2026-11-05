@@ -112,7 +112,6 @@ function Display({ e }: { e: EmulatorState }) {
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
-const DAY = 24 * HOUR;
 const SYNC_FOOTER: Record<TimeSource | "MANUAL", string> = {
   NETWORK: "The time comes from the internet whenever Wi-Fi is connected.",
   GPS: "The time comes from the GPS satellites whenever there is a fix, no internet needed.",
@@ -130,9 +129,25 @@ function Stepper({ what, value, onStep }: { what: string; value?: string; onStep
   );
 }
 
+type DatePart = "day" | "month" | "year";
+
+/** How far the clock moves for one step of a part of the date; a month or year keeps the day, or the month's last one. */
+function dateStep(now: Date, part: DatePart, by: number): number {
+  const d = new Date(now);
+  if (part === "day") d.setDate(d.getDate() + by);
+  else {
+    const day = d.getDate();
+    d.setDate(1);
+    if (part === "month") d.setMonth(d.getMonth() + by); else d.setFullYear(d.getFullYear() + by);
+    d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+  }
+  return d.getTime() - now.getTime();
+}
+
 /** Date and time: the clock's format, where it sets itself from or the time set by hand, and the zone (TimeKeeper on the unit). */
 function DateTime({ e }: { e: EmulatorState }) {
   const [picking, setPicking] = useState(false);
+  const [part, setPart] = useState<DatePart>("day");
   const now = useNow(e.hour);
   const { autoTime, timeSource, clock24h } = e.shell;
   if (picking) return <TimeZonePicker e={e} onDone={() => setPicking(false)} />;
@@ -141,7 +156,18 @@ function DateTime({ e }: { e: EmulatorState }) {
   const offset = bridge.timeZoneOffset(zoneOffsetMinutes(e.timeZone, new Date()));
   return (<>
     <Group>
-      <Row label="Today" value={date}>{!autoTime && <Stepper what="day" onStep={(by) => shiftClock(by * DAY)} />}</Row>
+      {autoTime ? <Row label="Today" value={date} /> : (
+        // tap the day, the month or the year, then step it
+        <Row label="Today">
+          <span className="set-date" role="radiogroup" aria-label="Part of the date to change">
+            <span className="set-date-weekday">{now.toLocaleDateString("en-GB", { weekday: "long" })},</span>
+            {([["day", String(now.getDate())], ["month", now.toLocaleDateString("en-GB", { month: "long" })], ["year", String(now.getFullYear())]] as [DatePart, string][]).map(([p, text]) => (
+              <button key={p} role="radio" aria-checked={part === p} aria-label={`${p}, ${text}`} className="set-date-part" onClick={() => setPart(p)}>{text}</button>
+            ))}
+          </span>
+          <Stepper what={part} onStep={(by) => shiftClock(dateStep(now, part, by))} />
+        </Row>
+      )}
       {autoTime ? <Row label="Time" value={time} /> : (
         <Row label="Time">
           <Stepper what="hour" value={bridge.clockText(now.getHours(), 0, clock24h).split(":")[0]} onStep={(by) => shiftClock(by * HOUR)} />
@@ -181,8 +207,10 @@ function TimeZonePicker({ e, onDone }: { e: EmulatorState; onDone: () => void })
   }, [ids, zones, query]);
   const pick = (id: string) => { setTimeZone(id); onDone(); };
   return (<>
-    <button className="set-back" onClick={onDone}><span className="icon i-caret-left" aria-hidden="true" />Date &amp; Time</button>
     <div className={`set-zones${typing ? " is-typing" : ""}`}>
+      {/* back and the search stay at the top while the list scrolls */}
+      <div className="set-zones-head">
+      <button className="set-back" onClick={onDone}><span className="icon i-caret-left" aria-hidden="true" />Date &amp; Time</button>
       <div className="phone-search" role="search">
         <button className={`phone-search-field${typing ? " is-focused" : ""}`} aria-label={query ? `Search, ${query}` : "Search time zones"} onClick={() => setTyping(true)}>
           <span className="icon i-magnifying-glass" aria-hidden="true" />
@@ -190,6 +218,7 @@ function TimeZonePicker({ e, onDone }: { e: EmulatorState; onDone: () => void })
           {typing && <span className="phone-search-caret" aria-hidden="true" />}
         </button>
         {(query || typing) && <button className="phone-search-cancel" onClick={() => { setQuery(""); setTyping(false); }}>Cancel</button>}
+      </div>
       </div>
       <Group title="Time Zone" footer={shown.length ? `${shown.length} zones` : undefined}>
         {shown.map((z) => (
