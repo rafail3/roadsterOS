@@ -68,6 +68,10 @@ sealed class CarEvent {
     @Serializable @SerialName("VoiceAssistant")
     data class VoiceAssistant(val active: Boolean) : CarEvent()
 
+    /** Whether this unit's Bluetooth stack can carry text messages at all (its MAP client is switched on). */
+    @Serializable @SerialName("MessageSupport")
+    data class MessageSupport(val available: Boolean) : CarEvent()
+
     /** A text message the phone received (MAP); [sent] for one sent from the car, kept in the thread. */
     @Serializable @SerialName("Message")
     data class Message(val id: String, val number: String, val text: String, val name: String = "", val atMs: Long = 0, val sent: Boolean = false) : CarEvent()

@@ -59,6 +59,8 @@ data class UiState(
     /** Text messages since the phone connected, and the ids read on screen. */
     val messages: List<CarEvent.Message> = emptyList(),
     val read: Set<String> = emptySet(),
+    /** This unit can carry text messages; null until its Bluetooth stack has answered. */
+    val messagesSupported: Boolean? = null,
 ) {
     fun reduce(state: RulesState, actions: List<Action>, event: CarEvent): UiState {
         var ui = copy(state = state, lastEvent = event.toString(), track = event as? CarEvent.Track ?: track)
@@ -75,6 +77,7 @@ data class UiState(
             is CarEvent.PhoneStatus -> ui = ui.copy(phoneStatus = event)
             is CarEvent.CallAudio -> ui = ui.copy(callInCar = event.inCar)
             is CarEvent.VoiceAssistant -> ui = ui.copy(voiceAssistant = event.active)
+            is CarEvent.MessageSupport -> ui = ui.copy(messagesSupported = event.available)
             is CarEvent.Message -> ui = ui.copy(messages = ui.messages + event, read = if (event.sent) ui.read + event.id else ui.read)
             // a dropped phone takes its name and its network with it
             is CarEvent.HfpConnection -> ui = if (event.connected) ui.copy(phoneName = event.device) else ui.copy(phoneName = "", phoneStatus = null)

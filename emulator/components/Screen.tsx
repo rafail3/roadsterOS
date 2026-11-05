@@ -10,7 +10,7 @@ import { ConnectionNotice } from "./ConnectionNotice";
 import { MusicApp } from "./MusicApp";
 import { RadioApp } from "./RadioApp";
 import { MapsApp } from "./MapsApp";
-import { PhoneApp, PhoneNetwork } from "./PhoneApp";
+import { PhoneApp, PhoneNetwork, useUnread } from "./PhoneApp";
 import { SettingsApp } from "./SettingsApp";
 import { MapOffer } from "./MapOffer";
 import { DevicesSheet } from "./DevicesSheet";
@@ -31,11 +31,11 @@ const RAIL = [
   { id: "maps", label: "Maps", icon: "i-navigation-arrow" },
   { id: "camera", label: "Camera", icon: "i-camera" },
 ];
-/** The app icons on home and the app each opens; Podcasts has no app yet. */
-const APPS: { label: string; mark: string; app?: "MAPS" | "MUSIC" }[] = [
+/** The app icons on home and the app each opens. */
+const APPS: { label: string; mark: string; app: "MAPS" | "MUSIC" | "PHONE" }[] = [
   { label: "Maps", mark: "app-mark-nav", app: "MAPS" },
   { label: "Music", mark: "app-mark-music", app: "MUSIC" },
-  { label: "Podcasts", mark: "app-mark-pod" },
+  { label: "Phone", mark: "app-mark-phone", app: "PHONE" },
 ];
 // ponytail: centres of the volume keys on this frame model, in screen pixels; another frame needs its own
 // centres of the frame's volume keys, in canvas units (the screen is drawn at 0.8)
@@ -102,6 +102,7 @@ function pressRail(id: string, cameraOn: boolean) {
 export function Screen() {
   const finger = useFingerMouse<HTMLDivElement>();
   const emulator = useEmulator();
+  const unread = useUnread(emulator);
   const { car, shell } = emulator;
   const now = useNow(emulator.hour);
   const theme = bridge.effectiveTheme(shell, now.getHours());
@@ -189,11 +190,16 @@ export function Screen() {
       <section className="field" inert={covered || inApp}>
         <Clock now={now} face={shell.face} h24={shell.clock24h} />
         <div className="apps" aria-label="Apps">
-          {APPS.map(({ label, mark, app }) => (
-            <button key={label} className="app" onClick={app ? () => shellAction({ type: "OpenApp", app }) : undefined}>
-              <span className={`app-mark ${mark}`} /><span>{label}</span>
-            </button>
-          ))}
+          {APPS.map(({ label, mark, app }) => {
+            // the phone's icon counts its unread messages, as a phone's does
+            const badge = app === "PHONE" ? unread : 0;
+            return (
+              <button key={label} className="app" aria-label={badge ? `${label}, ${badge} unread messages` : label}
+                onClick={() => (app === "PHONE" ? openPhone() : shellAction({ type: "OpenApp", app }))}>
+                <span className={`app-mark ${mark}`}>{badge > 0 && <span className="app-badge" aria-hidden="true">{badge}</span>}</span><span>{label}</span>
+              </button>
+            );
+          })}
         </div>
       </section>
 

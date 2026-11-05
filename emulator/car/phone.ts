@@ -16,7 +16,7 @@ export const SAMPLE_PHONE = "Pixel 8";
 export const SAMPLE_CONTACTS: Contact[] = [
   { name: "Ana Petrescu", numbers: [{ number: "+40 721 000 101", label: "mobile" }] },
   { name: "Andrei Popa", numbers: [{ number: "0722 000 202", label: "mobile" }] },
-  { name: "Bianca Stan", numbers: [{ number: "0744 000 303", label: "mobile" }, { number: "021 000 3030", label: "work" }] },
+  { name: "Victor Stan", numbers: [{ number: "0744 000 303", label: "mobile" }, { number: "021 000 3030", label: "work" }] },
   { name: "Bogdan Ionescu", numbers: [{ number: "0723 000 404", label: "mobile" }] },
   { name: "Cristina Dima", numbers: [{ number: "0755 000 505", label: "mobile" }] },
   { name: "Daniel Marin", numbers: [{ number: "0766 000 606", label: "mobile" }] },

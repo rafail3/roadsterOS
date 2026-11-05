@@ -92,7 +92,7 @@ object Rules {
         is CarEvent.Playback ->
             s.copy(playing = e.playing, source = if (e.playing && s.source == AudioSource.NONE) AudioSource.BT else s.source) to emptyList()
         is CarEvent.Track, is CarEvent.Radio, is CarEvent.CarDisplay, is CarEvent.CallAudio, is CarEvent.PhoneStatus,
-        is CarEvent.VoiceAssistant, is CarEvent.Message -> s to emptyList()
+        is CarEvent.VoiceAssistant, is CarEvent.Message, is CarEvent.MessageSupport -> s to emptyList()
     }
 
     /** A level picked on screen, as the commands to send: relative steps, mute at zero, sound back above it. */

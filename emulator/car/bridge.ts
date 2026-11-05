@@ -63,6 +63,7 @@ export type CarEvent =
   | { type: "Playback"; playing: boolean; positionMs?: number }
   | { type: "Call"; state: CallState; number?: string; name?: string; held?: boolean; conference?: boolean; other?: OtherCall | null }
   | { type: "VoiceAssistant"; active: boolean }
+  | { type: "MessageSupport"; available: boolean }
   | ({ type: "Message" } & Message)
   | { type: "HfpConnection"; connected: boolean; device?: string }
   | { type: "CallAudio"; inCar: boolean }
