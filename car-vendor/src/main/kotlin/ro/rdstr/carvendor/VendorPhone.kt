@@ -24,7 +24,8 @@ import ro.rdstr.car.Hfp
  * In: call state and number, where the call is heard, the phone's battery, signal and network, the link itself.
  * Out: dial, answer, reject or hang up, keypad tones, call audio to the car or the phone, the car's microphone.
  */
-@SuppressLint("MissingPermission")
+// the unit runs API 27, where every runtime receiver hears system broadcasts: the export flags exist from API 33
+@SuppressLint("MissingPermission", "UnspecifiedRegisterReceiverFlag")
 class VendorPhone(private val context: Context) {
     private val _events = MutableSharedFlow<CarEvent>(extraBufferCapacity = 32)
     val events: Flow<CarEvent> = _events

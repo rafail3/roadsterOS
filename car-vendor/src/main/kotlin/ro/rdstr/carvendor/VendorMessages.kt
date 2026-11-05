@@ -21,7 +21,8 @@ import ro.rdstr.car.Messages
  * hidden on 8.1, reached by name). New messages arrive as a broadcast; a reply goes back with sendMessage.
  * Whether the unit's Bluetooth stack has the MAP client switched on is checked at the car.
  */
-@SuppressLint("MissingPermission")
+// the unit runs API 27, where every runtime receiver hears system broadcasts: the export flags exist from API 33
+@SuppressLint("MissingPermission", "UnspecifiedRegisterReceiverFlag")
 class VendorMessages(private val context: Context) {
     private val _events = MutableSharedFlow<CarEvent>(extraBufferCapacity = 16)
     val events: Flow<CarEvent> = _events
