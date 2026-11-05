@@ -7,9 +7,10 @@ import android.graphics.Path
 import android.graphics.Typeface
 import ro.rdstr.map.Font
 import ro.rdstr.map.MapCanvas
+import ro.rdstr.map.MapFonts
 
-/** The map's canvas on the unit: android.graphics, with one reused path and paint per kind of drawing. */
-class AndroidMapCanvas : MapCanvas {
+/** The map's canvas on the unit: android.graphics, with one reused path and paint per kind of drawing; labels in the OS font. */
+class AndroidMapCanvas(private val typefaces: Map<Font, Typeface>) : MapCanvas {
     lateinit var canvas: Canvas
 
     private val path = Path().apply { fillType = Path.FillType.WINDING }
@@ -20,11 +21,15 @@ class AndroidMapCanvas : MapCanvas {
         strokeJoin = Paint.Join.ROUND
     }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.SUBPIXEL_TEXT_FLAG).apply { textAlign = Paint.Align.CENTER }
-    private val typefaces = mapOf(
-        Font.REGULAR to Typeface.DEFAULT,
-        Font.BOLD to Typeface.DEFAULT_BOLD,
-        Font.ITALIC to Typeface.create(Typeface.DEFAULT, Typeface.ITALIC),
-    )
+
+    companion object {
+        /** The OS font's faces, copied once from core-map into the app's cache, where Android can open them. */
+        fun fonts(cacheDir: java.io.File): Map<Font, Typeface> = Font.entries.associateWith { font ->
+            val file = java.io.File(cacheDir, MapFonts.file(font))
+            if (!file.exists()) MapFonts.open(font).use { input -> file.outputStream().use { input.copyTo(it) } }
+            Typeface.createFromFile(file)
+        }
+    }
 
     private fun build(parts: List<FloatArray>, close: Boolean): Path {
         path.rewind()

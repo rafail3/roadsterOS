@@ -42,9 +42,8 @@ class AwtCanvas(private val g: Graphics2D, private val w: Int, private val h: In
     override fun clip(left: Float, top: Float, right: Float, bottom: Float) { saved += g.transform to g.clip; g.clip(java.awt.geom.Rectangle2D.Float(left, top, right - left, bottom - top)) }
     override fun restore() { val (tr, cl) = saved.removeAt(saved.lastIndex); g.transform = tr; g.clip = cl }
 
-    private fun font(size: Float, font: Font) = java.awt.Font("SansSerif", when (font) {
-        Font.BOLD -> java.awt.Font.BOLD; Font.ITALIC -> java.awt.Font.ITALIC; else -> java.awt.Font.PLAIN
-    }, 1).deriveFont(size)
+    private val faces = Font.entries.associateWith { f -> MapFonts.open(f).use { java.awt.Font.createFont(java.awt.Font.TRUETYPE_FONT, it) } }
+    private fun font(size: Float, font: Font) = faces.getValue(font).deriveFont(size)
 
     override fun textWidth(text: String, size: Float, font: Font) = g.getFontMetrics(font(size, font)).stringWidth(text).toFloat()
 

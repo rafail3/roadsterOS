@@ -64,8 +64,9 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     private val worker = HandlerThread("map-pictures").apply { start() }
     private val workerHandler = Handler(worker.looper)
     private val main = Handler(Looper.getMainLooper())
-    private val frameCanvas = AndroidMapCanvas()
-    private val pictureCanvas = AndroidMapCanvas()
+    private val fonts = AndroidMapCanvas.fonts(context.cacheDir)
+    private val frameCanvas = AndroidMapCanvas(fonts)
+    private val pictureCanvas = AndroidMapCanvas(fonts)
     private val bitmapPaint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val rect = RectF()
 

@@ -7,7 +7,8 @@ import shared from "../../core-map/src/main/resources/ro/rdstr/map/style.json";
 /** Without a local pack the emulator previews the same schema from the network; the unit never does. */
 const ONLINE_TILES = "https://tiles.openfreemap.org/planet";
 const ATTRIBUTION = "© OpenMapTiles © OpenStreetMap contributors";
-const FONTS: Record<string, string> = { regular: "Noto Sans Regular", bold: "Noto Sans Bold", italic: "Noto Sans Italic" };
+// the OS font; it has no italic, so water names use the regular face
+const FONTS: Record<string, string> = { regular: "Geist Regular", bold: "Geist SemiBold", italic: "Geist Regular" };
 
 type Scalar = number | { base: number; stops: number[][] };
 interface SharedLayer {
