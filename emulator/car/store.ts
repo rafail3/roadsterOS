@@ -1,6 +1,7 @@
 // Emulator state outside React, so components and hot reload never lose the simulated car.
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { createCoverDesk } from "./covers";
 import { bridge, type CarCommand, type CarEvent, type CarState, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
 
 export interface LogEntry {
@@ -66,9 +67,11 @@ export const SAMPLE_TRACKS = [
   { title: "Amber Coast", artist: "Lio Marren", durationMs: 201000, art: "/art/amber-coast.svg" },
   { title: "Glass Garden", artist: "Odessa Vane", durationMs: 254000, art: "/art/glass-garden.svg" },
 ];
-// covers the laptop's media session sent, by track title
-const pcCovers = new Map<string, string>();
-const artFor = (title: string) => pcCovers.get(title) ?? SAMPLE_TRACKS.find((t) => t.title === title)?.art ?? null;
+// the synthetic queue carries its own covers; any other track's cover comes from the cover desk, as on the unit
+const sampleArt = (title: string) => SAMPLE_TRACKS.find((t) => t.title === title)?.art;
+const covers = createCoverDesk((title, art) => {
+  if (state.track.title === title) set({ track: { ...state.track, art } });
+});
 
 /** Where playback is now: the last reported position, advanced while playing. */
 export function elapsedMs(s: EmulatorState, now = Date.now()) {
@@ -94,8 +97,12 @@ function addLog(direction: LogEntry["direction"], value: unknown): LogEntry[] {
 
 function displayData(event: CarEvent): Partial<EmulatorState> {
   switch (event.type) {
-    case "Track":
-      return { track: { title: event.title, artist: event.artist ?? "", durationMs: event.durationMs ?? 0, art: artFor(event.title) } };
+    case "Track": {
+      const art = sampleArt(event.title) ?? null;
+      if (!art && event.title !== state.track.title) queueMicrotask(() => covers.track({ title: event.title, artist: event.artist ?? "" }));
+      const keep = event.title === state.track.title ? state.track.art : art;
+      return { track: { title: event.title, artist: event.artist ?? "", durationMs: event.durationMs ?? 0, art: keep } };
+    }
     case "Playback":
       // without a reported position, freeze or resume from where playback is now
       return { positionMs: event.positionMs ?? elapsedMs(state), positionAt: Date.now() };
@@ -145,10 +152,7 @@ function fromLaptop(line: string) {
   const m = JSON.parse(line) as { type: string; active?: boolean; title?: string; artist?: string; album?: string; durationMs?: number; url?: string; playing?: boolean; positionMs?: number };
   if (m.type === "session") carEvent({ type: "BtConnection", connected: Boolean(m.active), device: PC_DEVICE });
   if (m.type === "track" && m.title) carEvent({ type: "Track", title: m.title, artist: m.artist ?? "", album: m.album ?? "", durationMs: m.durationMs ?? 0 });
-  if (m.type === "cover" && m.title && m.url) {
-    pcCovers.set(m.title, m.url);
-    if (state.track.title === m.title) set({ track: { ...state.track, art: m.url } });
-  }
+  if (m.type === "cover" && m.title && m.url) covers.fromSource(m.title, m.artist ?? (state.track.title === m.title ? state.track.artist : ""), m.url);
   if (m.type === "playback") carEvent({ type: "Playback", playing: Boolean(m.playing), positionMs: m.positionMs ?? 0 });
 }
 

@@ -1,0 +1,37 @@
+<resources>
+    <string name="app_name">rdstr Cover</string>
+    <string name="listener_label">rdstr Cover</string>
+    <string name="tagline">Puts the cover of the song playing on this phone on your car\'s display.</string>
+
+    <string name="setup_title">Finish setup</string>
+    <string name="setup_media">Media access</string>
+    <string name="setup_media_why">Lets the app see which song plays and its cover. Notifications are not read.</string>
+    <string name="setup_bluetooth">Bluetooth</string>
+    <string name="setup_bluetooth_why">Lets the app reach the car\'s display.</string>
+    <string name="allow">Allow</string>
+
+    <string name="nothing_playing">Nothing playing</string>
+    <string name="nothing_playing_hint">Play a song in any music app.</string>
+    <string name="unknown_artist">Unknown artist</string>
+    <string name="from_app_playing">%1$s · playing</string>
+    <string name="from_app_paused">%1$s · paused</string>
+
+    <string name="state_idle">Waiting for a song</string>
+    <string name="state_sending">Sending the cover to %1$s…</string>
+    <string name="state_sent">On %1$s\'s display · %2$s</string>
+    <string name="state_no_device">Not sent: the phone is not connected to the car</string>
+    <string name="state_no_display">Not sent: %1$s has no roadsterOS display</string>
+    <string name="state_permission">Not sent: Bluetooth permission is off</string>
+    <string name="state_paused">Paused while Bluetooth is off</string>
+
+    <string name="bluetooth">Bluetooth</string>
+    <string name="bluetooth_off">Off</string>
+    <string name="bluetooth_alone">On · nothing connected</string>
+    <string name="bluetooth_with">On · %1$s</string>
+
+    <string name="just_now">just now</string>
+    <string name="seconds_ago">%1$d s ago</string>
+    <string name="minutes_ago">%1$d min ago</string>
+
+    <string name="footer">Runs on its own whenever the phone connects over Bluetooth. You do not need to keep this app open.</string>
+</resources>
