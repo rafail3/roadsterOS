@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/rafail3/roadsterOS/compare/v1.6.0...v1.7.0) (2026-11-05)
+
+
+### Features
+
+* **emulator:** laptop media source ([3e7a94b](https://github.com/rafail3/roadsterOS/commit/3e7a94b41c5d69bd37362010c6cf7bc9face2975))
+
 ## [1.6.0](https://github.com/rafail3/roadsterOS/compare/v1.5.0...v1.6.0) (2026-11-05)
 
 
