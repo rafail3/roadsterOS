@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { CallState, Face, SteeringKey, ThemeMode } from "../car/bridge";
-import { carEvent, replay, setHour, setInRange, setPcMedia, shellAction, stopReplay, useEmulator, useNow } from "../car/store";
+import { carEvent, replay, setHour, setInRange, setPcMedia, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Field, holdToRepeat, Section, Segmented, Switch } from "./controls";
 
 const DEFAULT_TRACK_MS = 228000;
@@ -75,6 +75,22 @@ function Bluetooth() {
       <button className="button" onClick={() => carEvent({ type: "Track", title, artist, album: "", durationMs: DEFAULT_TRACK_MS })}>Send track</button>
       <p className="note">Saved phones: Bluetooth on and in range</p>
       {saved.map((d) => <Switch key={d.name} label={d.name} checked={d.inRange} onChange={(on) => setInRange(d.name, on)} />)}
+    </Section>
+  );
+}
+
+/** The simulated networks around the unit, with the passwords that join them. */
+function Wifi() {
+  const { wifi } = useEmulator();
+  return (
+    <Section title="Wi-Fi">
+      <p className="note">Networks in range and their passwords, for joining from the screen.</p>
+      {WIFI_NETWORKS.map((n) => (
+        <div key={n.ssid} className="row">
+          <span>{n.ssid}{wifi.connected === n.ssid ? " · connected" : ""}</span>
+          <code>{n.secure ? n.password : "open"}</code>
+        </div>
+      ))}
     </Section>
   );
 }
@@ -181,6 +197,7 @@ export function ControlPanel() {
       <Signals />
       <Scenarios />
       <Bluetooth />
+      <Wifi />
       <Phone />
       <Radio />
       <p className="note">Names, tracks and numbers are synthetic.</p>

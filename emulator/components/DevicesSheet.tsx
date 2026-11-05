@@ -13,10 +13,13 @@ const OVERDRAG_PX = 10;
 const LEAVE_MS = 260;
 const COLLAPSE_MS = 300;
 
-type Status = { key: string; text: string };
+export type Status = { key: string; text: string };
 
-/** A saved phone that slides left to reveal its remove key; removing it slides it out, then closes the gap. */
-function SavedRow({ name, status, open, onOpen, connectLocked }: { name: string; status: Status; open: boolean; onOpen: (name: string | null) => void; connectLocked: boolean }) {
+/** A saved phone or network that slides left to reveal its remove key; removing it slides it out, then closes the gap. */
+export function SavedRow({ name, status, open, onOpen, connectLocked, icon = "i-device-mobile", trailing, onSelect, onForget, onDrop }: {
+  name: string; status: Status; open: boolean; onOpen: (name: string | null) => void; connectLocked: boolean;
+  icon?: string; trailing?: React.ReactNode; onSelect: () => void; onForget: () => void; onDrop?: () => void;
+}) {
   const row = useRef<HTMLLIElement>(null);
   const drag = useRef<{ x: number; y: number; from: number; scale: number; sideways: boolean | null; moved: boolean } | null>(null);
   const [offset, setOffset] = useState(0);
@@ -92,7 +95,7 @@ function SavedRow({ name, status, open, onOpen, connectLocked }: { name: string;
     setHeight(row.current?.offsetHeight);
     setLeaving("slide");
     setTimeout(() => { setLeaving("collapse"); setHeight(0); }, LEAVE_MS);
-    setTimeout(() => { onOpen(null); carCommand({ type: "Bt.Forget", device: name }); }, LEAVE_MS + COLLAPSE_MS);
+    setTimeout(() => { onOpen(null); onForget(); }, LEAVE_MS + COLLAPSE_MS);
   };
 
   return (
@@ -109,16 +112,17 @@ function SavedRow({ name, status, open, onOpen, connectLocked }: { name: string;
           className="device-main"
           disabled={status.key === "connected" || connectLocked}
           aria-label={status.key === "connected" ? `${name}, connected` : `Connect to ${name}`}
-          onClick={() => carCommand({ type: "Bt.Connect", device: name })}
+          onClick={onSelect}
         >
-          <span className="device-icon" aria-hidden="true"><span className="icon i-device-mobile" /></span>
+          <span className="device-icon" aria-hidden="true"><span className={`icon ${icon}`} /></span>
           <span className="device-text">
             <span className="device-name">{name}</span>
             <span className="device-status" aria-live="polite">{status.text}</span>
           </span>
+          {trailing}
         </button>
-        {status.key === "connected" && (
-          <button className="device-drop" onClick={() => carCommand({ type: "Bt.Disconnect" })}>Disconnect</button>
+        {status.key === "connected" && onDrop && (
+          <button className="device-drop" onClick={onDrop}>Disconnect</button>
         )}
       </div>
     </li>
@@ -185,7 +189,12 @@ export function DevicesSheet() {
         <div className="devices-scroll">
           <ul className="devices-list" aria-label="Saved devices">
             {saved.map(({ name }) => (
-              <SavedRow key={name} name={name} status={statusOf(name)} open={openRow === name} onOpen={setOpenRow} connectLocked={connecting !== null} />
+              <SavedRow
+                key={name} name={name} status={statusOf(name)} open={openRow === name} onOpen={setOpenRow} connectLocked={connecting !== null}
+                onSelect={() => carCommand({ type: "Bt.Connect", device: name })}
+                onForget={() => carCommand({ type: "Bt.Forget", device: name })}
+                onDrop={() => carCommand({ type: "Bt.Disconnect" })}
+              />
             ))}
           </ul>
 

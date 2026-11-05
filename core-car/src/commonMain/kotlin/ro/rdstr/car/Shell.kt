@@ -23,6 +23,8 @@ data class ShellState(
     val app: App = App.HOME,
     /** The saved-devices sheet over the music app. */
     val devices: Boolean = false,
+    /** The Wi-Fi networks sheet. */
+    val networks: Boolean = false,
     /** Our own apps opened since boot and not closed, most recently used first; never [App.HOME]. */
     val running: List<App> = emptyList(),
     /** The open-apps screen. */
@@ -51,6 +53,8 @@ sealed class ShellAction {
     @Serializable @SerialName("OpenApp") data class OpenApp(val app: App) : ShellAction()
     @Serializable @SerialName("OpenDevices") data object OpenDevices : ShellAction()
     @Serializable @SerialName("CloseDevices") data object CloseDevices : ShellAction()
+    @Serializable @SerialName("OpenNetworks") data object OpenNetworks : ShellAction()
+    @Serializable @SerialName("CloseNetworks") data object CloseNetworks : ShellAction()
     /** The frame Home key; the unit delivers each press as one click, so a hold cannot be told apart. */
     @Serializable @SerialName("HomePressed") data class HomePressed(val atMs: Long) : ShellAction()
     @Serializable @SerialName("CloseApp") data class CloseApp(val app: App) : ShellAction()
@@ -104,8 +108,10 @@ object Shell {
             drawer = false, devices = false, recents = false,
         )
         ShellAction.Home -> goHome(s)
-        ShellAction.OpenDevices -> s.copy(devices = true, drawer = false)
+        ShellAction.OpenDevices -> s.copy(devices = true, networks = false, drawer = false)
         ShellAction.CloseDevices -> s.copy(devices = false)
+        ShellAction.OpenNetworks -> s.copy(networks = true, devices = false, drawer = false)
+        ShellAction.CloseNetworks -> s.copy(networks = false)
         is ShellAction.HomePressed -> {
             val last = s.lastHomeMs
             when {
@@ -126,16 +132,17 @@ object Shell {
         ShellAction.CloseAllApps -> s.copy(running = emptyList(), app = App.HOME, devices = false, recents = false)
         ShellAction.OpenRecents -> s.copy(recents = true, drawer = false, devices = false, lastHomeMs = null)
         ShellAction.CloseRecents -> s.copy(recents = false)
-        // one layer at a time: the drawer, the open apps, the devices sheet, then the app
+        // one layer at a time: the drawer, the open apps, a devices or networks sheet, then the app
         ShellAction.Back -> when {
             s.drawer -> s.copy(drawer = false)
             s.recents -> s.copy(recents = false)
             s.devices -> s.copy(devices = false)
+            s.networks -> s.copy(networks = false)
             else -> s.copy(app = App.HOME)
         }
     }
 
-    private fun goHome(s: ShellState) = s.copy(app = App.HOME, recents = false, drawer = false, devices = false)
+    private fun goHome(s: ShellState) = s.copy(app = App.HOME, recents = false, drawer = false, devices = false, networks = false)
 
     fun effectiveTheme(s: ShellState, hour: Int): Theme = when (s.theme) {
         ThemeMode.LIGHT -> Theme.LIGHT

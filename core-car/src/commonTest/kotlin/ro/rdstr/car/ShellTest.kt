@@ -75,6 +75,17 @@ class ShellTest {
     }
 
     @Test
+    fun `the networks sheet opens from the drawer, shuts the devices sheet, and back or home closes it`() {
+        val open = Shell.reduce(ShellState(drawer = true, devices = true), ShellAction.OpenNetworks)
+        assertTrue(open.networks)
+        assertFalse(open.drawer)
+        assertFalse(open.devices)
+        assertFalse(Shell.reduce(open, ShellAction.Back).networks)
+        assertFalse(Shell.reduce(open, ShellAction.Home).networks)
+        assertFalse(Shell.reduce(open, ShellAction.OpenDevices).networks)
+    }
+
+    @Test
     fun `back closes the drawer before the devices sheet`() {
         val both = ShellState(app = App.MUSIC, devices = true, drawer = true)
         val once = Shell.reduce(both, ShellAction.Back)

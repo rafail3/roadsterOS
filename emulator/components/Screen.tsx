@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { bridge, type Source } from "../car/bridge";
-import { carCommand, carEvent, openVolume, setBluetooth, shellAction, useEmulator, useNow } from "../car/store";
+import { carCommand, carEvent, openVolume, setBluetooth, shellAction, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Clock } from "./Clock";
 import { Drawer, useDrawerDrag } from "./Drawer";
 import { NowPlaying } from "./NowPlaying";
@@ -8,6 +8,8 @@ import { CallOverlay, CameraOverlay } from "./Overlays";
 import { VolumeHud } from "./VolumeHud";
 import { MusicApp } from "./MusicApp";
 import { DevicesSheet } from "./DevicesSheet";
+import { NetworksSheet } from "./NetworksSheet";
+import { WifiBars } from "./WifiBars";
 import { Recents } from "./Recents";
 import { EdgeBack, NavBar } from "./Gestures";
 import { useCoverColors } from "./media";
@@ -112,7 +114,15 @@ export function Screen() {
           <span className="handle-line" />
         </button>
         <div className="bar-group">
-          <span className="icon i-wifi-high" role="img" aria-label="Wi-Fi connected" />
+          {/* the bars of the network the unit is on; all faint when on none */}
+          {(() => {
+            const network = WIFI_NETWORKS.find((n) => n.ssid === emulator.wifi.connected);
+            return (
+              <span role="img" aria-label={network ? `Wi-Fi, ${network.ssid}` : emulator.wifiOn ? "Wi-Fi, not connected" : "Wi-Fi off"} className={network ? undefined : "is-off"}>
+                <WifiBars level={network?.signal ?? 0} className="bar-wifi" />
+              </span>
+            );
+          })()}
           <button className="bar-button" aria-label={car.muted ? "Volume, muted" : "Volume"} onClick={openVolume}>
             <span className={`icon ${car.muted ? "i-speaker-slash-fill is-muted" : "i-speaker-high-fill"}`} aria-hidden="true" />
           </button>
@@ -149,9 +159,10 @@ export function Screen() {
       <MusicApp open={shell.app === "MUSIC"} />
       {/* over any screen: opened from the music app or by a long press on the drawer's Bluetooth */}
       <DevicesSheet />
+      <NetworksSheet />
       <Recents emulator={emulator} />
-      {/* always there, as on a phone, except under the drawer, a call or the camera */}
-      {!shell.drawer && car.call === "IDLE" && !car.camera && (
+      {/* always there, as on a phone, except under the drawer, a devices or networks panel (its keyboard reaches the edges), a call or the camera */}
+      {!shell.drawer && !shell.devices && !shell.networks && car.call === "IDLE" && !car.camera && (
         <>
           <NavBar />
           <EdgeBack side="left" />

@@ -139,7 +139,7 @@ export function Drawer({ emulator, panel, dragging }: { emulator: EmulatorState;
     >
       <div className="drawer-grid">
         <Toggle kind="bt" on={emulator.btOn} icon="i-bluetooth" title="Bluetooth" state={!emulator.btOn ? "Off" : car.btConnected ? emulator.device : "On"} onClick={() => setBluetooth(!emulator.btOn)} onLongPress={() => shellAction({ type: "OpenDevices" })} />
-        <Toggle kind="wifi" on={emulator.wifiOn} icon="i-wifi-high" title="Wi-Fi" state={emulator.wifiOn ? "On" : "Off"} onClick={() => setWifi(!emulator.wifiOn)} />
+        <Toggle kind="wifi" on={emulator.wifiOn} icon="i-wifi-high" title="Wi-Fi" state={!emulator.wifiOn ? "Off" : emulator.wifi.connected ?? "On"} onClick={() => setWifi(!emulator.wifiOn)} onLongPress={() => shellAction({ type: "OpenNetworks" })} />
         <Toggle kind="mute" on={car.muted} icon="i-speaker-slash-fill" title="Mute" state={car.muted ? "On" : "Off"} onClick={() => carCommand({ type: "Audio.Mute", on: !car.muted })} />
         <Toggle kind="theme" on={shell.theme === "AUTO"} icon={THEME_ICON[shell.theme]} title="Theme" state={THEME_LABEL[shell.theme]} onClick={() => shellAction({ type: "CycleTheme" })} />
       </div>

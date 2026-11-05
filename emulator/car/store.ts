@@ -38,6 +38,7 @@ export interface EmulatorState {
   /** the unit's radios, switched from the drawer; both on at every start, as the unit comes up */
   btOn: boolean;
   wifiOn: boolean;
+  wifi: WifiState;
   acc: boolean;
   /** null = live clock, otherwise a simulated hour 0..23 */
   hour: number | null;
@@ -49,6 +50,27 @@ export interface EmulatorState {
   /** the frame key held down right now, for the edge swell beside it */
   pressedKey: PanelKey | null;
 }
+
+/** A Wi-Fi network around the unit; `password` is the simulation's own, shown in the control panel for testing. */
+export interface WifiNetwork { ssid: string; secure: boolean; signal: 1 | 2 | 3; password?: string }
+export interface WifiState {
+  saved: string[];
+  connected: string | null;
+  connecting: string | null;
+  /** the network whose last join failed on the password */
+  wrongPassword: string | null;
+  /** networks the last scan has found so far */
+  seen: string[];
+}
+export const WIFI_NETWORKS: WifiNetwork[] = [
+  { ssid: "Phone hotspot", secure: true, signal: 3, password: "roadster1" },
+  { ssid: "Home", secure: true, signal: 2, password: "home2026" },
+  { ssid: "Cafe Free Wi-Fi", secure: false, signal: 2 },
+  { ssid: "Office 5G", secure: true, signal: 1, password: "office-5g" },
+];
+/** A scan answers network by network; a join takes this long either way. */
+const WIFI_SEEN_MS = [250, 700, 1200, 1900];
+const WIFI_JOIN_MS = 1400;
 
 const LOG_SIZE = 60;
 /** How long the unit tries a saved phone before it gives up; a phone in range answers sooner. */
@@ -170,8 +192,47 @@ export function setBluetooth(on: boolean) {
   set({ btOn: on });
 }
 
+/** Wi-Fi off drops the network and forgets the scan; on again, the strongest saved network joins by itself. */
 export function setWifi(on: boolean) {
-  set({ wifiOn: on });
+  clearWifiTimers();
+  set({ wifiOn: on, wifi: { ...state.wifi, connected: null, connecting: null, wrongPassword: null, seen: [] } });
+  if (!on) return;
+  const best = WIFI_NETWORKS.filter((n) => state.wifi.saved.includes(n.ssid)).sort((a, b) => b.signal - a.signal)[0];
+  if (best) wifiConnect(best.ssid);
+}
+
+let wifiTimers: ReturnType<typeof setTimeout>[] = [];
+function clearWifiTimers() {
+  wifiTimers.forEach(clearTimeout);
+  wifiTimers = [];
+}
+const patchWifi = (patch: Partial<WifiState>) => set({ wifi: { ...state.wifi, ...patch } });
+
+/** A scan: the networks in range answer one by one; a new scan starts the list again. */
+export function wifiScan() {
+  if (!state.wifiOn) return;
+  patchWifi({ seen: [] });
+  WIFI_NETWORKS.forEach((n, i) => wifiTimers.push(setTimeout(() => {
+    if (state.wifiOn && !state.wifi.seen.includes(n.ssid)) patchWifi({ seen: [...state.wifi.seen, n.ssid] });
+  }, WIFI_SEEN_MS[i] ?? 2000)));
+}
+
+/** Join a network: a saved or open one needs nothing; a new secured one needs its password, and a wrong one fails. */
+export function wifiConnect(ssid: string, password?: string) {
+  const network = WIFI_NETWORKS.find((n) => n.ssid === ssid);
+  if (!network || !state.wifiOn) return;
+  patchWifi({ connecting: ssid, wrongPassword: null });
+  wifiTimers.push(setTimeout(() => {
+    if (state.wifi.connecting !== ssid) return;
+    const known = state.wifi.saved.includes(ssid) || !network.secure;
+    if (!known && password !== network.password) return patchWifi({ connecting: null, wrongPassword: ssid });
+    patchWifi({ connecting: null, connected: ssid, saved: state.wifi.saved.includes(ssid) ? state.wifi.saved : [...state.wifi.saved, ssid] });
+  }, WIFI_JOIN_MS));
+}
+
+/** Forget a saved network; the connected one drops with it. */
+export function wifiForget(ssid: string) {
+  patchWifi({ saved: state.wifi.saved.filter((s) => s !== ssid), connected: state.wifi.connected === ssid ? null : state.wifi.connected });
 }
 
 /** Turn the laptop source on or off; off leaves the last track on screen as the phone would after a disconnect. */
@@ -390,6 +451,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     pcMedia: false,
     btOn: true,
     wifiOn: true,
+    wifi: { saved: [WIFI_NETWORKS[0].ssid], connected: WIFI_NETWORKS[0].ssid, connecting: null, wrongPassword: null, seen: [] },
     acc: true,
     hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : null,
     log: [],
