@@ -160,7 +160,6 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     private val carPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeJoin = Paint.Join.ROUND }
     /** The navigation arrow seen from above, 44 units tall, pointing up and centred. */
     private val arrow = Path().apply { moveTo(0f, -22f); lineTo(18f, 22f); lineTo(0f, 11.5f); lineTo(-18f, 22f); close() }
-    private val fill = android.graphics.LinearGradient(-10f, -22f, 10f, 22f, intArrayOf(0xFF0A84FF.toInt(), 0xFF0A84FF.toInt(), 0xFF0876EA.toInt()), floatArrayOf(0f, 0.45f, 1f), android.graphics.Shader.TileMode.CLAMP)
 
     private fun stroke(canvas: Canvas, path: Path, color: Int, width: Float) {
         carPaint.shader = null
@@ -171,8 +170,8 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     }
 
     /**
-     * The car where the GPS puts it: the navigation arrow seen from above with a little volume (the OS blue of the
-     * location button, a touch deeper at the base, a white rim with a fine dark edge) and a soft shadow kept below it on the screen.
+     * The car where the GPS puts it: the navigation arrow seen from above in the location button's blue,
+     * #0a84ff, flat, with a white rim and a fine dark edge and a soft shadow kept below it on the screen.
      * Same layers as the emulator.
      */
     private fun drawCar(canvas: Canvas, v: MapViewState) {
@@ -203,7 +202,8 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         stroke(canvas, arrow, 0xFFFFFFFF.toInt(), 5f)
         carPaint.style = Paint.Style.FILL
         canvas.drawPath(arrow, carPaint)
-        carPaint.shader = fill
+        // the location button's blue, flat
+        carPaint.color = 0xFF0A84FF.toInt()
         canvas.drawPath(arrow, carPaint)
         carPaint.style = Paint.Style.STROKE
         carPaint.strokeWidth = 1.2f
