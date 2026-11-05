@@ -1,6 +1,7 @@
-import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
-import { bridge, type FaceMode, type ThemeMode } from "../car/bridge";
-import { removePack, setBluetooth, setLocation, setVolume, setWifi, shellAction, useEmulator, useNow, type EmulatorState } from "../car/store";
+import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { bridge, type FaceMode, type ThemeMode, type TimeSource } from "../car/bridge";
+import { allTimeZones, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
+import { Keyboard } from "./Keyboard";
 import { PillSlider } from "./Drawer";
 import { useCloseOntoCard } from "./media";
 
@@ -109,24 +110,101 @@ function Display({ e }: { e: EmulatorState }) {
   </>);
 }
 
-/** Date and time: the clock's format, and the time and zone Android keeps from the network and GPS (SystemInfo on the unit). */
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+const SYNC_FOOTER: Record<TimeSource | "MANUAL", string> = {
+  NETWORK: "The time comes from the internet whenever Wi-Fi is connected.",
+  GPS: "The time comes from the GPS satellites whenever there is a fix, no internet needed.",
+  MANUAL: "The clock keeps the time set above and is not corrected.",
+};
+
+/** − and + for one part of the date or time; the part's value between them, when given. */
+function Stepper({ what, value, onStep }: { what: string; value?: string; onStep: (by: number) => void }) {
+  return (
+    <span className="set-stepper">
+      <button aria-label={`Earlier ${what}`} onClick={() => onStep(-1)}><span className="icon i-minus" aria-hidden="true" /></button>
+      {value !== undefined && <output aria-label={what}>{value}</output>}
+      <button aria-label={`Later ${what}`} onClick={() => onStep(1)}><span className="icon i-plus" aria-hidden="true" /></button>
+    </span>
+  );
+}
+
+/** Date and time: the clock's format, where it sets itself from or the time set by hand, and the zone (TimeKeeper on the unit). */
 function DateTime({ e }: { e: EmulatorState }) {
+  const [picking, setPicking] = useState(false);
   const now = useNow(e.hour);
-  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const { autoTime, timeSource, clock24h } = e.shell;
+  if (picking) return <TimeZonePicker e={e} onDone={() => setPicking(false)} />;
   const date = now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-  const time = bridge.clockText(now.getHours(), now.getMinutes(), e.shell.clock24h) + (e.shell.clock24h ? "" : ` ${bridge.meridiem(now.getHours())}`);
+  const time = bridge.clockText(now.getHours(), now.getMinutes(), clock24h) + (clock24h ? "" : ` ${bridge.meridiem(now.getHours())}`);
+  const offset = bridge.timeZoneOffset(zoneOffsetMinutes(e.timeZone, new Date()));
   return (<>
     <Group>
-      <Row label="Today" value={date} />
-      <Row label="Time" value={time} />
+      <Row label="Today" value={date}>{!autoTime && <Stepper what="day" onStep={(by) => shiftClock(by * DAY)} />}</Row>
+      {autoTime ? <Row label="Time" value={time} /> : (
+        <Row label="Time">
+          <Stepper what="hour" value={bridge.clockText(now.getHours(), 0, clock24h).split(":")[0]} onStep={(by) => shiftClock(by * HOUR)} />
+          <Stepper what="minute" value={String(now.getMinutes()).padStart(2, "0")} onStep={(by) => shiftClock(by * MINUTE)} />
+        </Row>
+      )}
     </Group>
     <Group>
-      <Row label="24-Hour Time"><Switch label="24-Hour Time" on={e.shell.clock24h} onChange={(on) => shellAction({ type: "SetClock24h", on })} /></Row>
+      <Row label="24-Hour Time"><Switch label="24-Hour Time" on={clock24h} onChange={(on) => shellAction({ type: "SetClock24h", on })} /></Row>
     </Group>
-    <Group footer="The unit takes the time and its zone from the network and GPS.">
-      <Row label="Set Automatically" value="On" />
-      <Row label="Time Zone" value={zone.replace("_", " ")} />
+    <Group footer={SYNC_FOOTER[autoTime ? timeSource : "MANUAL"]}>
+      <Row label="Set Automatically"><Switch label="Set Automatically" on={autoTime} onChange={(on) => setTimeSync(on, timeSource)} /></Row>
+      {autoTime && (
+        <Row label="Sync With">
+          <Segmented<TimeSource> label="Sync with" options={[["NETWORK", "Internet"], ["GPS", "GPS"]]} value={timeSource} onChange={(source) => setTimeSync(true, source)} />
+        </Row>
+      )}
     </Group>
+    <Group>
+      <Row label="Time Zone" value={`${bridge.timeZoneCity(e.timeZone)}, ${offset}`} onPress={() => setPicking(true)} />
+    </Group>
+  </>);
+}
+
+/** Every zone named after a place, by city, with a search on the on-screen keyboard. */
+function TimeZonePicker({ e, onDone }: { e: EmulatorState; onDone: () => void }) {
+  const [query, setQuery] = useState("");
+  const [typing, setTyping] = useState(false);
+  const zones = useMemo(() => {
+    const at = new Date();
+    return bridge.timeZones(allTimeZones()).map((id) => ({ id, offset: bridge.timeZoneOffset(zoneOffsetMinutes(id, at)) }));
+  }, []);
+  const ids = useMemo(() => zones.map((z) => z.id), [zones]);
+  const shown = useMemo(() => {
+    const found = new Set(bridge.timeZoneSearch(ids, query));
+    return zones.filter((z) => found.has(z.id));
+  }, [ids, zones, query]);
+  const pick = (id: string) => { setTimeZone(id); onDone(); };
+  return (<>
+    <button className="set-back" onClick={onDone}><span className="icon i-caret-left" aria-hidden="true" />Date &amp; Time</button>
+    <div className={`set-zones${typing ? " is-typing" : ""}`}>
+      <div className="phone-search" role="search">
+        <button className={`phone-search-field${typing ? " is-focused" : ""}`} aria-label={query ? `Search, ${query}` : "Search time zones"} onClick={() => setTyping(true)}>
+          <span className="icon i-magnifying-glass" aria-hidden="true" />
+          <span className={query ? "phone-search-text" : "phone-search-placeholder"}>{query || "Search a city"}</span>
+          {typing && <span className="phone-search-caret" aria-hidden="true" />}
+        </button>
+        {(query || typing) && <button className="phone-search-cancel" onClick={() => { setQuery(""); setTyping(false); }}>Cancel</button>}
+      </div>
+      <Group title="Time Zone" footer={shown.length ? `${shown.length} zones` : undefined}>
+        {shown.map((z) => (
+          // a list to pick from: no chevron, a check on the current one
+          <button key={z.id} className="set-row is-button" aria-current={z.id === e.timeZone || undefined} onClick={() => pick(z.id)}>
+            <span className="set-row-label">{bridge.timeZoneCity(z.id)}<span className="set-row-sub">{bridge.timeZoneRegion(z.id)}</span></span>
+            <span className="set-row-value">{z.offset}</span>
+            <span className={`icon i-check set-check${z.id === e.timeZone ? "" : " is-hidden"}`} aria-hidden="true" />
+          </button>
+        ))}
+        {!shown.length && <Row label={`No time zone matches “${query}”`} />}
+      </Group>
+    </div>
+    <Keyboard open={typing} onKey={(c) => setQuery((q) => q + c)} onBackspace={() => setQuery((q) => q.slice(0, -1))}
+      onSubmit={() => setTyping(false)} submitLabel="Search" submitEnabled />
   </>);
 }
 

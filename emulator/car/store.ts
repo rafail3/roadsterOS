@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createCoverDesk } from "./covers";
-import { bridge, HFP, type Band, type LaunchableApp, type CallRecord, type CarCommand, type CarEvent, type CarState, type Contact, type HfpCall, type Message, type OtherCall, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
+import { bridge, HFP, type Band, type LaunchableApp, type TimeSource, type CallRecord, type CarCommand, type CarEvent, type CarState, type Contact, type HfpCall, type Message, type OtherCall, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
 import { MAJOR_COMPUTER, MAJOR_PHONE, SAMPLE_CONTACTS, SAMPLE_PHONE, sampleCalls } from "./phone";
 import { BANDS, STATIONS, stationAt } from "./radio";
 import { GPS_PLACES } from "./gps";
@@ -89,6 +89,9 @@ export interface EmulatorState {
   acc: boolean;
   /** null = live clock, otherwise a simulated hour 0..23 */
   hour: number | null;
+  /** the unit's time zone, and how far the clock was set by hand from the real time */
+  timeZone: string;
+  clockShiftMs: number;
   log: LogEntry[];
   replay: { name: string; progress: number } | null;
   replayError: string | null;
@@ -935,6 +938,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     wifiNeedsLocation: false,
     acc: true,
     hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : null,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    clockShiftMs: 0,
     log: [],
     replay: null,
     replayError: null,
@@ -953,12 +958,48 @@ export function useEmulator() {
   return useSyncExternalStore(subscribe, () => state);
 }
 
-/** The time the shell shows: live, or a fixed moment when an hour is simulated. */
+/** The time the shell shows: live (as set by hand, in the unit's zone), or a fixed moment when an hour is simulated. */
 export function useNow(hour: number | null) {
   const [live, setLive] = useState(() => new Date());
   useEffect(() => {
     const timer = setInterval(() => setLive(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-  return hour === null ? live : new Date(2026, 9, 31, hour, 0);
+  if (hour !== null) return new Date(2026, 9, 31, hour, 0);
+  // the browser's getters read local time: shift by the zone's difference from the browser's
+  const zoneShift = (zoneOffsetMinutes(state.timeZone, live) + live.getTimezoneOffset()) * 60_000;
+  return new Date(live.getTime() + state.clockShiftMs + zoneShift);
+}
+
+const zoneFormats = new Map<string, Intl.DateTimeFormat>();
+/** A zone's offset from GMT at a moment, in minutes, summer time included. */
+export function zoneOffsetMinutes(zone: string, at: Date): number {
+  let f = zoneFormats.get(zone);
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-US", { timeZone: zone, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric" });
+    zoneFormats.set(zone, f);
+  }
+  const p = Object.fromEntries(f.formatToParts(at).map((x) => [x.type, x.value]));
+  const minute = Math.floor(at.getTime() / 60_000) * 60_000;
+  return Math.round((Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute) - minute) / 60_000);
+}
+
+/** Every zone the browser knows, as Android's TimeZone.getAvailableIDs lists them. */
+export function allTimeZones(): string[] {
+  return (Intl as unknown as { supportedValuesOf(key: string): string[] }).supportedValuesOf("timeZone");
+}
+
+/** Automatic from the internet or GPS, or by hand; going back to automatic corrects a clock set by hand. */
+export function setTimeSync(auto: boolean, source: TimeSource) {
+  if (auto) set({ clockShiftMs: 0 });
+  shellAction({ type: "SetTimeSync", auto, source });
+}
+
+/** The date and time steppers: the clock moves by this much (AlarmManager.setTime on the unit). */
+export function shiftClock(ms: number) {
+  set({ clockShiftMs: state.clockShiftMs + ms });
+}
+
+export function setTimeZone(timeZone: string) {
+  set({ timeZone });
 }

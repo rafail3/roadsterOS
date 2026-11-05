@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -18,6 +19,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- the unit's own GPS for the map; no network position is used -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- the clock and zone from Date & Time; granted only when signed with the platform key or installed as a privileged app -->
+    <uses-permission android:name="android.permission.SET_TIME" tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.SET_TIME_ZONE" tools:ignore="ProtectedPermissions" />
 
     <application
         android:name=".RdstrApp"

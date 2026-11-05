@@ -202,6 +202,13 @@ object Bridge {
 
     fun homeAppsMax(): Int = HomeApps.MAX
 
+    private val strings = ListSerializer(String.serializer())
+    fun timeZones(ids: String): String = json.encodeToString(strings, TimeZones.places(json.decodeFromString(strings, ids)))
+    fun timeZoneSearch(ids: String, query: String): String = json.encodeToString(strings, TimeZones.search(json.decodeFromString(strings, ids), query))
+    fun timeZoneCity(id: String): String = TimeZones.city(id)
+    fun timeZoneRegion(id: String): String = TimeZones.region(id)
+    fun timeZoneOffset(minutes: Int): String = TimeZones.offset(minutes)
+
     fun ownApps(): String = json.encodeToString(ListSerializer(LaunchableApp.serializer()), HomeApps.OWN)
 
     fun shellInitial(): String = json.encodeToString(ShellState.serializer(), ShellState())

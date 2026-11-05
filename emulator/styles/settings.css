@@ -93,3 +93,16 @@
 .set-reorder.is-dragged .set-grip { cursor: grabbing; color: #fff; }
 .set-grip .icon { width: 26px; height: 26px; }
 @media (prefers-reduced-motion: reduce) { .set-reorder { transition-duration: 0.01ms; } }
+
+/* Date & Time: the zone list, searched on the on-screen keyboard */
+.i-check { --m: url(/icons/check.svg); }
+.set-back { align-self: flex-start; min-height: 48px; display: inline-flex; align-items: center; gap: 4px; margin: -12px 0 -12px -8px; padding: 0 8px; border-radius: 12px; font-size: 18px; font-weight: 600; color: var(--set-blue); }
+.set-back:active { background: rgba(255, 255, 255, 0.08); }
+.set-back .icon { width: 22px; height: 22px; }
+.set-zones { display: flex; flex-direction: column; gap: 16px; }
+.set-zones .phone-search { background: var(--sheet); padding-top: 4px; }
+.set-zones.is-typing { padding-bottom: 340px; }
+.set-row-sub { display: block; margin-top: 2px; font-size: 15px; font-weight: 400; color: var(--ink-muted); }
+.set-check { width: 22px; height: 22px; color: var(--set-blue); }
+.set-check.is-hidden { visibility: hidden; }
+.set-stepper + .set-stepper { margin-left: 8px; }

@@ -10,6 +10,9 @@ enum class Face { DIGITAL, ANALOG }
 /** Which clock home shows: both, switched with a tap on the clock, or always the one chosen. */
 enum class FaceMode { BOTH, DIGITAL, ANALOG }
 
+/** Where the automatic clock comes from: Android's internet time, or the GPS fixes. */
+enum class TimeSource { NETWORK, GPS }
+
 /** How a call shows: not at all, over the whole screen, or as a bar at the top while the rest of the shell is used. */
 enum class CallView { NONE, FULL, BAR }
 
@@ -53,6 +56,9 @@ data class ShellState(
     /** The road's speed limit sign on the map's speed; on unless switched off in the settings. */
     val speedLimitSign: Boolean = true,
     val faceMode: FaceMode = FaceMode.BOTH,
+    /** The clock sets itself from [timeSource]; off, it keeps the time set by hand. */
+    val autoTime: Boolean = true,
+    val timeSource: TimeSource = TimeSource.NETWORK,
     /** Every car event is written to a file on the unit, for troubleshooting. */
     val recordEvents: Boolean = false,
 )
@@ -113,6 +119,7 @@ sealed class ShellAction {
     @Serializable @SerialName("SetSpeedLimitSign") data class SetSpeedLimitSign(val on: Boolean) : ShellAction()
     /** Both faces switched with a tap, or one face that a tap leaves as it is. */
     @Serializable @SerialName("SetFaceMode") data class SetFaceMode(val mode: FaceMode) : ShellAction()
+    @Serializable @SerialName("SetTimeSync") data class SetTimeSync(val auto: Boolean, val source: TimeSource) : ShellAction()
 }
 
 /**
@@ -204,6 +211,7 @@ object Shell {
         is ShellAction.AppsInstalled -> s.copy(homeApps = HomeApps.installedOnly(s.homeApps, a.ids))
         is ShellAction.SetRecording -> s.copy(recordEvents = a.on)
         is ShellAction.SetSpeedLimitSign -> s.copy(speedLimitSign = a.on)
+        is ShellAction.SetTimeSync -> s.copy(autoTime = a.auto, timeSource = a.source)
         is ShellAction.SetFaceMode -> s.copy(faceMode = a.mode, face = when (a.mode) {
             FaceMode.DIGITAL -> Face.DIGITAL
             FaceMode.ANALOG -> Face.ANALOG
@@ -238,6 +246,7 @@ object Shell {
         theme = s.theme, face = s.face, font = s.font, brightness = s.brightness,
         clock24h = s.clock24h, speedChime = s.speedChime, startVolume = s.startVolume,
         lockTypingWhileMoving = s.lockTypingWhileMoving, homeApps = s.homeApps, recordEvents = s.recordEvents, speedLimitSign = s.speedLimitSign, faceMode = s.faceMode,
+        autoTime = s.autoTime, timeSource = s.timeSource,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))

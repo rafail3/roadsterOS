@@ -15,6 +15,18 @@ object Settings {
 
     fun meridiem(hour: Int) = if (hour < 12) "AM" else "PM"
 
+    /** 2024-01-01 UTC: a GPS receiver that missed a week rollover reports dates decades back; those fixes are ignored. */
+    const val GPS_TIME_FLOOR_MS = 1_704_067_200_000L
+    /** The clock is left alone while it is this close to the satellites' time. */
+    const val GPS_TIME_TOLERANCE_MS = 2_000L
+
+    /** The time to set the clock to from a GPS fix, or null when the clock is already close or the fix's date is wrong. */
+    fun gpsClock(systemMs: Long, gpsMs: Long): Long? = when {
+        gpsMs < GPS_TIME_FLOOR_MS -> null
+        kotlin.math.abs(gpsMs - systemMs) <= GPS_TIME_TOLERANCE_MS -> null
+        else -> gpsMs
+    }
+
     /**
      * The commands that bring a loud last level down to [cap] when the car starts, so the first sound is never a blast.
      * [cap] 0 keeps the level the car was switched off with.

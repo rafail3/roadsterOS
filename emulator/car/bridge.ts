@@ -5,6 +5,7 @@ export type CallState = "IDLE" | "RINGING" | "OUTGOING" | "ACTIVE";
 export type ThemeMode = "AUTO" | "LIGHT" | "DARK";
 export type Face = "DIGITAL" | "ANALOG";
 export type FaceMode = "BOTH" | "DIGITAL" | "ANALOG";
+export type TimeSource = "NETWORK" | "GPS";
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";
 export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
 export type Band = "FM" | "AM";
@@ -55,6 +56,8 @@ export interface ShellState {
   speedLimitSign: boolean;
   /** both clock faces switched with a tap, or one fixed face */
   faceMode: FaceMode;
+  autoTime: boolean;
+  timeSource: TimeSource;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -126,7 +129,8 @@ export type ShellAction =
   | { type: "AppsInstalled"; ids: string[] }
   | { type: "SetRecording"; on: boolean }
   | { type: "SetSpeedLimitSign"; on: boolean }
-  | { type: "SetFaceMode"; mode: FaceMode };
+  | { type: "SetFaceMode"; mode: FaceMode }
+  | { type: "SetTimeSync"; auto: boolean; source: TimeSource };
 
 export interface PhoneNumber { number: string; label: string }
 export interface Contact { name: string; numbers: PhoneNumber[] }
@@ -194,6 +198,11 @@ interface Kotlin {
       homeApps(chosen: string, installed: string): string;
       homeAppsMax(): number;
       ownApps(): string;
+      timeZones(ids: string): string;
+      timeZoneSearch(ids: string, query: string): string;
+      timeZoneCity(id: string): string;
+      timeZoneRegion(id: string): string;
+      timeZoneOffset(minutes: number): string;
       callDuration(ms: number): string;
       clockText(hour: number, minute: number, h24: boolean): string;
       meridiem(hour: number): string;
@@ -276,6 +285,12 @@ export const bridge = {
   homeApps: (chosen: string[], installed: LaunchableApp[]): LaunchableApp[] => JSON.parse(K!.Bridge.homeApps(JSON.stringify(chosen), JSON.stringify(installed))),
   homeAppsMax: () => K!.Bridge.homeAppsMax(),
   ownApps: (): LaunchableApp[] => JSON.parse(K!.Bridge.ownApps()),
+  /** The zones named after a place, by city, and a search over them (core-car TimeZones). */
+  timeZones: (ids: string[]): string[] => JSON.parse(K!.Bridge.timeZones(JSON.stringify(ids))),
+  timeZoneSearch: (ids: string[], query: string): string[] => JSON.parse(K!.Bridge.timeZoneSearch(JSON.stringify(ids), query)),
+  timeZoneCity: (id: string) => K!.Bridge.timeZoneCity(id),
+  timeZoneRegion: (id: string) => K!.Bridge.timeZoneRegion(id),
+  timeZoneOffset: (minutes: number) => K!.Bridge.timeZoneOffset(minutes),
   callDuration: (ms: number) => K!.Bridge.callDuration(ms),
   /** The big clock's text on the 24- or 12-hour clock, and the half of the day beside a 12-hour one. */
   clockText: (hour: number, minute: number, h24: boolean) => K!.Bridge.clockText(hour, minute, h24),

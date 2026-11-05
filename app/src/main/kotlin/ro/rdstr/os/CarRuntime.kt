@@ -111,6 +111,10 @@ object CarRuntime {
     private val _shell = MutableStateFlow(ShellState())
     val shell: StateFlow<ShellState> = _shell
 
+    /** The clock's sync, the time set by hand and the time zone (Date & Time). */
+    lateinit var time: ro.rdstr.os.settings.TimeKeeper
+        private set
+
     /** Bluetooth, Wi-Fi and location, as the settings and the drawer switch them. */
     lateinit var radios: Radios
         private set
@@ -126,6 +130,7 @@ object CarRuntime {
         radios = Radios(app)
         prefs = context.getSharedPreferences("rdstr", Context.MODE_PRIVATE)
         _shell.value = Shell.decodePreferences(prefs.getString(SHELL_KEY, null))
+        time = ro.rdstr.os.settings.TimeKeeper(app).also { it.apply(_shell.value.autoTime, _shell.value.timeSource) }
         val header = "roadsterOS ${runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull()} " +
             "Android ${android.os.Build.VERSION.RELEASE} ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
         journal = ro.rdstr.os.settings.JournalRecorder(java.io.File(app.filesDir, "journal"), header).also {
@@ -174,6 +179,7 @@ object CarRuntime {
         _shell.value = after
         if (after.recordEvents) journal.write(JournalRecord(0, shell = action))
         if (after.recordEvents != before.recordEvents) journal.followLogs(after.recordEvents)
+        if (after.autoTime != before.autoTime || after.timeSource != before.timeSource) time.apply(after.autoTime, after.timeSource)
         if (Shell.preferences(after) != Shell.preferences(before)) {
             prefs.edit().putString(SHELL_KEY, Shell.encodePreferences(after)).apply()
             Log.i(Radios.TAG, "saved ${Shell.encodePreferences(after)}")
