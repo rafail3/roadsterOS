@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 import { carCommand, shellAction, useEmulator } from "../car/store";
-import { useDragScroll } from "./controls";
 
 const groupCode = (code: string) => `${code.slice(0, 3)} ${code.slice(3)}`;
 
@@ -132,7 +131,6 @@ export function DevicesSheet() {
   const open = shell.devices;
   const close = () => shellAction({ type: "CloseDevices" });
   const nearbyRef = useRef<HTMLElement>(null);
-  const scrollRef = useDragScroll<HTMLDivElement>();
   // a search or a pairing below the saved phones scrolls itself into view
   const scrollTo = (el: HTMLElement | null, block: ScrollLogicalPosition) =>
     el?.scrollIntoView({ block, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
@@ -172,7 +170,7 @@ export function DevicesSheet() {
             </div>
           </div>
         ) : (<>
-        <div className="devices-scroll" ref={scrollRef}>
+        <div className="devices-scroll">
           <ul className="devices-list" aria-label="Saved devices">
             {saved.map(({ name }) => (
               <SavedRow key={name} name={name} status={statusOf(name)} open={openRow === name} onOpen={setOpenRow} connectLocked={connecting !== null} />

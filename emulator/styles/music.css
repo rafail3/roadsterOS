@@ -180,12 +180,6 @@
 .saved-device.is-failed .device-status { color: #ff8a80; }
 .device-drop { flex: none; height: 56px; margin-right: 12px; padding: 0 20px; border-radius: 28px; font-size: 16px; font-weight: 600; color: #fff; background: rgba(255, 255, 255, 0.12); transition: background var(--fast); }
 .device-drop:active { background: rgba(255, 255, 255, 0.2); }
-@media (hover: hover) {
-  .devices-search:not(:disabled):hover { background: rgba(255, 255, 255, 0.14); }
-  .devices-answer:not(.is-primary):hover { background: rgba(255, 255, 255, 0.14); }
-  .device-main:not(:disabled):hover { background: rgba(255, 255, 255, 0.05); }
-  .device-drop:hover { background: rgba(255, 255, 255, 0.16); }
-}
 /* the status bar stays over the app; over the coloured backdrop it needs light ink */
 .screen:has(.music-app.is-open) .bar, .screen:has(.music-app.is-open) .bar-text, .screen:has(.music-app.is-open) #bar-theme { color: rgba(255, 255, 255, 0.86); }
 
@@ -214,7 +208,6 @@
 .music-volume-step { flex: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; color: inherit; transition: background var(--fast), color var(--fast); }
 .music-volume-step:active { background: rgba(255, 255, 255, 0.14); color: #fff; }
 .music-volume-step:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-@media (hover: hover) { .music-volume-step:hover { color: #fff; } }
 /* same glyph size as the mute key of the volume bar */
 .music-volume .icon { width: 28px; height: 28px; }
 .music-volume.is-muted .music-mute { color: var(--mute); }

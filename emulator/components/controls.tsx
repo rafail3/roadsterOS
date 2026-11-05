@@ -6,21 +6,30 @@ const REPEAT_MS = 210;
 // ponytail: one timer for the whole page, one finger holds one key at a time
 let repeatTimer: ReturnType<typeof setTimeout> | undefined;
 
-// A mouse drag scrolls a list as a finger does on the unit's touchscreen, then glides out after release.
-// Touch scrolls natively, so only the mouse is handled here.
+// The mouse stands in for a finger on the unit's touchscreen: a drag scrolls whatever list it starts on and glides
+// out after release, images are not dragged, and there is no context menu. Touch already behaves so natively.
 const SCROLL_INTENT_PX = 8;
 const GLIDE_DECAY = 0.94;
 const GLIDE_STOP = 0.2;
 
-export function useDragScroll<T extends HTMLElement>() {
+/** The nearest element between the press and the screen root that can scroll vertically right now. */
+function scrollerAt(from: EventTarget | null, root: HTMLElement): HTMLElement | null {
+  for (let el = from instanceof HTMLElement ? from : null; el && el !== root; el = el.parentElement) {
+    const { overflowY } = getComputedStyle(el);
+    if ((overflowY === "auto" || overflowY === "scroll") && el.scrollHeight > el.clientHeight) return el;
+  }
+  return null;
+}
+
+export function useFingerMouse<T extends HTMLElement>() {
   const ref = useRef<T>(null);
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    let drag: { x: number; y: number; top: number; vertical: boolean | null; lastY: number; lastT: number; speed: number; scale: number } | null = null;
+    const root = ref.current;
+    if (!root) return;
+    let drag: { el: HTMLElement; x: number; y: number; top: number; vertical: boolean | null; lastY: number; lastT: number; speed: number; scale: number } | null = null;
     let frame = 0;
     let swallow = false;
-    const glide = (speed: number) => {
+    const glide = (el: HTMLElement, speed: number) => {
       // speed in list pixels per frame, slowing a little each frame until it settles
       const step = () => {
         el.scrollTop -= speed;
@@ -33,7 +42,8 @@ export function useDragScroll<T extends HTMLElement>() {
       if (e.pointerType !== "mouse" || e.button !== 0) return;
       cancelAnimationFrame(frame);
       swallow = false;
-      drag = { x: e.clientX, y: e.clientY, top: el.scrollTop, vertical: null, lastY: e.clientY, lastT: e.timeStamp, speed: 0, scale: el.getBoundingClientRect().height / el.offsetHeight || 1 };
+      const el = scrollerAt(e.target, root);
+      drag = el && { el, x: e.clientX, y: e.clientY, top: el.scrollTop, vertical: null, lastY: e.clientY, lastT: e.timeStamp, speed: 0, scale: el.getBoundingClientRect().height / el.offsetHeight || 1 };
     };
     const move = (e: globalThis.PointerEvent) => {
       if (!drag) return;
@@ -45,7 +55,7 @@ export function useDragScroll<T extends HTMLElement>() {
         else if (Math.abs(dx) > SCROLL_INTENT_PX) drag.vertical = false;
       }
       if (!drag.vertical) return;
-      el.scrollTop = drag.top - dy / drag.scale;
+      drag.el.scrollTop = drag.top - dy / drag.scale;
       const dt = Math.max(1, e.timeStamp - drag.lastT);
       drag.speed = ((e.clientY - drag.lastY) / drag.scale / dt) * 16;
       drag.lastY = e.clientY;
@@ -54,26 +64,31 @@ export function useDragScroll<T extends HTMLElement>() {
     const up = () => {
       if (drag?.vertical) {
         swallow = true;
-        glide(drag.speed);
+        glide(drag.el, drag.speed);
       }
       drag = null;
     };
-    // the click at the end of a scroll drag is not a tap on the row under the pointer
+    // the click at the end of a scroll drag is not a tap on what lies under the pointer
     const click = (e: globalThis.MouseEvent) => {
       if (!swallow) return;
       swallow = false;
       e.preventDefault();
       e.stopPropagation();
     };
-    el.addEventListener("pointerdown", down);
-    el.addEventListener("click", click, true);
+    const block = (e: Event) => e.preventDefault();
+    root.addEventListener("pointerdown", down);
+    root.addEventListener("click", click, true);
+    root.addEventListener("dragstart", block);
+    root.addEventListener("contextmenu", block);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", up);
     return () => {
       cancelAnimationFrame(frame);
-      el.removeEventListener("pointerdown", down);
-      el.removeEventListener("click", click, true);
+      root.removeEventListener("pointerdown", down);
+      root.removeEventListener("click", click, true);
+      root.removeEventListener("dragstart", block);
+      root.removeEventListener("contextmenu", block);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);

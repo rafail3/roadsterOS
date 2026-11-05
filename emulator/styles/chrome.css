@@ -151,3 +151,6 @@
 @media (prefers-reduced-motion: reduce) {
   .button, .switch input, .switch input::after, .segmented button, .section .icon { transition-duration: 0.01ms; }
 }
+
+/* over the head unit the mouse is a finger: a touch dot instead of an arrow or a hand */
+.device .screen, .device .screen * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Ccircle cx='14' cy='14' r='11' fill='rgba(255,255,255,0.28)' stroke='rgba(255,255,255,0.75)' stroke-width='1.5'/%3E%3C/svg%3E") 14 14, auto !important; }
