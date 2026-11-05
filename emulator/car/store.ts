@@ -35,6 +35,9 @@ export interface EmulatorState {
   pairing: { name: string; code: string; confirmed?: boolean } | null;
   /** the music playing on this laptop stands in for the phone: its track, cover, playback and controls */
   pcMedia: boolean;
+  /** the unit's radios, switched from the drawer; both on at every start, as the unit comes up */
+  btOn: boolean;
+  wifiOn: boolean;
   acc: boolean;
   /** null = live clock, otherwise a simulated hour 0..23 */
   hour: number | null;
@@ -155,6 +158,16 @@ function fromLaptop(line: string) {
   if (m.type === "track" && m.title) carEvent({ type: "Track", title: m.title, artist: m.artist ?? "", album: m.album ?? "", durationMs: m.durationMs ?? 0 });
   if (m.type === "cover" && m.title && m.url) covers.fromSource(m.title, m.artist ?? (state.track.title === m.title ? state.track.artist : ""), m.url);
   if (m.type === "playback") carEvent({ type: "Playback", playing: Boolean(m.playing), positionMs: m.positionMs ?? 0 });
+}
+
+/** Bluetooth off drops the connected phone, as on the unit; on again, a saved phone reconnects on its own later. */
+export function setBluetooth(on: boolean) {
+  if (!on && state.car.btConnected) carEvent({ type: "BtConnection", connected: false, device: state.device });
+  set({ btOn: on });
+}
+
+export function setWifi(on: boolean) {
+  set({ wifiOn: on });
 }
 
 /** Turn the laptop source on or off; off leaves the last track on screen as the phone would after a disconnect. */
@@ -371,6 +384,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     nearby: [],
     pairing: null,
     pcMedia: false,
+    btOn: true,
+    wifiOn: true,
     acc: true,
     hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : null,
     log: [],

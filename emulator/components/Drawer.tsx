@@ -1,6 +1,6 @@
 import { useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from "react";
 import { bridge } from "../car/bridge";
-import { carCommand, carEvent, setVolume, shellAction, type EmulatorState } from "../car/store";
+import { carCommand, setBluetooth, setVolume, setWifi, shellAction, type EmulatorState } from "../car/store";
 import { useMuteFill } from "./VolumeHud";
 
 const THEME_LABEL = { AUTO: "Auto", LIGHT: "Day", DARK: "Night" };
@@ -39,6 +39,19 @@ export function useDrawerDrag(drawer: RefObject<HTMLElement | null>) {
   };
 
   return { dragging, onPointerDown };
+}
+
+/** A quick toggle: an icon disc, its name and its state; the disc takes the function's colour while on. */
+function Toggle({ kind, on, icon, title, state, onClick }: { kind: string; on: boolean; icon: string; title: string; state: string; onClick: () => void }) {
+  return (
+    <button className={`toggle toggle-${kind}${on ? " is-on" : ""}`} aria-pressed={on} onClick={onClick}>
+      <span className="toggle-disc"><span className={`icon ${icon}`} aria-hidden="true" /></span>
+      <span className="toggle-text">
+        <span className="toggle-title">{title}</span>
+        <span className="toggle-state">{state}</span>
+      </span>
+    </button>
+  );
 }
 
 const BRIGHTNESS_KEY_STEP = 5;
@@ -106,16 +119,10 @@ export function Drawer({ emulator, panel, dragging }: { emulator: EmulatorState;
       inert={!open && !dragging}
     >
       <div className="drawer-grid">
-        <button className={`toggle toggle-bt${car.btConnected ? " is-on" : ""}`} aria-label="Bluetooth" aria-pressed={car.btConnected} onClick={() => carEvent({ type: "BtConnection", connected: !car.btConnected, device: "Phone" })}>
-          <span className="icon i-bluetooth" aria-hidden="true" />
-        </button>
-        <button className="toggle toggle-wifi is-on" aria-label="Wi-Fi" aria-pressed="true"><span className="icon i-wifi-high" aria-hidden="true" /></button>
-        <button className={`toggle toggle-mute${car.muted ? " is-on" : ""}`} aria-label="Mute" aria-pressed={car.muted} onClick={() => carCommand({ type: "Audio.Mute", on: !car.muted })}>
-          <span className="icon i-speaker-slash-fill" aria-hidden="true" />
-        </button>
-        <button className={`toggle toggle-theme${shell.theme === "AUTO" ? " is-on" : ""}`} aria-label={`Theme: ${THEME_LABEL[shell.theme]}, tap to change`} onClick={() => shellAction({ type: "CycleTheme" })}>
-          <span className={`icon ${THEME_ICON[shell.theme]}`} aria-hidden="true" />
-        </button>
+        <Toggle kind="bt" on={emulator.btOn} icon="i-bluetooth" title="Bluetooth" state={!emulator.btOn ? "Off" : car.btConnected ? emulator.device : "On"} onClick={() => setBluetooth(!emulator.btOn)} />
+        <Toggle kind="wifi" on={emulator.wifiOn} icon="i-wifi-high" title="Wi-Fi" state={emulator.wifiOn ? "On" : "Off"} onClick={() => setWifi(!emulator.wifiOn)} />
+        <Toggle kind="mute" on={car.muted} icon="i-speaker-slash-fill" title="Mute" state={car.muted ? "On" : "Off"} onClick={() => carCommand({ type: "Audio.Mute", on: !car.muted })} />
+        <Toggle kind="theme" on={shell.theme === "AUTO"} icon={THEME_ICON[shell.theme]} title="Theme" state={THEME_LABEL[shell.theme]} onClick={() => shellAction({ type: "CycleTheme" })} />
       </div>
       <PillSlider
         className="slider-light"
