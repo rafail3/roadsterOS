@@ -8,6 +8,7 @@ import { shellAction, type EmulatorState } from "../car/store";
 const APP_META: Record<Exclude<App, "HOME">, { label: string; icon: string }> = {
   MUSIC: { label: "Music", icon: "i-music-notes" },
   RADIO: { label: "Radio", icon: "i-radio" },
+  MAPS: { label: "Maps", icon: "i-navigation-arrow" },
 };
 /** A card pushed up past this many pixels, or flicked up, is closed. */
 const CLOSE_DISTANCE = 120;
@@ -27,6 +28,17 @@ function Preview({ app, emulator }: { app: App; emulator: EmulatorState }) {
         <span className="recents-preview-meta">
           <span className="recents-preview-title">{track.title}</span>
           <span className="recents-preview-sub">{track.artist}</span>
+        </span>
+      </span>
+    );
+  }
+  if (app === "MAPS") {
+    return (
+      <span className="recents-preview recents-preview-maps">
+        <span className="recents-preview-map"><span className="icon i-navigation-arrow-fill" /></span>
+        <span className="recents-preview-meta">
+          <span className="recents-preview-title">Maps</span>
+          <span className="recents-preview-sub">{emulator.driving ? `${Math.round(emulator.gps.kmh)} km/h` : "Offline map"}</span>
         </span>
       </span>
     );

@@ -4,6 +4,9 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { createCoverDesk } from "./covers";
 import { bridge, type Band, type CarCommand, type CarEvent, type CarState, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
 import { BANDS, STATIONS, stationAt } from "./radio";
+import { PACK_MB } from "./mapStyle";
+import { GPS_PLACES } from "./gps";
+export { GPS_PLACES };
 
 export interface LogEntry {
   id: number;
@@ -28,6 +31,13 @@ export interface EmulatorState {
   favorites: number[];
   /** a scan running, at this frequency now */
   radioScan: number | null;
+  /** the car's position from GPS, its heading in degrees from north, its speed */
+  gps: { lon: number; lat: number; heading: number; kmh: number };
+  driving: boolean;
+  /** the country under the car, by ISO code; empty outside every known border or before the borders load */
+  country: string;
+  /** offline map packs: on the unit, the one downloading, and the offers turned down this trip */
+  maps: { installed: string[]; downloading: { code: string; progress: number } | null; declined: string[] };
   call: { name: string; number: string };
   /** the phone Bluetooth reports as connected */
   device: string;
@@ -382,6 +392,72 @@ function scanBand() {
   }, (ticks + 1) * TICK_MS));
 }
 
+// ----- GPS and offline maps -----
+
+const DRIVE_TICK_MS = 250;
+const KM_PER_DEG = 111.32;
+/** The simulated download rate, MB per second, while Wi-Fi is connected. */
+const DOWNLOAD_MBPS = 30;
+let driveTimer: ReturnType<typeof setInterval> | undefined;
+let downloadTimer: ReturnType<typeof setInterval> | undefined;
+
+/** The borders load once; from then on every position is placed in its country. */
+let bordersReady = false;
+fetch("/maps/countries.geojson").then((r) => r.text()).then((geojson) => {
+  bridge.loadBorders(geojson);
+  bordersReady = true;
+  setPosition(state.gps);
+}).catch(() => {});
+
+export function setPosition(gps: Partial<EmulatorState["gps"]>) {
+  const next = { ...state.gps, ...gps };
+  set({ gps: next, country: bordersReady ? bridge.countryAt(next.lon, next.lat) : state.country });
+}
+
+/** Drive straight along the heading at the set speed. */
+export function setDriving(on: boolean, kmh = state.gps.kmh || 90) {
+  clearInterval(driveTimer);
+  // the chosen speed stays set while parked, for the next drive
+  set({ driving: on, gps: { ...state.gps, kmh } });
+  if (!on) return;
+  driveTimer = setInterval(() => {
+    const { lon, lat, heading, kmh: speed } = state.gps;
+    const km = (speed * DRIVE_TICK_MS) / 3_600_000;
+    const rad = (heading * Math.PI) / 180;
+    setPosition({ lat: lat + (km * Math.cos(rad)) / KM_PER_DEG, lon: lon + (km * Math.sin(rad)) / (KM_PER_DEG * Math.cos((lat * Math.PI) / 180)) });
+  }, DRIVE_TICK_MS);
+}
+
+/** What the screen offers for the country under the car: its pack, or Wi-Fi first. */
+export function mapOffer(s: EmulatorState) {
+  if (!s.country || s.maps.declined.includes(s.country) || s.maps.downloading?.code === s.country) return "NONE";
+  return bridge.mapOffer(s.country, s.maps.installed, s.wifi.connected !== null);
+}
+
+/** A pack downloads only over Wi-Fi: it waits while the unit is off Wi-Fi and goes on when it joins again. */
+export function downloadPack(code: string) {
+  clearInterval(downloadTimer);
+  set({ maps: { ...state.maps, downloading: { code, progress: 0 } } });
+  const perTick = (DOWNLOAD_MBPS * DRIVE_TICK_MS) / 1000 / (PACK_MB[code] ?? 100);
+  downloadTimer = setInterval(() => {
+    const d = state.maps.downloading;
+    if (!d || state.wifi.connected === null) return;
+    const progress = Math.min(1, d.progress + perTick);
+    if (progress < 1) return set({ maps: { ...state.maps, downloading: { code, progress } } });
+    clearInterval(downloadTimer);
+    set({ maps: { ...state.maps, downloading: null, installed: [...state.maps.installed, code] } });
+  }, DRIVE_TICK_MS);
+}
+
+export function declinePack(code: string) {
+  set({ maps: { ...state.maps, declined: [...state.maps.declined, code] } });
+}
+
+/** Remove a pack from the unit, as from the maps settings; Romania can go too. */
+export function removePack(code: string) {
+  set({ maps: { ...state.maps, installed: state.maps.installed.filter((c) => c !== code), declined: state.maps.declined.filter((c) => c !== code) } });
+}
+
 /** Star or unstar a station in our radio app. */
 export function toggleFavorite(khz: number) {
   set({ favorites: state.favorites.includes(khz) ? state.favorites.filter((f) => f !== khz) : [...state.favorites, khz].sort((a, b) => a - b) });
@@ -536,6 +612,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   if (q.has("analog")) shell = bridge.shell(shell, { type: "SetFace", face: "ANALOG" });
   if (q.get("app") === "music") shell = bridge.shell(shell, { type: "OpenApp", app: "MUSIC" });
   if (q.get("app") === "radio") shell = bridge.shell(shell, { type: "OpenApp", app: "RADIO" });
+  if (q.get("app") === "maps") shell = bridge.shell(shell, { type: "OpenApp", app: "MAPS" });
   if (q.has("devices")) shell = bridge.shell(shell, { type: "OpenDevices" });
   const font = q.get("font");
   if (font) shell = bridge.shell(shell, { type: "SetFont", name: font });
@@ -567,6 +644,10 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     stations: { FM: STATIONS.filter((s) => s.band === "FM").map((s) => s.khz), AM: STATIONS.filter((s) => s.band === "AM").map((s) => s.khz) },
     favorites: [89200, 91400, 101900],
     radioScan: null,
+    gps: GPS_PLACES[0],
+    driving: false,
+    country: "",
+    maps: { installed: ["RO"], downloading: null, declined: [] },
     call: CALLER,
     device: "Phone",
     saved: [{ name: "Phone", inRange: true }, { name: "Work phone", inRange: false }, { name: "Tablet", inRange: true }],

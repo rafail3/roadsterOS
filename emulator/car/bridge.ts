@@ -7,7 +7,7 @@ export type Face = "DIGITAL" | "ANALOG";
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";
 export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
 export type Band = "FM" | "AM";
-export type App = "HOME" | "MUSIC" | "RADIO";
+export type App = "HOME" | "MUSIC" | "RADIO" | "MAPS";
 
 export interface CarState {
   source: Source;
@@ -100,6 +100,9 @@ interface Kotlin {
       stockCover(title: string, artist: string, count: number): number;
       sharpPx(): number;
       ptyName(code: number): string;
+      loadBorders(geojson: string): void;
+      countryAt(lon: number, lat: number): string;
+      mapOffer(country: string, installed: string, wifi: boolean): string;
     };
 }
 
@@ -123,6 +126,9 @@ export const bridge = {
     JSON.parse(K!.Bridge.shell(JSON.stringify(state), JSON.stringify(action))),
   maxVolume: () => K!.Bridge.maxVolume(),
   ptyName: (code: number): string => K!.Bridge.ptyName(code),
+  loadBorders: (geojson: string) => K!.Bridge.loadBorders(geojson),
+  countryAt: (lon: number, lat: number): string => K!.Bridge.countryAt(lon, lat),
+  mapOffer: (country: string, installed: string[], wifi: boolean) => K!.Bridge.mapOffer(country, JSON.stringify(installed), wifi) as "NONE" | "DOWNLOAD" | "NEEDS_WIFI",
   coverColors: (pixels: number[], width: number): { top: string; bottom: string } => JSON.parse(K!.Bridge.coverColors(JSON.stringify(pixels), width)),
   setVolume: (state: CarState, level: number): CarCommand[] => JSON.parse(K!.Bridge.setVolume(JSON.stringify(state), level)),
   effectiveTheme: (state: ShellState, hour: number) => K!.Bridge.effectiveTheme(JSON.stringify(state), hour),

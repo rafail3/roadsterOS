@@ -9,6 +9,8 @@ import { VolumeHud } from "./VolumeHud";
 import { ConnectionNotice } from "./ConnectionNotice";
 import { MusicApp } from "./MusicApp";
 import { RadioApp } from "./RadioApp";
+import { MapsApp } from "./MapsApp";
+import { MapOffer } from "./MapOffer";
 import { DevicesSheet } from "./DevicesSheet";
 import { NetworksSheet } from "./NetworksSheet";
 import { LocationPrompt } from "./LocationPrompt";
@@ -89,6 +91,7 @@ function pressRail(id: string, cameraOn: boolean) {
     carCommand({ type: "Audio.Source", source: "RADIO" });
     shellAction({ type: "OpenApp", app: "RADIO" });
   }
+  if (id === "maps") shellAction({ type: "OpenApp", app: "MAPS" });
   if (id === "camera") carEvent({ type: "ReverseGear", on: !cameraOn });
 }
 
@@ -125,7 +128,7 @@ export function Screen() {
   }, [car.camera]);
 
   return (
-    <div ref={finger} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming", inApp && "in-app", waking && "waking")} style={{ ...glow, ...boost }}>
+    <div ref={finger} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming", inApp && "in-app", shell.app === "MAPS" && "in-maps", waking && "waking")} style={{ ...glow, ...boost }}>
       <div className="ambient" aria-hidden="true" />
 
       <header className="bar" inert={covered} onPointerDown={onPointerDown}>
@@ -184,6 +187,7 @@ export function Screen() {
 
       <MusicApp open={shell.app === "MUSIC"} />
       <RadioApp open={shell.app === "RADIO"} />
+      <MapsApp open={shell.app === "MAPS"} light={light} />
       {/* over any screen: opened from the music app or by a long press on the drawer's Bluetooth */}
       <DevicesSheet />
       <NetworksSheet />
@@ -207,6 +211,7 @@ export function Screen() {
         </svg>
       ))}
       <ConnectionNotice notice={emulator.notice} hidden={car.call !== "IDLE" || car.camera} />
+      <MapOffer hidden={car.call !== "IDLE" || car.camera || shell.drawer} />
       <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC" || shell.drawer} />
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.dark.toFixed(3) }} />
       {/* always there: it fades in to switch the screen off and lifts to switch it on; a tap on it wakes the screen */}
