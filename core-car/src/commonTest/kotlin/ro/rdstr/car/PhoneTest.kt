@@ -140,6 +140,7 @@ class PhoneTest {
         val s = RulesState(call = State.ACTIVE)
         assertEquals(s to emptyList(), Rules.apply(s, CarEvent.VoiceAssistant(true)))
         assertEquals(s to emptyList(), Rules.apply(s, CarEvent.Message("x", "0721", "hi")))
+        assertEquals(s to emptyList(), Rules.apply(s, CarEvent.MessageSupport(false)))
     }
 
     @Test

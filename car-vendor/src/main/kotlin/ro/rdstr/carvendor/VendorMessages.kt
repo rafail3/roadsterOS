@@ -8,6 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -24,12 +26,20 @@ class VendorMessages(private val context: Context) {
     private val _events = MutableSharedFlow<CarEvent>(extraBufferCapacity = 16)
     val events: Flow<CarEvent> = _events
     private var proxy: BluetoothProfile? = null
+    private val main = Handler(Looper.getMainLooper())
+    /** A stack without the MAP client never answers the request; after this long the unit takes it as missing. */
+    private val missing = Runnable {
+        Log.i(TAG, "map client not on this unit")
+        _events.tryEmit(CarEvent.MessageSupport(false))
+    }
 
     fun start() {
         val adapter = BluetoothAdapter.getDefaultAdapter() ?: return
         val asked = adapter.getProfileProxy(context, object : BluetoothProfile.ServiceListener {
             override fun onServiceConnected(profile: Int, p: BluetoothProfile) {
                 proxy = p
+                main.removeCallbacks(missing)
+                _events.tryEmit(CarEvent.MessageSupport(true))
                 Log.i(TAG, "map proxy ready, linked=${p.connectedDevices.isNotEmpty()}")
                 // the messages not read yet come in as the same broadcasts as new ones
                 p.connectedDevices.firstOrNull()?.let { Log.i(TAG, "unread -> ${invoke("getUnreadMessages", it)}") }
@@ -38,6 +48,7 @@ class VendorMessages(private val context: Context) {
             override fun onServiceDisconnected(profile: Int) { proxy = null }
         }, Messages.PROFILE)
         Log.i(TAG, "map client asked -> $asked")
+        if (asked) main.postDelayed(missing, ANSWER_MS) else _events.tryEmit(CarEvent.MessageSupport(false))
         context.registerReceiver(receiver, IntentFilter(Messages.ACTION_MESSAGE_RECEIVED))
     }
 
@@ -66,5 +77,8 @@ class VendorMessages(private val context: Context) {
         return runCatching { method.invoke(p, *args) }.onFailure { Log.w(TAG, "$name failed", it) }.getOrNull()
     }
 
-    private companion object { const val TAG = "rdstr.phone" }
+    private companion object {
+        const val TAG = "rdstr.phone"
+        const val ANSWER_MS = 10_000L
+    }
 }

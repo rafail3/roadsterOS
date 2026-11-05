@@ -59,6 +59,7 @@ class UiStateTest {
         ui = ui.reduce(RulesState(), emptyList(), CarEvent.Message("s", "0721", "OK", sent = true))
         assertEquals(2, ui.messages.size)
         assertEquals(setOf("s"), ui.read)
+        assertEquals(false, ui.reduce(RulesState(), emptyList(), CarEvent.MessageSupport(false)).messagesSupported)
     }
 
     @Test

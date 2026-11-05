@@ -217,6 +217,16 @@ function Messages({ emulator, compose }: { emulator: EmulatorState; compose: Com
   const replies = useMemo(() => bridge.quickReplies(), []);
   useEffect(() => { if (open?.unread) markRead(open.messages.filter((m) => !m.sent).map((m) => m.id)); }, [open]);
 
+  // a unit whose Bluetooth stack has no message client: say so rather than show an empty list
+  if (!emulator.messagesSupported) {
+    return (
+      <div className="phone-unsupported" role="note">
+        <span className="music-nophone-icon" aria-hidden="true"><span className="icon i-chat-circle-text-fill" /></span>
+        <h2>Messages are not available on this unit</h2>
+        <p>Its Bluetooth cannot receive or send text messages. Calls, contacts and recent calls work as usual.</p>
+      </div>
+    );
+  }
   if (!open) {
     if (!threads.length) return <p className="phone-empty">Messages to {emulator.device} show here while it is connected.</p>;
     return (
@@ -279,6 +289,14 @@ function threadNumber(e: EmulatorState): string {
   return [...(thread?.messages ?? [])].reverse().find((m) => !m.sent)?.number ?? e.thread ?? "";
 }
 
+/** Unread messages across the threads; none on a unit that cannot carry messages. */
+export function useUnread(e: EmulatorState) {
+  return useMemo(
+    () => (e.messagesSupported ? bridge.conversations(e.messages, e.read, e.contacts).reduce((n, t) => n + t.unread, 0) : 0),
+    [e.messages, e.read, e.contacts, e.messagesSupported],
+  );
+}
+
 function BluetoothOff({ turningOn }: { turningOn: boolean }) {
   return (
     <div className="music-nophone" aria-live="polite">
@@ -315,7 +333,7 @@ export function PhoneApp({ open }: { open: boolean }) {
   useEffect(() => { if (tab !== "contacts" || !open) setTyping(false); }, [tab, open]);
   const typingLocked = emulator.shell.lockTypingWhileMoving && !emulator.speed.stopped;
   useEffect(() => { if (tab !== "messages" || !open || !emulator.thread || typingLocked) setWriting(false); }, [tab, open, emulator.thread, typingLocked]);
-  const unread = useMemo(() => bridge.conversations(emulator.messages, emulator.read, emulator.contacts).reduce((n, t) => n + t.unread, 0), [emulator.messages, emulator.read, emulator.contacts]);
+  const unread = useUnread(emulator);
   // a tap on a message banner opens its thread here
   useEffect(() => { if (emulator.thread) setTab("messages"); }, [emulator.thread]);
 

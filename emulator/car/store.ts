@@ -51,6 +51,8 @@ export interface EmulatorState {
   read: string[];
   thread: string | null;
   newMessage: Message | null;
+  /** the unit's Bluetooth stack carries text messages (MAP client on); many units have it off */
+  messagesSupported: boolean;
   /** the phone book and history the connected phone shared (PBAP) */
   contacts: Contact[];
   calls: CallRecord[];
@@ -224,6 +226,8 @@ function displayData(event: CarEvent): Partial<EmulatorState> {
     }
     case "VoiceAssistant":
       return { voiceAssistant: event.active };
+    case "MessageSupport":
+      return { messagesSupported: event.available };
     case "Message": {
       const { type: _type, ...message } = event;
       return { messages: [...state.messages, message], newMessage: message.sent ? state.newMessage : message, read: message.sent ? [...state.read, message.id] : state.read };
@@ -718,7 +722,7 @@ export function remoteHangUp() {
 
 /** A text message reaches the phone, as the control panel sends one. */
 export function incomingMessage(number: string, text: string) {
-  if (!state.car.hfpConnected) return;
+  if (!state.car.hfpConnected || !state.messagesSupported) return;
   carEvent({ type: "Message", id: `m-${Date.now()}`, number, text, atMs: Date.now() });
 }
 
@@ -881,6 +885,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     read: ["m-1", "m-3"],
     thread: null,
     newMessage: null,
+    // ?nomap: a unit whose Bluetooth stack has no message client
+    messagesSupported: !q.has("nomap"),
     device: SAMPLE_PHONE,
     // the names phones give themselves in their Bluetooth settings
     saved: [{ name: SAMPLE_PHONE, inRange: true, major: MAJOR_PHONE }, { name: "Galaxy S23", inRange: false, major: MAJOR_PHONE }, { name: "Galaxy Tab S9", inRange: true, major: MAJOR_COMPUTER }],

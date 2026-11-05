@@ -93,7 +93,7 @@ function Wifi() {
 
 /** The phone's side of a call: it rings the unit, the other side hangs up, its battery and signal change. */
 function Phone() {
-  const { car, phoneStatus } = useEmulator();
+  const { car, phoneStatus, messagesSupported } = useEmulator();
   const [number, setNumber] = useState(SAMPLE_CALLERS[0].number);
   const [text, setText] = useState("Are you close?");
   const idle = car.call === "IDLE";
@@ -111,6 +111,7 @@ function Phone() {
       <Row label={`Signal ${phoneStatus.signal}/5`}>
         <input type="range" min="0" max="5" value={phoneStatus.signal} onChange={(e) => setPhoneStatus({ signal: Number(e.target.value) })} />
       </Row>
+      <Switch label="Unit supports messages (MAP)" checked={messagesSupported} onChange={(available) => carEvent({ type: "MessageSupport", available })} />
       <Field label="Message" value={text} onChange={setText} />
       <button className="button" disabled={!car.hfpConnected} onClick={() => incomingMessage(number, text)}>Send a text from the caller</button>
       <Field label="Network" value={phoneStatus.operator} onChange={(operator) => setPhoneStatus({ operator })} />
