@@ -6,7 +6,7 @@ import { carEvent, pressKey, useEmulator } from "../car/store";
 import { ControlPanel } from "./ControlPanel";
 import { Inspector } from "./Inspector";
 import { Screen } from "./Screen";
-import { holdToRepeat, Segmented } from "./controls";
+import { holdToRepeat, Segmented, useFingerMouse } from "./controls";
 
 /** The screen plus its bezel, unscaled. */
 const FRAME = { width: 1154, height: 676 };
@@ -42,8 +42,10 @@ const PANEL_KEYS: { key: PanelKey; label: string; icon: string; sign?: string }[
 
 /** The frame's left edge: microphone and reset pinholes, then the five touch keys. */
 function FrameKeys() {
+  // the frame's keys are touch keys too: the mouse acts as a finger here as on the screen
+  const finger = useFingerMouse<HTMLDivElement>();
   return (
-    <div className="frame-keys">
+    <div className="frame-keys" ref={finger}>
       <span className="pinhole pinhole-mic"><i aria-hidden="true" />MIC</span>
       <button className="pinhole pinhole-rst" aria-label="Reset, reloads the emulator" onClick={() => location.reload()}><i aria-hidden="true" />RST</button>
       {PANEL_KEYS.map(({ key, label, icon, sign }) => {
@@ -84,7 +86,7 @@ function Stage({ fit }: { fit: boolean }) {
   return (
     <main className="stage" ref={stage}>
       <div className="frame" style={{ width: FRAME.width * scale, height: FRAME.height * scale }}>
-        <div className="bezel" style={{ transform: `scale(${scale})` }}>
+        <div className="bezel" style={{ transform: `scale(${scale})` }} onContextMenu={(e) => e.preventDefault()} onDragStart={(e) => e.preventDefault()}>
           <FrameKeys />
           <section className="device" aria-label="Head unit, 1024 by 600"><Screen /></section>
         </div>
