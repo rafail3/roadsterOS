@@ -48,6 +48,9 @@
   --accent-line: rgba(159, 211, 255, 0.35);
   --danger: #ff7a7a;
   --mute: #ff453a;
+  /* on-state fills of the quick toggles, one per function */
+  --on-blue: #0a84ff;
+  --on-indigo: #5e5ce6;
   --danger-ink: #1c0606;
 
   /* type */
@@ -109,5 +112,7 @@
   --accent-line: rgba(29, 111, 181, 0.35);
   --danger: #d8393f;
   --mute: #ff3b30;
+  --on-blue: #007aff;
+  --on-indigo: #5856d6;
   --danger-ink: #ffffff;
 }

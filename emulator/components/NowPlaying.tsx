@@ -1,8 +1,21 @@
 import { useState } from "react";
-import { carCommand, shellAction, type EmulatorState } from "../car/store";
+import { carCommand, setBluetooth, shellAction, type EmulatorState } from "../car/store";
 import { Marquee, Progress, time, TransportRow, useCrossfade, usePosition } from "./media";
 
 const PRESETS = [1, 2, 3, 4, 5, 6];
+
+/** Bluetooth is the source but no phone is connected: nothing to play, one way to a phone. */
+function NoPhone() {
+  return (
+    <div className="np np-empty">
+      <p className="np-title">No phone connected</p>
+      <p className="np-artist">Connect a phone to play its music</p>
+      <div className="controls">
+        <button className="ctl ctl-wide" onClick={() => shellAction({ type: "OpenDevices" })}><span className="icon i-bluetooth" /><span>Connect</span></button>
+      </div>
+    </div>
+  );
+}
 
 function Bluetooth({ emulator }: { emulator: EmulatorState }) {
   const { car, track } = emulator;
@@ -71,7 +84,8 @@ function NoSource() {
       <p className="np-title">No source</p>
       <p className="np-artist">Connect a phone or choose Radio</p>
       <div className="controls">
-        <button className="ctl ctl-wide" onClick={() => carCommand({ type: "Audio.Source", source: "BT" })}><span className="icon i-bluetooth" /><span>Bluetooth</span></button>
+        {/* choosing Bluetooth switches it on first when it was off */}
+        <button className="ctl ctl-wide" onClick={() => { setBluetooth(true); carCommand({ type: "Audio.Source", source: "BT" }); }}><span className="icon i-bluetooth" /><span>Bluetooth</span></button>
         <button className="ctl ctl-wide" onClick={() => carCommand({ type: "Audio.Source", source: "RADIO" })}><span className="icon i-radio" /><span>Radio</span></button>
       </div>
     </div>
@@ -80,7 +94,7 @@ function NoSource() {
 
 export function NowPlaying({ emulator }: { emulator: EmulatorState }) {
   const { source } = emulator.car;
-  if (source === "BT") return <Bluetooth emulator={emulator} />;
+  if (source === "BT") return emulator.car.btConnected ? <Bluetooth emulator={emulator} /> : <NoPhone />;
   if (source === "RADIO") return <Radio emulator={emulator} />;
   return <NoSource />;
 }

@@ -75,6 +75,26 @@ class ShellTest {
     }
 
     @Test
+    fun `the networks sheet opens from the drawer, shuts the devices sheet, and back or home closes it`() {
+        val open = Shell.reduce(ShellState(drawer = true, devices = true), ShellAction.OpenNetworks)
+        assertTrue(open.networks)
+        assertFalse(open.drawer)
+        assertFalse(open.devices)
+        assertFalse(Shell.reduce(open, ShellAction.Back).networks)
+        assertFalse(Shell.reduce(open, ShellAction.Home).networks)
+        assertFalse(Shell.reduce(open, ShellAction.OpenDevices).networks)
+    }
+
+    @Test
+    fun `the screen sleeps with the car and wakes again`() {
+        val asleep = Shell.reduce(ShellState(drawer = true), ShellAction.Sleep)
+        assertFalse(asleep.screenOn)
+        assertFalse(asleep.drawer)
+        assertTrue(Shell.reduce(asleep, ShellAction.Wake).screenOn)
+        assertFalse(Shell.reduce(ShellState(), ShellAction.ToggleScreen).screenOn)
+    }
+
+    @Test
     fun `back closes the drawer before the devices sheet`() {
         val both = ShellState(app = App.MUSIC, devices = true, drawer = true)
         val once = Shell.reduce(both, ShellAction.Back)
@@ -101,9 +121,83 @@ class ShellTest {
         assertEquals(Face.ANALOG, Shell.reduce(ShellState(), ShellAction.ToggleFace).face)
         assertEquals(Face.DIGITAL, Shell.reduce(ShellState(face = Face.ANALOG), ShellAction.ToggleFace).face)
         assertEquals(10, Shell.reduce(ShellState(), ShellAction.SetBrightness(0)).brightness)
-        assertEquals(100, Shell.reduce(ShellState(), ShellAction.SetBrightness(140)).brightness)
-        assertEquals(40, Shell.reduce(ShellState(), ShellAction.Headlights(true)).brightness)
-        assertEquals(100, Shell.reduce(ShellState(brightness = 40), ShellAction.Headlights(false)).brightness)
+        assertEquals(140, Shell.reduce(ShellState(), ShellAction.SetBrightness(140)).brightness)
+        assertEquals(150, Shell.reduce(ShellState(), ShellAction.SetBrightness(200)).brightness)
         assertEquals("inter", Shell.reduce(ShellState(), ShellAction.SetFont("inter")).font)
+    }
+
+    @Test
+    fun `headlights dim the auto theme and leave the slider alone`() {
+        val auto = ShellState(theme = ThemeMode.AUTO, brightness = 50)
+        val lit = Shell.reduce(auto, ShellAction.Headlights(true))
+        assertEquals(50, lit.brightness)
+        assertEquals(40, Shell.effectiveBrightness(lit))
+        assertEquals(50, Shell.effectiveBrightness(Shell.reduce(lit, ShellAction.Headlights(false))))
+        assertEquals(50, Shell.effectiveBrightness(Shell.reduce(ShellState(theme = ThemeMode.DARK, brightness = 50), ShellAction.Headlights(true))))
+        assertEquals(100, Shell.effectiveBrightness(Shell.reduce(ShellState(), ShellAction.Headlights(true))))
+    }
+
+    @Test
+    fun `the veil darkens below neutral and boosts colours above it`() {
+        assertEquals(Veil(dark = 0.0, brightness = 1.0, saturation = 1.0), Shell.veil(ShellState()))
+        assertEquals(Veil(dark = 0.95, brightness = 1.0, saturation = 1.0), Shell.veil(ShellState(brightness = 10)))
+        assertEquals(Veil(dark = 0.0, brightness = 1.25, saturation = 1.3), Shell.veil(ShellState(brightness = 150)))
+        // the headlights can take the darkest setting under the minimum; the veil stays at its darkest
+        assertEquals(0.95, Shell.veil(ShellState(theme = ThemeMode.AUTO, brightness = 10, headlights = true)).dark)
+    }
+
+    private fun home(s: ShellState, atMs: Long) = Shell.reduce(s, ShellAction.HomePressed(atMs))
+
+    @Test
+    fun `one home press goes home, a second one soon after opens the open apps`() {
+        val inApp = Shell.reduce(ShellState(), ShellAction.OpenApp(App.MUSIC))
+        val once = home(inApp, 1_000)
+        assertEquals(App.HOME, once.app)
+        assertEquals(listOf(App.MUSIC), once.running)
+        assertFalse(once.recents)
+        assertTrue(home(once, 1_000 + Shell.DOUBLE_PRESS_MS).recents)
+        assertFalse(home(once, 1_001 + Shell.DOUBLE_PRESS_MS).recents)
+    }
+
+    @Test
+    fun `home or back closes the open apps, and a third quick press does not reopen them`() {
+        val open = home(home(ShellState(), 1_000), 1_200)
+        assertTrue(open.recents)
+        val closed = home(open, 1_400)
+        assertFalse(closed.recents)
+        assertFalse(home(closed, 1_500).recents)
+        assertFalse(Shell.reduce(open, ShellAction.Back).recents)
+    }
+
+    @Test
+    fun `our apps are listed by last use and closed one by one or all at once`() {
+        var s = Shell.reduce(ShellState(), ShellAction.OpenApp(App.MUSIC))
+        s = Shell.reduce(s, ShellAction.OpenApp(App.HOME))
+        assertEquals(listOf(App.MUSIC), s.running)
+        s = Shell.reduce(s, ShellAction.OpenApp(App.MUSIC)).copy(recents = true)
+        // closing the last one leaves the list for home, as closing all does
+        val closed = Shell.reduce(s, ShellAction.CloseApp(App.MUSIC))
+        assertEquals(emptyList(), closed.running)
+        assertEquals(App.HOME, closed.app)
+        assertFalse(closed.recents)
+        val none = Shell.reduce(s, ShellAction.CloseAllApps)
+        assertEquals(emptyList(), none.running)
+        assertFalse(none.recents)
+    }
+
+    @Test
+    fun `the edge swipe opens the open apps straight from an app`() {
+        val inMusic = Shell.reduce(ShellState(drawer = true), ShellAction.OpenApp(App.MUSIC))
+        val open = Shell.reduce(inMusic, ShellAction.OpenRecents)
+        assertTrue(open.recents)
+        assertEquals(App.MUSIC, open.app)
+        assertFalse(open.drawer)
+    }
+
+    @Test
+    fun `back and home leave an app open`() {
+        val s = Shell.reduce(ShellState(), ShellAction.OpenApp(App.MUSIC))
+        assertEquals(listOf(App.MUSIC), Shell.reduce(s, ShellAction.Back).running)
+        assertEquals(listOf(App.MUSIC), Shell.reduce(s, ShellAction.Home).running)
     }
 }

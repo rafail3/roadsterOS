@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
-import { carCommand, shellAction, useEmulator } from "../car/store";
+import { carCommand, setBluetooth, shellAction, useEmulator } from "../car/store";
 
 const groupCode = (code: string) => `${code.slice(0, 3)} ${code.slice(3)}`;
 
@@ -13,10 +13,13 @@ const OVERDRAG_PX = 10;
 const LEAVE_MS = 260;
 const COLLAPSE_MS = 300;
 
-type Status = { key: string; text: string };
+export type Status = { key: string; text: string };
 
-/** A saved phone that slides left to reveal its remove key; removing it slides it out, then closes the gap. */
-function SavedRow({ name, status, open, onOpen, connectLocked }: { name: string; status: Status; open: boolean; onOpen: (name: string | null) => void; connectLocked: boolean }) {
+/** A saved phone or network that slides left to reveal its remove key; removing it slides it out, then closes the gap. */
+export function SavedRow({ name, status, open, onOpen, connectLocked, icon = "i-device-mobile", trailing, onSelect, onForget, onDrop }: {
+  name: string; status: Status; open: boolean; onOpen: (name: string | null) => void; connectLocked: boolean;
+  icon?: string; trailing?: React.ReactNode; onSelect: () => void; onForget: () => void; onDrop?: () => void;
+}) {
   const row = useRef<HTMLLIElement>(null);
   const drag = useRef<{ x: number; y: number; from: number; scale: number; sideways: boolean | null; moved: boolean } | null>(null);
   const [offset, setOffset] = useState(0);
@@ -92,7 +95,7 @@ function SavedRow({ name, status, open, onOpen, connectLocked }: { name: string;
     setHeight(row.current?.offsetHeight);
     setLeaving("slide");
     setTimeout(() => { setLeaving("collapse"); setHeight(0); }, LEAVE_MS);
-    setTimeout(() => { onOpen(null); carCommand({ type: "Bt.Forget", device: name }); }, LEAVE_MS + COLLAPSE_MS);
+    setTimeout(() => { onOpen(null); onForget(); }, LEAVE_MS + COLLAPSE_MS);
   };
 
   return (
@@ -109,16 +112,17 @@ function SavedRow({ name, status, open, onOpen, connectLocked }: { name: string;
           className="device-main"
           disabled={status.key === "connected" || connectLocked}
           aria-label={status.key === "connected" ? `${name}, connected` : `Connect to ${name}`}
-          onClick={() => carCommand({ type: "Bt.Connect", device: name })}
+          onClick={onSelect}
         >
-          <span className="device-icon" aria-hidden="true"><span className="icon i-device-mobile" /></span>
+          <span className="device-icon" aria-hidden="true"><span className={`icon ${icon}`} /></span>
           <span className="device-text">
             <span className="device-name">{name}</span>
             <span className="device-status" aria-live="polite">{status.text}</span>
           </span>
+          {trailing}
         </button>
-        {status.key === "connected" && (
-          <button className="device-drop" onClick={() => carCommand({ type: "Bt.Disconnect" })}>Disconnect</button>
+        {status.key === "connected" && onDrop && (
+          <button className="device-drop" onClick={onDrop}>Disconnect</button>
         )}
       </div>
     </li>
@@ -127,7 +131,7 @@ function SavedRow({ name, status, open, onOpen, connectLocked }: { name: string;
 
 /** Phones the unit has paired with, and a search for new ones: tap a saved phone to connect, a found one to pair. */
 export function DevicesSheet() {
-  const { shell, car, device, saved, connecting, failed, scanning, searched, nearby, pairing } = useEmulator();
+  const { shell, car, device, saved, connecting, failed, scanning, searched, nearby, pairing, btOn } = useEmulator();
   const open = shell.devices;
   const close = () => shellAction({ type: "CloseDevices" });
   const nearbyRef = useRef<HTMLElement>(null);
@@ -154,10 +158,22 @@ export function DevicesSheet() {
       <section className="devices-panel" role="dialog" aria-modal="true" aria-labelledby="devices-title">
         <header className="devices-head">
           <h2 id="devices-title">Devices</h2>
-          <button className="glass-button" aria-label="Close devices" onClick={close}><span className="icon i-x" aria-hidden="true" /></button>
+          <div className="devices-head-end">
+            <button className={`switch${btOn ? " is-on" : ""}`} role="switch" aria-checked={btOn} aria-label="Bluetooth" onClick={() => setBluetooth(!btOn)}>
+              <span className="switch-knob" aria-hidden="true" />
+            </button>
+            <button className="glass-button" aria-label="Close devices" onClick={close}><span className="icon i-x" aria-hidden="true" /></button>
+          </div>
         </header>
 
-        {pairing && !pairing.confirmed ? (
+        {!btOn ? (
+          // nothing to list or search for: the switch above is the way back
+          <div className="devices-off">
+            <span className="device-icon is-large" aria-hidden="true"><span className="icon i-bluetooth" /></span>
+            <h3>Bluetooth is off</h3>
+            <p>Turn on Bluetooth to see your devices and connect a phone.</p>
+          </div>
+        ) : pairing && !pairing.confirmed ? (
           // the code check gets the whole panel: big digits read at a glance, two large answers
           <div className="devices-pairing" role="group" aria-labelledby="pairing-title">
             <span className="device-icon is-large" aria-hidden="true"><span className="icon i-device-mobile" /></span>
@@ -173,7 +189,12 @@ export function DevicesSheet() {
         <div className="devices-scroll">
           <ul className="devices-list" aria-label="Saved devices">
             {saved.map(({ name }) => (
-              <SavedRow key={name} name={name} status={statusOf(name)} open={openRow === name} onOpen={setOpenRow} connectLocked={connecting !== null} />
+              <SavedRow
+                key={name} name={name} status={statusOf(name)} open={openRow === name} onOpen={setOpenRow} connectLocked={connecting !== null}
+                onSelect={() => carCommand({ type: "Bt.Connect", device: name })}
+                onForget={() => carCommand({ type: "Bt.Forget", device: name })}
+                onDrop={() => carCommand({ type: "Bt.Disconnect" })}
+              />
             ))}
           </ul>
 

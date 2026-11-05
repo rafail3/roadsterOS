@@ -49,8 +49,8 @@ object Rules {
         is CarEvent.Call -> call(s, e)
         is CarEvent.SteeringKey -> key(s, e.key)
         is CarEvent.PanelKey -> when (e.key) {
-            // a short press on the frame's power key mutes and unmutes, as the unit does
-            CarEvent.PanelKey.Key.POWER -> key(s, Key.MUTE).let { (next, actions) -> next to actions + Action.ShowVolume }
+            // the frame's power key switches the screen off and on; mute stays on the wheel and the volume bar
+            CarEvent.PanelKey.Key.POWER -> s to listOf(Action.ToggleScreen)
             CarEvent.PanelKey.Key.HOME -> s to listOf(Action.Home)
             CarEvent.PanelKey.Key.BACK -> s to listOf(Action.Back)
             CarEvent.PanelKey.Key.VOL_UP -> key(s, Key.VOL_UP)

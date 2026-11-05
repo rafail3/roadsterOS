@@ -35,6 +35,14 @@ export interface EmulatorState {
   pairing: { name: string; code: string; confirmed?: boolean } | null;
   /** the music playing on this laptop stands in for the phone: its track, cover, playback and controls */
   pcMedia: boolean;
+  /** the unit's radios, switched from the drawer; both on at every start, as the unit comes up */
+  btOn: boolean;
+  wifiOn: boolean;
+  wifi: WifiState;
+  /** location services; on at every start, as navigation and the Wi-Fi scan need it */
+  locationOn: boolean;
+  /** Wi-Fi was asked to turn on while location is off: the screen asks to turn location on first */
+  wifiNeedsLocation: boolean;
   acc: boolean;
   /** null = live clock, otherwise a simulated hour 0..23 */
   hour: number | null;
@@ -45,7 +53,32 @@ export interface EmulatorState {
   volumeOpened: number;
   /** the frame key held down right now, for the edge swell beside it */
   pressedKey: PanelKey | null;
+  /** the last time Bluetooth or Wi-Fi connected or dropped, for the notice at the bottom of the screen */
+  notice: ConnectionNotice | null;
 }
+
+export interface ConnectionNotice { id: number; kind: "bt" | "wifi"; connected: boolean; name: string }
+
+/** A Wi-Fi network around the unit; `password` is the simulation's own, shown in the control panel for testing. */
+export interface WifiNetwork { ssid: string; secure: boolean; signal: 1 | 2 | 3; password?: string }
+export interface WifiState {
+  saved: string[];
+  connected: string | null;
+  connecting: string | null;
+  /** the network whose last join failed on the password */
+  wrongPassword: string | null;
+  /** networks the last scan has found so far */
+  seen: string[];
+}
+export const WIFI_NETWORKS: WifiNetwork[] = [
+  { ssid: "Phone hotspot", secure: true, signal: 3, password: "roadster1" },
+  { ssid: "Home", secure: true, signal: 2, password: "home2026" },
+  { ssid: "Cafe Free Wi-Fi", secure: false, signal: 2 },
+  { ssid: "Office 5G", secure: true, signal: 1, password: "office-5g" },
+];
+/** A scan answers network by network; a join takes this long either way. */
+const WIFI_SEEN_MS = [250, 700, 1200, 1900];
+const WIFI_JOIN_MS = 1400;
 
 const LOG_SIZE = 60;
 /** How long the unit tries a saved phone before it gives up; a phone in range answers sooner. */
@@ -87,8 +120,20 @@ let logId = 0;
 let replayTimers: ReturnType<typeof setTimeout>[] = [];
 
 function set(patch: Partial<EmulatorState>) {
+  const before = state;
   state = { ...state, ...patch };
+  // every change goes through here, so a connection made by hand, by itself or by a scenario is noticed the same way
+  const notice = connectionNotice(before, state);
+  if (notice) state = { ...state, notice };
   listeners.forEach((listener) => listener());
+}
+
+let noticeId = 0;
+function connectionNotice(a: EmulatorState, b: EmulatorState): ConnectionNotice | null {
+  if (a.car.btConnected !== b.car.btConnected) return { id: ++noticeId, kind: "bt", connected: b.car.btConnected, name: b.device };
+  const network = b.wifi.connected ?? a.wifi.connected;
+  if (a.wifi.connected !== b.wifi.connected && network) return { id: ++noticeId, kind: "wifi", connected: b.wifi.connected !== null, name: network };
+  return null;
 }
 
 function addLog(direction: LogEntry["direction"], value: unknown): LogEntry[] {
@@ -126,7 +171,6 @@ function displayData(event: CarEvent): Partial<EmulatorState> {
 
 const SHELL_ACTIONS: Record<string, ShellAction> = {
   ToggleScreen: { type: "ToggleScreen" },
-  Home: { type: "Home" },
   Back: { type: "Back" },
 };
 
@@ -135,6 +179,8 @@ function runAction(action: RuleAction) {
   if (action.type === "Send" && action.command) sendToCar(action.command);
   if (action.type === "Night") shellAction({ type: "Headlights", on: Boolean(action.on) });
   if (SHELL_ACTIONS[action.type]) shellAction(SHELL_ACTIONS[action.type]);
+  // the frame key: the shell tells a single press from a double press by the time between them
+  if (action.type === "Home") shellAction({ type: "HomePressed", atMs: Date.now() });
   if (action.type === "ShowVolume") openVolume();
 }
 
@@ -154,6 +200,78 @@ function fromLaptop(line: string) {
   if (m.type === "track" && m.title) carEvent({ type: "Track", title: m.title, artist: m.artist ?? "", album: m.album ?? "", durationMs: m.durationMs ?? 0 });
   if (m.type === "cover" && m.title && m.url) covers.fromSource(m.title, m.artist ?? (state.track.title === m.title ? state.track.artist : ""), m.url);
   if (m.type === "playback") carEvent({ type: "Playback", playing: Boolean(m.playing), positionMs: m.positionMs ?? 0 });
+}
+
+/**
+ * Bluetooth off drops the connected phone, as on the unit, and a Bluetooth source with it: home then offers the sources.
+ * On again, nothing switches by itself; a saved phone reconnects on its own later.
+ */
+export function setBluetooth(on: boolean) {
+  if (!on && state.car.btConnected) carEvent({ type: "BtConnection", connected: false, device: state.device });
+  if (!on && state.car.source === "BT") carCommand({ type: "Audio.Source", source: "NONE" });
+  set({ btOn: on });
+}
+
+/** Wi-Fi off drops the network and forgets the scan; on again, the strongest saved network joins by itself. */
+export function setWifi(on: boolean) {
+  // on this Android a Wi-Fi scan needs location on: ask for it first instead of a Wi-Fi that finds nothing
+  if (on && !state.locationOn) return set({ wifiNeedsLocation: true });
+  clearWifiTimers();
+  set({ wifiOn: on, wifi: { ...state.wifi, connected: null, connecting: null, wrongPassword: null, seen: [] } });
+  if (!on) return;
+  const best = WIFI_NETWORKS.filter((n) => state.wifi.saved.includes(n.ssid)).sort((a, b) => b.signal - a.signal)[0];
+  if (best) wifiConnect(best.ssid);
+}
+
+let wifiTimers: ReturnType<typeof setTimeout>[] = [];
+function clearWifiTimers() {
+  wifiTimers.forEach(clearTimeout);
+  wifiTimers = [];
+}
+const patchWifi = (patch: Partial<WifiState>) => set({ wifi: { ...state.wifi, ...patch } });
+
+/** A scan: the networks in range answer one by one; a new scan starts the list again. */
+/** Location off keeps Wi-Fi joined but stops finding networks; the list empties. */
+export function setLocation(on: boolean) {
+  set({ locationOn: on });
+  if (!on) {
+    clearWifiTimers();
+    patchWifi({ seen: [] });
+  }
+}
+
+/** The answer to "Wi-Fi needs location": yes turns location on, then Wi-Fi; no leaves both as they were. */
+export function answerWifiNeedsLocation(turnOn: boolean) {
+  set({ wifiNeedsLocation: false });
+  if (!turnOn) return;
+  setLocation(true);
+  setWifi(true);
+}
+
+export function wifiScan() {
+  if (!state.wifiOn || !state.locationOn) return;
+  patchWifi({ seen: [] });
+  WIFI_NETWORKS.forEach((n, i) => wifiTimers.push(setTimeout(() => {
+    if (state.wifiOn && !state.wifi.seen.includes(n.ssid)) patchWifi({ seen: [...state.wifi.seen, n.ssid] });
+  }, WIFI_SEEN_MS[i] ?? 2000)));
+}
+
+/** Join a network: a saved or open one needs nothing; a new secured one needs its password, and a wrong one fails. */
+export function wifiConnect(ssid: string, password?: string) {
+  const network = WIFI_NETWORKS.find((n) => n.ssid === ssid);
+  if (!network || !state.wifiOn) return;
+  patchWifi({ connecting: ssid, wrongPassword: null });
+  wifiTimers.push(setTimeout(() => {
+    if (state.wifi.connecting !== ssid) return;
+    const known = state.wifi.saved.includes(ssid) || !network.secure;
+    if (!known && password !== network.password) return patchWifi({ connecting: null, wrongPassword: ssid });
+    patchWifi({ connecting: null, connected: ssid, saved: state.wifi.saved.includes(ssid) ? state.wifi.saved : [...state.wifi.saved, ssid] });
+  }, WIFI_JOIN_MS));
+}
+
+/** Forget a saved network; the connected one drops with it. */
+export function wifiForget(ssid: string) {
+  patchWifi({ saved: state.wifi.saved.filter((s) => s !== ssid), connected: state.wifi.connected === ssid ? null : state.wifi.connected });
 }
 
 /** Turn the laptop source on or off; off leaves the last track on screen as the phone would after a disconnect. */
@@ -254,6 +372,8 @@ export function carEvent(event: CarEvent) {
   const step = bridge.apply(state.car, event);
   set({ ...displayData(event), car: step.state, log: addLog("in", event) });
   step.actions.forEach(runAction);
+  // the screen follows the ignition: dark with the car off, back on when it starts
+  if (event.type === "Power") shellAction({ type: event.acc ? "Wake" : "Sleep" });
 }
 
 /** A command from our own UI: the rules remember it, then it goes to the car. */
@@ -370,6 +490,11 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     nearby: [],
     pairing: null,
     pcMedia: false,
+    btOn: true,
+    wifiOn: true,
+    wifi: { saved: [WIFI_NETWORKS[0].ssid], connected: WIFI_NETWORKS[0].ssid, connecting: null, wrongPassword: null, seen: [] },
+    locationOn: true,
+    wifiNeedsLocation: false,
     acc: true,
     hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : null,
     log: [],
@@ -377,6 +502,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     replayError: null,
     volumeOpened: 0,
     pressedKey: null,
+    notice: null,
   };
 }
 

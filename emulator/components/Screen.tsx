@@ -1,18 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { bridge, type Source } from "../car/bridge";
-import { carCommand, carEvent, openVolume, shellAction, useEmulator, useNow } from "../car/store";
+import { carCommand, carEvent, openVolume, setBluetooth, shellAction, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Clock } from "./Clock";
 import { Drawer, useDrawerDrag } from "./Drawer";
 import { NowPlaying } from "./NowPlaying";
 import { CallOverlay, CameraOverlay } from "./Overlays";
 import { VolumeHud } from "./VolumeHud";
+import { ConnectionNotice } from "./ConnectionNotice";
 import { MusicApp } from "./MusicApp";
+import { DevicesSheet } from "./DevicesSheet";
+import { NetworksSheet } from "./NetworksSheet";
+import { LocationPrompt } from "./LocationPrompt";
+import { WifiBars } from "./WifiBars";
+import { Recents } from "./Recents";
+import { EdgeBack, NavBar } from "./Gestures";
 import { useCoverColors } from "./media";
 import { useFingerMouse } from "./controls";
 
 const THEME_FADE_MS = 750;
-const MAX_VEIL = 0.78;
-const VEIL_PER_DIM = 0.85;
 
 const RAIL = [
   { id: "music", label: "Music", icon: "i-music-notes" },
@@ -54,8 +59,28 @@ function useThemeFade(theme: string) {
   return fading;
 }
 
+/** How long the screen takes to come on: the black lifts while the content settles from a slight zoom. */
+const WAKE_MS = 650;
+
+/** True while the screen is coming on: at start-up, and every time it is switched back on. */
+function useWaking(on: boolean) {
+  const [waking, setWaking] = useState(true);
+  const [shown, setShown] = useState(on);
+  if (on !== shown) {
+    setShown(on);
+    if (on) setWaking(true);
+  }
+  useEffect(() => {
+    if (!waking) return;
+    const timer = setTimeout(() => setWaking(false), WAKE_MS);
+    return () => clearTimeout(timer);
+  }, [waking]);
+  return waking && on;
+}
+
 function pressRail(id: string, cameraOn: boolean) {
   if (id === "music") {
+    setBluetooth(true);
     carCommand({ type: "Audio.Source", source: "BT" });
     shellAction({ type: "OpenApp", app: "MUSIC" });
   }
@@ -71,6 +96,7 @@ export function Screen() {
   const theme = bridge.effectiveTheme(shell, now.getHours());
   const light = theme === "LIGHT";
   const fading = useThemeFade(theme);
+  const waking = useWaking(shell.screenOn);
   const drawer = useRef<HTMLElement>(null);
   const { dragging, onPointerDown } = useDrawerDrag(drawer);
   const inApp = shell.app !== "HOME";
@@ -79,8 +105,10 @@ export function Screen() {
   const glow = car.source === "BT" && emulator.track.art
     ? ({ "--ambient-a": `color-mix(in srgb, ${cover.top} ${light ? 30 : 85}%, transparent)`, "--ambient-b": `color-mix(in srgb, ${cover.bottom} ${light ? 25 : 90}%, transparent)` } as React.CSSProperties)
     : undefined;
-  const covered = shell.drawer || car.call !== "IDLE" || car.camera;
-  const veil = Math.max(0, Math.min(MAX_VEIL, (1 - shell.brightness / 100) * VEIL_PER_DIM));
+  const covered = shell.drawer || shell.recents || car.call !== "IDLE" || car.camera;
+  const veil = bridge.veil(shell);
+  // above neutral the whole screen goes through one colour filter; none at all otherwise
+  const boost = veil.brightness > 1 ? { filter: `brightness(${veil.brightness.toFixed(3)}) saturate(${veil.saturation.toFixed(3)})` } : undefined;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -93,13 +121,13 @@ export function Screen() {
   }, [car.camera]);
 
   return (
-    <div ref={finger} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming")} style={glow}>
+    <div ref={finger} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming", inApp && "in-app", waking && "waking")} style={{ ...glow, ...boost }}>
       <div className="ambient" aria-hidden="true" />
 
       <header className="bar" inert={covered} onPointerDown={onPointerDown}>
         <div className="bar-group">
           <span
-            className={classes("icon", car.source === "RADIO" ? "i-radio" : "i-bluetooth", car.source !== "NONE" && "is-on", car.source !== "RADIO" && !car.btConnected && "is-off")}
+            className={classes("icon", car.source === "RADIO" ? "i-radio" : "i-bluetooth", car.source !== "NONE" && "is-on", car.source !== "RADIO" && !emulator.btOn && "is-off")}
             aria-hidden="true"
           />
           <span className="bar-text">{car.source === "NONE" && car.btConnected ? "Bluetooth" : SOURCE_LABEL[car.source]}</span>
@@ -108,11 +136,19 @@ export function Screen() {
           <span className="handle-line" />
         </button>
         <div className="bar-group">
-          <span className="icon i-wifi-high" role="img" aria-label="Wi-Fi connected" />
+          {/* the bars of the network the unit is on; all faint when on none */}
+          {(() => {
+            const network = WIFI_NETWORKS.find((n) => n.ssid === emulator.wifi.connected);
+            return (
+              <span role="img" aria-label={network ? `Wi-Fi, ${network.ssid}` : emulator.wifiOn ? "Wi-Fi, not connected" : "Wi-Fi off"} className={network ? undefined : "is-off"}>
+                <WifiBars level={network?.signal ?? 0} className="bar-wifi" />
+              </span>
+            );
+          })()}
           <button className="bar-button" aria-label={car.muted ? "Volume, muted" : "Volume"} onClick={openVolume}>
-            <span className={`icon ${car.muted ? "i-speaker-slash is-off" : "i-speaker-high"}`} aria-hidden="true" />
+            <span className={`icon ${car.muted ? "i-speaker-slash-fill is-muted" : "i-speaker-high-fill"}`} aria-hidden="true" />
           </button>
-          <span className={`icon ${light ? "i-sun" : "i-moon"}`} id="bar-theme" role="img" aria-label={light ? "Day theme" : "Night theme"} />
+          <span className={`icon ${light ? "i-sun-fill" : "i-moon-fill"}`} id="bar-theme" role="img" aria-label={light ? "Day theme" : "Night theme"} />
         </div>
       </header>
 
@@ -143,6 +179,19 @@ export function Screen() {
       </section>
 
       <MusicApp open={shell.app === "MUSIC"} />
+      {/* over any screen: opened from the music app or by a long press on the drawer's Bluetooth */}
+      <DevicesSheet />
+      <NetworksSheet />
+      <LocationPrompt />
+      <Recents emulator={emulator} />
+      {/* always there, as on a phone, except under the drawer, a devices or networks panel (its keyboard reaches the edges), a call or the camera */}
+      {!shell.drawer && !shell.devices && !shell.networks && car.call === "IDLE" && !car.camera && (
+        <>
+          <NavBar />
+          <EdgeBack side="left" />
+          <EdgeBack side="right" />
+        </>
+      )}
       <div className={classes("scrim", shell.drawer && "is-open")} onClick={() => shellAction({ type: "CloseDrawer" })} />
       <Drawer emulator={emulator} panel={drawer} dragging={dragging} />
       {car.call !== "IDLE" && <CallOverlay emulator={emulator} />}
@@ -152,9 +201,11 @@ export function Screen() {
           <path d={BULGE_PATH} />
         </svg>
       ))}
-      <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC"} />
-      <div className="dimmer" aria-hidden="true" style={{ opacity: veil.toFixed(3) }} />
-      {!shell.screenOn && <button className="screen-off" aria-label="Screen off, tap to wake" onClick={() => shellAction({ type: "Wake" })} />}
+      <ConnectionNotice notice={emulator.notice} hidden={car.call !== "IDLE" || car.camera} />
+      <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC" || shell.drawer} />
+      <div className="dimmer" aria-hidden="true" style={{ opacity: veil.dark.toFixed(3) }} />
+      {/* always there: it fades in to switch the screen off and lifts to switch it on; a tap on it wakes the screen */}
+      <button className={classes("screen-off", !shell.screenOn && "is-on", waking && "is-lifting")} aria-label="Screen off, tap to wake" tabIndex={shell.screenOn ? -1 : 0} aria-hidden={shell.screenOn} onClick={() => shellAction({ type: "Wake" })} />
     </div>
   );
 }

@@ -79,4 +79,12 @@ object Bridge {
 
     fun effectiveTheme(state: String, hour: Int): String =
         Shell.effectiveTheme(json.decodeFromString(ShellState.serializer(), state), hour).name
+
+    fun minBrightness(): Int = Shell.MIN_BRIGHTNESS
+
+    fun maxBrightness(): Int = Shell.MAX_BRIGHTNESS
+
+    /** Answers {"dark":0..1,"brightness":factor,"saturation":factor}. */
+    fun veil(state: String): String =
+        json.encodeToString(Veil.serializer(), Shell.veil(json.decodeFromString(ShellState.serializer(), state)))
 }

@@ -77,13 +77,10 @@ class RulesTest {
     }
 
     @Test
-    fun `a short press on panel power toggles mute and shows the volume bar`() {
-        val (muted, actions) = Rules.apply(bt, CarEvent.PanelKey(PanelKey.POWER))
-        assertEquals(listOf(Action.Send(CarCommand.Audio.Mute(true)), Action.ShowVolume), actions)
-        assertTrue(muted.muted)
-        val (unmuted, again) = Rules.apply(muted, CarEvent.PanelKey(PanelKey.POWER))
-        assertEquals(listOf(Action.Send(CarCommand.Audio.Mute(false)), Action.ShowVolume), again)
-        assertFalse(unmuted.muted)
+    fun `panel power switches the screen and leaves the sound alone`() {
+        val (next, actions) = Rules.apply(bt, CarEvent.PanelKey(PanelKey.POWER))
+        assertEquals(listOf(Action.ToggleScreen), actions)
+        assertFalse(next.muted)
     }
 
     @Test

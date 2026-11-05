@@ -25,9 +25,14 @@ export interface ShellState {
   face: Face;
   font: string;
   brightness: number;
+  headlights: boolean;
   screenOn: boolean;
   app: App;
   devices: boolean;
+  networks: boolean;
+  running: App[];
+  recents: boolean;
+  lastHomeMs: number | null;
 }
 
 export type CarEvent =
@@ -58,7 +63,9 @@ export type CarCommand =
   | { type: "Bt.ConfirmPairing"; accept: boolean };
 
 export type ShellAction =
-  | { type: "CycleTheme" | "OpenDrawer" | "CloseDrawer" | "ToggleFace" | "ToggleScreen" | "Wake" | "Home" | "Back" | "OpenDevices" | "CloseDevices" }
+  | { type: "CycleTheme" | "OpenDrawer" | "CloseDrawer" | "ToggleFace" | "ToggleScreen" | "Wake" | "Home" | "Back" | "OpenDevices" | "CloseDevices" | "OpenNetworks" | "CloseNetworks" | "CloseAllApps" | "OpenRecents" | "CloseRecents" | "Sleep" }
+  | { type: "HomePressed"; atMs: number }
+  | { type: "CloseApp"; app: App }
   | { type: "SetTheme"; mode: ThemeMode }
   | { type: "DrawerReleased"; fraction: number }
   | { type: "SetFace"; face: Face }
@@ -81,6 +88,9 @@ interface Kotlin {
       setVolume(state: string, level: number): string;
       coverColors(pixels: string, width: number): string;
       effectiveTheme(state: string, hour: number): "LIGHT" | "DARK";
+      minBrightness(): number;
+      maxBrightness(): number;
+      veil(state: string): string;
       coverFileName(title: string, artist: string): string;
       coverFind(names: string, title: string, artist: string): string;
       stockCover(title: string, artist: string, count: number): number;
@@ -110,6 +120,9 @@ export const bridge = {
   coverColors: (pixels: number[], width: number): { top: string; bottom: string } => JSON.parse(K!.Bridge.coverColors(JSON.stringify(pixels), width)),
   setVolume: (state: CarState, level: number): CarCommand[] => JSON.parse(K!.Bridge.setVolume(JSON.stringify(state), level)),
   effectiveTheme: (state: ShellState, hour: number) => K!.Bridge.effectiveTheme(JSON.stringify(state), hour),
+  minBrightness: () => K!.Bridge.minBrightness(),
+  maxBrightness: () => K!.Bridge.maxBrightness(),
+  veil: (state: ShellState): { dark: number; brightness: number; saturation: number } => JSON.parse(K!.Bridge.veil(JSON.stringify(state))),
   coverFileName: (title: string, artist: string) => K!.Bridge.coverFileName(title, artist),
   coverFind: (names: string[], title: string, artist: string): string | null => K!.Bridge.coverFind(JSON.stringify(names), title, artist) || null,
   stockCover: (title: string, artist: string, count: number) => K!.Bridge.stockCover(title, artist, count),
