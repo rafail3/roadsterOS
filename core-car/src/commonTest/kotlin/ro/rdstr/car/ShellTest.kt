@@ -7,8 +7,9 @@ import kotlin.test.assertTrue
 
 class ShellTest {
     @Test
-    fun `a call fills the screen, Home and Back fold it into the bar, a tap brings it back`() {
-        val ringing = Shell.reduce(ShellState(), ShellAction.CallChanged(CarEvent.Call.State.RINGING))
+    fun `a ringing call shows as the banner, a placed one fills the screen, Home and Back fold it, a tap brings it back`() {
+        assertEquals(CallView.BAR, Shell.reduce(ShellState(), ShellAction.CallChanged(CarEvent.Call.State.RINGING)).callView)
+        val ringing = Shell.reduce(ShellState(), ShellAction.CallChanged(CarEvent.Call.State.OUTGOING))
         assertEquals(CallView.FULL, ringing.callView)
         val home = Shell.reduce(ringing.copy(app = App.MUSIC), ShellAction.Home)
         assertEquals(CallView.BAR to App.HOME, home.callView to home.app)

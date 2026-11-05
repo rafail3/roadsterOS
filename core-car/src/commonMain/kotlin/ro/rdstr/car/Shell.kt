@@ -72,7 +72,10 @@ sealed class ShellAction {
     @Serializable @SerialName("CloseRecents") data object CloseRecents : ShellAction()
     /** A swipe on the card on home, or a new source, brings this page forward. */
     @Serializable @SerialName("ShowCard") data class ShowCard(val page: CardPage) : ShellAction()
-    /** The phone's call changed state (sent with every Call event): a new call fills the screen, an ended one goes. */
+    /**
+     * The phone's call changed state (sent with every Call event): a call ringing in shows as the banner at the top,
+     * one placed from here fills the screen, an ended one goes.
+     */
     @Serializable @SerialName("CallChanged") data class CallChanged(val state: CarEvent.Call.State) : ShellAction()
     /** A tap on the call bar brings the call back over the whole screen. */
     @Serializable @SerialName("ExpandCall") data object ExpandCall : ShellAction()
@@ -150,7 +153,7 @@ object Shell {
         is ShellAction.ShowCard -> s.copy(card = a.page)
         is ShellAction.CallChanged -> s.copy(callView = when {
             a.state == CarEvent.Call.State.IDLE -> CallView.NONE
-            s.callView == CallView.NONE -> CallView.FULL
+            s.callView == CallView.NONE -> if (a.state == CarEvent.Call.State.RINGING) CallView.BAR else CallView.FULL
             else -> s.callView
         })
         ShellAction.ExpandCall -> if (s.callView == CallView.NONE) s else s.copy(callView = CallView.FULL, drawer = false, recents = false)
