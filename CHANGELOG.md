@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/rafail3/roadsterOS/compare/v1.5.0...v1.6.0) (2026-11-05)
+
+
+### Features
+
+* bluetooth devices, music app volume and touch input in the emulator ([#22](https://github.com/rafail3/roadsterOS/issues/22)) ([6edfdce](https://github.com/rafail3/roadsterOS/commit/6edfdce075a3d1d9a30e30ee94aba921735fcd81))
+
 ## [1.5.0](https://github.com/rafail3/roadsterOS/compare/v1.4.0...v1.5.0) (2026-11-04)
 
 
