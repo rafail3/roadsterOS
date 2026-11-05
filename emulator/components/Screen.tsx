@@ -3,7 +3,7 @@ import { bridge, type Source } from "../car/bridge";
 import { carCommand, carEvent, openVolume, setBluetooth, shellAction, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Clock } from "./Clock";
 import { Drawer, useDrawerDrag } from "./Drawer";
-import { NowPlaying } from "./NowPlaying";
+import { HomeCard } from "./HomeCard";
 import { CallOverlay, CameraOverlay } from "./Overlays";
 import { VolumeHud } from "./VolumeHud";
 import { ConnectionNotice } from "./ConnectionNotice";
@@ -114,6 +114,14 @@ export function Screen() {
     : undefined;
   const covered = shell.drawer || shell.recents || car.call !== "IDLE" || car.camera;
   const veil = bridge.veil(shell);
+  const card = bridge.homeCard(car, shell.card);
+  // a new source brings its page forward on the card
+  const lastSource = useRef(car.source);
+  useEffect(() => {
+    if (lastSource.current === car.source) return;
+    lastSource.current = car.source;
+    shellAction({ type: "ShowCard", page: card.forSource });
+  }, [car.source, card.forSource]);
   // above neutral the whole screen goes through one colour filter; none at all otherwise
   const boost = veil.brightness > 1 ? { filter: `brightness(${veil.brightness.toFixed(3)}) saturate(${veil.saturation.toFixed(3)})` } : undefined;
 
@@ -181,13 +189,13 @@ export function Screen() {
         </div>
       </section>
 
-      <section className="panel" aria-label="Now playing" inert={covered || inApp}>
-        <NowPlaying emulator={emulator} />
+      <section className="panel" aria-label="Now playing and navigation" inert={covered || inApp}>
+        <HomeCard emulator={emulator} card={card} />
       </section>
 
       <MusicApp open={shell.app === "MUSIC"} />
       <RadioApp open={shell.app === "RADIO"} />
-      <MapsApp open={shell.app === "MAPS"} light={light} />
+      <MapsApp open={shell.app === "MAPS"} inCard={!inApp && card.shown === "NAVIGATION" && shell.screenOn} light={light} />
       {/* over any screen: opened from the music app or by a long press on the drawer's Bluetooth */}
       <DevicesSheet />
       <NetworksSheet />

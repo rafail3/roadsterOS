@@ -98,3 +98,50 @@
 
 /* emulator only: the map previews from the network until a pack is built */
 .map-preview { position: absolute; left: 50%; top: 76px; transform: translateX(-50%); margin: 0; padding: 8px 16px; border-radius: 18px; font-size: 14px; font-weight: 600; color: #000; background: #ffd60a; pointer-events: none; }
+
+/* ----- the one map, in the app or on the card on home (mapHost.ts moves it) ----- */
+.map-host, .map-gl, .map-overlay { position: absolute; inset: 0; }
+.map-overlay { z-index: 1; pointer-events: none; }
+
+/* ----- the card on home: a page per sound that is on and the map, swiped sideways ----- */
+.card-pages { position: relative; height: 100%; overflow: hidden; border-radius: var(--radius); touch-action: pan-y; }
+.card-track { display: flex; height: 100%; transition: transform 520ms var(--spring-swap); }
+.card-track.is-dragging { transition: none; }
+.card-page { flex: 0 0 100%; min-width: 0; height: 100%; }
+/* room for the dots under the sound pages' controls */
+.card-page > .np:not(.np-map) { padding-bottom: calc(var(--space-5) + 14px); }
+.card-dots { position: absolute; left: 50%; bottom: 10px; z-index: 4; display: flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 10px; transform: translateX(-50%); background: rgba(0, 0, 0, 0.32); }
+.card-dots button { width: 7px; height: 7px; padding: 0; border-radius: 4px; background: rgba(255, 255, 255, 0.42); transition: width 360ms var(--spring-swap), background-color 200ms var(--ease-out); }
+.card-dots button.is-on { width: 18px; background: #fff; }
+.screen.light .card-dots { background: rgba(255, 255, 255, 0.7); }
+.screen.light .card-dots button { background: rgba(0, 0, 0, 0.25); }
+.screen.light .card-dots button.is-on { background: var(--ink); }
+
+/* the map page: the map edge to edge, the street and speed smaller in its corner, a tap opens the app */
+.np-map { position: relative; justify-content: flex-end; padding: 0; overflow: hidden; background: var(--canvas, #0d1015); }
+.card-map { position: absolute; inset: 0; }
+.card-map-open { position: absolute; inset: 0; z-index: 2; border-radius: inherit; }
+.card-map-open:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
+.card-map .map-status { left: 14px; bottom: 34px; transform: scale(0.78); transform-origin: left bottom; }
+.card-map .map-street { max-width: 250px; }
+.np-map.has-strip .map-status { bottom: 118px; }
+
+/* under the map, the sound that plays: cover or radio mark, its names, its transport */
+.card-strip { position: relative; z-index: 3; display: flex; align-items: center; gap: 12px; margin: 0 10px 32px; padding: 9px 8px 9px 10px; border-radius: 22px; background: rgba(20, 22, 26, 0.88); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+.card-strip-cover { flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 12px; overflow: hidden; color: #fff; background: rgba(255, 255, 255, 0.08); }
+.card-strip-cover img { width: 100%; height: 100%; object-fit: cover; }
+.card-strip-cover .icon { width: 26px; height: 26px; }
+.card-strip-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.card-strip .np-title { font-size: 17px; color: #fff; }
+.card-strip .np-artist { font-size: 14px; color: rgba(255, 255, 255, 0.62); }
+.card-strip .transport { flex: none; gap: 0; }
+.np .card-strip .tx { --tx-size: 46px; --tx-glyph: 22px; --tx-color: #fff; --tx-bloom: rgba(255, 255, 255, 0.16); }
+.np .card-strip .tx-play { --tx-size: 52px; --tx-glyph: 28px; }
+.screen.light .card-strip { background: rgba(255, 255, 255, 0.94); border-color: rgba(0, 0, 0, 0.08); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14); }
+.screen.light .card-strip .np-title, .screen.light .card-strip-cover { color: var(--ink); }
+.screen.light .card-strip .np-artist { color: var(--ink-muted); }
+.screen.light .np .card-strip .tx { --tx-color: var(--ink); --tx-bloom: rgba(0, 0, 0, 0.08); }
+.screen.light .card-strip-cover { background: rgba(0, 0, 0, 0.06); }
+@media (prefers-reduced-motion: reduce) {
+  .card-track, .card-dots button { transition-duration: 0.01ms; }
+}

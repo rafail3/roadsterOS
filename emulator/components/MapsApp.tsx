@@ -1,7 +1,9 @@
 import maplibregl from "maplibre-gl";
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { mapStyle } from "../car/mapStyle";
 import { bridge } from "../car/bridge";
+import { mapHost, onMapMoved, setSlot, showMapIn } from "../car/mapHost";
 import { chime, limitAt, streetAt } from "../car/roads";
 import { shellAction, useEmulator } from "../car/store";
 
@@ -60,10 +62,14 @@ const SpeedTicks = memo(function SpeedTicks({ lit, tone }: { lit: number; tone: 
   );
 });
 
-/** Full-screen map: the car in the middle, heading up while it follows, the street it is on, and the map controls. */
-export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
+/**
+ * Full-screen map: the car in the middle, heading up while it follows, the street it is on, and the map controls.
+ * Closed, the same map shows on the card on home ([inCard] while that page is in view); it works only while seen.
+ */
+export function MapsApp({ open, inCard, light }: { open: boolean; inCard: boolean; light: boolean }) {
   const { gps, maps, driving, speed } = useEmulator();
-  const box = useRef<HTMLDivElement>(null);
+  const seen = open || inCard;
+  const section = useRef<HTMLElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const puck = useRef<maplibregl.Marker | null>(null);
   const [follow, setFollow] = useState(true);
@@ -96,11 +102,11 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
     features: (borders?.features ?? []).filter((f) => !maps.installed.includes(f.properties?.code)),
   }), [borders, maps.installed]);
 
-  // the map is made the first time the app opens and kept, so opening it again is instant
+  // the map is made once, on the card, and kept: opening the app moves it there at once
   useEffect(() => {
-    if (!open || map.current || !box.current || offline === null) return;
+    if (map.current || offline === null) return;
     const m = new maplibregl.Map({
-      container: box.current,
+      container: mapHost().gl,
       style: mapStyle(light, missing, offline),
       center: [gps.lon, gps.lat],
       zoom: DRIVE_ZOOM,
@@ -133,41 +139,63 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
     puck.current = new maplibregl.Marker({ element: el }).setLngLat([gps.lon, gps.lat]).addTo(m);
     turnPuck(el, gps.heading - m.getBearing());
     map.current = m;
-  }, [open, offline]);
+  }, [offline]);
 
-  useLayoutEffect(() => { if (open) map.current?.resize(); }, [open]);
+  // the open app takes the map, the card has it otherwise; on the card it always follows the car
+  useLayoutEffect(() => {
+    onMapMoved(() => {
+      map.current?.resize();
+      if (!open) setFollow(true);
+    });
+    showMapIn(open);
+  }, [open]);
+  // seen again: straight onto the car, no long glide from where it was left
+  useEffect(() => {
+    if (seen) map.current?.jumpTo({ center: [latest.current.gps.lon, latest.current.gps.lat] });
+  }, [seen]);
+
+  // leaving, the app's outline closes onto the card on home, as the music app does
+  useLayoutEffect(() => {
+    const app = section.current;
+    const card = app?.parentElement?.querySelector<HTMLElement>(".panel");
+    if (!app || !card) return;
+    const { offsetLeft: l, offsetTop: t, offsetWidth: w, offsetHeight: h } = card;
+    app.style.setProperty("--to-t", `${t}px`);
+    app.style.setProperty("--to-l", `${l}px`);
+    app.style.setProperty("--to-r", `${app.offsetWidth - l - w}px`);
+    app.style.setProperty("--to-b", `${app.offsetHeight - t - h}px`);
+  }, [open]);
   useEffect(() => { if (offline !== null) map.current?.setStyle(mapStyle(light, missing, offline)); }, [light, missing, offline]);
 
   useEffect(() => {
     const m = map.current;
-    if (!m) return;
+    // unseen, the map does no work
+    if (!m || !seen) return;
     puck.current?.setLngLat([gps.lon, gps.lat]);
     if (puck.current) turnPuck(puck.current.getElement(), gps.heading - m.getBearing());
     if (follow) m.easeTo({ center: [gps.lon, gps.lat], bearing: headingUp ? gps.heading : 0, duration: driving ? 260 : 600, easing: (t) => t });
     const now = performance.now();
     const heading = speed.stopped ? null : gps.heading;
-    if (open && now - streetAtMs.current > STREET_EVERY_MS && m.isStyleLoaded()) {
+    if (now - streetAtMs.current > STREET_EVERY_MS && m.isStyleLoaded()) {
       streetAtMs.current = now;
       setStreet(streetAt(m, gps.lon, gps.lat, m.getZoom(), heading));
     }
     // the limit sign and the warning, by the unit's rule (core-car SpeedWarning)
-    if (open && now - limitAtMs.current > LIMIT_EVERY_MS && m.isStyleLoaded()) {
+    if (now - limitAtMs.current > LIMIT_EVERY_MS && m.isStyleLoaded()) {
       limitAtMs.current = now;
       roadLimit.current = limitAt(m, gps.lon, gps.lat, heading);
     }
-    if (open) {
-      const w = bridge.speedWarning(roadLimit.current, now);
-      if (w.chime) chime();
-      setWarning((old) => (old.limit === w.limit && old.over === w.over && old.lit === w.lit && old.tone === w.tone ? old : w));
-    }
-  }, [gps, speed, follow, headingUp, open, driving]);
+    const w = bridge.speedWarning(roadLimit.current, now);
+    if (w.chime) chime();
+    setWarning((old) => (old.limit === w.limit && old.over === w.over && old.lit === w.lit && old.tone === w.tone ? old : w));
+  }, [gps, speed, follow, headingUp, seen, driving]);
 
   const zoom = (by: number) => map.current?.easeTo({ zoom: map.current.getZoom() + by, duration: 250 });
   const recentre = () => { setFollow(true); map.current?.easeTo({ zoom: DRIVE_ZOOM, duration: 500 }); };
 
   return (
-    <section className={`music-app maps-app${open ? " is-open" : ""}`} aria-label="Maps" aria-hidden={!open} inert={!open}>
-      <div ref={box} className="map-canvas" role="region" aria-label="Map" />
+    <section ref={section} className={`music-app maps-app${open ? " is-open" : ""}`} aria-label="Maps" aria-hidden={!open} inert={!open}>
+      <div ref={(el) => setSlot("app", el)} className="map-canvas" role="region" aria-label="Map" />
 
       <button className="glass-button music-close" aria-label="Close maps" onClick={() => shellAction({ type: "Home" })}>
         <span className="icon i-caret-down" aria-hidden="true" />
@@ -186,7 +214,8 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
         </button>
       </div>
 
-      <div className="map-status">
+      {/* in the map's own layer, so it goes with the map onto the card */}
+      {createPortal(<div className="map-status">
         <div className={`map-street-slot${street ? " is-shown" : ""}`} aria-hidden={!street}>
           <span className="map-pill map-street" aria-live="polite">{shownStreet.current}</span>
         </div>
@@ -200,7 +229,7 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
             <b key={shownLimit.current ?? 0}>{shownLimit.current}</b>
           </span>
         </span>
-      </div>
+      </div>, mapHost().overlay)}
       {offline === false && <p className="map-preview">Online preview: no map pack built on this laptop</p>}
       <div className="map-credit">
         {credit && <p className="map-credit-text">© OpenMapTiles © OpenStreetMap contributors</p>}

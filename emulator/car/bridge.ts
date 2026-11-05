@@ -34,7 +34,10 @@ export interface ShellState {
   running: App[];
   recents: boolean;
   lastHomeMs: number | null;
+  card: CardPage | null;
 }
+
+export type CardPage = "BLUETOOTH" | "NO_PHONE" | "RADIO" | "NO_SOURCE" | "NAVIGATION";
 
 export type CarEvent =
   | { type: "ReverseGear"; on: boolean }
@@ -76,7 +79,8 @@ export type ShellAction =
   | { type: "SetFont"; name: string }
   | { type: "SetBrightness"; value: number }
   | { type: "Headlights"; on: boolean }
-  | { type: "OpenApp"; app: App };
+  | { type: "OpenApp"; app: App }
+  | { type: "ShowCard"; page: CardPage };
 
 export interface RuleAction {
   type: string;
@@ -104,6 +108,7 @@ interface Kotlin {
       countryAt(lon: number, lat: number): string;
       mapOffer(country: string, installed: string, wifi: boolean, declined: string, downloading: string): string;
       packMb(code: string): number;
+      homeCard(state: string, chosen: string): string;
       speed(lon: number, lat: number, timeMs: number, chipKmh: number): string;
       speedWarning(roadLimit: number, timeMs: number): string;
       countryName(code: string): string;
@@ -135,6 +140,9 @@ export const bridge = {
   mapOffer: (country: string, installed: string[], wifi: boolean, declined: string[], downloading: string | null) =>
     K!.Bridge.mapOffer(country, JSON.stringify(installed), wifi, JSON.stringify(declined), downloading ?? "") as "NONE" | "DOWNLOAD" | "NEEDS_WIFI",
   packMb: (code: string): number => K!.Bridge.packMb(code),
+  /** The card on home: its pages, the one shown, the sound strip under the map, and the page a source brings forward. */
+  homeCard: (state: CarState, chosen: CardPage | null): { pages: CardPage[]; shown: CardPage; strip: "NONE" | "BT" | "RADIO"; forSource: CardPage } =>
+    JSON.parse(K!.Bridge.homeCard(JSON.stringify(state), chosen ?? "")),
   /** The limit sign and over-limit warning for the last speed fix; [roadLimit] null when the car's road has none. */
   speedWarning: (roadLimit: number | null, timeMs: number): { limit: number | null; over: boolean; chime: boolean; lit: number; tone: "WHITE" | "ORANGE" | "RED" } =>
     JSON.parse(K!.Bridge.speedWarning(roadLimit ?? -1, timeMs)),

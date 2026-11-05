@@ -7,7 +7,7 @@ import { Marquee, Progress, time, TransportRow, useCrossfade, usePosition } from
 
 
 /** Bluetooth is the source but no phone is connected: nothing to play, one way to a phone. */
-function NoPhone() {
+export function NoPhone() {
   return (
     <div className="np np-empty">
       <p className="np-title">No phone connected</p>
@@ -19,7 +19,7 @@ function NoPhone() {
   );
 }
 
-function Bluetooth({ emulator }: { emulator: EmulatorState }) {
+export function Bluetooth({ emulator }: { emulator: EmulatorState }) {
   const { car, track } = emulator;
   const { elapsed, duration } = usePosition();
   const tints = useCrossfade(track.art);
@@ -53,7 +53,7 @@ function Bluetooth({ emulator }: { emulator: EmulatorState }) {
 }
 
 /** The station playing, tinted by its genre; a tap opens the radio app. */
-function Radio({ emulator }: { emulator: EmulatorState }) {
+export function Radio({ emulator }: { emulator: EmulatorState }) {
   const { car, radio, favorites } = emulator;
   const genre = bridge.ptyName(radio.pty);
   const favorite = favorites.includes(radio.khz);
@@ -82,7 +82,7 @@ function Radio({ emulator }: { emulator: EmulatorState }) {
   );
 }
 
-function NoSource() {
+export function NoSource() {
   return (
     <div className="np np-empty">
       <p className="np-title">No source</p>
@@ -94,11 +94,4 @@ function NoSource() {
       </div>
     </div>
   );
-}
-
-export function NowPlaying({ emulator }: { emulator: EmulatorState }) {
-  const { source } = emulator.car;
-  if (source === "BT") return emulator.car.btConnected ? <Bluetooth emulator={emulator} /> : <NoPhone />;
-  if (source === "RADIO") return <Radio emulator={emulator} />;
-  return <NoSource />;
 }
