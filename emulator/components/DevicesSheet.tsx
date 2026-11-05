@@ -41,6 +41,7 @@ function SavedRow({ name, status, open, onOpen, connectLocked }: { name: string;
   const down = (e: PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 || leaving) return;
     const el = e.currentTarget;
+    suppressClick.current = false;
     offsetRef.current = open ? -REVEAL : 0;
     drag.current = { x: e.clientX, y: e.clientY, from: open ? -REVEAL : 0, scale: el.getBoundingClientRect().width / el.offsetWidth || 1, sideways: null, moved: false };
   };
@@ -79,12 +80,12 @@ function SavedRow({ name, status, open, onOpen, connectLocked }: { name: string;
   endRef.current = up;
   // a drag never counts as a tap, and a tap on an open row only closes it
   const click = (e: MouseEvent) => {
-    if (suppressClick.current || open) {
-      e.preventDefault();
-      e.stopPropagation();
-      suppressClick.current = false;
-      if (open) onOpen(null);
-    }
+    if (!suppressClick.current && !open) return;
+    e.preventDefault();
+    e.stopPropagation();
+    // the click a browser sends at the end of a drag is only swallowed; a real tap on an open row closes it
+    if (suppressClick.current) suppressClick.current = false;
+    else onOpen(null);
   };
   const remove = () => {
     setHeight(row.current?.offsetHeight);
