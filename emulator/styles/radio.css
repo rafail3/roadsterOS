@@ -93,6 +93,8 @@
 /* the star on the card: centred over the transport */
 .np-radio .radio-star { align-self: center; width: 52px; height: 52px; color: var(--ink-muted); background: var(--glass-strong); }
 .np-radio .radio-star.is-on { color: #ffd60a; }
+/* by day the yellow star needs a deeper shade to stand out on the light card */
+.screen.light .np-radio .radio-star.is-on { color: #c98f00; }
 .np-radio .radio-star .icon { width: 24px; height: 24px; }
 .np-radio .radio-star:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .np .radio-tag { color: var(--ink-muted); background: var(--glass-strong); }
