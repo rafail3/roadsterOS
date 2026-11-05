@@ -27,8 +27,7 @@ import ro.rdstr.car.CarEvent
 import ro.rdstr.car.Contact
 import ro.rdstr.car.PhoneBook
 import ro.rdstr.car.PhoneGate
-import ro.rdstr.car.Journal
-import ro.rdstr.car.JournalLine
+import ro.rdstr.car.JournalRecord
 import ro.rdstr.car.Rules
 import ro.rdstr.car.Settings
 import ro.rdstr.car.Shell
@@ -127,6 +126,12 @@ object CarRuntime {
         radios = Radios(app)
         prefs = context.getSharedPreferences("rdstr", Context.MODE_PRIVATE)
         _shell.value = Shell.decodePreferences(prefs.getString(SHELL_KEY, null))
+        val header = "roadsterOS ${runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull()} " +
+            "Android ${android.os.Build.VERSION.RELEASE} ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
+        journal = ro.rdstr.os.settings.JournalRecorder(java.io.File(app.filesDir, "journal"), header).also {
+            it.catchCrashes()
+            it.followLogs(_shell.value.recordEvents)
+        }
         watchPhoneBook(app)
         covers = CoverDesk.create(context.applicationContext, scope).also { desk ->
             desk.follow(ui.map { it.track }.distinctUntilChanged())
@@ -135,7 +140,11 @@ object CarRuntime {
             bus.events.collect { event ->
                 var (next, actions) = Rules.apply(_ui.value.state, event)
                 for (a in actions) when (a) {
-                    is Action.Send -> bus.send(a.command)
+                    is Action.Send -> {
+                        // the rules already counted this command; it only goes to the car, and into the journal
+                        if (_shell.value.recordEvents) journal.write(JournalRecord(0, command = a.command))
+                        bus.send(a.command)
+                    }
                     Action.SaveState -> prefs.edit().putString("source", next.source.name).putBoolean("playing", next.playing).apply()
                     else -> Unit
                 }
@@ -145,7 +154,7 @@ object CarRuntime {
                     next = Rules.onCommand(next, c)
                 }
                 _ui.value = _ui.value.reduce(next, actions, event)
-                if (_shell.value.recordEvents) record(event)
+                if (_shell.value.recordEvents) journal.write(JournalRecord(0, event = event))
                 // a new call fills the screen, an ended one goes; Home folds it into its bar
                 if (event is CarEvent.Call) shellAction(ShellAction.CallChanged(event.state))
             }
@@ -154,6 +163,7 @@ object CarRuntime {
 
     fun send(command: CarCommand) {
         _ui.value = _ui.value.copy(state = Rules.onCommand(_ui.value.state, command))
+        if (_shell.value.recordEvents) journal.write(JournalRecord(0, command = command))
         bus.send(command)
     }
 
@@ -162,23 +172,16 @@ object CarRuntime {
         val before = _shell.value
         val after = Shell.reduce(before, action)
         _shell.value = after
+        if (after.recordEvents) journal.write(JournalRecord(0, shell = action))
+        if (after.recordEvents != before.recordEvents) journal.followLogs(after.recordEvents)
         if (Shell.preferences(after) != Shell.preferences(before)) {
             prefs.edit().putString(SHELL_KEY, Shell.encodePreferences(after)).apply()
             Log.i(Radios.TAG, "saved ${Shell.encodePreferences(after)}")
         }
     }
 
-    private val startedAt = android.os.SystemClock.elapsedRealtime()
-
-    /**
-     * One line per car event in files/journal/events.jsonl, the format car-sim replays (adb pull it from the app's
-     * files). ponytail: one growing file; split by day if a long recording gets too big to pull.
-     */
-    private fun record(event: CarEvent) {
-        val dir = java.io.File(app.filesDir, "journal").apply { mkdirs() }
-        val line = Journal.encode(JournalLine(android.os.SystemClock.elapsedRealtime() - startedAt, event))
-        runCatching { java.io.File(dir, "events.jsonl").appendText(line + "\n") }.onFailure { Log.w(Radios.TAG, "journal not written", it) }
-    }
+    /** The troubleshooting journal in files/journal, one file a day (core-car JournalFiles); adb pull it to read. */
+    private lateinit var journal: ro.rdstr.os.settings.JournalRecorder
 
     /** The other apps that can go on home, and starting one of them. */
     fun installedApps() = ro.rdstr.os.settings.InstalledApps.read(app)

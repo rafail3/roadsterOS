@@ -677,7 +677,7 @@ function phoneSkips(forward: boolean) {
 
 export function carEvent(event: CarEvent) {
   const step = bridge.apply(state.car, event);
-  set({ ...displayData(event), car: step.state, log: addLog("in", event), recorded: state.shell.recordEvents ? state.recorded + 1 : state.recorded });
+  set({ ...displayData(event), car: step.state, log: addLog("in", event), recorded: counted() });
   step.actions.forEach(runAction);
   // a phone brings its hands-free link up and down with it; a tablet or the laptop has none
   if (event.type === "BtConnection") {
@@ -695,7 +695,7 @@ export function carEvent(event: CarEvent) {
 
 /** A command from our own UI: the rules remember it, then it goes to the car. */
 export function carCommand(command: CarCommand) {
-  set({ car: bridge.command(state.car, command) });
+  set({ car: bridge.command(state.car, command), recorded: counted() });
   sendToCar(command);
 }
 
@@ -773,8 +773,11 @@ export function pressSound(page: "BLUETOOTH" | "RADIO", press: "PREV" | "PLAY" |
   bridge.homeCardPress(state.car, page, press).forEach(carCommand);
 }
 
+/** One more line in the unit's journal when recording is on: an event, a command or a screen action. */
+const counted = () => (state.shell.recordEvents ? state.recorded + 1 : state.recorded);
+
 export function shellAction(action: ShellAction) {
-  set({ shell: bridge.shell(state.shell, action) });
+  set({ shell: bridge.shell(state.shell, action), recorded: counted() });
 }
 
 export function pressKey(key: PanelKey | null) {
@@ -808,7 +811,9 @@ export async function replay(name: string) {
     const lines: { t: number; event: CarEvent }[] = (await response.text())
       .split("\n")
       .filter(Boolean)
-      .map((line) => JSON.parse(line));
+      .map((line) => JSON.parse(line))
+      // a unit's journal also holds commands, screen actions and errors: only the car events replay
+      .filter((line) => line.event);
     const total = lines[lines.length - 1].t || 1;
     set({ replay: { name, progress: 0 } });
     replayTimers = lines.map((line) =>

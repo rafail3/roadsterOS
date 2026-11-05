@@ -218,7 +218,7 @@ function About({ e }: { e: EmulatorState }) {
     <Group title="Storage">
       <Row label="Free" value={`${bridge.size(ABOUT.freeStorage)} of ${bridge.size(ABOUT.totalStorage)}`} />
     </Group>
-    <Group title="Troubleshooting" footer={e.shell.recordEvents ? `Writing every car event to the unit's journal: ${e.recorded} so far. Read it with adb.` : "Writes every car event to a file on the unit, to replay or send for help."}>
+    <Group title="Troubleshooting" footer={e.shell.recordEvents ? `Recording: ${e.recorded} lines so far. Read the journal with adb.` : "Writes car events, commands, screen actions and errors to the unit, one file a day; older days are compressed and the journal never passes 10 MB."}>
       <Row label="Record Car Events"><Switch label="Record Car Events" on={e.shell.recordEvents} onChange={(on) => shellAction({ type: "SetRecording", on })} /></Row>
     </Group>
     <Group footer={confirm ? "Theme, brightness, clock and sound settings go back to their defaults. Phones, networks and maps stay." : undefined}>
