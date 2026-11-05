@@ -46,6 +46,20 @@ object Bridge {
 
     fun ptyName(code: Int): String = Rds.ptyName(code)
 
+    private var borders: List<MapPacks.Country> = emptyList()
+
+    /** Loads the country borders once; [countryAt] then answers from them. */
+    fun loadBorders(geojson: String) { borders = MapPacks.parseBorders(geojson) }
+
+    /** The ISO code of the country at a position, or an empty string outside every border. */
+    fun countryAt(lon: Double, lat: Double): String = MapPacks.countryAt(borders, lon, lat)?.code ?: ""
+
+    fun mapOffer(country: String, installed: String, wifi: Boolean): String = MapPacks.offer(
+        country.ifEmpty { null },
+        json.decodeFromString(ListSerializer(String.serializer()), installed).toSet(),
+        wifi,
+    ).name
+
     fun setVolume(state: String, level: Int): String = json.encodeToString(
         ListSerializer(CarCommand.serializer()),
         Rules.setVolume(json.decodeFromString(RulesState.serializer(), state), level),
