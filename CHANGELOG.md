@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.5.0](https://github.com/rafail3/roadsterOS/compare/v1.4.0...v1.5.0) (2026-11-04)
+
+
+### Features
+
+* held volume keys and smoother mute ([bce8b08](https://github.com/rafail3/roadsterOS/commit/bce8b086e4cf7494498e1ad657ca6a813c137b8e))
+
+## [1.4.0](https://github.com/rafail3/roadsterOS/compare/v1.3.0...v1.4.0) (2026-11-04)
+
+
+### Features
+
+* bluetooth music card and music app ([#18](https://github.com/rafail3/roadsterOS/issues/18)) ([d66d903](https://github.com/rafail3/roadsterOS/commit/d66d9030ad1e062737174ad847a7398a907ca530))
+
+
+### Bug Fixes
+
+* **core-car:** volume level 0 to 30 as the unit's, start level 16 ([#17](https://github.com/rafail3/roadsterOS/issues/17)) ([096e881](https://github.com/rafail3/roadsterOS/commit/096e881e9f92793b31e9e68831f2f34d85426f69))
+
 ## [1.3.0](https://github.com/rafail3/roadsterOS/compare/v1.2.0...v1.3.0) (2026-11-04)
 
 
