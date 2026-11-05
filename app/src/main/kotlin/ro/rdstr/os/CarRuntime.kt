@@ -47,6 +47,8 @@ data class UiState(
     val callInCar: Boolean = true,
     val contacts: List<Contact> = emptyList(),
     val calls: List<CallRecord> = emptyList(),
+    /** The connected phone's Bluetooth name, for the phone chip and the call screen; empty with none. */
+    val phoneName: String = "",
 ) {
     fun reduce(state: RulesState, actions: List<Action>, event: CarEvent): UiState {
         var ui = copy(state = state, lastEvent = event.toString(), track = event as? CarEvent.Track ?: track)
@@ -62,6 +64,8 @@ data class UiState(
         when (event) {
             is CarEvent.PhoneStatus -> ui = ui.copy(phoneStatus = event)
             is CarEvent.CallAudio -> ui = ui.copy(callInCar = event.inCar)
+            // a dropped phone takes its name and its network with it
+            is CarEvent.HfpConnection -> ui = if (event.connected) ui.copy(phoneName = event.device) else ui.copy(phoneName = "", phoneStatus = null)
             else -> Unit
         }
         return ui

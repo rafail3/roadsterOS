@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { Face, SteeringKey, ThemeMode } from "../car/bridge";
-import { SAMPLE_CALLERS } from "../car/phone";
+import { SAMPLE_CALLERS, SAMPLE_PHONE } from "../car/phone";
 import { carEvent, GPS_PLACES, incomingCall, remoteHangUp, removePack, setPhoneStatus, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Field, holdToRepeat, Section, Segmented, Switch } from "./controls";
 
@@ -54,7 +54,7 @@ function Signals() {
 
 function Bluetooth() {
   const { car, positionMs, saved, pcMedia } = useEmulator();
-  const [device, setDevice] = useState("Phone");
+  const [device, setDevice] = useState(SAMPLE_PHONE);
   const [title, setTitle] = useState("Night Transit");
   const [artist, setArtist] = useState("Vela Orsini");
   return (
@@ -62,7 +62,7 @@ function Bluetooth() {
       <Switch label="Laptop media" checked={pcMedia} onChange={setPcMedia} />
       <p className="note">Plays what this Windows laptop plays, for example a music site in the browser: track, cover, position, and the transport keys control it.</p>
       <Field label="Device" value={device} onChange={setDevice} />
-      <Switch label="Connected" checked={car.btConnected} onChange={(connected) => carEvent({ type: "BtConnection", connected, device: device || "Phone" })} />
+      <Switch label="Connected" checked={car.btConnected} onChange={(connected) => carEvent({ type: "BtConnection", connected, device: device || SAMPLE_PHONE })} />
       <Switch label="Playing" checked={car.playing} onChange={(playing) => carEvent({ type: "Playback", playing, positionMs })} />
       <div className="field-pair">
         <Field label="Title" value={title} onChange={setTitle} />
@@ -110,6 +110,8 @@ function Phone() {
       <Row label={`Signal ${phoneStatus.signal}/5`}>
         <input type="range" min="0" max="5" value={phoneStatus.signal} onChange={(e) => setPhoneStatus({ signal: Number(e.target.value) })} />
       </Row>
+      <Field label="Network" value={phoneStatus.operator} onChange={(operator) => setPhoneStatus({ operator })} />
+      <Switch label="Roaming" checked={phoneStatus.roaming} onChange={(roaming) => setPhoneStatus({ roaming })} />
       <Row label={`Battery ${phoneStatus.battery}/5`}>
         <input type="range" min="0" max="5" value={phoneStatus.battery} onChange={(e) => setPhoneStatus({ battery: Number(e.target.value) })} />
       </Row>

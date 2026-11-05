@@ -37,6 +37,17 @@ class UiStateTest {
     }
 
     @Test
+    fun `the phone's name and network come and go with its link`() {
+        var ui = UiState().reduce(RulesState(), emptyList(), CarEvent.HfpConnection(true, "Pixel 8"))
+        assertEquals("Pixel 8", ui.phoneName)
+        ui = ui.reduce(RulesState(), emptyList(), CarEvent.PhoneStatus(operator = "Net", roaming = true))
+        assertEquals("Net", ui.phoneStatus?.operator)
+        ui = ui.reduce(RulesState(), emptyList(), CarEvent.HfpConnection(false))
+        assertEquals("", ui.phoneName)
+        assertNull(ui.phoneStatus)
+    }
+
+    @Test
     fun `night action sets night`() {
         val ui = UiState().reduce(RulesState(night = true), listOf(Action.Night(true)), CarEvent.Illumination(true))
         assertTrue(ui.night)

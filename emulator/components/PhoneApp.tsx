@@ -31,14 +31,36 @@ function when(atMs: number, now: Date) {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
+/** Five signal bars, the phone's 0..5 over the hands-free link. */
+function SignalBars({ signal }: { signal: number }) {
+  return <span className="phone-bars" aria-hidden="true">{[1, 2, 3, 4, 5].map((b) => <i key={b} className={b <= signal ? "is-on" : undefined} />)}</span>;
+}
+
+/** The phone's network in the status bar: its signal, the operator's name, and roaming when abroad. */
+export function PhoneNetwork({ status: { signal, operator, roaming, battery } }: { status: EmulatorState["phoneStatus"] }) {
+  return (
+    <span className="bar-network" role="img" aria-label={`${operator || "Phone network"}, signal ${signal} of 5${roaming ? ", roaming" : ""}, phone battery ${battery * 20}%`}>
+      <SignalBars signal={signal} />
+      {operator && <span className="bar-text">{operator}</span>}
+      {roaming && <span className="bar-roaming">Roaming</span>}
+      <Battery level={battery} />
+    </span>
+  );
+}
+
+/** The phone's battery, 0..5 over the hands-free link; red at the last step. */
+function Battery({ level }: { level: number }) {
+  return <span className={`phone-battery${level <= 1 ? " is-low" : ""}`} aria-hidden="true"><i style={{ transform: `scaleX(${level / 5})` }} /></span>;
+}
+
 /** Signal bars and battery as the phone reports them over the hands-free link, both 0..5. */
 function PhoneChip({ emulator }: { emulator: EmulatorState }) {
   const { device, phoneStatus: { battery, signal, operator } } = emulator;
   return (
     <button className="phone-chip" aria-label={`${device}, ${operator}, signal ${signal} of 5, battery ${battery * 20}%, choose device`} onClick={() => shellAction({ type: "OpenDevices" })}>
-      <span className="phone-bars" aria-hidden="true">{[1, 2, 3, 4, 5].map((b) => <i key={b} className={b <= signal ? "is-on" : undefined} />)}</span>
+      <SignalBars signal={signal} />
       <span className="phone-chip-name">{device}</span>
-      <span className={`phone-battery${battery <= 1 ? " is-low" : ""}`} aria-hidden="true"><i style={{ transform: `scaleX(${battery / 5})` }} /></span>
+      <Battery level={battery} />
     </button>
   );
 }

@@ -30,9 +30,9 @@ sealed class CarEvent {
     @Serializable @SerialName("BtConnection")
     data class BtConnection(val connected: Boolean, val device: String = "") : CarEvent()
 
-    /** The phone connected for calls (the hands-free profile), apart from its music. */
+    /** The phone connected for calls (the hands-free profile), apart from its music; [device] is its Bluetooth name. */
     @Serializable @SerialName("HfpConnection")
-    data class HfpConnection(val connected: Boolean) : CarEvent()
+    data class HfpConnection(val connected: Boolean, val device: String = "") : CarEvent()
 
     @Serializable @SerialName("Track")
     data class Track(

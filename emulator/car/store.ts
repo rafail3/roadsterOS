@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createCoverDesk } from "./covers";
 import { bridge, type Band, type CallRecord, type CarCommand, type CarEvent, type CarState, type Contact, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
-import { MAJOR_COMPUTER, MAJOR_PHONE, SAMPLE_CONTACTS, sampleCalls } from "./phone";
+import { MAJOR_COMPUTER, MAJOR_PHONE, SAMPLE_CONTACTS, SAMPLE_PHONE, sampleCalls } from "./phone";
 import { BANDS, STATIONS, stationAt } from "./radio";
 import { GPS_PLACES } from "./gps";
 export { GPS_PLACES };
@@ -48,7 +48,7 @@ export interface EmulatorState {
   contacts: Contact[];
   calls: CallRecord[];
   /** what the phone reports over the hands-free link: battery and signal 0..5, the network */
-  phoneStatus: { battery: number; signal: number; operator: string };
+  phoneStatus: { battery: number; signal: number; operator: string; roaming: boolean };
   /** Bluetooth switching on, asked by the phone app */
   btTurningOn: boolean;
   /** the phone Bluetooth reports as connected */
@@ -203,7 +203,7 @@ function displayData(event: CarEvent): Partial<EmulatorState> {
     case "CallAudio":
       return { call: { ...state.call, inCar: event.inCar } };
     case "PhoneStatus":
-      return { phoneStatus: { battery: event.battery ?? state.phoneStatus.battery, signal: event.signal ?? state.phoneStatus.signal, operator: event.operator ?? state.phoneStatus.operator } };
+      return { phoneStatus: { battery: event.battery ?? state.phoneStatus.battery, signal: event.signal ?? state.phoneStatus.signal, operator: event.operator ?? state.phoneStatus.operator, roaming: event.roaming ?? state.phoneStatus.roaming } };
     case "Power":
       return { acc: event.acc };
     case "BtConnection":
@@ -600,7 +600,7 @@ export function carEvent(event: CarEvent) {
   if (event.type === "BtConnection") {
     const major = state.saved.find((d) => d.name === event.device)?.major ?? MAJOR_COMPUTER;
     const calls = event.connected && bridge.callCapable(major);
-    if (calls !== state.car.hfpConnected) carEvent({ type: "HfpConnection", connected: calls });
+    if (calls !== state.car.hfpConnected) carEvent({ type: "HfpConnection", connected: calls, device: event.device });
   }
   // the screen follows the ignition: dark with the car off, back on when it starts
   if (event.type === "Power") shellAction({ type: event.acc ? "Wake" : "Sleep" });
@@ -636,7 +636,7 @@ export function remoteHangUp() {
   if (state.car.call !== "IDLE") carEvent({ type: "Call", state: "IDLE" });
 }
 
-export function setPhoneStatus(status: { battery?: number; signal?: number }) {
+export function setPhoneStatus(status: { battery?: number; signal?: number; operator?: string; roaming?: boolean }) {
   carEvent({ type: "PhoneStatus", ...status });
 }
 
@@ -727,8 +727,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   // ?btoff starts with Bluetooth off, so no phone; ?nophone with it on and no phone
   const source = (q.get("source") ?? (q.has("btoff") || q.has("nophone") ? "none" : "bt")).toUpperCase();
   if (source === "BT") {
-    applyEvent({ type: "BtConnection", connected: true, device: "Phone" });
-    applyEvent({ type: "HfpConnection", connected: true });
+    applyEvent({ type: "BtConnection", connected: true, device: SAMPLE_PHONE });
+    applyEvent({ type: "HfpConnection", connected: true, device: SAMPLE_PHONE });
     applyEvent({ type: "Playback", playing: true, positionMs: 72000 });
   }
   if (source === "RADIO") {
@@ -763,10 +763,11 @@ function fromUrl(q: URLSearchParams): EmulatorState {
       : NO_CALL,
     contacts: SAMPLE_CONTACTS,
     calls: sampleCalls(Date.now()),
-    phoneStatus: { battery: 4, signal: 3, operator: "Vela Mobile" },
+    phoneStatus: { battery: 4, signal: 3, operator: "Vela Mobile", roaming: false },
     btTurningOn: false,
-    device: "Phone",
-    saved: [{ name: "Phone", inRange: true, major: MAJOR_PHONE }, { name: "Work phone", inRange: false, major: MAJOR_PHONE }, { name: "Tablet", inRange: true, major: MAJOR_COMPUTER }],
+    device: SAMPLE_PHONE,
+    // the names phones give themselves in their Bluetooth settings
+    saved: [{ name: SAMPLE_PHONE, inRange: true, major: MAJOR_PHONE }, { name: "Galaxy S23", inRange: false, major: MAJOR_PHONE }, { name: "Galaxy Tab S9", inRange: true, major: MAJOR_COMPUTER }],
     connecting: null,
     failed: null,
     scanning: false,

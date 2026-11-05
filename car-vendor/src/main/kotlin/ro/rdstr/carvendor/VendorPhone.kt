@@ -39,9 +39,9 @@ class VendorPhone(private val context: Context) {
         adapter.getProfileProxy(context, object : BluetoothProfile.ServiceListener {
             override fun onServiceConnected(profile: Int, p: BluetoothProfile) {
                 proxy = p
-                val linked = p.connectedDevices.isNotEmpty()
-                Log.i(TAG, "hfp proxy ready, linked=$linked")
-                emit(CarEvent.HfpConnection(linked))
+                val phone = p.connectedDevices.firstOrNull()
+                Log.i(TAG, "hfp proxy ready, linked=${phone != null}")
+                emit(CarEvent.HfpConnection(phone != null, phone?.name.orEmpty()))
                 // a call already in progress when our app starts
                 p.connectedDevices.firstOrNull()?.let { device ->
                     (invoke("getCurrentCalls", device) as? List<*>)?.filterNotNull()?.forEach(::track)
@@ -69,8 +69,10 @@ class VendorPhone(private val context: Context) {
                     val state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, BluetoothProfile.STATE_DISCONNECTED)
                     if (state == BluetoothProfile.STATE_CONNECTED || state == BluetoothProfile.STATE_DISCONNECTED) {
                         if (state == BluetoothProfile.STATE_DISCONNECTED) calls.clear()
-                        Log.i(TAG, "link ${if (state == BluetoothProfile.STATE_CONNECTED) "up" else "down"}")
-                        emit(CarEvent.HfpConnection(state == BluetoothProfile.STATE_CONNECTED))
+                        // the name the phone gives itself in its Bluetooth settings
+                        val name = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)?.name.orEmpty()
+                        Log.i(TAG, "link ${if (state == BluetoothProfile.STATE_CONNECTED) "up" else "down"} name=$name")
+                        emit(CarEvent.HfpConnection(state == BluetoothProfile.STATE_CONNECTED, name))
                     }
                 }
                 Hfp.ACTION_CALL_CHANGED -> intent.getParcelableExtra<Parcelable>(Hfp.EXTRA_CALL)?.let { track(it); publishCalls() }

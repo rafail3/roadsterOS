@@ -54,7 +54,7 @@ export type CarEvent =
   | { type: "Track"; title: string; artist?: string; album?: string; durationMs?: number }
   | { type: "Playback"; playing: boolean; positionMs?: number }
   | { type: "Call"; state: CallState; number?: string; name?: string }
-  | { type: "HfpConnection"; connected: boolean }
+  | { type: "HfpConnection"; connected: boolean; device?: string }
   | { type: "CallAudio"; inCar: boolean }
   | { type: "PhoneStatus"; battery?: number; signal?: number; operator?: string; roaming?: boolean }
   | { type: "Radio"; khz: number; band: Band; rds?: string; signal?: number; pty?: number; stereo?: boolean }

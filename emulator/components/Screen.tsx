@@ -10,7 +10,7 @@ import { ConnectionNotice } from "./ConnectionNotice";
 import { MusicApp } from "./MusicApp";
 import { RadioApp } from "./RadioApp";
 import { MapsApp } from "./MapsApp";
-import { PhoneApp } from "./PhoneApp";
+import { PhoneApp, PhoneNetwork } from "./PhoneApp";
 import { MapOffer } from "./MapOffer";
 import { DevicesSheet } from "./DevicesSheet";
 import { NetworksSheet } from "./NetworksSheet";
@@ -144,6 +144,8 @@ export function Screen() {
 
       <header className="bar" inert={covered} onPointerDown={onPointerDown}>
         <div className="bar-group">
+          {/* first, the connected phone's network and battery, as it reports them over the hands-free link */}
+          {car.hfpConnected && <PhoneNetwork status={emulator.phoneStatus} />}
           <span
             className={classes("icon", car.source === "RADIO" ? "i-radio" : "i-bluetooth", car.source !== "NONE" && "is-on", car.source !== "RADIO" && !emulator.btOn && "is-off")}
             aria-hidden="true"
