@@ -67,7 +67,7 @@ export function Drawer({ emulator, panel, dragging }: { emulator: EmulatorState;
       </div>
       <label className="slider">
         <span className="icon i-sun-dim" />
-        <input type="range" min="10" max="100" value={shell.brightness} aria-label="Brightness" aria-valuetext={`${shell.brightness} percent`} onChange={(e) => shellAction({ type: "SetBrightness", value: Number(e.target.value) })} />
+        <input type="range" min={bridge.minBrightness()} max={bridge.maxBrightness()} value={shell.brightness} aria-label="Brightness" aria-valuetext={`${shell.brightness} percent`} onChange={(e) => shellAction({ type: "SetBrightness", value: Number(e.target.value) })} />
         <span className="slider-readout">{shell.brightness}%</span>
       </label>
       <label className="slider">

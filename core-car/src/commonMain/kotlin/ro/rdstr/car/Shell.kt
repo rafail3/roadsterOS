@@ -47,14 +47,22 @@ sealed class ShellAction {
     @Serializable @SerialName("CloseDevices") data object CloseDevices : ShellAction()
 }
 
+/** The layer drawn over the whole screen: black below neutral brightness, white above it. */
+@Serializable
+data class Veil(val white: Boolean, val opacity: Double)
+
 /** Shell behaviour shared by the unit and the browser emulator. Pure. */
 object Shell {
     const val DAY_START = 5
     const val DAY_END = 19
     /** Percent of the chosen brightness kept while the headlights are on, in the auto theme only. */
     const val HEADLIGHTS_DIM = 80
+    /** Neutral: the panel as the vendor drives it, nothing drawn over it. */
     const val FULL_BRIGHTNESS = 100
     const val MIN_BRIGHTNESS = 10
+    const val MAX_BRIGHTNESS = 150
+    const val DARKEST_VEIL = 0.95
+    const val BRIGHTEST_VEIL = 0.2
     const val DRAWER_OPEN_FRACTION = 1.0 / 3
 
     fun reduce(s: ShellState, a: ShellAction): ShellState = when (a) {
@@ -66,7 +74,7 @@ object Shell {
         ShellAction.ToggleFace -> s.copy(face = if (s.face == Face.DIGITAL) Face.ANALOG else Face.DIGITAL)
         is ShellAction.SetFace -> s.copy(face = a.face)
         is ShellAction.SetFont -> s.copy(font = a.name)
-        is ShellAction.SetBrightness -> s.copy(brightness = a.value.coerceIn(MIN_BRIGHTNESS, FULL_BRIGHTNESS))
+        is ShellAction.SetBrightness -> s.copy(brightness = a.value.coerceIn(MIN_BRIGHTNESS, MAX_BRIGHTNESS))
         is ShellAction.Headlights -> s.copy(headlights = a.on)
         ShellAction.ToggleScreen -> s.copy(screenOn = !s.screenOn)
         ShellAction.Wake -> s.copy(screenOn = true)
@@ -91,4 +99,14 @@ object Shell {
     /** The brightness to draw: the chosen one, dimmed while the headlights are on in the auto theme. */
     fun effectiveBrightness(s: ShellState): Int =
         if (s.theme == ThemeMode.AUTO && s.headlights) s.brightness * HEADLIGHTS_DIM / 100 else s.brightness
+
+    /** The panel's own brightness is the vendor's; ours is drawn over it, linear on each side of neutral. */
+    fun veil(s: ShellState): Veil {
+        val b = effectiveBrightness(s)
+        return if (b < FULL_BRIGHTNESS) {
+            Veil(white = false, opacity = ((FULL_BRIGHTNESS - b) * DARKEST_VEIL / (FULL_BRIGHTNESS - MIN_BRIGHTNESS)).coerceAtMost(DARKEST_VEIL))
+        } else {
+            Veil(white = true, opacity = (b - FULL_BRIGHTNESS) * BRIGHTEST_VEIL / (MAX_BRIGHTNESS - FULL_BRIGHTNESS))
+        }
+    }
 }

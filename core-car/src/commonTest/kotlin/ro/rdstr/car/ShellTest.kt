@@ -101,7 +101,8 @@ class ShellTest {
         assertEquals(Face.ANALOG, Shell.reduce(ShellState(), ShellAction.ToggleFace).face)
         assertEquals(Face.DIGITAL, Shell.reduce(ShellState(face = Face.ANALOG), ShellAction.ToggleFace).face)
         assertEquals(10, Shell.reduce(ShellState(), ShellAction.SetBrightness(0)).brightness)
-        assertEquals(100, Shell.reduce(ShellState(), ShellAction.SetBrightness(140)).brightness)
+        assertEquals(140, Shell.reduce(ShellState(), ShellAction.SetBrightness(140)).brightness)
+        assertEquals(150, Shell.reduce(ShellState(), ShellAction.SetBrightness(200)).brightness)
         assertEquals("inter", Shell.reduce(ShellState(), ShellAction.SetFont("inter")).font)
     }
 
@@ -114,5 +115,14 @@ class ShellTest {
         assertEquals(50, Shell.effectiveBrightness(Shell.reduce(lit, ShellAction.Headlights(false))))
         assertEquals(50, Shell.effectiveBrightness(Shell.reduce(ShellState(theme = ThemeMode.DARK, brightness = 50), ShellAction.Headlights(true))))
         assertEquals(100, Shell.effectiveBrightness(Shell.reduce(ShellState(), ShellAction.Headlights(true))))
+    }
+
+    @Test
+    fun `the veil darkens below neutral and lightens above it`() {
+        assertEquals(0.0, Shell.veil(ShellState()).opacity)
+        assertEquals(Veil(white = false, opacity = 0.95), Shell.veil(ShellState(brightness = 10)))
+        assertEquals(Veil(white = true, opacity = 0.2), Shell.veil(ShellState(brightness = 150)))
+        // the headlights can take the darkest setting under the minimum; the veil stays at its darkest
+        assertEquals(0.95, Shell.veil(ShellState(theme = ThemeMode.AUTO, brightness = 10, headlights = true)).opacity)
     }
 }

@@ -11,8 +11,6 @@ import { useCoverColors } from "./media";
 import { useFingerMouse } from "./controls";
 
 const THEME_FADE_MS = 750;
-const MAX_VEIL = 0.78;
-const VEIL_PER_DIM = 0.85;
 
 const RAIL = [
   { id: "music", label: "Music", icon: "i-music-notes" },
@@ -80,7 +78,7 @@ export function Screen() {
     ? ({ "--ambient-a": `color-mix(in srgb, ${cover.top} ${light ? 30 : 85}%, transparent)`, "--ambient-b": `color-mix(in srgb, ${cover.bottom} ${light ? 25 : 90}%, transparent)` } as React.CSSProperties)
     : undefined;
   const covered = shell.drawer || car.call !== "IDLE" || car.camera;
-  const veil = Math.max(0, Math.min(MAX_VEIL, (1 - bridge.effectiveBrightness(shell) / 100) * VEIL_PER_DIM));
+  const veil = bridge.veil(shell);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -153,7 +151,7 @@ export function Screen() {
         </svg>
       ))}
       <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC"} />
-      <div className="dimmer" aria-hidden="true" style={{ opacity: veil.toFixed(3) }} />
+      <div className={classes("dimmer", veil.white && "is-white")} aria-hidden="true" style={{ opacity: veil.opacity.toFixed(3) }} />
       {!shell.screenOn && <button className="screen-off" aria-label="Screen off, tap to wake" onClick={() => shellAction({ type: "Wake" })} />}
     </div>
   );
