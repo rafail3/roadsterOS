@@ -141,9 +141,6 @@ object Bridge {
     fun phoneSections(book: String): String =
         json.encodeToString(ListSerializer(ContactSection.serializer()), PhoneBook.sections(json.decodeFromString(contacts, book)))
 
-    fun phoneSearch(book: String, query: String): String =
-        json.encodeToString(contacts, PhoneBook.search(json.decodeFromString(contacts, book), query))
-
     /** [calls]: a JSON array of call records; answers the recents rows. */
     fun phoneRecents(calls: String, book: String): String = json.encodeToString(
         ListSerializer(RecentRow.serializer()),

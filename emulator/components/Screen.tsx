@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { bridge, type Source } from "../car/bridge";
-import { carCommand, carEvent, openVolume, setBluetooth, shellAction, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
+import { carCommand, carEvent, openPhone, openVolume, setBluetooth, shellAction, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Clock } from "./Clock";
 import { Drawer, useDrawerDrag } from "./Drawer";
 import { HomeCard } from "./HomeCard";
@@ -10,6 +10,7 @@ import { ConnectionNotice } from "./ConnectionNotice";
 import { MusicApp } from "./MusicApp";
 import { RadioApp } from "./RadioApp";
 import { MapsApp } from "./MapsApp";
+import { PhoneApp } from "./PhoneApp";
 import { MapOffer } from "./MapOffer";
 import { DevicesSheet } from "./DevicesSheet";
 import { NetworksSheet } from "./NetworksSheet";
@@ -93,6 +94,7 @@ function pressRail(id: string, cameraOn: boolean) {
     shellAction({ type: "OpenApp", app: "RADIO" });
   }
   if (id === "maps") shellAction({ type: "OpenApp", app: "MAPS" });
+  if (id === "phone") openPhone();
   if (id === "camera") carEvent({ type: "ReverseGear", on: !cameraOn });
 }
 
@@ -195,6 +197,7 @@ export function Screen() {
       </section>
 
       <MusicApp open={shell.app === "MUSIC"} />
+      <PhoneApp open={shell.app === "PHONE"} />
       <RadioApp open={shell.app === "RADIO"} />
       <MapsApp open={shell.app === "MAPS"} inCard={!inApp && card.shown === "NAVIGATION" && shell.screenOn} light={light} />
       {/* over any screen: opened from the music app or by a long press on the drawer's Bluetooth */}

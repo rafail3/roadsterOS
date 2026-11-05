@@ -1,13 +1,13 @@
 // Typed access to core-car compiled to JavaScript. Every decision goes through here in JSON.
 
 export type Source = "NONE" | "BT" | "RADIO";
-export type CallState = "IDLE" | "RINGING" | "ACTIVE";
+export type CallState = "IDLE" | "RINGING" | "OUTGOING" | "ACTIVE";
 export type ThemeMode = "AUTO" | "LIGHT" | "DARK";
 export type Face = "DIGITAL" | "ANALOG";
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";
 export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
 export type Band = "FM" | "AM";
-export type App = "HOME" | "MUSIC" | "RADIO" | "MAPS";
+export type App = "HOME" | "MUSIC" | "RADIO" | "MAPS" | "PHONE";
 
 export interface CarState {
   source: Source;
@@ -16,6 +16,8 @@ export interface CarState {
   camera: boolean;
   call: CallState;
   btConnected: boolean;
+  /** a phone is connected for calls (hands-free profile) */
+  hfpConnected: boolean;
   night: boolean;
   volume: number;
   /** the radio receives its station; false while paused */
@@ -52,6 +54,9 @@ export type CarEvent =
   | { type: "Track"; title: string; artist?: string; album?: string; durationMs?: number }
   | { type: "Playback"; playing: boolean; positionMs?: number }
   | { type: "Call"; state: CallState; number?: string; name?: string }
+  | { type: "HfpConnection"; connected: boolean }
+  | { type: "CallAudio"; inCar: boolean }
+  | { type: "PhoneStatus"; battery?: number; signal?: number; operator?: string; roaming?: boolean }
   | { type: "Radio"; khz: number; band: Band; rds?: string; signal?: number; pty?: number; stereo?: boolean }
   | { type: "CarDisplay"; mode: string };
 
@@ -65,6 +70,9 @@ export type CarCommand =
   | { type: "Radio.Preset"; index: number }
   | { type: "Phone.Answer" | "Phone.HangUp" }
   | { type: "Phone.Mute"; on: boolean }
+  | { type: "Phone.Dial"; number: string }
+  | { type: "Phone.Dtmf"; digit: string }
+  | { type: "Phone.AudioInCar"; on: boolean }
   | { type: "Audio.Mute"; on: boolean }
   | { type: "Audio.Volume"; delta: number }
   | { type: "Audio.Source"; source: Source }
@@ -85,6 +93,14 @@ export type ShellAction =
   | { type: "Headlights"; on: boolean }
   | { type: "OpenApp"; app: App }
   | { type: "ShowCard"; page: CardPage };
+
+export interface PhoneNumber { number: string; label: string }
+export interface Contact { name: string; numbers: PhoneNumber[] }
+export type CallType = "INCOMING" | "OUTGOING" | "MISSED";
+export interface CallRecord { number: string; name: string; type: CallType; atMs: number }
+export interface RecentRow { number: string; name: string; label: string; type: CallType; atMs: number; count: number }
+export interface PhoneMatch { name: string; number: string; label: string }
+export type PhoneScreen = "BT_OFF" | "CONNECT" | "READY";
 
 export interface RuleAction {
   type: string;
@@ -120,6 +136,14 @@ interface Kotlin {
       speed(lon: number, lat: number, timeMs: number, chipKmh: number): string;
       speedWarning(roadLimit: number, timeMs: number): string;
       countryName(code: string): string;
+      phoneScreen(btOn: boolean, hfpConnected: boolean): string;
+      callCapable(majorClass: number): boolean;
+      phoneSections(book: string): string;
+      phoneRecents(calls: string, book: string): string;
+      phoneSuggest(book: string, typed: string): string;
+      phoneFind(book: string, number: string): string;
+      initials(name: string): string;
+      callDuration(ms: number): string;
     };
 }
 
@@ -175,4 +199,16 @@ export const bridge = {
   coverFind: (names: string[], title: string, artist: string): string | null => K!.Bridge.coverFind(JSON.stringify(names), title, artist) || null,
   stockCover: (title: string, artist: string, count: number) => K!.Bridge.stockCover(title, artist, count),
   sharpPx: () => K!.Bridge.sharpPx(),
+  /** What the phone app shows: Bluetooth off, a phone to connect, or the app itself. */
+  phoneScreen: (btOn: boolean, hfpConnected: boolean) => K!.Bridge.phoneScreen(btOn, hfpConnected) as PhoneScreen,
+  /** Bluetooth's major device class says whether a device can take calls (phones only). */
+  callCapable: (majorClass: number) => K!.Bridge.callCapable(majorClass),
+  phoneSections: (book: Contact[]): { letter: string; contacts: Contact[] }[] => JSON.parse(K!.Bridge.phoneSections(JSON.stringify(book))),
+  phoneRecents: (calls: CallRecord[], book: Contact[]): RecentRow[] => JSON.parse(K!.Bridge.phoneRecents(JSON.stringify(calls), JSON.stringify(book))),
+  /** The contact under digits typed on the keypad, from three digits on. */
+  phoneSuggest: (book: Contact[], typed: string): PhoneMatch | null => JSON.parse(K!.Bridge.phoneSuggest(JSON.stringify(book), typed)),
+  /** The contact a caller's number belongs to; the phone sends only the number. */
+  phoneFind: (book: Contact[], number: string): PhoneMatch | null => JSON.parse(K!.Bridge.phoneFind(JSON.stringify(book), number)),
+  initials: (name: string) => K!.Bridge.initials(name),
+  callDuration: (ms: number) => K!.Bridge.callDuration(ms),
 };

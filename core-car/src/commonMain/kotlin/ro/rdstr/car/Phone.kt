@@ -43,7 +43,7 @@ object PhoneGate {
     fun callCapable(majorClass: Int) = majorClass == MAJOR_PHONE
 }
 
-/** The phone book and call history synced from the phone (PBAP), as the screen lists and searches them. */
+/** The phone book and call history synced from the phone (PBAP), as the screen lists them. */
 object PhoneBook {
     /**
      * Two numbers are the same when their last digits agree, so "+40 721 111 222" is "0721 111 222".
@@ -81,18 +81,6 @@ object PhoneBook {
         .sortedWith(compareBy<Contact>({ letter(it) == "#" }, { sortKey(it) }))
         .groupBy { letter(it) }
         .map { (letter, list) -> ContactSection(letter, list) }
-
-    /** Names by the start of any word, numbers by any run of digits; a blank query lists everyone. */
-    fun search(contacts: List<Contact>, query: String): List<Contact> {
-        val all = sections(contacts).flatMap { it.contacts }
-        val q = TrackMatch.fold(query)
-        if (q.isEmpty()) return all
-        val typed = digits(query)
-        return all.filter { c ->
-            sortKey(c).split(' ').any { it.startsWith(q) } ||
-                (typed.length == query.trim().length && c.numbers.any { digits(it.number).contains(typed) })
-        }
-    }
 
     /** The contact under the digits typed on the keypad: an exact number first, else one that contains them. */
     fun suggest(contacts: List<Contact>, typed: String): Match? {

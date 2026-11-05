@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
-import type { CallState, Face, SteeringKey, ThemeMode } from "../car/bridge";
-import { carEvent, GPS_PLACES, removePack, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
+import type { Face, SteeringKey, ThemeMode } from "../car/bridge";
+import { SAMPLE_CALLERS } from "../car/phone";
+import { carEvent, GPS_PLACES, incomingCall, remoteHangUp, removePack, setPhoneStatus, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Field, holdToRepeat, Section, Segmented, Switch } from "./controls";
 
 const DEFAULT_TRACK_MS = 228000;
@@ -13,11 +14,6 @@ const KEYS: { key: SteeringKey; label: string }[] = [
   { key: "PREV", label: "Prev" },
   { key: "NEXT", label: "Next" },
   { key: "MODE", label: "Set" },
-];
-const CALL_STATES: { value: CallState; label: string }[] = [
-  { value: "IDLE", label: "Idle" },
-  { value: "RINGING", label: "Ringing" },
-  { value: "ACTIVE", label: "Active" },
 ];
 const THEMES: { value: ThemeMode; label: string }[] = [
   { value: "AUTO", label: "Auto" },
@@ -95,17 +91,28 @@ function Wifi() {
   );
 }
 
+/** The phone's side of a call: it rings the unit, the other side hangs up, its battery and signal change. */
 function Phone() {
-  const { car } = useEmulator();
-  const [name, setName] = useState("Ana Petrescu");
-  const [number, setNumber] = useState("+40 7xx xxx xxx");
+  const { car, phoneStatus } = useEmulator();
+  const [number, setNumber] = useState(SAMPLE_CALLERS[0].number);
+  const idle = car.call === "IDLE";
   return (
     <Section title="Phone">
+      <p className="note">{car.hfpConnected ? "A phone is connected for calls." : "Connect a phone (not the tablet) to ring the unit."}</p>
       <div className="field-pair">
-        <Field label="Caller" value={name} onChange={setName} />
-        <Field label="Number" value={number} onChange={setNumber} />
+        {SAMPLE_CALLERS.map((c) => <button key={c.number} className="button" onClick={() => setNumber(c.number)}>{c.label}</button>)}
       </div>
-      <Segmented label="Call state" options={CALL_STATES} value={car.call} onChange={(state) => carEvent({ type: "Call", state, name, number })} />
+      <Field label="Caller number" value={number} onChange={setNumber} />
+      <div className="field-pair">
+        <button className="button" disabled={!car.hfpConnected || !idle} onClick={() => incomingCall(number)}>Ring the unit</button>
+        <button className="button" disabled={idle} onClick={remoteHangUp}>Other side hangs up</button>
+      </div>
+      <Row label={`Signal ${phoneStatus.signal}/5`}>
+        <input type="range" min="0" max="5" value={phoneStatus.signal} onChange={(e) => setPhoneStatus({ signal: Number(e.target.value) })} />
+      </Row>
+      <Row label={`Battery ${phoneStatus.battery}/5`}>
+        <input type="range" min="0" max="5" value={phoneStatus.battery} onChange={(e) => setPhoneStatus({ battery: Number(e.target.value) })} />
+      </Row>
     </Section>
   );
 }

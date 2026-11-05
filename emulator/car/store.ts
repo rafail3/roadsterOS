@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createCoverDesk } from "./covers";
-import { bridge, type Band, type CarCommand, type CarEvent, type CarState, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
+import { bridge, type Band, type CallRecord, type CarCommand, type CarEvent, type CarState, type Contact, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
+import { MAJOR_COMPUTER, MAJOR_PHONE, SAMPLE_CONTACTS, sampleCalls } from "./phone";
 import { BANDS, STATIONS, stationAt } from "./radio";
 import { GPS_PLACES } from "./gps";
 export { GPS_PLACES };
@@ -41,11 +42,19 @@ export interface EmulatorState {
   country: string;
   /** offline map packs: on the unit, the one downloading, and the offers turned down this trip */
   maps: { installed: string[]; downloading: { code: string; progress: number } | null; declined: string[] };
-  call: { name: string; number: string };
+  /** the call on screen: who, since when it is answered (null before), where it is heard, the car's microphone */
+  call: { name: string; number: string; label: string; incoming: boolean; since: number | null; inCar: boolean; micMuted: boolean };
+  /** the phone book and history the connected phone shared (PBAP) */
+  contacts: Contact[];
+  calls: CallRecord[];
+  /** what the phone reports over the hands-free link: battery and signal 0..5, the network */
+  phoneStatus: { battery: number; signal: number; operator: string };
+  /** Bluetooth switching on, asked by the phone app */
+  btTurningOn: boolean;
   /** the phone Bluetooth reports as connected */
   device: string;
   /** phones the unit has paired with, and whether each has Bluetooth on and in range right now */
-  saved: { name: string; inRange: boolean }[];
+  saved: { name: string; inRange: boolean; major: number }[];
   /** the saved phone a connection is being tried with, and the last one that did not answer */
   connecting: string | null;
   failed: string | null;
@@ -108,10 +117,16 @@ const CONNECT_FAIL_MS = 4000;
 /** A Bluetooth search runs this long; phones answer it one by one. */
 const SCAN_MS = 8000;
 const NEARBY = [{ name: "Friend's phone", afterMs: 900 }, { name: "Pixel 7", afterMs: 2300 }, { name: "Galaxy A54", afterMs: 4100 }];
+/** Switching Bluetooth on takes the unit about this long. */
+const BT_ON_MS = 900;
+/** The other side picks up an outgoing call after this long. */
+const ANSWER_MS = 3200;
 const PAIR_MS = 1200;
 let scanTimers: ReturnType<typeof setTimeout>[] = [];
 const ECHO_DELAY_MS = 120;
-const CALLER = { name: "Ana Petrescu", number: "+40 7xx xxx xxx" };
+/** The caller of ?call=ringing: a number from the phone book; the phone sends no name, as over HFP. */
+const CALLER_NUMBER = "+40721000101";
+const NO_CALL = { name: "", number: "", label: "", incoming: false, since: null, inCar: true, micMuted: false };
 /** Prev restarts the track after this much playback, as phones do; earlier it goes back one track. */
 const RESTART_AFTER_MS = 3000;
 
@@ -174,8 +189,21 @@ function displayData(event: CarEvent): Partial<EmulatorState> {
       return { positionMs: event.positionMs ?? elapsedMs(state), positionAt: Date.now() };
     case "Radio":
       return { radio: { khz: event.khz, band: event.band, rds: event.rds ?? "", pty: event.pty ?? 0, stereo: event.stereo ?? false } };
-    case "Call":
-      return event.state === "RINGING" ? { call: { name: event.name ?? "", number: event.number ?? "" } } : {};
+    case "Call": {
+      // a new call is named from the phone book, as the unit does; answering starts its clock
+      if (state.car.call === "IDLE" && event.state !== "IDLE") {
+        const number = event.number ?? "";
+        const match = bridge.phoneFind(state.contacts, number);
+        return { call: { ...NO_CALL, number, name: event.name || match?.name || "", label: match?.label ?? "", incoming: event.state === "RINGING", since: event.state === "ACTIVE" ? Date.now() : null } };
+      }
+      if (event.state === "ACTIVE" && state.call.since === null) return { call: { ...state.call, since: Date.now() } };
+      if (event.state === "IDLE" && state.car.call !== "IDLE") return { calls: [finishedCall(state), ...state.calls] };
+      return {};
+    }
+    case "CallAudio":
+      return { call: { ...state.call, inCar: event.inCar } };
+    case "PhoneStatus":
+      return { phoneStatus: { battery: event.battery ?? state.phoneStatus.battery, signal: event.signal ?? state.phoneStatus.signal, operator: event.operator ?? state.phoneStatus.operator } };
     case "Power":
       return { acc: event.acc };
     case "BtConnection":
@@ -183,11 +211,17 @@ function displayData(event: CarEvent): Partial<EmulatorState> {
       // a phone that connects is a saved phone from then on
       return {
         device: event.device,
-        saved: state.saved.some((d) => d.name === event.device) ? state.saved : [...state.saved, { name: event.device, inRange: true }],
+        saved: state.saved.some((d) => d.name === event.device) ? state.saved : [...state.saved, { name: event.device, inRange: true, major: MAJOR_PHONE }],
       };
     default:
       return {};
   }
+}
+
+/** The history line a call leaves on the phone: picked up or placed, else missed. */
+function finishedCall(s: EmulatorState): CallRecord {
+  const type = !s.call.incoming ? "OUTGOING" : s.call.since !== null ? "INCOMING" : "MISSED";
+  return { number: s.call.number, name: "", type, atMs: Date.now() };
 }
 
 const SHELL_ACTIONS: Record<string, ShellAction> = {
@@ -327,6 +361,9 @@ function sendToCar(command: CarCommand) {
   if (command.type === "Bt.Forget") forget(command.device);
   if (command.type === "Bt.Pair") set({ pairing: { name: command.device, code: String(100000 + Math.floor(Math.random() * 900000)) } });
   if (command.type === "Bt.ConfirmPairing") confirmPairing(command.accept);
+  if (command.type === "Phone.Mute") set({ call: { ...state.call, micMuted: command.on } });
+  // the other side picks up a while after the dial
+  if (command.type === "Phone.Dial") setTimeout(() => { if (state.car.call === "OUTGOING") carEvent({ type: "Call", state: "ACTIVE" }); }, ANSWER_MS);
   if (command.type === "Bt.Disconnect" && state.car.btConnected) setTimeout(() => carEvent({ type: "BtConnection", connected: false, device: state.device }), ECHO_DELAY_MS);
 }
 
@@ -532,7 +569,7 @@ function confirmPairing(accept: boolean) {
   if (!accept) return set({ pairing: null });
   set({ pairing: { ...pairing, confirmed: true } });
   setTimeout(() => {
-    set({ pairing: null, nearby: state.nearby.filter((n) => n !== pairing.name), saved: [...state.saved, { name: pairing.name, inRange: true }] });
+    set({ pairing: null, nearby: state.nearby.filter((n) => n !== pairing.name), saved: [...state.saved, { name: pairing.name, inRange: true, major: MAJOR_PHONE }] });
     tryConnect(pairing.name);
   }, PAIR_MS);
 }
@@ -559,6 +596,12 @@ export function carEvent(event: CarEvent) {
   const step = bridge.apply(state.car, event);
   set({ ...displayData(event), car: step.state, log: addLog("in", event) });
   step.actions.forEach(runAction);
+  // a phone brings its hands-free link up and down with it; a tablet or the laptop has none
+  if (event.type === "BtConnection") {
+    const major = state.saved.find((d) => d.name === event.device)?.major ?? MAJOR_COMPUTER;
+    const calls = event.connected && bridge.callCapable(major);
+    if (calls !== state.car.hfpConnected) carEvent({ type: "HfpConnection", connected: calls });
+  }
   // the screen follows the ignition: dark with the car off, back on when it starts
   if (event.type === "Power") shellAction({ type: event.acc ? "Wake" : "Sleep" });
 }
@@ -567,6 +610,34 @@ export function carEvent(event: CarEvent) {
 export function carCommand(command: CarCommand) {
   set({ car: bridge.command(state.car, command) });
   sendToCar(command);
+}
+
+/** Opening the phone app: Bluetooth on first when it is off, since calls need a connected phone (core-car PhoneGate). */
+export function openPhone() {
+  shellAction({ type: "OpenApp", app: "PHONE" });
+  if (!state.btOn) turnOnBluetooth();
+}
+
+/** Bluetooth on, after the moment the unit needs to bring it up. */
+export function turnOnBluetooth() {
+  if (state.btTurningOn) return;
+  set({ btTurningOn: true });
+  setTimeout(() => { set({ btTurningOn: false }); setBluetooth(true); }, BT_ON_MS);
+}
+
+/** The phone rings the unit, as a caller from the control panel. */
+export function incomingCall(number: string) {
+  if (!state.car.hfpConnected || state.car.call !== "IDLE") return;
+  carEvent({ type: "Call", state: "RINGING", number });
+}
+
+/** The other side ends the call, or stops ringing. */
+export function remoteHangUp() {
+  if (state.car.call !== "IDLE") carEvent({ type: "Call", state: "IDLE" });
+}
+
+export function setPhoneStatus(status: { battery?: number; signal?: number }) {
+  carEvent({ type: "PhoneStatus", ...status });
 }
 
 /** A level picked on screen; the shared rules turn it into steps and mute at zero. */
@@ -646,15 +717,18 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   if (q.get("app") === "music") shell = bridge.shell(shell, { type: "OpenApp", app: "MUSIC" });
   if (q.get("app") === "radio") shell = bridge.shell(shell, { type: "OpenApp", app: "RADIO" });
   if (q.get("app") === "maps") shell = bridge.shell(shell, { type: "OpenApp", app: "MAPS" });
+  if (q.get("app") === "phone") shell = bridge.shell(shell, { type: "OpenApp", app: "PHONE" });
   if (q.has("devices")) shell = bridge.shell(shell, { type: "OpenDevices" });
   const font = q.get("font");
   if (font) shell = bridge.shell(shell, { type: "SetFont", name: font });
   const brightness = q.get("brightness");
   if (brightness !== null) shell = bridge.shell(shell, { type: "SetBrightness", value: Number(brightness) });
 
-  const source = (q.get("source") ?? "bt").toUpperCase();
+  // ?btoff starts with Bluetooth off, so no phone; ?nophone with it on and no phone
+  const source = (q.get("source") ?? (q.has("btoff") || q.has("nophone") ? "none" : "bt")).toUpperCase();
   if (source === "BT") {
     applyEvent({ type: "BtConnection", connected: true, device: "Phone" });
+    applyEvent({ type: "HfpConnection", connected: true });
     applyEvent({ type: "Playback", playing: true, positionMs: 72000 });
   }
   if (source === "RADIO") {
@@ -662,11 +736,12 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     applyEvent({ type: "Playback", playing: true });
   }
   const call = q.get("call");
-  if (call === "ringing" || call === "active") applyEvent({ type: "Call", state: "RINGING", ...CALLER });
+  if (call === "ringing" || call === "active") applyEvent({ type: "Call", state: "RINGING", number: CALLER_NUMBER });
   if (call === "active") applyEvent({ type: "Call", state: "ACTIVE" });
   if (q.has("camera")) applyEvent({ type: "ReverseGear", on: true });
 
   const hour = q.get("hour");
+  const caller = bridge.phoneFind(SAMPLE_CONTACTS, CALLER_NUMBER);
   return {
     car,
     shell,
@@ -683,9 +758,15 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     speed: { kmh: 0, stopped: true },
     country: "",
     maps: { installed: ["RO"], downloading: null, declined: [] },
-    call: CALLER,
+    call: call === "ringing" || call === "active"
+      ? { ...NO_CALL, number: CALLER_NUMBER, name: caller?.name ?? "", label: caller?.label ?? "", incoming: true, since: call === "active" ? Date.now() - 83_000 : null }
+      : NO_CALL,
+    contacts: SAMPLE_CONTACTS,
+    calls: sampleCalls(Date.now()),
+    phoneStatus: { battery: 4, signal: 3, operator: "Vela Mobile" },
+    btTurningOn: false,
     device: "Phone",
-    saved: [{ name: "Phone", inRange: true }, { name: "Work phone", inRange: false }, { name: "Tablet", inRange: true }],
+    saved: [{ name: "Phone", inRange: true, major: MAJOR_PHONE }, { name: "Work phone", inRange: false, major: MAJOR_PHONE }, { name: "Tablet", inRange: true, major: MAJOR_COMPUTER }],
     connecting: null,
     failed: null,
     scanning: false,
@@ -693,7 +774,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     nearby: [],
     pairing: null,
     pcMedia: false,
-    btOn: true,
+    btOn: !q.has("btoff"),
     wifiOn: true,
     wifi: { saved: [WIFI_NETWORKS[0].ssid], connected: WIFI_NETWORKS[0].ssid, connecting: null, wrongPassword: null, seen: [] },
     locationOn: true,

@@ -1,8 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import { bridge, type Band } from "../car/bridge";
 import { BANDS, formatFreq, stationAt } from "../car/radio";
 import { carCommand, pressSound, shellAction, toggleFavorite, useEmulator } from "../car/store";
-import { TransportRow } from "./media";
+import { TransportRow, useCloseOntoCard } from "./media";
 
 /** Each programme type family has its colour; the screen and the station dots take it. */
 const GENRE_COLOR: [number[], string][] = [
@@ -196,17 +196,7 @@ export function RadioApp({ open }: { open: boolean }) {
   const favorite = favorites.includes(khz);
 
   // leaving, the app's outline closes onto its card on home, as the music app does
-  const section = useRef<HTMLElement>(null);
-  useLayoutEffect(() => {
-    const app = section.current;
-    const card = app?.parentElement?.querySelector<HTMLElement>(".panel");
-    if (!app || !card) return;
-    const { offsetLeft: l, offsetTop: t, offsetWidth: w, offsetHeight: h } = card;
-    app.style.setProperty("--to-t", `${t}px`);
-    app.style.setProperty("--to-l", `${l}px`);
-    app.style.setProperty("--to-r", `${app.offsetWidth - l - w}px`);
-    app.style.setProperty("--to-b", `${app.offsetHeight - t - h}px`);
-  }, [open]);
+  const section = useCloseOntoCard(open);
 
   const rows = (list: number[]) => list.map((f) => <StationRow key={f} band={band} khz={f} active={f === khz && !scanning} favorite={favorites.includes(f)} />);
 

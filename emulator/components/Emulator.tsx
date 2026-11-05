@@ -18,7 +18,7 @@ function CarStatus() {
     ["Ignition", acc ? "On" : "Off"],
     ["Source", { BT: "Bluetooth", RADIO: "Radio", NONE: "None" }[car.source]],
     ["Playback", car.playing ? "Playing" : "Stopped"],
-    ["Call", { IDLE: "Idle", RINGING: "Ringing", ACTIVE: "Active" }[car.call]],
+    ["Call", { IDLE: "Idle", RINGING: "Ringing", OUTGOING: "Calling", ACTIVE: "Active" }[car.call]],
     ["Reverse", car.camera ? "Engaged" : "Off"],
     ["Headlights", car.night ? "On" : "Off"],
     ["Volume", car.muted ? "Muted" : String(car.volume)],

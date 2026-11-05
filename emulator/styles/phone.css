@@ -1,0 +1,140 @@
+/* Phone: the app (history, phone book, keypad) and the call over everything. Always on its own dark ground, as the
+   other full-screen apps; sizes are for a 1280x750 canvas read at arm's length. */
+:root {
+  --call-green: #30d158;
+  --call-red: #ff453a;
+  --phone-ground: #0f1216;
+  --phone-ink-2: rgba(235, 235, 245, 0.64);
+  --phone-key: rgba(255, 255, 255, 0.14);
+  --phone-key-down: rgba(255, 255, 255, 0.32);
+  --phone-avatar: linear-gradient(180deg, #8e8e93, #5d5d62);
+}
+
+.i-phone-fill { --m: url(/icons/phone-fill.svg); }
+.i-phone-disconnect-fill { --m: url(/icons/phone-disconnect-fill.svg); }
+.i-phone-outgoing { --m: url(/icons/phone-outgoing.svg); }
+.i-phone-x { --m: url(/icons/phone-x.svg); }
+.i-microphone-slash-fill { --m: url(/icons/microphone-slash-fill.svg); }
+.i-dots-nine-fill { --m: url(/icons/dots-nine-fill.svg); }
+.i-clock-fill { --m: url(/icons/clock-fill.svg); }
+.i-user-circle-fill { --m: url(/icons/user-circle-fill.svg); }
+.i-user { --m: url(/icons/user.svg); }
+.i-device-mobile-speaker-fill { --m: url(/icons/device-mobile-speaker-fill.svg); }
+.i-backspace-fill { --m: url(/icons/backspace-fill.svg); }
+
+.phone-app { background: var(--phone-ground); }
+.phone-app.is-ready { grid-template-columns: minmax(0, 1fr) 340px; column-gap: 56px; align-items: stretch; padding: 76px 56px 20px 128px; }
+.phone-app :is(button, [tabindex]):focus-visible, .call button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* left: the tabs and the phone, then the list */
+.phone-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; min-height: 0; }
+.phone-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.phone-tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(118, 118, 128, 0.24); }
+.phone-tabs button { display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 24px; border-radius: 999px; color: var(--phone-ink-2); font-size: 18px; font-weight: 600; transition: background 220ms var(--seamless), color 220ms var(--seamless); }
+.phone-tabs button .icon { width: 22px; height: 22px; }
+.phone-tabs button[aria-selected="true"] { background: rgba(255, 255, 255, 0.18); color: #fff; }
+
+.phone-chip { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 20px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; font-size: 16px; font-weight: 600; transition: background var(--fast); }
+.phone-chip:active { background: rgba(255, 255, 255, 0.16); }
+.phone-chip-name { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phone-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 16px; }
+.phone-bars i { width: 4px; border-radius: 1px; background: rgba(255, 255, 255, 0.26); }
+.phone-bars i:nth-child(1) { height: 5px; } .phone-bars i:nth-child(2) { height: 8px; } .phone-bars i:nth-child(3) { height: 11px; }
+.phone-bars i:nth-child(4) { height: 14px; } .phone-bars i:nth-child(5) { height: 16px; }
+.phone-bars i.is-on { background: #fff; }
+.phone-battery { position: relative; width: 28px; height: 14px; padding: 2px; border-radius: 4px; border: 1.5px solid rgba(255, 255, 255, 0.55); }
+.phone-battery::after { content: ""; position: absolute; top: 3px; right: -4px; width: 2px; height: 5px; border-radius: 0 1px 1px 0; background: rgba(255, 255, 255, 0.55); }
+.phone-battery i { display: block; height: 100%; border-radius: 1.5px; background: #fff; transform-origin: left; }
+.phone-battery.is-low i { background: var(--call-red); }
+
+.phone-panel { position: relative; flex: 1; min-height: 0; animation: media-fade 200ms var(--seamless); }
+.phone-list { height: 100%; margin: 0; padding: 0 0 24px; list-style: none; overflow-y: auto; overscroll-behavior: contain; }
+.phone-list::-webkit-scrollbar { width: 4px; }
+.phone-list::-webkit-scrollbar-button { display: none; }
+.phone-list::-webkit-scrollbar-track { background: transparent; }
+.phone-list::-webkit-scrollbar-thumb { border-radius: 2px; background: rgba(255, 255, 255, 0.24); }
+.phone-list > li + li { border-top: 1px solid rgba(255, 255, 255, 0.07); }
+.phone-empty { margin: 48px 16px 0; max-width: 32ch; font-size: 18px; line-height: 1.5; color: var(--phone-ink-2); }
+
+.phone-row { width: 100%; min-height: 76px; display: flex; align-items: center; gap: 16px; padding: 0 16px; border-radius: 16px; color: #fff; text-align: left; transition: background var(--fast); }
+.phone-row:active { background: rgba(255, 255, 255, 0.08); }
+.phone-row-type { width: 24px; height: 24px; color: var(--phone-ink-2); }
+.phone-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.phone-row-name { font-size: 20px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phone-row-count { font-weight: 400; color: var(--phone-ink-2); }
+.phone-row-sub { font-size: 15px; color: var(--phone-ink-2); }
+.phone-row-when { flex: none; font-size: 16px; color: var(--phone-ink-2); font-variant-numeric: tabular-nums; }
+/* missed calls in red, with their own icon too, so colour is not the only sign */
+.phone-row.is-missed :is(.phone-row-name, .phone-row-type) { color: var(--call-red); }
+
+.phone-contacts { display: grid; grid-template-columns: minmax(0, 1fr) 56px; height: 100%; }
+.phone-contacts .phone-list > section + section { border-top: 1px solid rgba(255, 255, 255, 0.07); }
+.phone-letter { position: sticky; top: 0; z-index: 1; margin: 0; padding: 10px 16px 6px; font-size: 15px; font-weight: 700; color: var(--phone-ink-2); background: var(--phone-ground); }
+.phone-avatar { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--phone-avatar); font-size: 18px; font-weight: 600; letter-spacing: 0.02em; }
+.phone-avatar .icon { width: 26px; height: 26px; }
+.phone-contact.is-open > .phone-row { background: rgba(255, 255, 255, 0.06); }
+.phone-number { width: 100%; min-height: 64px; display: flex; align-items: center; gap: 14px; padding: 0 16px 0 80px; border-radius: 16px; color: #fff; text-align: left; animation: media-fade 200ms var(--seamless); transition: background var(--fast); }
+.phone-number:active { background: rgba(255, 255, 255, 0.08); }
+.phone-number .icon { width: 22px; height: 22px; color: var(--call-green); }
+.phone-number .phone-row-sub { min-width: 64px; }
+.phone-number-digits { font-size: 18px; font-variant-numeric: tabular-nums; }
+.phone-index { display: flex; flex-direction: column; justify-content: center; padding: 8px 0; }
+.phone-index button { flex: 1; max-height: 44px; min-height: 28px; font-size: 14px; font-weight: 700; color: #0a84ff; }
+.phone-index button:active { color: #fff; }
+
+/* right: the keypad */
+.phone-pad { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; min-height: 0; }
+.phone-typed { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; width: 100%; height: 80px; }
+.phone-typed-number { max-width: 100%; min-height: 48px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 40px; font-weight: 500; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+.phone-typed-match { min-height: 22px; font-size: 17px; color: var(--phone-ink-2); }
+.pad-grid { display: grid; grid-template-columns: repeat(3, 84px); gap: 14px 26px; }
+.pad-key { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 84px; height: 84px; border-radius: 50%; background: var(--phone-key); color: #fff; touch-action: manipulation; transition: background 260ms var(--seamless); }
+.pad-key:active { background: var(--phone-key-down); transition-duration: 0ms; }
+.pad-digit { font-size: 36px; font-weight: 400; line-height: 1; font-variant-numeric: tabular-nums; }
+.pad-letters { min-height: 13px; margin-top: 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: rgba(255, 255, 255, 0.72); }
+.pad-foot { display: grid; grid-template-columns: repeat(3, 84px); column-gap: 26px; justify-items: center; align-items: center; }
+.pad-delete { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; color: var(--phone-ink-2); }
+.pad-delete .icon { width: 32px; height: 32px; }
+.pad-delete.is-hidden { visibility: hidden; }
+
+.call-key { display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; color: #fff; transition: filter var(--fast), transform 300ms var(--spring-glyph); }
+.call-key .icon { width: 36px; height: 36px; }
+.call-key.is-accept { background: var(--call-green); }
+.call-key.is-decline { background: var(--call-red); }
+.call-key-labelled:active .call-key, .call-key:active:not(:disabled) { transform: scale(0.94); filter: brightness(1.12); transition-duration: var(--fast), 120ms; }
+.call-key:disabled { opacity: 0.4; }
+
+/* the call */
+.call { display: grid; grid-template-columns: 1fr 1fr; align-items: center; padding: 64px 96px 40px; background: linear-gradient(160deg, #1b2028 0%, #0b0d11 70%); color: #fff; animation: media-fade 240ms var(--seamless); }
+.call-who { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; text-align: center; }
+.call-avatar { display: grid; place-items: center; width: 128px; height: 128px; margin-bottom: 16px; border-radius: 50%; background: var(--phone-avatar); font-size: 48px; font-weight: 600; }
+.call-avatar .icon { width: 64px; height: 64px; }
+.call-name { max-width: 100%; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 44px; font-weight: 600; letter-spacing: -0.02em; }
+.call-sub { margin: 0; font-size: 18px; color: var(--phone-ink-2); font-variant-numeric: tabular-nums; }
+.call-status { min-height: 30px; margin: 8px 0 0; font-size: 22px; color: rgba(255, 255, 255, 0.86); font-variant-numeric: tabular-nums; }
+.call-side { display: flex; flex-direction: column; align-items: center; gap: 36px; }
+.call-controls { display: grid; grid-template-columns: repeat(3, 96px); gap: 28px; }
+.call-toggle { display: flex; flex-direction: column; align-items: center; gap: 10px; color: #fff; }
+.call-toggle-disc { display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; background: rgba(255, 255, 255, 0.16); transition: background 220ms var(--seamless), color 220ms var(--seamless), transform 300ms var(--spring-glyph); }
+.call-toggle-disc .icon { width: 34px; height: 34px; }
+.call-toggle:active .call-toggle-disc { transform: scale(0.94); transition-duration: var(--fast), var(--fast), 120ms; }
+.call-toggle.is-on .call-toggle-disc { background: #fff; color: #111; }
+.call-toggle-label { font-size: 15px; font-weight: 600; color: var(--phone-ink-2); }
+.call-answer { display: flex; gap: 112px; }
+.call-key-labelled { display: flex; flex-direction: column; align-items: center; gap: 12px; font-size: 17px; font-weight: 600; color: #fff; }
+.call-key-labelled .call-key { width: 96px; height: 96px; }
+.call-key.is-ringing { animation: call-ring 1.6s var(--seamless) infinite; }
+@keyframes call-ring { 50% { transform: scale(1.06); } }
+.call-end-row { position: relative; display: flex; justify-content: center; }
+.call-hide { position: absolute; left: calc(50% + 72px); top: 50%; transform: translateY(-50%); min-height: 56px; padding: 0 20px; font-size: 18px; font-weight: 600; color: #fff; }
+.call-tones { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.call-tones-typed { min-height: 40px; font-size: 32px; font-variant-numeric: tabular-nums; letter-spacing: 0.06em; }
+.pad-grid.is-compact { grid-template-columns: repeat(3, 72px); gap: 10px 24px; }
+.pad-grid.is-compact .pad-key { width: 72px; height: 72px; }
+.pad-grid.is-compact .pad-digit { font-size: 30px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .call, .phone-panel, .phone-number { animation: none; }
+  .call-key.is-ringing { animation: none; }
+  .phone-tabs button, .pad-key, .call-key, .call-toggle-disc { transition-duration: 0.01ms; }
+}
