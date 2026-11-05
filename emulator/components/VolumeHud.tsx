@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import { bridge } from "../car/bridge";
 import { carCommand, setVolume } from "../car/store";
 
@@ -10,6 +10,25 @@ const MUTE_FILL_EASE = "cubic-bezier(0.33, 1, 0.68, 1)";
 const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const KEY_STEP: Record<string, number> = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 };
 
+/**
+ * The transition a volume fill takes while mute changes: slower than a step, one eased movement.
+ * The flag is set while rendering, so the slow duration reaches the fill in the same frame as the new level.
+ */
+export function useMuteFill(muted: boolean): CSSProperties {
+  const [mutedShown, setMutedShown] = useState(muted);
+  const [muteChange, setMuteChange] = useState(false);
+  if (mutedShown !== muted) {
+    setMutedShown(muted);
+    setMuteChange(true);
+  }
+  useEffect(() => {
+    if (!muteChange) return;
+    const timer = setTimeout(() => setMuteChange(false), MUTE_FILL_MS);
+    return () => clearTimeout(timer);
+  }, [muteChange, muted]);
+  return muteChange && !reducedMotion() ? { transitionDuration: `${MUTE_FILL_MS}ms`, transitionTimingFunction: MUTE_FILL_EASE } : {};
+}
+
 /** Shown after every volume change, or when opened from the status bar; stays while a finger holds it. */
 /** `quiet` while a screen shows its own volume control, which then moves instead. */
 export function VolumeHud({ volume, muted, opened, quiet = false }: { volume: number; muted: boolean; opened: number; quiet?: boolean }) {
@@ -20,14 +39,7 @@ export function VolumeHud({ volume, muted, opened, quiet = false }: { volume: nu
   // compared by value: a first render, or a repeated mount in development, is not a change
   const last = useRef({ volume, muted, opened });
   const [shaking, setShaking] = useState(false);
-  // set while rendering, so the slow duration reaches the bar in the same frame as the new width
-  const [mutedShown, setMutedShown] = useState(muted);
-  const [muteChange, setMuteChange] = useState(false);
-  if (mutedShown !== muted) {
-    setMutedShown(muted);
-    setMuteChange(true);
-  }
-  const muteTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const muteFill = useMuteFill(muted);
   // the number counts back up with the bar after unmuting
   const [counted, setCounted] = useState<number | null>(null);
   const wasMuted = useRef(muted);
@@ -42,11 +54,7 @@ export function VolumeHud({ volume, muted, opened, quiet = false }: { volume: nu
     const before = last.current;
     last.current = { volume, muted, opened };
     if (before.volume === volume && before.muted === muted && before.opened === opened) return;
-    if (before.muted !== muted) {
-      clearTimeout(muteTimer.current);
-      muteTimer.current = setTimeout(() => setMuteChange(false), MUTE_FILL_MS);
-      if (!muted && !reducedMotion()) countUp(volume);
-    }
+    if (before.muted !== muted && !muted && !reducedMotion()) countUp(volume);
     if (!quiet) poke();
   }, [volume, muted, opened]);
   const frame = useRef(0);
@@ -61,7 +69,7 @@ export function VolumeHud({ volume, muted, opened, quiet = false }: { volume: nu
     };
     frame.current = requestAnimationFrame(step);
   };
-  useEffect(() => () => { clearTimeout(timer.current); clearTimeout(muteTimer.current); cancelAnimationFrame(frame.current); }, []);
+  useEffect(() => () => { clearTimeout(timer.current); cancelAnimationFrame(frame.current); }, []);
   useEffect(() => {
     if (muted && !wasMuted.current) setShaking(true);
     wasMuted.current = muted;
@@ -82,7 +90,7 @@ export function VolumeHud({ volume, muted, opened, quiet = false }: { volume: nu
   return (
     <div className={`volume-hud${shown ? " is-shown" : ""}${muted ? " is-muted" : ""}${shaking ? " is-shaking" : ""}`} inert={!shown} onAnimationEnd={(e) => { if (e.target === e.currentTarget) setShaking(false); }}>
       <button className="volume-mute" aria-label={muted ? "Sound on" : "Mute"} aria-pressed={muted} onClick={() => carCommand({ type: "Audio.Mute", on: !muted })}>
-        <span className={`icon ${muted ? "i-speaker-slash" : "i-speaker-high"}`} aria-hidden="true" />
+        <span className={`icon ${muted ? "i-speaker-slash-fill" : "i-speaker-high-fill"}`} aria-hidden="true" />
       </button>
       <div
         className="volume-slider"
@@ -99,7 +107,7 @@ export function VolumeHud({ volume, muted, opened, quiet = false }: { volume: nu
         onPointerCancel={release}
         onKeyDown={onKey}
       >
-        <div className="volume-track"><div className="volume-fill" style={{ width: `${muted ? 0 : (volume / max) * 100}%`, ...(muteChange && !reducedMotion() ? { transitionDuration: `${MUTE_FILL_MS}ms`, transitionTimingFunction: MUTE_FILL_EASE } : {}) }} /></div>
+        <div className="volume-track"><div className="volume-fill" style={{ width: `${muted ? 0 : (volume / max) * 100}%`, ...muteFill }} /></div>
       </div>
       <span className="volume-num" aria-hidden="true">{muted ? "Muted" : counted ?? volume}</span>
     </div>

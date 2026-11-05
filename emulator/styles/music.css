@@ -1,6 +1,8 @@
 /* Bluetooth music: the home card and the full-screen app. Sizes are for a 1280x720 screen read from arm's length. */
 :root {
   --seamless: cubic-bezier(0.37, 0, 0.63, 1);
+  /* the cover settling into pause and back: long, soft deceleration, no overshoot */
+  --cover-settle: cubic-bezier(0.32, 0.72, 0, 1);
   /* springs sampled from stiffness/damping pairs */
   --spring-cover: linear(0, 0.099 5%, 0.316 10%, 0.559 15%, 0.773 20%, 0.932 25%, 1.032 30%, 1.082 35%, 1.095 40%, 1.085 45%, 1.064 50%, 1.041 55%, 1.021 60%, 1.006 65%, 0.997 70%, 0.992 75%, 0.991 80%, 0.992 85%, 0.994 90%, 0.996 95%, 1);
   --spring-glyph: linear(0, 0.1 5%, 0.319 10%, 0.564 15%, 0.778 20%, 0.937 25%, 1.036 30%, 1.083 35%, 1.095 40%, 1.084 45%, 1.062 50%, 1.039 55%, 1.019 60%, 1.005 65%, 0.996 70%, 0.992 75%, 0.991 80%, 0.992 85%, 0.994 90%, 0.996 95%, 1);
@@ -13,6 +15,9 @@
 .i-play-fill { --m: url(/icons/play-fill.svg); }
 .i-pause-fill { --m: url(/icons/pause-fill.svg); }
 .i-speaker-low { --m: url(/icons/speaker-low.svg); }
+.i-device-mobile { --m: url(/icons/device-mobile.svg); }
+.i-magnifying-glass { --m: url(/icons/magnifying-glass.svg); }
+.i-trash { --m: url(/icons/trash.svg); }
 
 @keyframes media-fade { from { opacity: 0; } }
 /* a see-through layer under a newer one fades out on the same clock, so nothing changes when it is removed */
@@ -91,12 +96,96 @@
 .glass-button:active { transform: scale(1.07); transition-duration: 120ms; }
 .glass-button .icon { width: 28px; height: 28px; }
 .music-close { position: absolute; top: 76px; left: 32px; }
+.music-devices { position: absolute; top: 76px; right: 32px; }
+
+/* saved phones: a panel from the right over the music app, always on the app's dark backdrop */
+.devices { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.devices.is-open { pointer-events: auto; }
+.devices-scrim { position: absolute; inset: 0; width: 100%; background: rgba(0, 0, 0, 0.4); opacity: 0; transition: opacity 320ms var(--seamless); cursor: default; }
+.devices.is-open .devices-scrim { opacity: 1; }
+.devices-panel {
+  position: absolute; top: 64px; right: 24px; bottom: 24px; width: 480px; display: flex; flex-direction: column; gap: 20px; padding: 24px;
+  border-radius: 24px; background: #0e0e12; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  color: #fff; opacity: 0; transform: translateX(32px); transition: transform 420ms var(--sheet-in), opacity 260ms var(--seamless);
+}
+.devices.is-open .devices-panel { opacity: 1; transform: none; }
+.devices-head { display: flex; align-items: center; justify-content: space-between; }
+.devices-head h2 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.01em; }
+.devices-scroll { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -8px; padding: 0 8px; }
+.devices-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+/* spacing as a margin, so a removed row can close its gap smoothly */
+.devices-list > li + li { margin-top: 12px; }
+.devices-nearby h3 { margin: 24px 0 12px; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.62); }
+.devices-empty { padding: 16px; font-size: 16px; color: rgba(255, 255, 255, 0.62); }
+/* a thin scroll indicator, no arrows, as on a phone; the whole list scrolls under a drag */
+.devices-scroll { user-select: none; }
+.devices-scroll::-webkit-scrollbar { width: 4px; }
+.devices-scroll::-webkit-scrollbar-button { display: none; }
+.devices-scroll::-webkit-scrollbar-track { background: transparent; }
+.devices-scroll::-webkit-scrollbar-thumb { border-radius: 2px; background: rgba(255, 255, 255, 0.24); }
+.devices-pairing { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; animation: media-fade 260ms var(--seamless) backwards; }
+.devices-pairing h3 { margin: 12px 0 0; font-size: 24px; font-weight: 600; }
+.devices-pairing p { margin: 0; font-size: 17px; color: rgba(255, 255, 255, 0.62); }
+.device-icon.is-large { width: 72px; height: 72px; }
+.device-icon.is-large .icon { width: 36px; height: 36px; }
+.device-code { margin: 12px 0 20px; font-size: 56px; font-weight: 600; letter-spacing: 0.06em; line-height: 1; font-variant-numeric: tabular-nums; color: #fff; }
+.devices-pairing-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-self: stretch; }
+.devices-foot { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
+.devices-foot p { margin: 0; font-size: 15px; color: rgba(255, 255, 255, 0.55); text-align: center; text-wrap: balance; }
+/* the search key hugs its label: a round chip with the glass inside, flowing into the pill around the word */
+.devices-search { align-self: center; display: inline-flex; align-items: center; gap: 14px; height: 64px; padding: 0 28px 0 8px; border-radius: 32px; font-size: 18px; font-weight: 600; color: #fff; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.12); transition: background var(--fast); }
+.devices-search-chip { flex: none; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: rgba(255, 255, 255, 0.14); transition: background var(--fast); }
+.devices-search-chip .icon { width: 28px; height: 28px; }
+.devices-search:not(:disabled):active { background: rgba(255, 255, 255, 0.18); }
+.devices-search:not(:disabled):active .devices-search-chip { background: rgba(255, 255, 255, 0.24); }
+.devices-search:disabled { cursor: default; color: rgba(255, 255, 255, 0.72); }
+.devices-search:focus-visible, .devices-answer:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.devices-answer { height: 64px; border-radius: 32px; font-size: 18px; font-weight: 600; color: #fff; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.12); transition: background var(--fast); }
+.devices-answer:active { background: rgba(255, 255, 255, 0.18); }
+.devices-answer.is-primary { background: #fff; color: #111; border-color: transparent; }
+.devices-answer.is-primary:active { background: rgba(255, 255, 255, 0.86); }
+/* while searching, the glass sweeps gently so the wait reads as work in progress */
+.devices-search.is-scanning .icon { animation: device-search 1400ms var(--seamless) infinite; }
+@keyframes device-search { 0%, 100% { transform: translateX(-3px); } 50% { transform: translateX(3px); } }
+.saved-device { display: flex; align-items: center; gap: 12px; border-radius: 16px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.06); }
+.saved-device.is-connected { background: rgba(159, 211, 255, 0.1); border-color: rgba(159, 211, 255, 0.24); }
+.device-main { flex: 1; min-width: 0; min-height: 80px; display: flex; align-items: center; gap: 16px; padding: 12px 16px; border-radius: 16px; text-align: left; transition: background var(--fast); }
+.device-main:not(:disabled):active { background: rgba(255, 255, 255, 0.08); }
+.device-main:disabled { cursor: default; }
+.device-main:focus-visible, .device-drop:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.device-icon { position: relative; flex: none; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.86); }
+.device-icon .icon { width: 26px; height: 26px; }
+/* a saved row is an opaque card over a red remove key; sliding it left uncovers the key */
+.saved-device.is-swipeable { position: relative; display: block; overflow: hidden; background: none; border: 0; touch-action: pan-y; transition: transform 260ms cubic-bezier(0.4, 0, 1, 1), height 300ms var(--sheet-in), margin-top 300ms var(--sheet-in); }
+/* removal: the row with its key leaves to the left, then the gap it leaves closes */
+.saved-device.is-slide, .saved-device.is-collapse { transform: translateX(-110%); }
+.saved-device.is-swipeable.is-connected { background: none; }
+.device-swipe { position: relative; display: flex; align-items: center; gap: 12px; border-radius: 16px; background: #1b1b1f; border: 1px solid rgba(255, 255, 255, 0.06); transition: transform 340ms var(--sheet-in); user-select: none; }
+.saved-device.is-connected .device-swipe { background: #1a2129; border-color: rgba(159, 211, 255, 0.24); }
+.saved-device.is-dragging .device-swipe { transition: none; }
+.saved-device.is-collapse { margin-top: 0 !important; }
+.device-trash { position: absolute; top: 1px; right: 1px; bottom: 1px; width: 112px; padding-left: 16px; display: grid; place-items: center; border-radius: 0 15px 15px 0; color: #fff; background: #e5453b; }
+.device-trash .icon { width: 30px; height: 30px; opacity: var(--reveal); transform: scale(calc(0.6 + 0.4 * var(--reveal))); transition: opacity 200ms var(--seamless), transform 340ms var(--sheet-in); }
+.saved-device.is-dragging .device-trash .icon { transition: none; }
+.device-trash:active { background: #c93a31; }
+.device-trash:focus-visible { outline: 2px solid #fff; outline-offset: -4px; }
+.saved-device.is-connected .device-icon { background: rgba(159, 211, 255, 0.2); color: #cfe9ff; }
+/* trying a phone: a ring breathes around its icon until it answers or times out */
+.saved-device.is-connecting .device-icon::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.5); animation: device-try 1200ms var(--seamless) infinite; }
+@keyframes device-try { 0% { opacity: 0.9; transform: scale(0.92); } 100% { opacity: 0; transform: scale(1.18); } }
+.device-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.device-name { font-size: 20px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.device-status { font-size: 15px; color: rgba(255, 255, 255, 0.62); }
+.saved-device.is-connected .device-status { color: #9fd3ff; }
+.saved-device.is-failed .device-status { color: #ff8a80; }
+.device-drop { flex: none; height: 56px; margin-right: 12px; padding: 0 20px; border-radius: 28px; font-size: 16px; font-weight: 600; color: #fff; background: rgba(255, 255, 255, 0.12); transition: background var(--fast); }
+.device-drop:active { background: rgba(255, 255, 255, 0.2); }
 /* the status bar stays over the app; over the coloured backdrop it needs light ink */
 .screen:has(.music-app.is-open) .bar, .screen:has(.music-app.is-open) .bar-text, .screen:has(.music-app.is-open) #bar-theme { color: rgba(255, 255, 255, 0.86); }
 
 /* the cover sits back when paused and springs forward when playing */
-.music-cover { position: relative; width: 480px; aspect-ratio: 1; border-radius: 16px; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3); transform: scale(0.73); transition: transform 500ms cubic-bezier(0.2, 0.9, 0.25, 1), box-shadow 500ms var(--seamless); }
-.music-cover.is-playing { transform: scale(1); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); transition: transform 780ms var(--spring-cover), box-shadow 500ms var(--seamless); }
+.music-cover { position: relative; width: 480px; aspect-ratio: 1; border-radius: 16px; box-shadow: 0 14px 36px rgba(0, 0, 0, 0.36); transform: scale(0.92); transition: transform 720ms var(--cover-settle), box-shadow 720ms var(--cover-settle); }
+.music-cover.is-playing { transform: scale(1); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); }
 .music-cover img, .music-cover-empty { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; animation: media-fade 450ms var(--seamless) 90ms backwards; }
 .music-cover-empty { display: grid; place-items: center; background: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.6); }
 .music-cover-empty .icon { width: 120px; height: 120px; }
@@ -110,10 +199,18 @@
 .music-times { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 16px; font-weight: 600; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; color: rgba(255, 255, 255, 0.62); }
 .music-device { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.62); font-size: 14px; }
 .music-device .icon { width: 16px; height: 16px; }
+.music-device { transition: background var(--fast); }
+.music-device:active { background: rgba(255, 255, 255, 0.2); }
+.music-device:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.music-volume { display: flex; align-items: center; gap: 14px; color: rgba(255, 255, 255, 0.62); }
-.music-volume .icon { width: 24px; height: 24px; }
-.music-volume.is-muted .i-speaker-low { color: var(--mute); }
+/* volume sits in its own glass capsule, so it never reads as a second timeline */
+.music-volume { display: flex; align-items: center; gap: 4px; margin-top: 8px; padding: 4px; border-radius: 999px; color: rgba(255, 255, 255, 0.62); background: rgba(23, 23, 23, 0.32); border: 1px solid rgba(255, 255, 255, 0.1); }
+.music-volume-step { flex: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; color: inherit; transition: background var(--fast), color var(--fast); }
+.music-volume-step:active { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.music-volume-step:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* same glyph size as the mute key of the volume bar */
+.music-volume .icon { width: 28px; height: 28px; }
+.music-volume.is-muted .music-mute { color: var(--mute); }
 /* the finger target is the whole row height; the bar inside thickens while held */
 .music-volume-track { flex: 1; height: 48px; display: flex; align-items: center; touch-action: none; cursor: pointer; border-radius: 12px; }
 .music-volume-bar { position: relative; flex: 1; height: 10px; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, 0.15); transition: height 420ms var(--spring-glyph); }
@@ -121,6 +218,8 @@
 .music-volume-fill { position: absolute; inset: 0; transform-origin: left center; background: rgba(255, 255, 255, 0.7); transition: transform 120ms linear; }
 
 @media (prefers-reduced-motion: reduce) {
-  .music-app, .music-cover, .np-cover, .tx-glyph, .tx::before, .glass-button, .music-volume-bar { transition-duration: 0.01ms; }
+  .music-app, .music-cover, .np-cover, .tx-glyph, .tx::before, .glass-button, .music-volume-bar, .devices-scrim, .devices-panel { transition-duration: 0.01ms; }
+  .saved-device.is-connecting .device-icon::after, .devices-search.is-scanning .icon { animation: none; opacity: 0.6; }
+  .device-swipe, .saved-device.is-swipeable, .device-trash .icon { transition-duration: 0.01ms !important; }
   .tx-glyph, .music-backdrop img, .np-tint img, .music-cover img, .np-cover img, .music-meta, .np-meta, .marquee.is-running .marquee-text { animation: none; }
 }

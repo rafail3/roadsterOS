@@ -1,5 +1,7 @@
 package ro.rdstr.car
 
+import kotlinx.serialization.json.Json
+
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -36,6 +38,16 @@ class BridgeTest {
     fun `source command through json updates the state`() {
         val s = Bridge.command(Bridge.initial(), """{"type":"Audio.Source","source":"RADIO"}""")
         assertTrue(s.contains(""""source":"RADIO""""), s)
+    }
+
+    @Test
+    fun `bluetooth connect commands through json`() {
+        assertEquals(CarCommand.Bluetooth.Connect("Phone"), Json.decodeFromString(CarCommand.serializer(), """{"type":"Bt.Connect","device":"Phone"}"""))
+        assertEquals(CarCommand.Bluetooth.Disconnect, Json.decodeFromString(CarCommand.serializer(), """{"type":"Bt.Disconnect"}"""))
+        assertEquals(CarCommand.Bluetooth.Scan, Json.decodeFromString(CarCommand.serializer(), """{"type":"Bt.Scan"}"""))
+        assertEquals(CarCommand.Bluetooth.Forget("Tablet"), Json.decodeFromString(CarCommand.serializer(), """{"type":"Bt.Forget","device":"Tablet"}"""))
+        assertEquals(CarCommand.Bluetooth.Pair("Pixel"), Json.decodeFromString(CarCommand.serializer(), """{"type":"Bt.Pair","device":"Pixel"}"""))
+        assertEquals(CarCommand.Bluetooth.ConfirmPairing(true), Json.decodeFromString(CarCommand.serializer(), """{"type":"Bt.ConfirmPairing","accept":true}"""))
     }
 
     @Test

@@ -27,6 +27,7 @@ export interface ShellState {
   brightness: number;
   screenOn: boolean;
   app: App;
+  devices: boolean;
 }
 
 export type CarEvent =
@@ -50,10 +51,14 @@ export type CarCommand =
   | { type: "Phone.Mute"; on: boolean }
   | { type: "Audio.Mute"; on: boolean }
   | { type: "Audio.Volume"; delta: number }
-  | { type: "Audio.Source"; source: Source };
+  | { type: "Audio.Source"; source: Source }
+  | { type: "Bt.Connect"; device: string }
+  | { type: "Bt.Disconnect" | "Bt.Scan" }
+  | { type: "Bt.Pair" | "Bt.Forget"; device: string }
+  | { type: "Bt.ConfirmPairing"; accept: boolean };
 
 export type ShellAction =
-  | { type: "CycleTheme" | "OpenDrawer" | "CloseDrawer" | "ToggleFace" | "ToggleScreen" | "Wake" | "Home" | "Back" }
+  | { type: "CycleTheme" | "OpenDrawer" | "CloseDrawer" | "ToggleFace" | "ToggleScreen" | "Wake" | "Home" | "Back" | "OpenDevices" | "CloseDevices" }
   | { type: "SetTheme"; mode: ThemeMode }
   | { type: "DrawerReleased"; fraction: number }
   | { type: "SetFace"; face: Face }

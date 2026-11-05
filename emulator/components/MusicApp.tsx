@@ -1,6 +1,9 @@
 import { useRef, useState, type PointerEvent } from "react";
 import { bridge } from "../car/bridge";
-import { carCommand, setVolume, shellAction, useEmulator } from "../car/store";
+import { carCommand, setVolume, shellAction, stepVolume, useEmulator } from "../car/store";
+import { holdToRepeat } from "./controls";
+import { useMuteFill } from "./VolumeHud";
+import { DevicesSheet } from "./DevicesSheet";
 import { Marquee, Progress, time, TransportRow, useCoverColors, useCrossfade, usePosition } from "./media";
 
 /** Full-screen Bluetooth music: the cover blurred into the whole background, a large cover, transport and volume. */
@@ -14,6 +17,7 @@ export function MusicApp({ open }: { open: boolean }) {
   const colors = useCoverColors(track.art);
   const [dragging, setDragging] = useState(false);
   const slider = useRef<HTMLDivElement>(null);
+  const muteFill = useMuteFill(car.muted);
 
   const volumeAt = (e: PointerEvent) => {
     const r = slider.current!.getBoundingClientRect();
@@ -29,6 +33,9 @@ export function MusicApp({ open }: { open: boolean }) {
 
       <button className="glass-button music-close" aria-label="Close music" onClick={() => shellAction({ type: "Home" })}>
         <span className="icon i-caret-down" aria-hidden="true" />
+      </button>
+      <button className="glass-button music-devices" aria-label="Devices" onClick={() => shellAction({ type: "OpenDevices" })}>
+        <span className="icon i-bluetooth" aria-hidden="true" />
       </button>
 
       <div className={`music-cover${car.playing ? " is-playing" : ""}`}>
@@ -47,7 +54,7 @@ export function MusicApp({ open }: { open: boolean }) {
           <Progress elapsed={elapsed} duration={duration} />
           <div className="music-times">
             <span>{time(elapsed)}</span>
-            <span className="music-device"><span className="icon i-bluetooth" aria-hidden="true" />{device}</span>
+            <button className="music-device" aria-label={`${device}, choose device`} onClick={() => shellAction({ type: "OpenDevices" })}><span className="icon i-bluetooth" aria-hidden="true" />{device}</button>
             <span>-{time(duration - elapsed)}</span>
           </div>
         </div>
@@ -60,7 +67,9 @@ export function MusicApp({ open }: { open: boolean }) {
         />
 
         <div className={`music-volume${dragging ? " is-active" : ""}${car.muted ? " is-muted" : ""}`}>
-          <span className="icon i-speaker-low" aria-hidden="true" />
+          <button className="music-volume-step music-mute" aria-label={car.muted ? "Sound on" : "Mute"} aria-pressed={car.muted} onClick={() => carCommand({ type: "Audio.Mute", on: !car.muted })}>
+            <span className={`icon ${car.muted ? "i-speaker-slash-fill" : "i-speaker-low-fill"}`} aria-hidden="true" />
+          </button>
           <div
             ref={slider}
             className="music-volume-track"
@@ -80,11 +89,14 @@ export function MusicApp({ open }: { open: boolean }) {
               if (step) { e.preventDefault(); setVolume(car.volume + step); }
             }}
           >
-            <div className="music-volume-bar"><div className="music-volume-fill" style={{ transform: `scaleX(${car.muted ? 0 : car.volume / max})` }} /></div>
+            <div className="music-volume-bar"><div className="music-volume-fill" style={{ transform: `scaleX(${car.muted ? 0 : car.volume / max})`, ...muteFill }} /></div>
           </div>
-          <span className="icon i-speaker-high" aria-hidden="true" />
+          <button className="music-volume-step" aria-label="Volume up" {...holdToRepeat(() => stepVolume(1))}>
+            <span className="icon i-speaker-high-fill" aria-hidden="true" />
+          </button>
         </div>
       </div>
+      <DevicesSheet />
     </section>
   );
 }

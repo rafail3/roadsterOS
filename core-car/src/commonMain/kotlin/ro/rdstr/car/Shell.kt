@@ -20,6 +20,8 @@ data class ShellState(
     val brightness: Int = 100,
     val screenOn: Boolean = true,
     val app: App = App.HOME,
+    /** The saved-devices sheet over the music app. */
+    val devices: Boolean = false,
 )
 
 @Serializable
@@ -40,6 +42,8 @@ sealed class ShellAction {
     @Serializable @SerialName("Home") data object Home : ShellAction()
     @Serializable @SerialName("Back") data object Back : ShellAction()
     @Serializable @SerialName("OpenApp") data class OpenApp(val app: App) : ShellAction()
+    @Serializable @SerialName("OpenDevices") data object OpenDevices : ShellAction()
+    @Serializable @SerialName("CloseDevices") data object CloseDevices : ShellAction()
 }
 
 /** Shell behaviour shared by the unit and the browser emulator. Pure. */
@@ -64,10 +68,16 @@ object Shell {
         is ShellAction.Headlights -> s.copy(brightness = if (a.on) HEADLIGHTS_BRIGHTNESS else FULL_BRIGHTNESS)
         ShellAction.ToggleScreen -> s.copy(screenOn = !s.screenOn)
         ShellAction.Wake -> s.copy(screenOn = true)
-        is ShellAction.OpenApp -> s.copy(app = a.app, drawer = false)
-        ShellAction.Home -> s.copy(app = App.HOME, drawer = false)
-        // one layer at a time: the drawer first, then the app
-        ShellAction.Back -> if (s.drawer) s.copy(drawer = false) else s.copy(app = App.HOME)
+        is ShellAction.OpenApp -> s.copy(app = a.app, drawer = false, devices = false)
+        ShellAction.Home -> s.copy(app = App.HOME, drawer = false, devices = false)
+        ShellAction.OpenDevices -> s.copy(devices = true, drawer = false)
+        ShellAction.CloseDevices -> s.copy(devices = false)
+        // one layer at a time: the drawer first, then the devices sheet, then the app
+        ShellAction.Back -> when {
+            s.drawer -> s.copy(drawer = false)
+            s.devices -> s.copy(devices = false)
+            else -> s.copy(app = App.HOME)
+        }
     }
 
     fun effectiveTheme(s: ShellState, hour: Int): Theme = when (s.theme) {

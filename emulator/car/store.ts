@@ -22,6 +22,16 @@ export interface EmulatorState {
   call: { name: string; number: string };
   /** the phone Bluetooth reports as connected */
   device: string;
+  /** phones the unit has paired with, and whether each has Bluetooth on and in range right now */
+  saved: { name: string; inRange: boolean }[];
+  /** the saved phone a connection is being tried with, and the last one that did not answer */
+  connecting: string | null;
+  failed: string | null;
+  /** a search for new phones: running, what it found, and the pairing waiting for the code check */
+  scanning: boolean;
+  searched: boolean;
+  nearby: string[];
+  pairing: { name: string; code: string; confirmed?: boolean } | null;
   acc: boolean;
   /** null = live clock, otherwise a simulated hour 0..23 */
   hour: number | null;
@@ -35,6 +45,14 @@ export interface EmulatorState {
 }
 
 const LOG_SIZE = 60;
+/** How long the unit tries a saved phone before it gives up; a phone in range answers sooner. */
+const CONNECT_MS = 1600;
+const CONNECT_FAIL_MS = 4000;
+/** A Bluetooth search runs this long; phones answer it one by one. */
+const SCAN_MS = 8000;
+const NEARBY = [{ name: "Friend's phone", afterMs: 900 }, { name: "Pixel 7", afterMs: 2300 }, { name: "Galaxy A54", afterMs: 4100 }];
+const PAIR_MS = 1200;
+let scanTimers: ReturnType<typeof setTimeout>[] = [];
 const ECHO_DELAY_MS = 120;
 const CALLER = { name: "Ana Petrescu", number: "+40 7xx xxx xxx" };
 /** Prev restarts the track after this much playback, as phones do; earlier it goes back one track. */
@@ -82,7 +100,12 @@ function displayData(event: CarEvent): Partial<EmulatorState> {
     case "Power":
       return { acc: event.acc };
     case "BtConnection":
-      return event.connected && event.device ? { device: event.device } : {};
+      if (!event.connected || !event.device) return {};
+      // a phone that connects is a saved phone from then on
+      return {
+        device: event.device,
+        saved: state.saved.some((d) => d.name === event.device) ? state.saved : [...state.saved, { name: event.device, inRange: true }],
+      };
     default:
       return {};
   }
@@ -108,6 +131,64 @@ function sendToCar(command: CarCommand) {
   const echo = bridge.echo(command);
   if (echo) setTimeout(() => carEvent(echo), ECHO_DELAY_MS);
   if (command.type === "Media.Next" || command.type === "Media.Prev") setTimeout(() => phoneSkips(command.type === "Media.Next"), ECHO_DELAY_MS);
+  if (command.type === "Bt.Connect") tryConnect(command.device);
+  if (command.type === "Bt.Scan") scan();
+  if (command.type === "Bt.Forget") forget(command.device);
+  if (command.type === "Bt.Pair") set({ pairing: { name: command.device, code: String(100000 + Math.floor(Math.random() * 900000)) } });
+  if (command.type === "Bt.ConfirmPairing") confirmPairing(command.accept);
+  if (command.type === "Bt.Disconnect" && state.car.btConnected) setTimeout(() => carEvent({ type: "BtConnection", connected: false, device: state.device }), ECHO_DELAY_MS);
+}
+
+/** The unit's side of a connect request: a phone with Bluetooth on answers, one that is off times out. */
+function tryConnect(name: string) {
+  set({ connecting: name, failed: null });
+  const reachable = state.saved.find((d) => d.name === name)?.inRange ?? false;
+  setTimeout(() => {
+    if (state.connecting !== name) return;
+    if (!reachable) return set({ connecting: null, failed: name });
+    if (state.car.btConnected && state.device !== name) carEvent({ type: "BtConnection", connected: false, device: state.device });
+    set({ connecting: null });
+    carEvent({ type: "BtConnection", connected: true, device: name });
+  }, reachable ? CONNECT_MS : CONNECT_FAIL_MS);
+}
+
+/** The unit forgets a saved phone; it drops the connection first when that phone is the connected one. */
+function forget(name: string) {
+  if (state.car.btConnected && state.device === name) carEvent({ type: "BtConnection", connected: false, device: name });
+  set({
+    saved: state.saved.filter((d) => d.name !== name),
+    connecting: state.connecting === name ? null : state.connecting,
+    failed: state.failed === name ? null : state.failed,
+  });
+}
+
+/** A search: phones with Bluetooth on and not yet saved answer one by one, then it stops. */
+function scan() {
+  scanTimers.forEach(clearTimeout);
+  set({ scanning: true, searched: true, nearby: [] });
+  scanTimers = [
+    ...NEARBY.filter((n) => !state.saved.some((d) => d.name === n.name)).map((n) =>
+      setTimeout(() => set({ nearby: [...state.nearby, n.name] }), n.afterMs)),
+    setTimeout(() => set({ scanning: false }), SCAN_MS),
+  ];
+}
+
+/** Both screens showed the same code; on yes the phone is saved and connected. */
+function confirmPairing(accept: boolean) {
+  const pairing = state.pairing;
+  if (!pairing) return;
+  if (!accept) return set({ pairing: null });
+  set({ pairing: { ...pairing, confirmed: true } });
+  setTimeout(() => {
+    set({ pairing: null, nearby: state.nearby.filter((n) => n !== pairing.name), saved: [...state.saved, { name: pairing.name, inRange: true }] });
+    tryConnect(pairing.name);
+  }, PAIR_MS);
+}
+
+/** A saved phone's Bluetooth turned on or off; the connected one drops when it goes. */
+export function setInRange(name: string, inRange: boolean) {
+  set({ saved: state.saved.map((d) => (d.name === name ? { ...d, inRange } : d)) });
+  if (!inRange && state.car.btConnected && state.device === name) carEvent({ type: "BtConnection", connected: false, device: name });
 }
 
 /** The phone's side of next and previous: another track from its queue, or the same one from the start. */
@@ -137,6 +218,11 @@ export function carCommand(command: CarCommand) {
 /** A level picked on screen; the shared rules turn it into steps and mute at zero. */
 export function setVolume(level: number) {
   bridge.setVolume(state.car, level).forEach(carCommand);
+}
+
+/** One level up or down from wherever the volume is now; safe to call again from a held key. */
+export function stepVolume(delta: number) {
+  setVolume(state.car.volume + delta);
 }
 
 export function shellAction(action: ShellAction) {
@@ -199,6 +285,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   if (q.has("drawer")) shell = bridge.shell(shell, { type: "OpenDrawer" });
   if (q.has("analog")) shell = bridge.shell(shell, { type: "SetFace", face: "ANALOG" });
   if (q.get("app") === "music") shell = bridge.shell(shell, { type: "OpenApp", app: "MUSIC" });
+  if (q.has("devices")) shell = bridge.shell(shell, { type: "OpenDevices" });
   const font = q.get("font");
   if (font) shell = bridge.shell(shell, { type: "SetFont", name: font });
   const brightness = q.get("brightness");
@@ -228,6 +315,13 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     radio: { khz: 101900, band: "FM", rds: "Radio Nord" },
     call: CALLER,
     device: "Phone",
+    saved: [{ name: "Phone", inRange: true }, { name: "Work phone", inRange: false }, { name: "Tablet", inRange: true }],
+    connecting: null,
+    failed: null,
+    scanning: false,
+    searched: false,
+    nearby: [],
+    pairing: null,
     acc: true,
     hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : null,
     log: [],

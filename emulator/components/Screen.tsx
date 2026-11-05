@@ -8,6 +8,7 @@ import { CallOverlay, CameraOverlay } from "./Overlays";
 import { VolumeHud } from "./VolumeHud";
 import { MusicApp } from "./MusicApp";
 import { useCoverColors } from "./media";
+import { useFingerMouse } from "./controls";
 
 const THEME_FADE_MS = 750;
 const MAX_VEIL = 0.78;
@@ -63,6 +64,7 @@ function pressRail(id: string, cameraOn: boolean) {
 }
 
 export function Screen() {
+  const finger = useFingerMouse<HTMLDivElement>();
   const emulator = useEmulator();
   const { car, shell } = emulator;
   const now = useNow(emulator.hour);
@@ -91,7 +93,7 @@ export function Screen() {
   }, [car.camera]);
 
   return (
-    <div className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming")} style={glow}>
+    <div ref={finger} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming")} style={glow}>
       <div className="ambient" aria-hidden="true" />
 
       <header className="bar" inert={covered} onPointerDown={onPointerDown}>

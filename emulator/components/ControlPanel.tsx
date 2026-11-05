@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { CallState, Face, SteeringKey, ThemeMode } from "../car/bridge";
-import { carEvent, replay, setHour, shellAction, stopReplay, useEmulator, useNow } from "../car/store";
+import { carEvent, replay, setHour, setInRange, shellAction, stopReplay, useEmulator, useNow } from "../car/store";
 import { Field, holdToRepeat, Section, Segmented, Switch } from "./controls";
 
 const DEFAULT_TRACK_MS = 228000;
@@ -57,7 +57,7 @@ function Signals() {
 }
 
 function Bluetooth() {
-  const { car, positionMs } = useEmulator();
+  const { car, positionMs, saved } = useEmulator();
   const [device, setDevice] = useState("Phone");
   const [title, setTitle] = useState("Night Transit");
   const [artist, setArtist] = useState("Vela Orsini");
@@ -71,6 +71,8 @@ function Bluetooth() {
         <Field label="Artist" value={artist} onChange={setArtist} />
       </div>
       <button className="button" onClick={() => carEvent({ type: "Track", title, artist, album: "", durationMs: DEFAULT_TRACK_MS })}>Send track</button>
+      <p className="note">Saved phones: Bluetooth on and in range</p>
+      {saved.map((d) => <Switch key={d.name} label={d.name} checked={d.inRange} onChange={(on) => setInRange(d.name, on)} />)}
     </Section>
   );
 }
