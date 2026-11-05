@@ -151,13 +151,14 @@
 .device-icon { position: relative; flex: none; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.86); }
 .device-icon .icon { width: 26px; height: 26px; }
 /* a saved row is an opaque card over a red remove key; sliding it left uncovers the key */
-.saved-device.is-swipeable { position: relative; display: block; overflow: hidden; background: none; border: 0; touch-action: pan-y; transition: height 300ms var(--sheet-in), margin-top 300ms var(--sheet-in), opacity 300ms var(--seamless); }
+.saved-device.is-swipeable { position: relative; display: block; overflow: hidden; background: none; border: 0; touch-action: pan-y; transition: transform 260ms cubic-bezier(0.4, 0, 1, 1), height 300ms var(--sheet-in), margin-top 300ms var(--sheet-in); }
+/* removal: the row with its key leaves to the left, then the gap it leaves closes */
+.saved-device.is-slide, .saved-device.is-collapse { transform: translateX(-110%); }
 .saved-device.is-swipeable.is-connected { background: none; }
 .device-swipe { position: relative; display: flex; align-items: center; gap: 12px; border-radius: 16px; background: #1b1b1f; border: 1px solid rgba(255, 255, 255, 0.06); transition: transform 340ms var(--sheet-in); user-select: none; }
 .saved-device.is-connected .device-swipe { background: #1a2129; border-color: rgba(159, 211, 255, 0.24); }
 .saved-device.is-dragging .device-swipe { transition: none; }
-.saved-device.is-slide .device-swipe, .saved-device.is-collapse .device-swipe { transition: transform 240ms cubic-bezier(0.4, 0, 1, 1); }
-.saved-device.is-collapse { margin-top: 0 !important; opacity: 0; }
+.saved-device.is-collapse { margin-top: 0 !important; }
 .device-trash { position: absolute; top: 1px; right: 1px; bottom: 1px; width: 112px; padding-left: 16px; display: grid; place-items: center; border-radius: 0 15px 15px 0; color: #fff; background: #e5453b; }
 .device-trash .icon { width: 30px; height: 30px; opacity: var(--reveal); transform: scale(calc(0.6 + 0.4 * var(--reveal))); transition: opacity 200ms var(--seamless), transform 340ms var(--sheet-in); }
 .saved-device.is-dragging .device-trash .icon { transition: none; }

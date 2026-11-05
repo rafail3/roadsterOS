@@ -10,7 +10,7 @@ const OPEN_AT = REVEAL / 2;
 const INTENT_PX = 8;
 /** Past the remove key the row gives a little and then stops, so it never pulls away from the key. */
 const OVERDRAG_PX = 10;
-const LEAVE_MS = 240;
+const LEAVE_MS = 260;
 const COLLAPSE_MS = 300;
 
 type Status = { key: string; text: string };
@@ -26,7 +26,8 @@ function SavedRow({ name, status, open, onOpen, connectLocked }: { name: string;
   const [height, setHeight] = useState<number | undefined>(undefined);
   const suppressClick = useRef(false);
 
-  const shown = leaving ? "-100%" : `${dragging ? offset : open ? -REVEAL : 0}px`;
+  // while leaving the card keeps its place over the key: the whole row, key included, slides out as one
+  const shown = `${leaving ? -REVEAL : dragging ? offset : open ? -REVEAL : 0}px`;
   const progress = Math.min(1, Math.max(0, -(dragging ? offset : open ? -REVEAL : 0) / REVEAL));
 
   // the release is caught anywhere on the page: a finger or mouse let go outside the row still ends the drag
