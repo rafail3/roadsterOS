@@ -14,7 +14,7 @@ import kotlin.test.assertTrue
 
 /** The frame drawn with java.awt, to look at the unit's renderer on the laptop. */
 class AwtCanvas(private val g: Graphics2D, private val w: Int, private val h: Int) : MapCanvas {
-    private val saved = ArrayList<AffineTransform>()
+    private val saved = ArrayList<Pair<AffineTransform, java.awt.Shape?>>()
 
     init {
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
@@ -38,8 +38,9 @@ class AwtCanvas(private val g: Graphics2D, private val w: Int, private val h: In
         g.stroke = BasicStroke(width, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 10f, dash?.map { it * width }?.toFloatArray(), 0f)
         g.draw(path(lines, false))
     }
-    override fun rotate(degrees: Float, cx: Float, cy: Float) { saved += g.transform; g.rotate(Math.toRadians(degrees.toDouble()), cx.toDouble(), cy.toDouble()) }
-    override fun restore() { g.transform = saved.removeAt(saved.lastIndex) }
+    override fun rotate(degrees: Float, cx: Float, cy: Float) { saved += g.transform to g.clip; g.rotate(Math.toRadians(degrees.toDouble()), cx.toDouble(), cy.toDouble()) }
+    override fun clip(left: Float, top: Float, right: Float, bottom: Float) { saved += g.transform to g.clip; g.clip(java.awt.geom.Rectangle2D.Float(left, top, right - left, bottom - top)) }
+    override fun restore() { val (tr, cl) = saved.removeAt(saved.lastIndex); g.transform = tr; g.clip = cl }
 
     private fun font(size: Float, font: Font) = java.awt.Font("SansSerif", when (font) {
         Font.BOLD -> java.awt.Font.BOLD; Font.ITALIC -> java.awt.Font.ITALIC; else -> java.awt.Font.PLAIN
@@ -70,9 +71,9 @@ class PreviewTest {
     fun `draws the exported tiles around the view to png`() {
         val dir = File(System.getProperty("preview.tiles") ?: return)
         if (!dir.isDirectory) return
-        val frame = MapFrame(MapStyle.load())
+        val frame = TileRenderer(MapStyle.load())
         val cache = HashMap<String, VectorTile?>()
-        val tiles = MapFrame.Tiles { z, x, y ->
+        val tiles = TileRenderer.Tiles { z, x, y ->
             cache.getOrPut("$z/$x/$y") { File(dir, "$z/$x/$y.pbf").takeIf { it.exists() }?.let { Mvt.decode(it.readBytes()) } }
         }
         for (night in listOf(true, false)) {
