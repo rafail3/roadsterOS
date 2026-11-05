@@ -13,6 +13,8 @@ data class RulesState(
     val camera: Boolean = false,
     val call: State = State.IDLE,
     val btConnected: Boolean = false,
+    /** A phone is connected for calls; the phone app opens only then. */
+    val hfpConnected: Boolean = false,
     val night: Boolean = false,
     val resumeAfterCall: Boolean = false,
     val lastSource: AudioSource = AudioSource.NONE,
@@ -81,10 +83,16 @@ object Rules {
                 next to emptyList()
             }
 
+        // a phone that drops mid-call takes the call with it
+        is CarEvent.HfpConnection ->
+            if (!e.connected && s.call != State.IDLE) call(s.copy(hfpConnected = false), CarEvent.Call(State.IDLE))
+            else s.copy(hfpConnected = e.connected) to emptyList()
+
         // Playback reports come from the Bluetooth player only, so they select BT when nothing else is active.
         is CarEvent.Playback ->
             s.copy(playing = e.playing, source = if (e.playing && s.source == AudioSource.NONE) AudioSource.BT else s.source) to emptyList()
-        is CarEvent.Track, is CarEvent.Radio, is CarEvent.CarDisplay -> s to emptyList()
+        is CarEvent.Track, is CarEvent.Radio, is CarEvent.CarDisplay, is CarEvent.CallAudio, is CarEvent.PhoneStatus,
+        is CarEvent.VoiceAssistant, is CarEvent.Message, is CarEvent.MessageSupport -> s to emptyList()
     }
 
     /** A level picked on screen, as the commands to send: relative steps, mute at zero, sound back above it. */
@@ -110,9 +118,12 @@ object Rules {
 
     private fun call(s: RulesState, e: CarEvent.Call): Pair<RulesState, List<Action>> = when (e.state) {
         State.RINGING -> s.copy(call = State.RINGING) to listOf(Action.ShowCall(e))
-        State.ACTIVE -> {
-            val pause = pauseCommand(s)
-            s.copy(call = State.ACTIVE, resumeAfterCall = pause != null) to listOfNotNull(pause?.let { Action.Send(it) })
+        // placing a call or talking: the sound stops once; a later pause report must not lose the resume
+        State.OUTGOING, State.ACTIVE -> {
+            val inCall = s.call == State.OUTGOING || s.call == State.ACTIVE
+            val pause = if (inCall) null else pauseCommand(s)
+            val show = if (e.state == State.OUTGOING || e.number.isNotEmpty()) listOf(Action.ShowCall(e)) else emptyList()
+            s.copy(call = e.state, resumeAfterCall = s.resumeAfterCall || pause != null) to show + listOfNotNull(pause?.let { Action.Send(it) })
         }
         State.IDLE -> {
             val resume = if (s.resumeAfterCall) resumeCommand(s) else null
@@ -160,7 +171,7 @@ object Rules {
         }
         Key.PHONE -> s to when (s.call) {
             State.RINGING -> listOf(Action.Send(CarCommand.Phone.Answer))
-            State.ACTIVE -> listOf(Action.Send(CarCommand.Phone.HangUp))
+            State.OUTGOING, State.ACTIVE -> listOf(Action.Send(CarCommand.Phone.HangUp))
             State.IDLE -> emptyList()
         }
     }

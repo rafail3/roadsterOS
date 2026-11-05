@@ -9,6 +9,7 @@ const APP_META: Record<Exclude<App, "HOME">, { label: string; icon: string }> = 
   MUSIC: { label: "Music", icon: "i-music-notes" },
   RADIO: { label: "Radio", icon: "i-radio" },
   MAPS: { label: "Maps", icon: "i-navigation-arrow" },
+  PHONE: { label: "Phone", icon: "i-phone" },
 };
 /** A card pushed up past this many pixels, or flicked up, is closed. */
 const CLOSE_DISTANCE = 120;
@@ -39,6 +40,18 @@ function Preview({ app, emulator }: { app: App; emulator: EmulatorState }) {
         <span className="recents-preview-meta">
           <span className="recents-preview-title">Maps</span>
           <span className="recents-preview-sub">{emulator.driving ? `${Math.round(emulator.gps.kmh)} km/h` : "Offline map"}</span>
+        </span>
+      </span>
+    );
+  }
+  if (app === "PHONE") {
+    const { car, device } = emulator;
+    return (
+      <span className="recents-preview recents-preview-maps">
+        <span className="recents-preview-map recents-preview-phone"><span className="icon i-phone-fill" /></span>
+        <span className="recents-preview-meta">
+          <span className="recents-preview-title">Phone</span>
+          <span className="recents-preview-sub">{car.hfpConnected ? device : "No phone connected"}</span>
         </span>
       </span>
     );

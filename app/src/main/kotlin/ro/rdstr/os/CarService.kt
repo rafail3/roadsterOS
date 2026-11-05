@@ -1,5 +1,6 @@
 package ro.rdstr.os
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -32,6 +33,11 @@ class CarService : Service() {
         val admin = ComponentName(this, AdminReceiver::class.java)
         dpm.setLockTaskPackages(admin, arrayOf(packageName))
         dpm.setGlobalSetting(admin, Settings.Global.ADB_ENABLED, "1")
+        // the phone app reads the phone book and call history the Bluetooth sync copies to the unit
+        // and the phone's messages (the MAP client's broadcast needs RECEIVE_SMS, a reply SEND_SMS)
+        for (permission in arrayOf(Manifest.permission.READ_CONTACTS, Manifest.permission.READ_CALL_LOG, Manifest.permission.RECEIVE_SMS, Manifest.permission.SEND_SMS)) {
+            dpm.setPermissionGrantState(admin, packageName, permission, DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
+        }
     }
 
     private companion object { const val CHANNEL = "rdstr" }

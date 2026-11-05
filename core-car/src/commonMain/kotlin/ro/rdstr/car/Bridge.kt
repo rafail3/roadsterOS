@@ -7,6 +7,9 @@ import kotlinx.serialization.json.Json
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 
+@Serializable
+private data class HfpCallJson(val id: Int, val state: Int, val number: String, val multiparty: Boolean = false)
+
 /** One rules step: the state after an event and the actions it produced. */
 @Serializable
 data class Step(val state: RulesState, val actions: List<Action>)
@@ -129,6 +132,55 @@ object Bridge {
         val columns = c.columns.joinToString(",") { "[${it.place},${it.offset}]" }
         return """{"exact":${c.exact?.let { "\"$it\"" } ?: "null"},"label":"${c.label}","decimalAt":${c.decimalAt},"columns":[$columns]}"""
     }
+
+    /** The phone app's screen: BT_OFF, CONNECT or READY. */
+    fun phoneScreen(btOn: Boolean, hfpConnected: Boolean): String = PhoneGate.screen(btOn, hfpConnected).name
+
+    fun callCapable(majorClass: Int): Boolean = PhoneGate.callCapable(majorClass)
+
+    private val contacts = ListSerializer(Contact.serializer())
+
+    /** [book]: a JSON array of contacts; answers [{"letter":"A","contacts":[...]},...]. */
+    fun phoneSections(book: String): String =
+        json.encodeToString(ListSerializer(ContactSection.serializer()), PhoneBook.sections(json.decodeFromString(contacts, book)))
+
+    fun phoneSearch(book: String, query: String): String =
+        json.encodeToString(contacts, PhoneBook.search(json.decodeFromString(contacts, book), query))
+
+    /** [calls]: a JSON array of call records; answers the recents rows. */
+    fun phoneRecents(calls: String, book: String): String = json.encodeToString(
+        ListSerializer(RecentRow.serializer()),
+        PhoneBook.recents(json.decodeFromString(ListSerializer(CallRecord.serializer()), calls), json.decodeFromString(contacts, book)),
+    )
+
+    /** The contact under typed digits, or for a caller's number: {"name","number","label"} or null. */
+    fun phoneSuggest(book: String, typed: String): String = matchJson(PhoneBook.suggest(json.decodeFromString(contacts, book), typed))
+
+    fun phoneFind(book: String, number: String): String = matchJson(PhoneBook.find(json.decodeFromString(contacts, book), number))
+
+    private fun matchJson(m: PhoneBook.Match?): String = if (m == null) "null" else json.encodeToString(PhoneBook.Match.serializer(), m)
+
+    fun initials(name: String): String = PhoneBook.initials(name)
+
+    /** [calls]: a JSON array of {"id","state","number","multiparty"} as the phone reports them; answers the Call event. */
+    fun hfpCall(calls: String): String {
+        val list = json.decodeFromString(ListSerializer(HfpCallJson.serializer()), calls).map { Hfp.HfpCall(it.id, it.state, it.number, it.multiparty) }
+        return Journal.encodeEvent(Hfp.call(list))
+    }
+
+    /** [messages]: Message events; [read]: ids already read; answers the conversations. */
+    fun conversations(messages: String, read: String, book: String): String = json.encodeToString(
+        ListSerializer(Conversation.serializer()),
+        Messages.conversations(
+            json.decodeFromString(ListSerializer(CarEvent.Message.serializer()), messages),
+            json.decodeFromString(ListSerializer(String.serializer()), read).toSet(),
+            json.decodeFromString(contacts, book),
+        ),
+    )
+
+    fun quickReplies(): String = json.encodeToString(ListSerializer(String.serializer()), Messages.QUICK_REPLIES)
+
+    fun callDuration(ms: Double): String = PhoneBook.duration(ms.toLong())
 
     fun shellInitial(): String = json.encodeToString(ShellState.serializer(), ShellState())
 

@@ -7,6 +7,31 @@ import kotlin.test.assertTrue
 
 class ShellTest {
     @Test
+    fun `typing in motion is allowed unless the setting locks it`() {
+        assertFalse(ShellState().lockTypingWhileMoving)
+        assertTrue(Shell.reduce(ShellState(), ShellAction.SetTypingLock(true)).lockTypingWhileMoving)
+    }
+
+    @Test
+    fun `a ringing call shows as the banner, a placed one fills the screen, Home and Back fold it, a tap brings it back`() {
+        assertEquals(CallView.BAR, Shell.reduce(ShellState(), ShellAction.CallChanged(CarEvent.Call.State.RINGING)).callView)
+        val ringing = Shell.reduce(ShellState(), ShellAction.CallChanged(CarEvent.Call.State.OUTGOING))
+        assertEquals(CallView.FULL, ringing.callView)
+        val home = Shell.reduce(ringing.copy(app = App.MUSIC), ShellAction.Home)
+        assertEquals(CallView.BAR to App.HOME, home.callView to home.app)
+        // answering keeps the bar; the call does not jump back over the screen
+        assertEquals(CallView.BAR, Shell.reduce(home, ShellAction.CallChanged(CarEvent.Call.State.ACTIVE)).callView)
+        assertEquals(CallView.FULL, Shell.reduce(home, ShellAction.ExpandCall).callView)
+        // Back folds the call and leaves the app under it
+        val back = Shell.reduce(ringing.copy(app = App.MAPS), ShellAction.Back)
+        assertEquals(CallView.BAR to App.MAPS, back.callView to back.app)
+        assertEquals(CallView.BAR, Shell.reduce(ringing, ShellAction.HomePressed(1000)).callView)
+        assertEquals(CallView.NONE, Shell.reduce(home, ShellAction.CallChanged(CarEvent.Call.State.IDLE)).callView)
+        // without a call there is nothing to expand
+        assertEquals(CallView.NONE, Shell.reduce(ShellState(), ShellAction.ExpandCall).callView)
+    }
+
+    @Test
     fun `theme starts dark`() {
         assertEquals(Theme.DARK, Shell.effectiveTheme(ShellState(), 12))
     }

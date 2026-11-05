@@ -149,3 +149,22 @@ export function TransportRow({ playing, onPrev, onPlay, onNext, children }: { pl
     </div>
   );
 }
+
+/**
+ * A full-screen app leaving closes its outline onto the card on home; the card's edges are measured from layout
+ * (not from the screen), so home's settle zoom does not skew them. The app's CSS reads --to-t/-l/-r/-b.
+ */
+export function useCloseOntoCard(open: boolean) {
+  const section = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const app = section.current;
+    const card = app?.parentElement?.querySelector<HTMLElement>(".panel");
+    if (!app || !card) return;
+    const { offsetLeft: l, offsetTop: t, offsetWidth: w, offsetHeight: h } = card;
+    app.style.setProperty("--to-t", `${t}px`);
+    app.style.setProperty("--to-l", `${l}px`);
+    app.style.setProperty("--to-r", `${app.offsetWidth - l - w}px`);
+    app.style.setProperty("--to-b", `${app.offsetHeight - t - h}px`);
+  }, [open]);
+  return section;
+}

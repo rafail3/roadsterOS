@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { bridge, type Source } from "../car/bridge";
-import { carCommand, carEvent, openVolume, setBluetooth, shellAction, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
+import { carCommand, carEvent, openPhone, openVolume, setBluetooth, shellAction, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Clock } from "./Clock";
 import { Drawer, useDrawerDrag } from "./Drawer";
 import { HomeCard } from "./HomeCard";
-import { CallOverlay, CameraOverlay } from "./Overlays";
+import { CallBar, CallOverlay, CameraOverlay, MessageBanner, VoiceOverlay } from "./Overlays";
 import { VolumeHud } from "./VolumeHud";
 import { ConnectionNotice } from "./ConnectionNotice";
 import { MusicApp } from "./MusicApp";
 import { RadioApp } from "./RadioApp";
 import { MapsApp } from "./MapsApp";
+import { PhoneApp, PhoneNetwork, useUnread } from "./PhoneApp";
 import { MapOffer } from "./MapOffer";
 import { DevicesSheet } from "./DevicesSheet";
 import { NetworksSheet } from "./NetworksSheet";
@@ -29,11 +30,11 @@ const RAIL = [
   { id: "maps", label: "Maps", icon: "i-navigation-arrow" },
   { id: "camera", label: "Camera", icon: "i-camera" },
 ];
-/** The app icons on home and the app each opens; Podcasts has no app yet. */
-const APPS: { label: string; mark: string; app?: "MAPS" | "MUSIC" }[] = [
+/** The app icons on home and the app each opens. */
+const APPS: { label: string; mark: string; app: "MAPS" | "MUSIC" | "PHONE" }[] = [
   { label: "Maps", mark: "app-mark-nav", app: "MAPS" },
   { label: "Music", mark: "app-mark-music", app: "MUSIC" },
-  { label: "Podcasts", mark: "app-mark-pod" },
+  { label: "Phone", mark: "app-mark-phone", app: "PHONE" },
 ];
 // ponytail: centres of the volume keys on this frame model, in screen pixels; another frame needs its own
 // centres of the frame's volume keys, in canvas units (the screen is drawn at 0.8)
@@ -93,12 +94,14 @@ function pressRail(id: string, cameraOn: boolean) {
     shellAction({ type: "OpenApp", app: "RADIO" });
   }
   if (id === "maps") shellAction({ type: "OpenApp", app: "MAPS" });
+  if (id === "phone") openPhone();
   if (id === "camera") carEvent({ type: "ReverseGear", on: !cameraOn });
 }
 
 export function Screen() {
   const finger = useFingerMouse<HTMLDivElement>();
   const emulator = useEmulator();
+  const unread = useUnread(emulator);
   const { car, shell } = emulator;
   const now = useNow(emulator.hour);
   const theme = bridge.effectiveTheme(shell, now.getHours());
@@ -113,7 +116,9 @@ export function Screen() {
   const glow = car.source === "BT" && emulator.track.art
     ? ({ "--ambient-a": `color-mix(in srgb, ${cover.top} ${light ? 30 : 85}%, transparent)`, "--ambient-b": `color-mix(in srgb, ${cover.bottom} ${light ? 25 : 90}%, transparent)` } as React.CSSProperties)
     : undefined;
-  const covered = shell.drawer || shell.recents || car.call !== "IDLE" || car.camera;
+  // the call covers the screen only while it is shown whole; folded into its bar, the shell under it works
+  const callFull = car.call !== "IDLE" && shell.callView === "FULL";
+  const covered = shell.drawer || shell.recents || callFull || car.camera;
   const veil = bridge.veil(shell);
   const card = bridge.homeCard(car, emulator.btOn, shell.card);
   // a new source brings its page forward on the card
@@ -142,6 +147,8 @@ export function Screen() {
 
       <header className="bar" inert={covered} onPointerDown={onPointerDown}>
         <div className="bar-group">
+          {/* first, the connected phone's network and battery, as it reports them over the hands-free link */}
+          {car.hfpConnected && <PhoneNetwork status={emulator.phoneStatus} />}
           <span
             className={classes("icon", car.source === "RADIO" ? "i-radio" : "i-bluetooth", car.source !== "NONE" && "is-on", car.source !== "RADIO" && !emulator.btOn && "is-off")}
             aria-hidden="true"
@@ -182,11 +189,16 @@ export function Screen() {
       <section className="field" inert={covered || inApp}>
         <Clock now={now} face={shell.face} />
         <div className="apps" aria-label="Apps">
-          {APPS.map(({ label, mark, app }) => (
-            <button key={label} className="app" onClick={app ? () => shellAction({ type: "OpenApp", app }) : undefined}>
-              <span className={`app-mark ${mark}`} /><span>{label}</span>
-            </button>
-          ))}
+          {APPS.map(({ label, mark, app }) => {
+            // the phone's icon counts its unread messages, as a phone's does
+            const badge = app === "PHONE" ? unread : 0;
+            return (
+              <button key={label} className="app" aria-label={badge ? `${label}, ${badge} unread messages` : label}
+                onClick={() => (app === "PHONE" ? openPhone() : shellAction({ type: "OpenApp", app }))}>
+                <span className={`app-mark ${mark}`}>{badge > 0 && <span className="app-badge" aria-hidden="true">{badge}</span>}</span><span>{label}</span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -195,6 +207,7 @@ export function Screen() {
       </section>
 
       <MusicApp open={shell.app === "MUSIC"} />
+      <PhoneApp open={shell.app === "PHONE"} />
       <RadioApp open={shell.app === "RADIO"} />
       <MapsApp open={shell.app === "MAPS"} inCard={!inApp && card.shown === "NAVIGATION" && shell.screenOn} light={light} />
       {/* over any screen: opened from the music app or by a long press on the drawer's Bluetooth */}
@@ -203,7 +216,8 @@ export function Screen() {
       <LocationPrompt />
       <Recents emulator={emulator} />
       {/* always there, as on a phone, except under the drawer, a devices or networks panel (its keyboard reaches the edges), a call or the camera */}
-      {!shell.drawer && !shell.devices && !shell.networks && car.call === "IDLE" && !car.camera && (
+      {/* the bottom handle stays over a call too, so it can be swiped home into its bar */}
+      {!shell.drawer && !shell.devices && !shell.networks && !car.camera && (
         <>
           <NavBar />
           <EdgeBack side="left" />
@@ -212,15 +226,18 @@ export function Screen() {
       )}
       <div className={classes("scrim", shell.drawer && "is-open")} onClick={() => shellAction({ type: "CloseDrawer" })} />
       <Drawer emulator={emulator} panel={drawer} dragging={dragging} />
-      {car.call !== "IDLE" && <CallOverlay emulator={emulator} />}
+      {callFull && <CallOverlay emulator={emulator} />}
+      {car.call !== "IDLE" && shell.callView === "BAR" && !car.camera && <CallBar emulator={emulator} />}
+      {emulator.voiceAssistant && <VoiceOverlay />}
+      {!callFull && !car.camera && <MessageBanner emulator={emulator} />}
       {car.camera && <CameraOverlay />}
       {(Object.keys(KEY_CENTER) as (keyof typeof KEY_CENTER)[]).map((key) => (
         <svg key={key} className={classes("edge-bulge", emulator.pressedKey === key && "is-pressed")} style={{ top: KEY_CENTER[key] }} viewBox="0 0 12 136" preserveAspectRatio="none" aria-hidden="true">
           <path d={BULGE_PATH} />
         </svg>
       ))}
-      <ConnectionNotice notice={emulator.notice} hidden={car.call !== "IDLE" || car.camera} />
-      <MapOffer hidden={car.call !== "IDLE" || car.camera || shell.drawer} />
+      <ConnectionNotice notice={emulator.notice} hidden={callFull || car.camera} />
+      <MapOffer hidden={callFull || car.camera || shell.drawer} />
       <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC" || shell.drawer} />
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.dark.toFixed(3) }} />
       {/* always there: it fades in to switch the screen off and lifts to switch it on; a tap on it wakes the screen */}

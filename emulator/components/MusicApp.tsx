@@ -1,18 +1,23 @@
-import { useLayoutEffect, useRef, useState, type PointerEvent } from "react";
+import { useRef, useState, type PointerEvent } from "react";
 import { bridge } from "../car/bridge";
 import { carCommand, setVolume, shellAction, stepVolume, useEmulator, type EmulatorState } from "../car/store";
 import { holdToRepeat } from "./controls";
 import { useMuteFill } from "./VolumeHud";
-import { Marquee, Progress, time, TransportRow, useCoverColors, useCrossfade, usePosition } from "./media";
+import { Marquee, Progress, time, TransportRow, useCloseOntoCard, useCoverColors, useCrossfade, usePosition } from "./media";
 
-/** No phone connected: the saved phones to connect with one tap, and the devices panel for anything else. */
-export function NoPhone({ emulator }: { emulator: EmulatorState }) {
-  const { saved, connecting, failed } = emulator;
+/**
+ * No phone connected: the saved phones to connect with one tap, and the devices panel for anything else.
+ * For calls only phones are offered (core-car PhoneGate.callCapable): a tablet plays music but takes no calls.
+ */
+export function NoPhone({ emulator, forCalls = false }: { emulator: EmulatorState; forCalls?: boolean }) {
+  const { connecting, failed } = emulator;
+  const saved = forCalls ? emulator.saved.filter((d) => bridge.callCapable(d.major)) : emulator.saved;
+  const purpose = forCalls ? "make calls" : "play its music";
   return (
     <div className="music-nophone">
       <span className="music-nophone-icon" aria-hidden="true"><span className="icon i-device-mobile" /></span>
       <h2>No phone connected</h2>
-      <p>{saved.length ? "Connect a phone to play its music." : "Pair a phone to play its music."}</p>
+      <p>{saved.length ? `Connect a phone to ${purpose}.` : `Pair a phone to ${purpose}.`}</p>
       {saved.length > 0 && (
         <ul className="music-nophone-list" aria-label="Saved phones">
           {saved.map(({ name }) => (
@@ -48,18 +53,8 @@ export function MusicApp({ open }: { open: boolean }) {
   const slider = useRef<HTMLDivElement>(null);
   const muteFill = useMuteFill(car.muted);
 
-  // leaving, the app's outline closes onto its card on home (now playing); measured from layout, so home's settle zoom does not skew it
-  const section = useRef<HTMLElement>(null);
-  useLayoutEffect(() => {
-    const app = section.current;
-    const card = app?.parentElement?.querySelector<HTMLElement>(".panel");
-    if (!app || !card) return;
-    const { offsetLeft: l, offsetTop: t, offsetWidth: w, offsetHeight: h } = card;
-    app.style.setProperty("--to-t", `${t}px`);
-    app.style.setProperty("--to-l", `${l}px`);
-    app.style.setProperty("--to-r", `${app.offsetWidth - l - w}px`);
-    app.style.setProperty("--to-b", `${app.offsetHeight - t - h}px`);
-  }, [open]);
+  // leaving, the app's outline closes onto its card on home (now playing)
+  const section = useCloseOntoCard(open);
 
   const volumeAt = (e: PointerEvent) => {
     const r = slider.current!.getBoundingClientRect();
