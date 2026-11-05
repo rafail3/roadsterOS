@@ -126,9 +126,10 @@ class MapActivity : Activity(), LocationListener {
         val w = speedWarning.update(r, view.roadLimit, SystemClock.elapsedRealtime())
         // the chime can be switched off in the settings; the sign and the red ring stay
         if (w.chime && ro.rdstr.os.CarRuntime.shell.value.speedChime) (chime ?: Chime().also { chime = it }).play()
-        // the ring around the speed can be switched off in the settings
-        val ring = if (ro.rdstr.os.CarRuntime.shell.value.speedRing) SpeedWarning.ring(r.kmh, w).let { "${it.lit} ${it.tone}" } else "off"
-        val now = "street: ${view.street.ifEmpty { "(folded)" }} | ${r.kmh} km/h | limit: ${w.limit ?: "none"} | ring: $ring"
+        val ring = SpeedWarning.ring(r.kmh, w)
+        // the limit sign on the speed can be switched off in the settings; the ring and its red stay
+        val sign = if (ro.rdstr.os.CarRuntime.shell.value.speedLimitSign) "${w.limit ?: "none"}" else "hidden"
+        val now = "street: ${view.street.ifEmpty { "(folded)" }} | ${r.kmh} km/h | limit: $sign | ring: ${ring.lit} ${ring.tone}"
         if (now == status) return
         status = now
         android.util.Log.i(MapView.TAG, "status: $now")

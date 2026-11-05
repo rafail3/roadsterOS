@@ -70,10 +70,10 @@ class SettingsTest {
     }
 
     @Test
-    fun `the speed ring is on by default, can be switched off and is kept`() {
-        assertTrue(ShellState().speedRing)
-        val off = Shell.reduce(ShellState(), ShellAction.SetSpeedRing(false))
-        assertFalse(Shell.decodePreferences(Shell.encodePreferences(off)).speedRing)
+    fun `the speed limit sign is on by default, can be switched off and is kept`() {
+        assertTrue(ShellState().speedLimitSign)
+        val off = Shell.reduce(ShellState(), ShellAction.SetSpeedLimitSign(false))
+        assertFalse(Shell.decodePreferences(Shell.encodePreferences(off)).speedLimitSign)
     }
 
     @Test

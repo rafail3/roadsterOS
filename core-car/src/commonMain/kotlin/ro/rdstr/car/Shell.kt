@@ -50,8 +50,8 @@ data class ShellState(
     val lockTypingWhileMoving: Boolean = false,
     /** The app icons on home, in order: our apps by name (MAPS, MUSIC...), other apps by package. */
     val homeApps: List<String> = HomeApps.DEFAULT,
-    /** The ring of ticks around the speed, filled against the road's limit; on unless switched off in the settings. */
-    val speedRing: Boolean = true,
+    /** The road's speed limit sign on the map's speed; on unless switched off in the settings. */
+    val speedLimitSign: Boolean = true,
     val faceMode: FaceMode = FaceMode.BOTH,
     /** Every car event is written to a file on the unit, for troubleshooting. */
     val recordEvents: Boolean = false,
@@ -108,7 +108,7 @@ sealed class ShellAction {
     /** Move an app on home one place earlier (-1) or later (+1). */
     @Serializable @SerialName("MoveHomeApp") data class MoveHomeApp(val id: String, val by: Int) : ShellAction()
     @Serializable @SerialName("SetRecording") data class SetRecording(val on: Boolean) : ShellAction()
-    @Serializable @SerialName("SetSpeedRing") data class SetSpeedRing(val on: Boolean) : ShellAction()
+    @Serializable @SerialName("SetSpeedLimitSign") data class SetSpeedLimitSign(val on: Boolean) : ShellAction()
     /** Both faces switched with a tap, or one face that a tap leaves as it is. */
     @Serializable @SerialName("SetFaceMode") data class SetFaceMode(val mode: FaceMode) : ShellAction()
 }
@@ -200,7 +200,7 @@ object Shell {
         is ShellAction.ToggleHomeApp -> s.copy(homeApps = HomeApps.toggle(s.homeApps, a.id))
         is ShellAction.MoveHomeApp -> s.copy(homeApps = HomeApps.move(s.homeApps, a.id, a.by))
         is ShellAction.SetRecording -> s.copy(recordEvents = a.on)
-        is ShellAction.SetSpeedRing -> s.copy(speedRing = a.on)
+        is ShellAction.SetSpeedLimitSign -> s.copy(speedLimitSign = a.on)
         is ShellAction.SetFaceMode -> s.copy(faceMode = a.mode, face = when (a.mode) {
             FaceMode.DIGITAL -> Face.DIGITAL
             FaceMode.ANALOG -> Face.ANALOG
@@ -234,7 +234,7 @@ object Shell {
     fun preferences(s: ShellState) = ShellState(
         theme = s.theme, face = s.face, font = s.font, brightness = s.brightness,
         clock24h = s.clock24h, speedChime = s.speedChime, startVolume = s.startVolume,
-        lockTypingWhileMoving = s.lockTypingWhileMoving, homeApps = s.homeApps, recordEvents = s.recordEvents, speedRing = s.speedRing, faceMode = s.faceMode,
+        lockTypingWhileMoving = s.lockTypingWhileMoving, homeApps = s.homeApps, recordEvents = s.recordEvents, speedLimitSign = s.speedLimitSign, faceMode = s.faceMode,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))
