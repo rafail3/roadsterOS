@@ -64,3 +64,6 @@
 .screen.light .map-speed { color: var(--ink-muted); }
 .screen.light .map-speed b { color: var(--ink); }
 .screen.light .map-speed + .map-street { border-left-color: rgba(0, 0, 0, 0.12); }
+
+/* emulator only: the map previews from the network until a pack is built */
+.map-preview { position: absolute; left: 50%; top: 76px; transform: translateX(-50%); margin: 0; padding: 8px 16px; border-radius: 18px; font-size: 14px; font-weight: 600; color: #000; background: #ffd60a; pointer-events: none; }

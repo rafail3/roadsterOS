@@ -3,8 +3,9 @@
 
 import type { StyleSpecification } from "maplibre-gl";
 
-const TILES = "https://tiles.openfreemap.org/planet";
-const GLYPHS = "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
+/** Without a local pack the emulator previews the same schema from the network; the unit never does. */
+const ONLINE_TILES = "https://tiles.openfreemap.org/planet";
+const ATTRIBUTION = "© OpenMapTiles © OpenStreetMap contributors";
 
 interface Palette {
   land: string; landcover: string; park: string; residential: string; water: string; waterway: string; boundary: string;
@@ -37,8 +38,11 @@ const ROADS: { cls: string[]; color: keyof Palette; w: [number, number]; minzoom
   { cls: ["motorway"], color: "motorway", w: [1, 26], minzoom: 4 },
 ];
 
-/** `missing`: the outlines of the countries whose pack is not on the unit. */
-export function mapStyle(light: boolean, missing: GeoJSON.FeatureCollection): StyleSpecification {
+/**
+ * `missing`: the outlines of the countries whose pack is not on the unit. `offline`: the tiles come from the local
+ * packs (MBTiles, zoom 0 to 14, drawn larger beyond) and the label fonts from the app itself, with no network at all.
+ */
+export function mapStyle(light: boolean, missing: GeoJSON.FeatureCollection, offline: boolean): StyleSpecification {
   const p = light ? LIGHT : DARK;
   const road = (r: (typeof ROADS)[number], casing: boolean) => ({
     id: `road-${r.cls[0]}${casing ? "-casing" : ""}`,
@@ -55,9 +59,11 @@ export function mapStyle(light: boolean, missing: GeoJSON.FeatureCollection): St
   return {
     version: 8,
     name: light ? "rdstr-day" : "rdstr-night",
-    glyphs: GLYPHS,
+    glyphs: `${location.origin}/maps/fonts/{fontstack}/{range}.pbf`,
     sources: {
-      omt: { type: "vector", url: TILES, attribution: "© OpenMapTiles © OpenStreetMap contributors" },
+      omt: offline
+        ? { type: "vector", tiles: [`${location.origin}/api/tiles/{z}/{x}/{y}`], minzoom: 0, maxzoom: 14, attribution: ATTRIBUTION }
+        : { type: "vector", url: ONLINE_TILES, attribution: ATTRIBUTION },
       missing: { type: "geojson", data: missing },
     },
     layers: [

@@ -56,6 +56,9 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
   latest.current = { gps };
 
   useEffect(() => { loadBorders().then(setBorders).catch(() => {}); }, []);
+  // the packs built on this laptop: with one, the map draws from it and needs no network, as on the unit
+  const [offline, setOffline] = useState<boolean | null>(null);
+  useEffect(() => { fetch("/api/tiles").then((r) => r.json()).then((d: { packs: string[] }) => setOffline(d.packs.length > 0)).catch(() => setOffline(false)); }, []);
   // the countries without their pack, covered on the map
   const missing = useMemo<GeoJSON.FeatureCollection>(() => ({
     type: "FeatureCollection",
@@ -64,10 +67,10 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
 
   // the map is made the first time the app opens and kept, so opening it again is instant
   useEffect(() => {
-    if (!open || map.current || !box.current) return;
+    if (!open || map.current || !box.current || offline === null) return;
     const m = new maplibregl.Map({
       container: box.current,
-      style: mapStyle(light, missing),
+      style: mapStyle(light, missing, offline),
       center: [gps.lon, gps.lat],
       zoom: DRIVE_ZOOM,
       bearing: gps.heading,
@@ -87,10 +90,10 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
     el.innerHTML = '<span class="icon i-navigation-arrow-fill"></span>';
     puck.current = new maplibregl.Marker({ element: el, rotationAlignment: "map" }).setLngLat([gps.lon, gps.lat]).setRotation(gps.heading).addTo(m);
     map.current = m;
-  }, [open]);
+  }, [open, offline]);
 
   useLayoutEffect(() => { if (open) map.current?.resize(); }, [open]);
-  useEffect(() => { map.current?.setStyle(mapStyle(light, missing)); }, [light, missing]);
+  useEffect(() => { if (offline !== null) map.current?.setStyle(mapStyle(light, missing, offline)); }, [light, missing, offline]);
 
   useEffect(() => {
     const m = map.current;
@@ -136,6 +139,7 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
           {street && <span className="map-street">{street}</span>}
         </div>
       )}
+      {offline === false && <p className="map-preview">Online preview: no map pack built on this laptop</p>}
       <p className="map-credit">© OpenMapTiles © OpenStreetMap contributors</p>
     </section>
   );
