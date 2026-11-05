@@ -14,6 +14,39 @@ const STREET_PX = 24;
 let bordersFile: Promise<GeoJSON.FeatureCollection> | null = null;
 const loadBorders = () => (bordersFile ??= fetch("/maps/countries.geojson").then((r) => r.json()));
 
+/**
+ * The car, as a disc lying on the road seen at an angle: a white rim with some thickness, a blue face, and a white
+ * chevron on it that turns with the heading. Everything is drawn in the road's plane and then flattened by [TILT],
+ * so the chevron turns on the disc as it would on the ground. Plain shapes (no blur), the same layers as on the unit.
+ */
+const TILT = 0.62;
+const CHEVRON = "M 0 -13 L 11 10 L 0 4.5 L -11 10 Z";
+const PUCK = `<svg viewBox="-36 -36 72 72" width="97" height="97" aria-hidden="true">
+  <defs>
+    <linearGradient id="puck-face" x1="0" y1="-21" x2="0" y2="21" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4fb0ff"/><stop offset="1" stop-color="#0a64e8"/></linearGradient>
+    <linearGradient id="puck-gloss" x1="0" y1="-21" x2="0" y2="2" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity="0.35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  </defs>
+  <g transform="translate(0 7) scale(1 ${TILT})" fill="#000">
+    <circle r="31" fill-opacity="0.06"/><circle r="28.5" fill-opacity="0.08"/><circle r="26.5" fill-opacity="0.12"/>
+  </g>
+  <g transform="translate(0 4.5) scale(1 ${TILT})"><circle r="26" fill="#8e9bb0"/></g>
+  <g transform="translate(0 2.2) scale(1 ${TILT})"><circle r="26" fill="#cdd5e1"/></g>
+  <g transform="scale(1 ${TILT})">
+    <circle r="26" fill="#fff"/>
+    <circle r="20.5" fill="url(#puck-face)"/>
+    <circle r="20.5" fill="url(#puck-gloss)"/>
+    <circle r="20.5" fill="none" stroke="#0a4fc0" stroke-opacity="0.45" stroke-width="1.2"/>
+  </g>
+  <g data-turn-shadow><path d="${CHEVRON}" fill="#06357f" fill-opacity="0.35" stroke="#06357f" stroke-opacity="0.35" stroke-width="2.4" stroke-linejoin="round"/></g>
+  <g data-turn><path d="${CHEVRON}" fill="#fff" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/></g>
+</svg>`;
+/** Turns the chevron on the disc: in the road's plane first, then flattened with it. */
+function turnPuck(el: HTMLElement, degrees: number) {
+  el.querySelector("[data-turn]")?.setAttribute("transform", `scale(1 ${TILT}) rotate(${degrees})`);
+  // the chevron's shadow on the disc, a little below it
+  el.querySelector("[data-turn-shadow]")?.setAttribute("transform", `translate(0 1.4) scale(1 ${TILT}) rotate(${degrees})`);
+}
+
 /** Squared distance from a point to a segment, in screen pixels. */
 function segmentDistance(p: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) {
   const dx = b.x - a.x, dy = b.y - a.y;
@@ -50,6 +83,7 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
   const [headingUp, setHeadingUp] = useState(true);
   const [bearing, setBearing] = useState(0);
   const [street, setStreet] = useState("");
+  const [credit, setCredit] = useState(false);
   const [borders, setBorders] = useState<GeoJSON.FeatureCollection | null>(null);
   const streetAtMs = useRef(0);
   const latest = useRef({ gps });
@@ -82,13 +116,17 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
     });
     // a finger on the map stops following the car until the recentre button
     m.on("dragstart", (e) => { if (e.originalEvent) setFollow(false); });
-    m.on("rotate", () => setBearing(m.getBearing()));
+    m.on("rotate", () => {
+      setBearing(m.getBearing());
+      turnPuck(el, latest.current.gps.heading - m.getBearing());
+    });
     // once the tiles under the car have loaded, the street is known even before the car moves
     m.on("idle", () => { const { gps: at } = latest.current; setStreet(streetAt(m, at.lon, at.lat)); });
     const el = document.createElement("div");
     el.className = "map-puck";
-    el.innerHTML = '<span class="icon i-navigation-arrow-fill"></span>';
-    puck.current = new maplibregl.Marker({ element: el, rotationAlignment: "map" }).setLngLat([gps.lon, gps.lat]).setRotation(gps.heading).addTo(m);
+    el.innerHTML = PUCK;
+    puck.current = new maplibregl.Marker({ element: el }).setLngLat([gps.lon, gps.lat]).addTo(m);
+    turnPuck(el, gps.heading - m.getBearing());
     map.current = m;
   }, [open, offline]);
 
@@ -98,7 +136,8 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
   useEffect(() => {
     const m = map.current;
     if (!m) return;
-    puck.current?.setLngLat([gps.lon, gps.lat]).setRotation(gps.heading);
+    puck.current?.setLngLat([gps.lon, gps.lat]);
+    if (puck.current) turnPuck(puck.current.getElement(), gps.heading - m.getBearing());
     if (follow) m.easeTo({ center: [gps.lon, gps.lat], bearing: headingUp ? gps.heading : 0, duration: driving ? 260 : 600, easing: (t) => t });
     const now = performance.now();
     if (open && now - streetAtMs.current > STREET_EVERY_MS && m.isStyleLoaded()) {
@@ -126,11 +165,9 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
           <button aria-label="Zoom in" onClick={() => zoom(1)}><span aria-hidden="true">+</span></button>
           <button aria-label="Zoom out" onClick={() => zoom(-1)}><span aria-hidden="true">−</span></button>
         </div>
-        {!follow && (
-          <button className="glass-button map-recentre" aria-label="Follow the car" onClick={recentre}>
-            <span className="icon i-navigation-arrow-fill" aria-hidden="true" />
-          </button>
-        )}
+        <button className="glass-button map-locate" aria-label={follow ? "Following the car" : "Follow the car"} aria-pressed={follow} onClick={recentre}>
+          <span className={`icon ${follow ? "i-navigation-arrow-fill" : "i-navigation-arrow"}`} aria-hidden="true" />
+        </button>
       </div>
 
       {(street || driving) && (
@@ -140,7 +177,12 @@ export function MapsApp({ open, light }: { open: boolean; light: boolean }) {
         </div>
       )}
       {offline === false && <p className="map-preview">Online preview: no map pack built on this laptop</p>}
-      <p className="map-credit">© OpenMapTiles © OpenStreetMap contributors</p>
+      <div className="map-credit">
+        {credit && <p className="map-credit-text">© OpenMapTiles © OpenStreetMap contributors</p>}
+        <button className="glass-button" aria-label="Map data credits" aria-expanded={credit} onClick={() => setCredit(!credit)}>
+          <span className="icon i-info" aria-hidden="true" />
+        </button>
+      </div>
     </section>
   );
 }

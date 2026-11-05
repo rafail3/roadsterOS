@@ -5,11 +5,10 @@
 .maps-app .maplibregl-canvas:focus-visible { outline: none; }
 .maps-app :is(button):focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
-/* the car: a glass disc with the location arrow of the drawer, in blue, pointing the way the car drives */
-.map-puck { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; color: #0a84ff; background: rgba(28, 31, 37, 0.62); border: 1.5px solid rgba(255, 255, 255, 0.28); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); }
-/* the arrow glyph points to the upper left: turned to point up, centred on its own outline */
-.map-puck .icon { width: 30px; height: 30px; transform: rotate(45deg) translate(-2px, -2px); }
-.screen.light .map-puck { background: rgba(255, 255, 255, 0.82); border-color: rgba(0, 0, 0, 0.1); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
+/* the car: the location arrow alone, in relief, pointing the way the car drives (drawn in MapsApp) */
+/* drawn in a 72 unit box at 1.35 times its size */
+.map-puck { width: 97px; height: 97px; pointer-events: none; }
+.map-puck svg { display: block; }
 
 .map-controls { position: absolute; top: 76px; right: 32px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .map-compass { position: relative; display: block; width: 26px; height: 26px; transition: transform 200ms var(--ease-out); }
@@ -19,8 +18,10 @@
 .map-zoom button { height: 56px; display: grid; place-items: center; font-size: 30px; font-weight: 400; line-height: 1; color: rgba(235, 235, 245, 0.9); transition: background var(--fast) var(--ease-out); }
 .map-zoom button + button { border-top: 1px solid rgba(255, 255, 255, 0.12); }
 .map-zoom button:active { background: rgba(255, 255, 255, 0.12); }
-.map-recentre { color: #0a84ff; animation: genre-in 360ms var(--spring-glyph); }
-.map-recentre .icon { transform: rotate(45deg); }
+/* the location button: the drawer's location arrow, filled while the map follows the car, outlined once moved away */
+.map-locate { color: #0a84ff; }
+.map-locate .icon { transition: transform 300ms var(--spring-glyph); }
+.map-locate:active .icon { transform: scale(0.85); }
 
 /* where the car is: the speed while it drives and the street it is on */
 .map-status { position: absolute; left: 32px; bottom: 44px; display: flex; align-items: center; gap: 14px; height: 64px; padding: 0 24px; max-width: 560px; border-radius: 32px; background: rgba(20, 22, 26, 0.82); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
@@ -28,8 +29,13 @@
 .map-speed b { font-size: 26px; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; }
 .map-speed + .map-street { padding-left: 14px; border-left: 1px solid rgba(255, 255, 255, 0.18); }
 .map-street { font-size: 22px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.map-credit { position: absolute; right: 12px; bottom: 8px; margin: 0; font-size: 11px; color: rgba(255, 255, 255, 0.55); pointer-events: none; }
-.screen.light .map-credit { color: rgba(0, 0, 0, 0.5); }
+/* the data credit the licences ask for, behind a glass button: on the axis of the right-hand buttons, level with the
+   street pill (both 64 px tall from 44 px up, so a 44 px button sits 54 px up) */
+.map-credit { position: absolute; right: 38px; bottom: 54px; display: flex; align-items: center; gap: 10px; }
+.map-credit .glass-button { width: 44px; height: 44px; }
+.map-credit .glass-button .icon { width: 22px; height: 22px; }
+.map-credit-text { margin: 0; padding: 8px 14px; border-radius: 16px; font-size: 13px; color: rgba(255, 255, 255, 0.9); background: rgba(20, 22, 26, 0.82); border: 1px solid rgba(255, 255, 255, 0.12); animation: media-fade 200ms var(--ease-out); }
+.screen.light .map-credit-text { color: var(--ink); background: rgba(255, 255, 255, 0.92); border-color: rgba(0, 0, 0, 0.08); }
 
 /* ----- the offer of a country's map, over any screen ----- */
 .map-offer { position: absolute; left: 50%; bottom: 44px; z-index: 8; display: flex; align-items: center; gap: var(--space-4); width: 640px; min-height: 84px; padding: 12px 14px 12px 14px; border-radius: 28px; background: var(--sheet-raised); border: 1px solid var(--hairline-strong); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); color: var(--ink); opacity: 0; pointer-events: none; transform: translate(-50%, 140%); transition: transform 240ms cubic-bezier(0.4, 0, 1, 1), opacity 200ms cubic-bezier(0.4, 0, 1, 1); }
@@ -52,7 +58,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .map-offer, .map-offer.is-shown, .map-compass { transition-duration: 0.01ms; }
-  .map-recentre { animation: none; }
 }
 
 /* the day map is light: the status bar, the buttons and the street pill turn light over it */

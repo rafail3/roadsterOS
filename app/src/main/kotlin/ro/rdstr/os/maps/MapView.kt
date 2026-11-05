@@ -158,37 +158,67 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     }
 
     private val carPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    /** The location arrow of the drawer (its icon outline, 256 units, pointing to the upper left), centred and 30 px wide. */
-    private val arrow = Path().apply {
-        val s = 30f / 256f
-        val c = 141.5f
-        val pts = floatArrayOf(234.35f, 129f, 152f, 152f, 129f, 234.35f, 113.8f, 234.6f, 48.5f, 58.6f, 58.6f, 48.5f, 234.6f, 113.7f)
-        moveTo((pts[0] - c) * s, (pts[1] - c) * s)
-        for (i in 2 until pts.size step 2) lineTo((pts[i] - c) * s, (pts[i + 1] - c) * s)
-        close()
+    private val chevron = Path().apply { moveTo(0f, -13f); lineTo(11f, 10f); lineTo(0f, 4.5f); lineTo(-11f, 10f); close() }
+    private val face = android.graphics.LinearGradient(0f, -21f, 0f, 21f, 0xFF4FB0FF.toInt(), 0xFF0A64E8.toInt(), android.graphics.Shader.TileMode.CLAMP)
+    private val gloss = android.graphics.LinearGradient(0f, -21f, 0f, 2f, 0x59FFFFFF, 0x00FFFFFF, android.graphics.Shader.TileMode.CLAMP)
+
+    private fun drawChevron(canvas: Canvas, dy: Float, color: Int, v: MapViewState) = onRoad(canvas, dy) {
+        canvas.rotate((carHeading - v.bearing).toFloat())
+        carPaint.color = color
+        carPaint.style = Paint.Style.FILL
+        canvas.drawPath(chevron, carPaint)
+        carPaint.style = Paint.Style.STROKE
+        carPaint.strokeJoin = Paint.Join.ROUND
+        carPaint.strokeWidth = 2.4f
+        canvas.drawPath(chevron, carPaint)
+        carPaint.style = Paint.Style.FILL
     }
 
-    /** The car where the GPS puts it: a glass disc with the drawer's location arrow in blue, pointing the way it drives. */
+    /** Draws [block] in the road's plane at [dy] below the car: flattened by [TILT], as the disc is seen at an angle. */
+    private inline fun onRoad(canvas: Canvas, dy: Float, block: () -> Unit) {
+        canvas.save()
+        canvas.translate(0f, dy)
+        canvas.scale(1f, TILT)
+        block()
+        canvas.restore()
+    }
+
+    /**
+     * The car where the GPS puts it: a disc lying on the road seen at an angle, a white rim with some thickness and a
+     * blue face, with a white chevron on it turning with the heading; a soft shadow under it. Same layers as the emulator.
+     */
     private fun drawCar(canvas: Canvas, v: MapViewState) {
         val dx = TileMath.worldX(carLon, v.zoom) - TileMath.worldX(v.lon, v.zoom)
         val dy = TileMath.worldY(carLat, v.zoom) - TileMath.worldY(v.lat, v.zoom)
         val r = Math.toRadians(-v.bearing)
         val x = (logicalW / 2 + dx * cos(r) - dy * sin(r)).toFloat()
         val y = (logicalH / 2 + dx * sin(r) + dy * cos(r)).toFloat()
-        carPaint.style = Paint.Style.FILL
-        carPaint.color = if (night) 0x9E1C1F25.toInt() else 0xD1FFFFFF.toInt()
-        canvas.drawCircle(x, y, 32f, carPaint)
-        carPaint.style = Paint.Style.STROKE
-        carPaint.strokeWidth = 1.5f
-        carPaint.color = if (night) 0x47FFFFFF else 0x1A000000
-        canvas.drawCircle(x, y, 32f, carPaint)
-        carPaint.style = Paint.Style.FILL
-        carPaint.color = 0xFF0A84FF.toInt()
         canvas.save()
         canvas.translate(x, y)
-        // the icon points to the upper left: a quarter turn less, then the car's heading on the turned map
-        canvas.rotate((carHeading - v.bearing + 45).toFloat())
-        canvas.drawPath(arrow, carPaint)
+        canvas.scale(CAR_SCALE, CAR_SCALE)
+        carPaint.style = Paint.Style.FILL
+        carPaint.shader = null
+        onRoad(canvas, 7f) {
+            carPaint.color = 0x0F000000; canvas.drawCircle(0f, 0f, 31f, carPaint)
+            carPaint.color = 0x14000000; canvas.drawCircle(0f, 0f, 28.5f, carPaint)
+            carPaint.color = 0x1F000000; canvas.drawCircle(0f, 0f, 26.5f, carPaint)
+        }
+        onRoad(canvas, 4.5f) { carPaint.color = 0xFF8E9BB0.toInt(); canvas.drawCircle(0f, 0f, 26f, carPaint) }
+        onRoad(canvas, 2.2f) { carPaint.color = 0xFFCDD5E1.toInt(); canvas.drawCircle(0f, 0f, 26f, carPaint) }
+        onRoad(canvas, 0f) {
+            carPaint.color = 0xFFFFFFFF.toInt(); canvas.drawCircle(0f, 0f, 26f, carPaint)
+            carPaint.shader = face; canvas.drawCircle(0f, 0f, 20.5f, carPaint)
+            carPaint.shader = gloss; canvas.drawCircle(0f, 0f, 20.5f, carPaint)
+            carPaint.shader = null
+            carPaint.style = Paint.Style.STROKE
+            carPaint.strokeWidth = 1.2f
+            carPaint.color = 0x730A4FC0
+            canvas.drawCircle(0f, 0f, 20.5f, carPaint)
+            carPaint.style = Paint.Style.FILL
+        }
+        // the chevron turns on the disc, in the road's plane; its shadow a little below it
+        drawChevron(canvas, 1.4f, 0x5906357F, v)
+        drawChevron(canvas, 0f, 0xFFFFFFFF.toInt(), v)
         canvas.restore()
     }
 
@@ -252,5 +282,9 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         const val PICTURE_BUDGET = 12 * 1024 * 1024
         const val CANDIDATE_TILES = 48
         const val LOG_EVERY_MS = 3000L
+        /** How flat the car's disc looks: the road seen at about 50 degrees. */
+        const val TILT = 0.62f
+        /** The car's disc is drawn in a 72 unit box at this size, as in the emulator. */
+        const val CAR_SCALE = 1.35f
     }
 }
