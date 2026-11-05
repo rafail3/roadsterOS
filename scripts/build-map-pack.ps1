@@ -1,8 +1,10 @@
 # Builds one country's offline map pack: OpenMapTiles vector tiles in an MBTiles file, made with planetiler
 # from the Geofabrik extract. Buildings and house numbers are left out, then slim-map-pack.py drops what the unit
-# neither draws nor searches (other languages, mountain peaks, airports, zoom 14 landcover).
+# neither draws nor searches (other languages, mountain peaks, airports, zoom 14 landcover), and the speed limits
+# (speed-limits.yml, add-speed-limits.py) go into its zoom 14 tiles.
 #
 #   ./scripts/build-map-pack.ps1 -Area europe/romania -Code RO
+#   ./scripts/build-map-pack.ps1 -Area europe/romania -Code RO -LimitsOnly   # only (re)adds the speed limits
 #
 # Output: <WorkDir>/packs/<Code>.mbtiles. Needs Java 21. The first run downloads planetiler and its shared
 # sources (water polygons, Natural Earth, lake centerlines) into <WorkDir>, then reuses them.
@@ -14,7 +16,9 @@ param(
     [string] $PlanetilerVersion = "v0.10.2",
     [string] $ExcludeLayers = "building,housenumber",
     # the area the Natural Earth sea outlines are cut to when the OSM sea outlines cannot be downloaded
-    [string] $SeaBbox = "19.5,41.5,31.5,49"
+    [string] $SeaBbox = "19.5,41.5,31.5,49",
+    # keeps the pack already built and only adds its speed limits again
+    [switch] $LimitsOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -47,6 +51,7 @@ if (-not (Test-Path $water) -and (Test-Path $naturalEarth)) {
         if ($LASTEXITCODE -ne 0) { throw "sea outlines failed" }
     }
 }
+if (-not $LimitsOnly) {
 # with every source on disk, planetiler is not asked to download (it would check each source online)
 $needed = "natural_earth_vector.sqlite.zip", "lake_centerline.shp.zip", "water-polygons-split-3857.zip"
 $download = @($needed | Where-Object { -not (Test-Path (Join-Path $sources $_)) }).Count -gt 0
@@ -56,4 +61,11 @@ java -Xmx2g -jar $jar @flags
 if ($LASTEXITCODE -ne 0) { throw "planetiler failed" }
 python -I (Join-Path $PSScriptRoot "slim-map-pack.py") $raw $out
 if ($LASTEXITCODE -ne 0) { throw "slimming failed" }
+}
+
+$limits = Join-Path $WorkDir "raw/$Code-limits.mbtiles"
+java -Xmx2g -jar $jar generate-custom "--schema=$(Join-Path $PSScriptRoot 'speed-limits.yml')" "--osm_path=$pbf" "--output=$limits" --force
+if ($LASTEXITCODE -ne 0) { throw "speed limits failed" }
+python -I (Join-Path $PSScriptRoot "add-speed-limits.py") $out $limits
+if ($LASTEXITCODE -ne 0) { throw "adding the speed limits failed" }
 "{0}: {1:N0} MB" -f $Code, ((Get-Item $out).Length / 1MB)
