@@ -23,6 +23,10 @@ sealed class CarCommand {
         @Serializable @SerialName("Radio.Seek") data class Seek(val up: Boolean) : Radio()
         @Serializable @SerialName("Radio.Preset") data class Preset(val index: Int) : Radio()
         @Serializable @SerialName("Radio.Band") data class Band(val band: CarEvent.Radio.Band) : Radio()
+        /** Stop receiving the station: the tuner goes quiet, the volume and its mute stay as they are. */
+        @Serializable @SerialName("Radio.Pause") data object Pause : Radio()
+        /** Receive the tuned station again. */
+        @Serializable @SerialName("Radio.Play") data object Play : Radio()
         /** Sweep the band and list every station found. */
         @Serializable @SerialName("Radio.Scan") data object Scan : Radio()
     }

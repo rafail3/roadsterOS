@@ -101,15 +101,21 @@ object Bridge {
     }
 
     /**
-     * The card on home for the car's [state] and the page chosen last ([chosen], empty for none): answers
-     * {"pages":[...],"shown":"...","strip":"NONE"|"BT"|"RADIO","forSource":"..."}.
+     * The card on home for the car's [state], whether Bluetooth is [btOn], and the page chosen last ([chosen], empty for
+     * none): answers {"pages":[...],"shown":"...","strip":"NONE"|"BT"|"RADIO","forSource":"..." or ""}.
      */
-    fun homeCard(state: String, chosen: String): String {
+    fun homeCard(state: String, btOn: Boolean, chosen: String): String {
         val car = json.decodeFromString(RulesState.serializer(), state)
-        val pages = HomeCard.pages(car).joinToString(",") { "\"$it\"" }
-        val shown = HomeCard.shown(car, chosen.takeIf { it.isNotEmpty() }?.let { CardPage.valueOf(it) })
-        return """{"pages":[$pages],"shown":"$shown","strip":"${HomeCard.strip(car)}","forSource":"${HomeCard.forSource(car)}"}"""
+        val pages = HomeCard.pages(car, btOn).joinToString(",") { "\"$it\"" }
+        val shown = HomeCard.shown(car, btOn, chosen.takeIf { it.isNotEmpty() }?.let { CardPage.valueOf(it) })
+        return """{"pages":[$pages],"shown":"$shown","strip":"${HomeCard.strip(car)}","forSource":"${HomeCard.forSource(car, btOn) ?: ""}"}"""
     }
+
+    /** What a transport button on a card page sends: a JSON array of commands. [press] is PREV, PLAY or NEXT. */
+    fun homeCardPress(state: String, page: String, press: String): String = json.encodeToString(
+        ListSerializer(CarCommand.serializer()),
+        HomeCard.press(CardPage.valueOf(page), HomeCard.Press.valueOf(press), json.decodeFromString(RulesState.serializer(), state)),
+    )
 
     fun shellInitial(): String = json.encodeToString(ShellState.serializer(), ShellState())
 

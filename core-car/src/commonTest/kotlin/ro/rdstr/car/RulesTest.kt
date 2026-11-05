@@ -234,4 +234,17 @@ class RulesTest {
         assertEquals(AudioSource.BT, s.lastSource)
         assertEquals(bt, Rules.onCommand(bt, CarCommand.Media.Next))
     }
+
+    @Test
+    fun `radio pause stops the station and play or a new tuning takes it again`() {
+        val radio = RulesState(source = AudioSource.RADIO)
+        val paused = Rules.onCommand(radio, CarCommand.Radio.Pause)
+        assertFalse(paused.radioOn)
+        assertFalse(paused.muted)
+        assertTrue(Rules.onCommand(paused, CarCommand.Radio.Play).radioOn)
+        assertTrue(Rules.onCommand(paused, CarCommand.Radio.Seek(true)).radioOn)
+        // choosing the radio again starts it
+        val onPhone = Rules.onCommand(paused, CarCommand.Audio.Source(AudioSource.BT))
+        assertTrue(Rules.onCommand(onPhone, CarCommand.Audio.Source(AudioSource.RADIO)).radioOn)
+    }
 }
