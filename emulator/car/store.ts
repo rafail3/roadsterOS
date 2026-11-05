@@ -32,6 +32,8 @@ export interface EmulatorState {
   searched: boolean;
   nearby: string[];
   pairing: { name: string; code: string; confirmed?: boolean } | null;
+  /** the music playing on this laptop stands in for the phone: its track, cover, playback and controls */
+  pcMedia: boolean;
   acc: boolean;
   /** null = live clock, otherwise a simulated hour 0..23 */
   hour: number | null;
@@ -64,7 +66,9 @@ export const SAMPLE_TRACKS = [
   { title: "Amber Coast", artist: "Lio Marren", durationMs: 201000, art: "/art/amber-coast.svg" },
   { title: "Glass Garden", artist: "Odessa Vane", durationMs: 254000, art: "/art/glass-garden.svg" },
 ];
-const artFor = (title: string) => SAMPLE_TRACKS.find((t) => t.title === title)?.art ?? null;
+// covers the laptop's media session sent, by track title
+const pcCovers = new Map<string, string>();
+const artFor = (title: string) => pcCovers.get(title) ?? SAMPLE_TRACKS.find((t) => t.title === title)?.art ?? null;
 
 /** Where playback is now: the last reported position, advanced while playing. */
 export function elapsedMs(s: EmulatorState, now = Date.now()) {
@@ -73,6 +77,8 @@ export function elapsedMs(s: EmulatorState, now = Date.now()) {
 }
 
 let state: EmulatorState = fromUrl(new URLSearchParams(location.search));
+// ?pc starts with the laptop's music as the source
+if (new URLSearchParams(location.search).has("pc")) queueMicrotask(() => setPcMedia(true));
 const listeners = new Set<() => void>();
 let logId = 0;
 let replayTimers: ReturnType<typeof setTimeout>[] = [];
@@ -125,9 +131,45 @@ function runAction(action: RuleAction) {
   if (action.type === "ShowVolume") openVolume();
 }
 
+// The laptop source: the emulator's server reads the media session Windows shows (a music site in the browser)
+// and streams it here; the transport keys go back to that session, which then reports the change.
+const PC_COMMANDS: Record<string, string> = { "Media.Play": "play", "Media.Pause": "pause", "Media.Next": "next", "Media.Prev": "prev" };
+const PC_DEVICE = "Laptop";
+let pcStream: EventSource | null = null;
+
+function sendToLaptop(command: string) {
+  fetch("/api/pc-media", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ command }) }).catch(() => {});
+}
+
+function fromLaptop(line: string) {
+  const m = JSON.parse(line) as { type: string; active?: boolean; title?: string; artist?: string; album?: string; durationMs?: number; url?: string; playing?: boolean; positionMs?: number };
+  if (m.type === "session") carEvent({ type: "BtConnection", connected: Boolean(m.active), device: PC_DEVICE });
+  if (m.type === "track" && m.title) carEvent({ type: "Track", title: m.title, artist: m.artist ?? "", album: m.album ?? "", durationMs: m.durationMs ?? 0 });
+  if (m.type === "cover" && m.title && m.url) {
+    pcCovers.set(m.title, m.url);
+    if (state.track.title === m.title) set({ track: { ...state.track, art: m.url } });
+  }
+  if (m.type === "playback") carEvent({ type: "Playback", playing: Boolean(m.playing), positionMs: m.positionMs ?? 0 });
+}
+
+/** Turn the laptop source on or off; off leaves the last track on screen as the phone would after a disconnect. */
+export function setPcMedia(on: boolean) {
+  pcStream?.close();
+  pcStream = null;
+  set({ pcMedia: on });
+  if (!on) {
+    if (state.car.btConnected && state.device === PC_DEVICE) carEvent({ type: "BtConnection", connected: false, device: PC_DEVICE });
+    return;
+  }
+  pcStream = new EventSource("/api/pc-media");
+  pcStream.onmessage = (e) => fromLaptop(e.data);
+}
+
 /** What the bus does: the rules already accounted for the command, the car answers. */
 function sendToCar(command: CarCommand) {
   set({ log: addLog("out", command) });
+  // with the laptop as the source its session answers, not the simulated phone
+  if (state.pcMedia && command.type in PC_COMMANDS) return void sendToLaptop(PC_COMMANDS[command.type]);
   const echo = bridge.echo(command);
   if (echo) setTimeout(() => carEvent(echo), ECHO_DELAY_MS);
   if (command.type === "Media.Next" || command.type === "Media.Prev") setTimeout(() => phoneSkips(command.type === "Media.Next"), ECHO_DELAY_MS);
@@ -322,6 +364,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     searched: false,
     nearby: [],
     pairing: null,
+    pcMedia: false,
     acc: true,
     hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : null,
     log: [],

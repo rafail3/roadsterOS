@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { CallState, Face, SteeringKey, ThemeMode } from "../car/bridge";
-import { carEvent, replay, setHour, setInRange, shellAction, stopReplay, useEmulator, useNow } from "../car/store";
+import { carEvent, replay, setHour, setInRange, setPcMedia, shellAction, stopReplay, useEmulator, useNow } from "../car/store";
 import { Field, holdToRepeat, Section, Segmented, Switch } from "./controls";
 
 const DEFAULT_TRACK_MS = 228000;
@@ -57,12 +57,14 @@ function Signals() {
 }
 
 function Bluetooth() {
-  const { car, positionMs, saved } = useEmulator();
+  const { car, positionMs, saved, pcMedia } = useEmulator();
   const [device, setDevice] = useState("Phone");
   const [title, setTitle] = useState("Night Transit");
   const [artist, setArtist] = useState("Vela Orsini");
   return (
     <Section title="Bluetooth">
+      <Switch label="Laptop media" checked={pcMedia} onChange={setPcMedia} />
+      <p className="note">Plays what this Windows laptop plays, for example a music site in the browser: track, cover, position, and the transport keys control it.</p>
       <Field label="Device" value={device} onChange={setDevice} />
       <Switch label="Connected" checked={car.btConnected} onChange={(connected) => carEvent({ type: "BtConnection", connected, device: device || "Phone" })} />
       <Switch label="Playing" checked={car.playing} onChange={(playing) => carEvent({ type: "Playback", playing, positionMs })} />
