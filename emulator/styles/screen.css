@@ -106,6 +106,10 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 
 /* glass panel */
 .panel { grid-row: 2; margin: 0 var(--space-5) var(--space-5) 0; position: relative; z-index: 1; }
+/* home content comes back a moment after an app leaves: a second Home press in that moment opens the open apps
+   over an empty background, so leaving an app and opening the list read as one movement */
+.rail, .field, .panel { transition: opacity 180ms var(--ease-out) 240ms; }
+.screen.in-app .rail, .screen.in-app .field, .screen.in-app .panel { opacity: 0; transition: opacity 0s linear 420ms; }
 .np { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; gap: var(--space-4); padding: var(--space-5); border-radius: var(--radius); background: var(--glass); border: 1px solid var(--hairline); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06); }
 .np-meta { display: flex; flex-direction: column; gap: 2px; }
 .np-title { margin: 0; font-size: var(--size-title); font-weight: 600; letter-spacing: -0.01em; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -179,8 +183,8 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 
 /* open apps: our own apps as cards, pushed up to close; one opaque layer over everything below it */
 .recents { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-7); background: var(--sheet); opacity: 0; pointer-events: none; transition: opacity var(--base) var(--ease-out); }
-/* opening covers whatever is leaving underneath within a few frames */
-.recents.is-open { opacity: 1; pointer-events: auto; transition-duration: 90ms; }
+/* opening covers whatever is leaving underneath at once; the cards carry the motion */
+.recents.is-open { opacity: 1; pointer-events: auto; transition-duration: 0s; }
 .recents-list { display: flex; justify-content: center; gap: var(--space-6); margin: 0; padding: 0; list-style: none; }
 .recents-card { width: 280px; display: flex; flex-direction: column; gap: var(--space-2); transition: transform var(--base) var(--ease-out), opacity var(--base) var(--ease-out); }
 .recents.is-open .recents-card { animation: recents-in 260ms var(--ease-out) backwards; }

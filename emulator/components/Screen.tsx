@@ -94,7 +94,7 @@ export function Screen() {
   }, [car.camera]);
 
   return (
-    <div ref={finger} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming")} style={{ ...glow, ...boost }}>
+    <div ref={finger} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming", inApp && "in-app")} style={{ ...glow, ...boost }}>
       <div className="ambient" aria-hidden="true" />
 
       <header className="bar" inert={covered} onPointerDown={onPointerDown}>
