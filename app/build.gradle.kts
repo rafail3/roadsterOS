@@ -52,4 +52,5 @@ dependencies {
     "deviceImplementation"(project(":car-vendor"))
     implementation(libs.coroutines.android)
     testImplementation(libs.junit)
+    testImplementation(libs.coroutines.test)
 }
