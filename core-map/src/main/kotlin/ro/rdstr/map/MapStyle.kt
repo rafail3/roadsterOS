@@ -123,3 +123,8 @@ class MapStyle(val palettes: Map<String, Map<String, Int>>, val layers: List<Sty
         fun argb(hex: String): Int = (0xFF000000 or hex.removePrefix("#").toLong(16)).toInt()
     }
 }
+
+/** The country borders (Natural Earth, Romania and its neighbours) the packs are offered and masked by; the emulator copies the same file. */
+object MapBorders {
+    fun geojson(): String = MapBorders::class.java.getResource("/ro/rdstr/map/countries.geojson")!!.readText()
+}

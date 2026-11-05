@@ -4,7 +4,6 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { createCoverDesk } from "./covers";
 import { bridge, type Band, type CarCommand, type CarEvent, type CarState, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
 import { BANDS, STATIONS, stationAt } from "./radio";
-import { PACK_MB } from "./mapStyle";
 import { GPS_PLACES } from "./gps";
 export { GPS_PLACES };
 
@@ -430,15 +429,14 @@ export function setDriving(on: boolean, kmh = state.gps.kmh || 90) {
 
 /** What the screen offers for the country under the car: its pack, or Wi-Fi first. */
 export function mapOffer(s: EmulatorState) {
-  if (!s.country || s.maps.declined.includes(s.country) || s.maps.downloading?.code === s.country) return "NONE";
-  return bridge.mapOffer(s.country, s.maps.installed, s.wifi.connected !== null);
+  return bridge.mapOffer(s.country, s.maps.installed, s.wifi.connected !== null, s.maps.declined, s.maps.downloading?.code ?? null);
 }
 
 /** A pack downloads only over Wi-Fi: it waits while the unit is off Wi-Fi and goes on when it joins again. */
 export function downloadPack(code: string) {
   clearInterval(downloadTimer);
   set({ maps: { ...state.maps, downloading: { code, progress: 0 } } });
-  const perTick = (DOWNLOAD_MBPS * DRIVE_TICK_MS) / 1000 / (PACK_MB[code] ?? 100);
+  const perTick = (DOWNLOAD_MBPS * DRIVE_TICK_MS) / 1000 / (bridge.packMb(code) || 100);
   downloadTimer = setInterval(() => {
     const d = state.maps.downloading;
     if (!d || state.wifi.connected === null) return;

@@ -17,6 +17,12 @@ object MapPacks {
 
     enum class Offer { NONE, DOWNLOAD, NEEDS_WIFI }
 
+    /**
+     * Pack sizes, in MB. Romania is measured (built and slimmed); the others are the Geofabrik extract size times the
+     * ratio measured on Romania (363 MB pack from a 333 MB extract), until each is built.
+     */
+    val PACK_MB = mapOf("RO" to 363, "HU" to 358, "BG" to 193, "RS" to 263, "UA" to 963, "MD" to 111, "AT" to 888, "SK" to 379)
+
     /** The borders file: GeoJSON features with `code` and `name`, Polygon or MultiPolygon. */
     fun parseBorders(geojson: String): List<Country> =
         Json.parseToJsonElement(geojson).jsonObject.getValue("features").jsonArray.map { feature ->
@@ -50,8 +56,12 @@ object MapPacks {
         return hit
     }
 
-    fun offer(country: String?, installed: Set<String>, wifi: Boolean): Offer = when {
-        country == null || country in installed -> Offer.NONE
+    /**
+     * What the screen offers for the country under the car: nothing when its pack is on the unit, was turned down
+     * ("Not now") or is downloading already; else the download over Wi-Fi, or Wi-Fi first.
+     */
+    fun offer(country: String?, installed: Set<String>, wifi: Boolean, declined: Set<String> = emptySet(), downloading: String? = null): Offer = when {
+        country == null || country in installed || country in declined || country == downloading -> Offer.NONE
         wifi -> Offer.DOWNLOAD
         else -> Offer.NEEDS_WIFI
     }

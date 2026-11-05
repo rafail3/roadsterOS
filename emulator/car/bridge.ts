@@ -102,7 +102,9 @@ interface Kotlin {
       ptyName(code: number): string;
       loadBorders(geojson: string): void;
       countryAt(lon: number, lat: number): string;
-      mapOffer(country: string, installed: string, wifi: boolean): string;
+      mapOffer(country: string, installed: string, wifi: boolean, declined: string, downloading: string): string;
+      packMb(code: string): number;
+      countryName(code: string): string;
     };
 }
 
@@ -128,7 +130,10 @@ export const bridge = {
   ptyName: (code: number): string => K!.Bridge.ptyName(code),
   loadBorders: (geojson: string) => K!.Bridge.loadBorders(geojson),
   countryAt: (lon: number, lat: number): string => K!.Bridge.countryAt(lon, lat),
-  mapOffer: (country: string, installed: string[], wifi: boolean) => K!.Bridge.mapOffer(country, JSON.stringify(installed), wifi) as "NONE" | "DOWNLOAD" | "NEEDS_WIFI",
+  mapOffer: (country: string, installed: string[], wifi: boolean, declined: string[], downloading: string | null) =>
+    K!.Bridge.mapOffer(country, JSON.stringify(installed), wifi, JSON.stringify(declined), downloading ?? "") as "NONE" | "DOWNLOAD" | "NEEDS_WIFI",
+  packMb: (code: string): number => K!.Bridge.packMb(code),
+  countryName: (code: string): string => K!.Bridge.countryName(code),
   coverColors: (pixels: number[], width: number): { top: string; bottom: string } => JSON.parse(K!.Bridge.coverColors(JSON.stringify(pixels), width)),
   setVolume: (state: CarState, level: number): CarCommand[] => JSON.parse(K!.Bridge.setVolume(JSON.stringify(state), level)),
   effectiveTheme: (state: ShellState, hour: number) => K!.Bridge.effectiveTheme(JSON.stringify(state), hour),

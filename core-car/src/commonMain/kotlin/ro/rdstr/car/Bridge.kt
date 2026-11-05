@@ -54,11 +54,20 @@ object Bridge {
     /** The ISO code of the country at a position, or an empty string outside every border. */
     fun countryAt(lon: Double, lat: Double): String = MapPacks.countryAt(borders, lon, lat)?.code ?: ""
 
-    fun mapOffer(country: String, installed: String, wifi: Boolean): String = MapPacks.offer(
+    /** [installed], [declined]: JSON arrays of country codes; [downloading]: a code, or empty. */
+    fun mapOffer(country: String, installed: String, wifi: Boolean, declined: String, downloading: String): String = MapPacks.offer(
         country.ifEmpty { null },
         json.decodeFromString(ListSerializer(String.serializer()), installed).toSet(),
         wifi,
+        json.decodeFromString(ListSerializer(String.serializer()), declined).toSet(),
+        downloading.ifEmpty { null },
     ).name
+
+    /** A pack's size in MB, or 0 when it is not known. */
+    fun packMb(code: String): Int = MapPacks.PACK_MB[code] ?: 0
+
+    /** A country's name from the borders, or its code. */
+    fun countryName(code: String): String = borders.firstOrNull { it.code == code }?.name ?: code
 
     fun setVolume(state: String, level: Int): String = json.encodeToString(
         ListSerializer(CarCommand.serializer()),

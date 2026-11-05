@@ -75,9 +75,3 @@ export function mapStyle(light: boolean, missing: GeoJSON.FeatureCollection, off
     ],
   };
 }
-
-/**
- * Pack sizes, in MB. Romania is measured (built and slimmed); the others are the Geofabrik extract size times the
- * ratio measured on Romania (363 MB pack from a 333 MB extract), until each is built.
- */
-export const PACK_MB: Record<string, number> = { RO: 363, HU: 358, BG: 193, RS: 263, UA: 963, MD: 111, AT: 888, SK: 379 };

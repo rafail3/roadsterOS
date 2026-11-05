@@ -1,7 +1,5 @@
-import { PACK_MB } from "../car/mapStyle";
+import { bridge } from "../car/bridge";
 import { declinePack, downloadPack, mapOffer, shellAction, useEmulator } from "../car/store";
-
-const NAMES: Record<string, string> = { RO: "Romania", HU: "Hungary", BG: "Bulgaria", RS: "Serbia", UA: "Ukraine", MD: "Moldova", AT: "Austria", SK: "Slovakia" };
 
 /**
  * Over any screen, at the bottom: the map of the country the car just entered, when it is not on the unit yet.
@@ -13,7 +11,7 @@ export function MapOffer({ hidden }: { hidden: boolean }) {
   const offer = mapOffer(emulator);
   const downloading = maps.downloading;
   const code = downloading?.code ?? country;
-  const name = NAMES[code] ?? code;
+  const name = code ? bridge.countryName(code) : "";
   const shown = !hidden && (offer !== "NONE" || downloading !== null);
   const waiting = downloading !== null && emulator.wifi.connected === null;
 
@@ -29,7 +27,7 @@ export function MapOffer({ hidden }: { hidden: boolean }) {
         <>
           <span className="map-offer-text">
             <span className="map-offer-title">You are in {name}</span>
-            <span className="map-offer-sub">{offer === "DOWNLOAD" ? `Download its offline map, ${PACK_MB[code] ?? "?"} MB` : "Connect to Wi-Fi to download its map"}</span>
+            <span className="map-offer-sub">{offer === "DOWNLOAD" ? `Download its offline map, ${bridge.packMb(code) || "?"} MB` : "Connect to Wi-Fi to download its map"}</span>
           </span>
           <button className="map-offer-button is-quiet" onClick={() => declinePack(code)}>Not now</button>
           {offer === "DOWNLOAD"

@@ -16,6 +16,7 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
+import ro.rdstr.car.MapPacks.Country
 import ro.rdstr.map.GridTile
 import ro.rdstr.map.LabelCandidate
 import ro.rdstr.map.MapStyle
@@ -28,6 +29,7 @@ import ro.rdstr.map.VisibleTile
 import kotlin.math.atan2
 import kotlin.math.ceil
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.ln
 import kotlin.math.sin
 import ro.rdstr.map.View as MapViewState
@@ -39,7 +41,8 @@ import ro.rdstr.map.View as MapViewState
  * finger moves the map; the screen's controls read [street], [follow], [headingUp] and [bearing] on [onChange].
  */
 class MapView(context: Context, private val packs: MapPacks) : View(context) {
-    private val renderer = TileRenderer(MapStyle.load())
+    private val style = MapStyle.load()
+    private val renderer = TileRenderer(style)
 
     var lon = 25.5887
     var lat = 45.6427
@@ -61,6 +64,10 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     /** The name of the street the car is on, empty off any named road. */
     var street = ""
         private set
+    /** The countries whose pack is not on the unit: covered, as the unit has no tiles there. */
+    var missing: List<Country> = emptyList()
+        set(value) { field = value; maskBoxes = value.flatMap { c -> c.polygons.map { box(it[0]) to it } }; invalidate() }
+    private var maskBoxes: List<Pair<DoubleArray, List<DoubleArray>>> = emptyList()
     /** On the main thread, whenever [street], [follow], [headingUp] or [bearing] changed. */
     var onChange: (() -> Unit)? = null
     private var carLon = lon
@@ -167,6 +174,7 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
             candidates.get(g.srcKey)?.let { VisibleTile(g.srcZ, g.srcX, g.srcY, g.srcLeft, g.srcTop, g.srcSize) to it }
         }
         renderer.placeLabels(frameCanvas, v, sources)
+        drawMissing(canvas, v)
         drawCar(canvas, v)
         canvas.restore()
 
@@ -206,6 +214,48 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
                 invalidate()
             }
         }
+    }
+
+    private val maskPath = Path().apply { fillType = Path.FillType.EVEN_ODD }
+    private val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    /** The outer ring's bounds: west, south, east, north. */
+    private fun box(ring: DoubleArray): DoubleArray {
+        val b = doubleArrayOf(180.0, 90.0, -180.0, -90.0)
+        for (i in ring.indices step 2) {
+            b[0] = minOf(b[0], ring[i]); b[1] = minOf(b[1], ring[i + 1]); b[2] = maxOf(b[2], ring[i]); b[3] = maxOf(b[3], ring[i + 1])
+        }
+        return b
+    }
+
+    /**
+     * The missing countries in the style's mask colour at 0.92, over the names as in the emulator, where the mask is the
+     * last layer. Only the polygons that reach the screen are drawn.
+     */
+    private fun drawMissing(canvas: Canvas, v: MapViewState) {
+        if (maskBoxes.isEmpty()) return
+        val cx = TileMath.worldX(v.lon, v.zoom)
+        val cy = TileMath.worldY(v.lat, v.zoom)
+        val reach = hypot(logicalW.toDouble(), logicalH.toDouble()) / 2
+        maskPath.rewind()
+        for ((b, rings) in maskBoxes) {
+            if (TileMath.worldX(b[2], v.zoom) < cx - reach || TileMath.worldX(b[0], v.zoom) > cx + reach ||
+                TileMath.worldY(b[1], v.zoom) < cy - reach || TileMath.worldY(b[3], v.zoom) > cy + reach) continue
+            for (ring in rings) {
+                for (i in ring.indices step 2) {
+                    val x = (TileMath.worldX(ring[i], v.zoom) - cx + logicalW / 2).toFloat()
+                    val y = (TileMath.worldY(ring[i + 1], v.zoom) - cy + logicalH / 2).toFloat()
+                    if (i == 0) maskPath.moveTo(x, y) else maskPath.lineTo(x, y)
+                }
+                maskPath.close()
+            }
+        }
+        if (maskPath.isEmpty) return
+        maskPaint.color = (style.color(night, "mask") and 0xFFFFFF) or (MASK_ALPHA shl 24)
+        canvas.save()
+        canvas.rotate(-bearing.toFloat(), logicalW / 2f, logicalH / 2f)
+        canvas.drawPath(maskPath, maskPaint)
+        canvas.restore()
     }
 
     private val carPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeJoin = Paint.Join.ROUND }
@@ -340,6 +390,8 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         /** Decoded tiles kept for the street lookup: the car's tile and its neighbours. */
         const val STREET_TILES = 4
         private val NO_TILE = Any()
+        /** The mask's opacity, 0.92 as in the emulator's style. */
+        const val MASK_ALPHA = 235
         /** Bitmaps of finished pictures kept: about 36 at the unit's size, enough for the screen and some around it. */
         const val PICTURE_BUDGET = 12 * 1024 * 1024
         const val CANDIDATE_TILES = 48

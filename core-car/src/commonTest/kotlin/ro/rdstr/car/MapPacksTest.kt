@@ -36,4 +36,17 @@ class MapPacksTest {
         assertEquals(MapPacks.Offer.NONE, MapPacks.offer("RO", setOf("RO"), wifi = true))
         assertEquals(MapPacks.Offer.NONE, MapPacks.offer(null, setOf("RO"), wifi = true))
     }
+
+    @Test
+    fun `a country turned down or already downloading is not offered again`() {
+        assertEquals(MapPacks.Offer.NONE, MapPacks.offer("HU", setOf("RO"), wifi = true, declined = setOf("HU")))
+        assertEquals(MapPacks.Offer.NONE, MapPacks.offer("HU", setOf("RO"), wifi = true, downloading = "HU"))
+        assertEquals(MapPacks.Offer.DOWNLOAD, MapPacks.offer("HU", setOf("RO"), wifi = true, declined = setOf("BG"), downloading = "BG"))
+    }
+
+    @Test
+    fun `every offered country has its size and name`() {
+        assertEquals(363, MapPacks.PACK_MB["RO"])
+        assertEquals("Hungary", borders.first { it.code == "HU" }.name)
+    }
 }

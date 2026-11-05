@@ -12,6 +12,8 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.widget.TextView
+import ro.rdstr.car.MapPacks as Packs
+import ro.rdstr.map.MapBorders
 import java.io.File
 import kotlin.math.cos
 
@@ -34,6 +36,8 @@ class MapActivity : Activity(), LocationListener {
     /** The speed shown while the car drives, in km/h; null while it stands. */
     private var kmh: Int? = null
     private var status = ""
+    private var offer: PackOffer? = null
+    private var offered = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +54,10 @@ class MapActivity : Activity(), LocationListener {
             zoom = intent.getFloatExtra("zoom", 15.5f).toDouble()
         }
         map = view
+        // the borders tell the country under the car and cover the ones without a pack
+        val borders = Packs.parseBorders(MapBorders.geojson())
+        view.missing = borders.filter { it.code !in p.codes }
+        offer = PackOffer(this, borders, p.codes.toSet())
         view.onChange = ::logStatus
         setContentView(view)
         if (intent.getBooleanExtra("demo", false)) startDemo(view)
@@ -90,6 +98,16 @@ class MapActivity : Activity(), LocationListener {
         val moving = l.hasSpeed() && l.speed > MOVING_MPS
         kmh = if (moving) Math.round(l.speed * 3.6f) else null
         map?.setCar(l.longitude, l.latitude, if (l.hasBearing() && moving) l.bearing.toDouble() else null)
+        logOffer(l.longitude, l.latitude)
+    }
+
+    /** What the offer card shows for the country under the car, logged when it changes. */
+    private fun logOffer(lon: Double, lat: Double) {
+        val (country, o) = offer?.at(lon, lat) ?: return
+        val now = if (country == null || o == Packs.Offer.NONE) "none" else "${country.name}: $o, ${Packs.PACK_MB[country.code] ?: "?"} MB"
+        if (now == offered) return
+        offered = now
+        android.util.Log.i(MapView.TAG, "offer: $now")
     }
 
     /** What the street pill shows: the speed while driving and the street, logged when it changes. */
@@ -119,6 +137,7 @@ class MapActivity : Activity(), LocationListener {
                 heading = (heading + 0.4) % 360
                 kmh = DEMO_KMH.toInt()
                 view.setCar(lon, lat, heading)
+                logOffer(lon, lat)
                 main.postDelayed(this, DEMO_TICK_MS)
             }
         }
