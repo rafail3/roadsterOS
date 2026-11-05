@@ -110,12 +110,13 @@
 .music-devices { position: absolute; top: 76px; right: 32px; }
 
 /* saved phones: a panel from the right over the music app, always on the app's dark backdrop */
-.devices { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+/* starts under the status bar, so the bar still pulls the drawer down over an open panel */
+.devices { position: absolute; inset: var(--bar) 0 0 0; z-index: 4; pointer-events: none; }
 .devices.is-open { pointer-events: auto; }
 .devices-scrim { position: absolute; inset: 0; width: 100%; background: rgba(0, 0, 0, 0.4); opacity: 0; transition: opacity 320ms var(--seamless); cursor: default; }
 .devices.is-open .devices-scrim { opacity: 1; }
 .devices-panel {
-  position: absolute; top: 64px; right: 24px; bottom: 24px; width: 480px; display: flex; flex-direction: column; gap: 20px; padding: 24px;
+  position: absolute; top: 8px; right: 24px; bottom: 24px; width: 480px; display: flex; flex-direction: column; gap: 20px; padding: 24px;
   border-radius: 24px; background: #0e0e12; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
   color: #fff; opacity: 0; transform: translateX(32px); transition: transform 420ms var(--sheet-in), opacity 260ms var(--seamless);
 }
