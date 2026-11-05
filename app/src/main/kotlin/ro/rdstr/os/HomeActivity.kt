@@ -34,6 +34,7 @@ class HomeActivity : Activity() {
                     appendLine("source: ${ui.state.source}  playing: ${ui.state.playing}  muted: ${ui.state.muted}")
                     appendLine("bt: ${ui.state.btConnected}  call: ${ui.state.call}  night: ${ui.night}")
                     appendLine("camera: ${ui.camera}  overlay call: ${ui.call?.number ?: "-"}")
+                    appendLine("track: ${ui.track?.title ?: "-"}  cover: ${CarRuntime.cover.value?.from ?: "-"}")
                     append("last: ${ui.lastEvent}")
                 }
             }
