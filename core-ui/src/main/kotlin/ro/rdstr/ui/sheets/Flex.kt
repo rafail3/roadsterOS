@@ -49,6 +49,8 @@ open class Flex(context: Context, key: String?, val column: Boolean = false) : V
 
     var gap = 0f
     var padL = 0f; var padT = 0f; var padR = 0f; var padB = 0f
+    /** `min-height` of this box, canvas px. */
+    var minH = 0f
     var align = Align.STRETCH
     var justify = Justify.START
     /** Fixed size of this box in canvas px, NaN for its content (or the parent's stretch). */
@@ -122,7 +124,7 @@ open class Flex(context: Context, key: String?, val column: Boolean = false) : V
         val dd = d
         if (v is Flex) {
             v.measure(if (maxW.isNaN()) MeasureSpec.UNSPECIFIED else MeasureSpec.makeMeasureSpec((maxW * dd).roundToInt(), MeasureSpec.AT_MOST), MeasureSpec.UNSPECIFIED)
-            return floatArrayOf(v.fixedOr(v.contentW, true), v.fixedOr(v.contentH, false))
+            return floatArrayOf(v.fixedOr(v.contentW, true), v.fixedOr(maxOf(v.contentH, v.minH), false))
         }
         if (v is TextView) {
             val text = v.text
@@ -155,6 +157,9 @@ open class Flex(context: Context, key: String?, val column: Boolean = false) : V
         val hMode = MeasureSpec.getMode(heightMeasureSpec)
         val outerW = if (wMode == MeasureSpec.UNSPECIFIED) Float.NaN else outerWidth(widthMeasureSpec)
         val outerH = if (hMode == MeasureSpec.UNSPECIFIED) Float.NaN else outerHeight(heightMeasureSpec)
+        // the border is inside the box, around the padding
+        val bw = if (box.border > 0f) ro.rdstr.ui.kit.UiScale.borderPx(box.border, dd) / dd else 0f
+        val padL = padL + bw; val padT = padT + bw; val padR = padR + bw; val padB = padB + bw
         val kids = kids()
         val n = kids.size
         val items = kids.map { it.layoutParams as Item }
@@ -195,7 +200,7 @@ open class Flex(context: Context, key: String?, val column: Boolean = false) : V
         contentW = (if (column) crossMax else mainTotal) + padL + padR
         contentH = (if (column) mainTotal else crossMax) + padT + padB
         val myW = when (wMode) { MeasureSpec.EXACTLY -> outerW; MeasureSpec.AT_MOST -> if (column || justify != Justify.START || items.any { it.grow > 0f }) outerW else minOf(outerW, contentW); else -> contentW }
-        val myH = if (hMode == MeasureSpec.EXACTLY) outerH else contentH
+        val myH = if (hMode == MeasureSpec.EXACTLY) outerH else maxOf(contentH, minH)
         val innerMain = if (column) myH - padT - padB else myW - padL - padR
         val innerCross = if (column) myW - padL - padR else myH - padT - padB
         // place along the main axis
@@ -240,12 +245,13 @@ open class Flex(context: Context, key: String?, val column: Boolean = false) : V
             it.px = l; it.py = t
             // a measure with the same specs is skipped, and a content measure in between may have placed the children elsewhere
             if (v is Flex) { v.errX = x - l / dd; v.errY = y - t / dd; v.exactW = w; v.exactH = h; v.forceLayout() }
-            // a line that fits its exact box is not cut for the fraction of a pixel the snapped box lost
+            // a line that fits its exact box is not cut for the fraction of a pixel the snapped box lost: it gets the pixel
+            var extra = 0
             if (v is TextView && v.maxLines == 1) {
-                val cut = if (Layout.getDesiredWidth(v.text, v.paint) > ((x + w) * dd).roundToInt() - l + 1f) TextUtils.TruncateAt.END else null
-                if (v.ellipsize != cut) v.ellipsize = cut
+                val over = Layout.getDesiredWidth(v.text, v.paint) + v.totalPaddingLeft + v.totalPaddingRight - (((x + w) * dd).roundToInt() - l)
+                if (over > 0f && over <= 1f) extra = 1
             }
-            v.measure(MeasureSpec.makeMeasureSpec(((x + w) * dd).roundToInt() - l, MeasureSpec.EXACTLY),
+            v.measure(MeasureSpec.makeMeasureSpec(((x + w) * dd).roundToInt() - l + extra, MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(((y + h) * dd).roundToInt() - t, MeasureSpec.EXACTLY))
         }
     }
@@ -294,6 +300,8 @@ fun text(context: Context, key: String, style: TextStyle, lines: Int = 1): KitTe
     paintFlags = paintFlags or android.graphics.Paint.SUBPIXEL_TEXT_FLAG or android.graphics.Paint.LINEAR_TEXT_FLAG
     // one line laid out at the box's width (a single line otherwise scrolls inside a very wide layout)
     if (lines == 1) { isSingleLine = true; setHorizontallyScrolling(false); ellipsize = TextUtils.TruncateAt.END } else maxLines = lines
+    // `line-height: normal` is the font's ascent, descent and line gap, the gap split above and below
+    if (style.lineHeight == 0f) paint.fontMetrics.let { fm -> if (fm.leading > 0f) this.style = TextStyle(style.size, style.weight, style.tracking, (fm.descent - fm.ascent + fm.leading) / textSize) }
 }
 
 /** An icon element (`span.icon.i-…`): its glyph masked in [IconView.color]; its background is the mask's, a box. */

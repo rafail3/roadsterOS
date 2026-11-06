@@ -83,7 +83,7 @@ class WifiNetworksView(context: Context) : Flex(context, null, column = true) {
     private val joinLine = text(context, "p", TextStyle(16f)).apply { text = "Enter the password" }
     private val field = Flex(context, "wifi-field")
     private val fieldText = Flex(context, "wifi-field-text")
-    private val typed = KitText(context, TextStyle(22f, 400, 0.04f)).apply { isSingleLine = true; setHorizontallyScrolling(false); paintFlags = paintFlags or android.graphics.Paint.SUBPIXEL_TEXT_FLAG or android.graphics.Paint.LINEAR_TEXT_FLAG }
+    private val typed = KitText(context, TextStyle(22f, 400, 0.04f)).apply { isSingleLine = true; setHorizontallyScrolling(false); ellipsize = android.text.TextUtils.TruncateAt.START; paintFlags = paintFlags or android.graphics.Paint.SUBPIXEL_TEXT_FLAG or android.graphics.Paint.LINEAR_TEXT_FLAG }
     private val caret = Flex(context, "wifi-caret")
     private val revealButton = TextButton(context, "wifi-reveal", TextStyle(17f, 600))
     private val note = text(context, "wifi-note", TextStyle(16f))

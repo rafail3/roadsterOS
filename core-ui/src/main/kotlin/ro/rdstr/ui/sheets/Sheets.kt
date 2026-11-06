@@ -54,7 +54,7 @@ internal class TextButton(context: Context, key: String, style: TextStyle) : Kit
     init {
         uiKey = key
         paintFlags = paintFlags or android.graphics.Paint.SUBPIXEL_TEXT_FLAG or android.graphics.Paint.LINEAR_TEXT_FLAG
-        isSingleLine = true; setHorizontallyScrolling(false)
+        isSingleLine = true; setHorizontallyScrolling(false); ellipsize = android.text.TextUtils.TruncateAt.END
         gravity = Gravity.CENTER
         background = BoxDrawable(this, box)
         isClickable = true
@@ -110,6 +110,9 @@ open class SheetFrame(context: Context, key: String, title: String) : ViewGroup(
         scrim.background = BoxDrawable(scrim, scrimBox)
         scrim.contentDescription = "Close"
         close.uiKey = "glass-button"
+        // the kit's controls paint their own boxes: an empty background leaves their colours to the picture
+        close.background = BoxDrawable(close, CssBox())
+        switch.background = BoxDrawable(switch, CssBox())
         close.contentDescription = "Close"
         addView(scrim)
         addView(panel)
@@ -262,7 +265,7 @@ internal class DeviceMain(context: Context, iconRes: Int) : Flex(context, "devic
 
     init {
         isClickable = true
-        align = Align.CENTER; gap = 16f; pad(12f, 16f)
+        align = Align.CENTER; gap = 16f; pad(12f, 16f); minH = 80f
         box.radius = 16f
         add(icon, icon.item())
         add(label, Item(shrink = true))

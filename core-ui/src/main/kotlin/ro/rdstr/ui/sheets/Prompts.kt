@@ -199,6 +199,7 @@ class MapOfferView(context: Context) : Flex(context, "map-offer") {
         quiet.setOnClickListener { actions?.decline() }
         go.setOnClickListener { if (state.offer == MapPacks.Offer.DOWNLOAD) actions?.download() else actions?.openNetworks() }
         UiTheme.link(this) { restyle() }
+        restyle()
         bind(state)
     }
 
