@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.19.0](https://github.com/rafail3/roadsterOS/compare/v1.18.0...v1.19.0) (2026-11-06)
+
+
+### Features
+
+* **app:** adb test commands and the device test, unit probe and install scripts ([6dbe7af](https://github.com/rafail3/roadsterOS/commit/6dbe7afd1d0eca6a302e47064d46466e9a6acff1))
+* **app:** android logic for every emulator screen value ([6dbe7af](https://github.com/rafail3/roadsterOS/commit/6dbe7afd1d0eca6a302e47064d46466e9a6acff1))
+* **bluetooth:** device search, pairing with the code check, forget and connection states ([6dbe7af](https://github.com/rafail3/roadsterOS/commit/6dbe7afd1d0eca6a302e47064d46466e9a6acff1))
+* **display:** design tokens, vector icons and fonts generated from the emulator styles into core-ui ([6dbe7af](https://github.com/rafail3/roadsterOS/commit/6dbe7afd1d0eca6a302e47064d46466e9a6acff1))
+* **display:** display logic check and visual parity comparison between the emulator and the display app ([6dbe7af](https://github.com/rafail3/roadsterOS/commit/6dbe7afd1d0eca6a302e47064d46466e9a6acff1))
+* **maps:** eased camera, theme following and live pack mask in the map engine ([6dbe7af](https://github.com/rafail3/roadsterOS/commit/6dbe7afd1d0eca6a302e47064d46466e9a6acff1))
+* **ui:** display app views for the shell, home, drawer, sheets, media, phone, maps, setup, settings and sound ([6dbe7af](https://github.com/rafail3/roadsterOS/commit/6dbe7afd1d0eca6a302e47064d46466e9a6acff1))
+* **ui:** view kit with theme, density, text, css box painting, baked frost and shared controls ([6dbe7af](https://github.com/rafail3/roadsterOS/commit/6dbe7afd1d0eca6a302e47064d46466e9a6acff1))
+
+
+### Bug Fixes
+
+* **emulator:** clock hands, recents, notice stacking, drawer drag, wi-fi prompt order, phone theme, keyboard, maps zoom, settings and setup fixes ([6dbe7af](https://github.com/rafail3/roadsterOS/commit/6dbe7afd1d0eca6a302e47064d46466e9a6acff1))
+
 ## [1.18.0](https://github.com/rafail3/roadsterOS/compare/v1.17.0...v1.18.0) (2026-11-06)
 
 
