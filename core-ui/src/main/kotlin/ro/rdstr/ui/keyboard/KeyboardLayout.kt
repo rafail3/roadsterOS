@@ -121,9 +121,11 @@ object KeyboardLayout {
             out += Key(KeyType.SPACE, "space", "space", false, b[2], top, b[3], KEY_HEIGHT)
             out += Key(KeyType.SUBMIT, "", "", false, b[4], top, b[5], KEY_HEIGHT)
         } else {
-            val b = flex(left, inner, floatArrayOf(GROW_SPACE, GROW_SUBMIT))
-            out += Key(KeyType.SPACE, "space", "space", false, b[0], top, b[1], KEY_HEIGHT)
-            out += Key(KeyType.SUBMIT, "", "", false, b[2], top, b[3], KEY_HEIGHT)
+            // the layer key's slot stays empty (`.kb-spacer`), so space and the submit key keep their width
+            val b = flex(left, inner, floatArrayOf(GROW_LAYER, GROW_SPACE, GROW_SUBMIT))
+            out += Key(KeyType.SPACER, "", "", false, b[0], top, b[1], KEY_HEIGHT)
+            out += Key(KeyType.SPACE, "space", "space", false, b[2], top, b[3], KEY_HEIGHT)
+            out += Key(KeyType.SUBMIT, "", "", false, b[4], top, b[5], KEY_HEIGHT)
         }
         return out
     }

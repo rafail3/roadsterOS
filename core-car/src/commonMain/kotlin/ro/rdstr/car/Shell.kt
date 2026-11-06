@@ -375,7 +375,8 @@ object Shell {
             a.radio == Radio.BLUETOOTH -> reduce(s, ShellAction.OpenDevices)
             else -> reduce(s, ShellAction.OpenNetworks)
         }
-        ShellAction.RestartSetup -> s.copy(setupDone = false, setupStep = Setup.Step.LOGO)
+        // a setup from the start names the car again: the field is empty, as on a new unit
+        ShellAction.RestartSetup -> s.copy(setupDone = false, setupStep = Setup.Step.LOGO, carName = "")
         is ShellAction.SetCarName -> Setup.carName(a.name)?.let { s.copy(carName = it) } ?: s
         is ShellAction.CastChanged -> when {
             a.state == CarEvent.PhoneCast.State.LIVE -> reduce(s, ShellAction.OpenApp(App.PHONE_SCREEN))
