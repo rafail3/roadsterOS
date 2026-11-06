@@ -127,7 +127,7 @@ function Dial({ band, khz, stations, onPreview }: { band: Band; khz: number; sta
   return (
     <div
       ref={box}
-      className={`dial${drag ? " is-dragging" : ""}`}
+      className={`tuner${drag ? " is-dragging" : ""}`}
       role="slider"
       tabIndex={0}
       aria-label="Tuning"
