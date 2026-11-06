@@ -84,6 +84,8 @@ data class UiState(
     /** Wi-Fi was asked to turn on with location off: the screen asks to turn location on first. */
     val wifiNeedsLocation: Boolean = false,
     val wifi: ro.rdstr.os.settings.WifiState = ro.rdstr.os.settings.WifiState(),
+    /** The country map packs on the unit, and the one downloading. */
+    val maps: MapsState = MapsState(),
 ) {
     fun reduce(state: RulesState, actions: List<Action>, event: CarEvent, now: Long = System.currentTimeMillis()): UiState {
         var ui = copy(state = state, lastEvent = event.toString(), track = event as? CarEvent.Track ?: track)
@@ -143,6 +145,10 @@ data class UiState(
     }
 }
 
+/** The country packs on the unit by ISO code, and the one downloading with its share done, 0 to 1. */
+data class MapsState(val installed: List<String> = emptyList(), val downloading: PackProgress? = null)
+data class PackProgress(val code: String, val progress: Float)
+
 /** Process-wide runtime: one bus, one rules state, one UI state. Owned by CarService. */
 object CarRuntime {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -191,7 +197,8 @@ object CarRuntime {
         prefs = context.getSharedPreferences("rdstr", Context.MODE_PRIVATE)
         _shell.value = Shell.decodePreferences(prefs.getString(SHELL_KEY, null))
         val favorites = prefs.getString(FAVORITES_KEY, null).orEmpty().split(',').mapNotNull { it.toIntOrNull() }
-        patch { it.copy(favorites = favorites) }
+        val packs = ro.rdstr.os.maps.MapPacks.codes(ro.rdstr.os.maps.MapPacks.dir(app))
+        patch { it.copy(favorites = favorites, maps = it.maps.copy(installed = packs)) }
         // first, so that every command sent at start can go into it
         val header = "roadsterOS ${runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull()} " +
             "Android ${android.os.Build.VERSION.RELEASE} ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
@@ -357,6 +364,45 @@ object CarRuntime {
             patch { it.copy(btTurningOn = false) }
             if (radios.bluetoothOn) connectLastPhone()
         }
+    }
+
+    private var packDownload: Job? = null
+
+    /**
+     * A country's pack from the `maps` release, checked against its digest (SetupSteps.downloadPack), one at a time.
+     * It downloads only over Wi-Fi: it waits while the unit is off Wi-Fi and goes on from where it stopped when it
+     * joins again.
+     */
+    @Emulates("store.downloadPack")
+    fun downloadPack(code: String) {
+        packDownload?.cancel()
+        patch { it.copy(maps = it.maps.copy(downloading = PackProgress(code, 0f))) }
+        packDownload = scope.launch(Dispatchers.IO) {
+            val steps = ro.rdstr.os.setup.SetupSteps(app)
+            val job = coroutineContext[Job]!!
+            while (true) {
+                if (!ro.rdstr.os.maps.PackOffer.onWifi(app)) { delay(WIFI_WAIT_MS); continue }
+                val done = steps.downloadPack(code) { d ->
+                    // another pack asked for: this one stops, its partial file kept for later
+                    if (!job.isActive) throw kotlinx.coroutines.CancellationException()
+                    patch { it.copy(maps = it.maps.copy(downloading = PackProgress(code, d.fraction))) }
+                }
+                if (done) break
+                delay(PACK_RETRY_MS)
+            }
+            Log.i(MAPS_TAG, "pack $code downloaded")
+            kotlinx.coroutines.withContext(Dispatchers.Main) { ro.rdstr.os.maps.MapHost.packsChanged() }
+            patch { it.copy(maps = MapsState(installed = (it.maps.installed + code).distinct(), downloading = null)) }
+        }
+    }
+
+    /** Removes a pack from the unit, as from the maps settings; Romania can go too, and the country is offered again. */
+    @Emulates("store.removePack")
+    fun removePack(code: String) {
+        ro.rdstr.os.maps.MapHost.packs(app).remove(code)
+        ro.rdstr.os.maps.MapHost.packsChanged()
+        ro.rdstr.os.maps.PackOffer.forget(app, code)
+        patch { it.copy(maps = it.maps.copy(installed = it.maps.installed - code)) }
     }
 
     private var lastActivity = android.os.SystemClock.elapsedRealtime()
@@ -549,6 +595,10 @@ object CarRuntime {
 
     private const val PHONE_TAG = "rdstr.phone"
     private const val FAVORITES_KEY = "favorites"
+    private const val MAPS_TAG = "rdstr.map"
+    /** Off Wi-Fi, a pack download looks for Wi-Fi again this often; after a broken one, the next try comes later. */
+    private const val WIFI_WAIT_MS = 5_000L
+    private const val PACK_RETRY_MS = 30_000L
     /** Switching Bluetooth on takes the unit about a second; past this it is given up. */
     private const val BT_ON_WAIT_MS = 5_000L
     private const val BT_ON_POLL_MS = 100L

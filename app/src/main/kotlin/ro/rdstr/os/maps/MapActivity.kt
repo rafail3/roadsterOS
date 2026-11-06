@@ -12,12 +12,11 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.TextView
 import ro.rdstr.car.MapPacks as Packs
 import ro.rdstr.car.SpeedWarning
 import ro.rdstr.car.Speedometer
-import ro.rdstr.map.MapBorders
-import java.io.File
 import kotlin.math.cos
 
 /**
@@ -33,7 +32,6 @@ import kotlin.math.cos
  */
 class MapActivity : Activity(), LocationListener {
     private var map: MapView? = null
-    private var packs: MapPacks? = null
     private val main = Handler(Looper.getMainLooper())
     private var demo: Runnable? = null
     /** The speed pill's reading, from the GPS fixes by the same calculation as the emulator. */
@@ -48,25 +46,21 @@ class MapActivity : Activity(), LocationListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val dir = File(getExternalFilesDir(null), "maps").apply { mkdirs() }
-        val p = MapPacks(dir)
+        val p = MapHost.packs(this)
         if (p.codes.isEmpty()) {
-            p.close()
-            setContentView(TextView(this).apply { text = "No map pack in ${dir.path}"; textSize = 20f; setPadding(48, 48, 48, 48) })
+            setContentView(TextView(this).apply { text = "No map pack in ${p.dir.path}"; textSize = 20f; setPadding(48, 48, 48, 48) })
             return
         }
-        packs = p
-        val view = MapView(this, p).apply {
-            night = !intent.getBooleanExtra("day", false)
-            zoom = intent.getFloatExtra("zoom", 15.5f).toDouble()
-        }
+        // the one map, moved into this screen; the borders tell the country under the car and cover the ones without a pack
+        MapHost.style(light = intent.getBooleanExtra("day", false))
+        val view = MapHost.view(this).apply { zoom = intent.getFloatExtra("zoom", 15.5f).toDouble() }
         map = view
-        // the borders tell the country under the car and cover the ones without a pack
-        val borders = Packs.parseBorders(MapBorders.geojson())
-        view.missing = borders.filter { it.code !in p.codes }
-        offer = PackOffer(this, borders, p.codes.toSet())
+        offer = PackOffer(this, MapHost.borders)
         view.onChange = ::logStatus
-        setContentView(view)
+        val frame = FrameLayout(this)
+        setContentView(frame)
+        MapHost.setSlot(MapHost.Slot.APP, frame)
+        MapHost.showMapIn(true)
         if (intent.getBooleanExtra("demo", false)) startDemo(view)
     }
 
@@ -87,7 +81,11 @@ class MapActivity : Activity(), LocationListener {
     override fun onDestroy() {
         chime?.release()
         demo?.let { main.removeCallbacks(it) }
-        packs?.close()
+        if (map != null) {
+            map?.onChange = null
+            MapHost.setSlot(MapHost.Slot.APP, null)
+            MapHost.showMapIn(false)
+        }
         super.onDestroy()
     }
 
