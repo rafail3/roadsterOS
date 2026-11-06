@@ -100,7 +100,7 @@ class RadioAppView(context: Context, private val actions: RadioActions) : MediaA
     private val stateTag = Tag(context, band = false)
     private val freqRow = FreqRow(context)
     private val station = LinearLayout(context).apply { uiKey = "radio-station"; orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER; minimumHeight = dp(52f); gap(dp(16f)); clipChildren = false }
-    private val name = cssText(context, 40f, 600, -0.01f, 48f, key = "radio-name").apply { ellipsize = TextUtils.TruncateAt.END }
+    private val name = cssText(context, 40f, 600, -0.01f, 48f, key = "radio-name").apply { ellipsize = TextUtils.TruncateAt.END; setTextColor(Night.ink) }
     private val genrePill = Surface(context, "radio-genre").apply {
         gravity = Gravity.CENTER; radius = 17f; glassRule = Surface.GlassRule.TINTED
         setPadding(dp(16f), 0, dp(16f), 0)
