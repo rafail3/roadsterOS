@@ -45,6 +45,32 @@ const SCENES = [
   ...looks.map(([theme, design]) => ({ name: `settings-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=settings` })),
   // the status bar's Wi-Fi bars, connected to the strongest network (level 3)
   ...looks.map(([theme, design]) => ({ name: `wifibars-${theme}-${design}`, query: `theme=${theme}&design=${design}`, root: "bar/bar-group:1/span/wifi-bars.bar-wifi" })),
+  // phone: the app's tabs, the call screen, the folded call, a new message, the reverse camera; `act` runs before the capture
+  ...looks.flatMap(([theme, design]) => {
+    const q = `theme=${theme}&design=${design}`;
+    const app = "music-app.phone-app";
+    const tab = (id) => (page) => page.click(`#phone-tab-${id}`);
+    return [
+      { name: `phone-recents-${theme}-${design}`, query: `${q}&app=phone`, root: app },
+      { name: `phone-contacts-${theme}-${design}`, query: `${q}&app=phone`, root: app, act: tab("contacts") },
+      { name: `phone-keypad-${theme}-${design}`, query: `${q}&app=phone`, root: app, act: async (page) => { for (const k of ["0", "7", "2"]) await page.click(`.pad-key:has(> .pad-digit:text-is("${k}"))`); } },
+      { name: `phone-messages-${theme}-${design}`, query: `${q}&app=phone`, root: app, act: tab("messages") },
+      { name: `phone-thread-${theme}-${design}`, query: `${q}&app=phone`, root: app, act: async (page) => { await tab("messages")(page); await page.click(".phone-list .phone-row"); } },
+      // a ringing call starts as the banner; its tap opens the call screen
+      { name: `call-incoming-${theme}-${design}`, query: `${q}&call=ringing`, root: "overlay.call", act: (page) => page.click(".call-banner-open") },
+      { name: `call-active-${theme}-${design}`, query: `${q}&call=active`, root: "overlay.call" },
+      { name: `callbar-ringing-${theme}-${design}`, query: `${q}&call=ringing`, root: "call-banner" },
+      { name: `callbar-${theme}-${design}`, query: `${q}&call=active&callbar`, root: "call-banner" },
+      // the control panel sends the text, so this scene loads the whole emulator; its screen is still 1024x600
+      { name: `message-banner-${theme}-${design}`, query: q, root: "message-banner", full: true, act: async (page) => {
+        // the tool's own line-height stays outside the screen, as in the bare page
+        await page.addStyleTag({ content: ".screen { line-height: normal; }" });
+        await page.locator("details.section", { has: page.locator("summary h2", { hasText: /^Phone$/ }) }).evaluate((d) => { d.open = true; });
+        await page.getByRole("button", { name: "Send a text from the caller" }).click();
+      } },
+      { name: `camera-${theme}-${design}`, query: `${q}&camera`, root: "overlay.camera" },
+    ];
+  }),
 ];
 
 /** Runs in the page: the visible elements under .screen with their keys, boxes and computed styles. */
@@ -141,20 +167,24 @@ function isolate() {
 // software rasterising, as the Android side renders (layoutlib's CPU Skia), and the same on every machine whatever its GPU
 const launch = (channel) => chromium.launch({ channel, args: ["--disable-gpu"] });
 const browser = await launch(args.channel ?? "chrome").catch(() => launch("msedge"));
-const context = await browser.newContext({ viewport: { width: 1024, height: 600 }, deviceScaleFactor: 1, timezoneId: "Europe/Bucharest", locale: "en-GB" });
+const options = { deviceScaleFactor: 1, timezoneId: "Europe/Bucharest", locale: "en-GB" };
+const context = await browser.newContext({ ...options, viewport: { width: 1024, height: 600 } });
+// `full` scenes: room for the control panel beside the screen drawn at its actual size
+const fullContext = await browser.newContext({ ...options, viewport: { width: 2400, height: 1400 } });
 mkdirSync(args.out, { recursive: true });
 const wanted = args.only?.split(",");
 let failed = 0;
 for (const scene of SCENES.filter((s) => !wanted || wanted.includes(s.name))) {
-  const page = await context.newPage();
+  const page = await (scene.full ? fullContext : context).newPage();
   await page.clock.setFixedTime(FROZEN);
-  const url = `${args.base}/?bare&noboot&fresh&freeze&${scene.query}`;
+  const url = `${args.base}/?${scene.full ? "" : "bare&"}noboot&fresh&freeze&${scene.query}`;
   page.on("pageerror", (e) => console.error(`${scene.name}: page error: ${e.message}`));
   await page.goto(url, { waitUntil: "networkidle" });
   await page.waitForSelector(".screen");
   // the dev server's own badge sits over the page, outside the screen
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   await page.evaluate(() => document.fonts.ready);
+  await scene.act?.(page);
   // two frames for layout effects that measure and set state once
   await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
   const layout = await page.evaluate(collect, scene.root ?? null);
