@@ -1025,7 +1025,7 @@ export async function replay(name: string) {
   }
 }
 
-/** URL state for captures, e.g. ?bare&freeze&design=glassy&theme=light&hour=20&source=radio&call=ringing&drawer&camera&brightness=40&analog&app=music&track=1 */
+/** URL state for captures, e.g. ?bare&freeze&design=glassy&theme=light&hour=20&source=radio&call=ringing&drawer&camera&brightness=40&analog&app=music&track=1&paused&band=am */
 function fromUrl(q: URLSearchParams): EmulatorState {
   let shell = storedShell(q);
   let car = bridge.initial();
@@ -1057,7 +1057,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   if (source === "BT") {
     applyEvent({ type: "BtConnection", connected: true, device: SAMPLE_PHONE });
     applyEvent({ type: "HfpConnection", connected: true, device: SAMPLE_PHONE });
-    applyEvent({ type: "Playback", playing: true, positionMs: 72000 });
+    // ?paused: the phone connected with its music paused
+    applyEvent({ type: "Playback", playing: !q.has("paused"), positionMs: 72000 });
   }
   if (source === "RADIO") {
     car = bridge.command(car, { type: "Audio.Source", source: "RADIO" });
@@ -1080,9 +1081,10 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     track: { ...(SAMPLE_TRACKS[Number(q.get("track"))] ?? SAMPLE_TRACKS[0]) },
     positionMs: 72000,
     positionAt: Date.now(),
-    radio: { khz: 101900, band: "FM", rds: "NORD FM", pty: 9, stereo: true },
+    // ?band=am: the tuner on AM, with a station of its own starred
+    radio: q.get("band") === "am" ? { khz: 1404, band: "AM", rds: "", pty: 0, stereo: false } : { khz: 101900, band: "FM", rds: "NORD FM", pty: 9, stereo: true },
     stations: { FM: STATIONS.filter((s) => s.band === "FM").map((s) => s.khz), AM: STATIONS.filter((s) => s.band === "AM").map((s) => s.khz) },
-    favorites: [89200, 91400, 101900],
+    favorites: q.get("band") === "am" ? [558, 89200, 91400, 101900] : [89200, 91400, 101900],
     radioScan: null,
     gps: GPS_PLACES[0],
     driving: false,

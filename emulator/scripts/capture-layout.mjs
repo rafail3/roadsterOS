@@ -45,6 +45,13 @@ const SCENES = [
   ...looks.map(([theme, design]) => ({ name: `settings-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=settings` })),
   // the status bar's Wi-Fi bars, connected to the strongest network (level 3)
   ...looks.map(([theme, design]) => ({ name: `wifibars-${theme}-${design}`, query: `theme=${theme}&design=${design}`, root: "bar/bar-group:1/span/wifi-bars.bar-wifi" })),
+  // ----- media: the music app (playing, paused, no phone) and the radio app (FM, AM), each alone -----
+  ...looks.map(([theme, design]) => ({ name: `music-playing-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=music`, root: "music-app" })),
+  ...looks.map(([theme, design]) => ({ name: `music-paused-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=music&paused`, root: "music-app" })),
+  ...looks.map(([theme, design]) => ({ name: `music-nophone-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=music&nophone`, root: "music-app" })),
+  ...looks.map(([theme, design]) => ({ name: `radio-fm-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=radio&source=radio`, root: "music-app.radio-app" })),
+  ...looks.map(([theme, design]) => ({ name: `radio-am-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=radio&source=radio&band=am`, root: "music-app.radio-app" })),
+  // ----- end media -----
 ];
 
 /** Runs in the page: the visible elements under .screen with their keys, boxes and computed styles. */
