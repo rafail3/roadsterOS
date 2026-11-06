@@ -73,13 +73,16 @@
 
 /* the car from above: balance and listening position draw on it */
 .snd-stage { grid-template-columns: 288px minmax(0, 1fr); padding: 16px 32px; }
-.snd-cabin { width: 288px; height: 503px; border-radius: 0; }
+.snd-cabin { width: 289px; height: 503px; border-radius: 0; }
 .car-top { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 /* seats drawn faintly on the roof, lit blue where the sound is focused */
 .car-seat rect { fill: rgba(30, 34, 40, 0.07); stroke: rgba(30, 34, 40, 0.22); stroke-width: 1.5; transition: fill 200ms var(--seamless), stroke 200ms var(--seamless); }
 .car-seat.is-lit rect { fill: rgba(10, 132, 255, 0.78); stroke: #0a84ff; }
-.car-speaker circle:first-child { fill: #1c1e22; stroke: rgba(255, 255, 255, 0.9); stroke-width: 2.5; }
-.car-speaker circle:last-child { fill: rgba(255, 255, 255, 0.85); }
+/* speakers: a grille ring, the cone, its surround and dust cap; waves towards the cabin as loud as it plays */
+.car-speaker { transition: opacity 200ms var(--seamless); }
+.spk-ring { fill: #101215; stroke: rgba(255, 255, 255, 0.28); stroke-width: 2; }
+.spk-surround { fill: none; stroke: rgba(0, 0, 0, 0.55); stroke-width: 2.5; }
+.spk-wave { fill: none; stroke: var(--set-blue); stroke-width: 3.5; stroke-linecap: round; transition: opacity 200ms var(--seamless); }
 .snd-axis.is-x { left: 16%; right: 16%; }
 .snd-axis.is-y { top: 5%; bottom: 5%; }
 .snd-seat-hit { width: auto; height: auto; }
@@ -94,8 +97,8 @@
 .set-detail.is-fit .snd-band-track { height: 150px; }
 
 /* balance: the pad over the cabin, from door to door and from the front seats' fronts to the rear seats' backs */
-.snd-pad { position: absolute; left: 21%; width: 58%; top: 39%; height: 34%; touch-action: none; cursor: crosshair; border-radius: 16px; }
+.snd-pad { position: absolute; left: 30%; width: 40%; top: 41%; height: 30%; touch-action: none; cursor: crosshair; border-radius: 16px; }
 .snd-pad:focus-visible { outline: 2px solid var(--set-blue); outline-offset: 4px; }
-.snd-pad .snd-axis.is-x { left: -12%; right: -12%; }
-.snd-pad .snd-axis.is-y { top: -60%; bottom: -60%; }
+.snd-pad .snd-axis.is-x { left: -30%; right: -30%; }
+.snd-pad .snd-axis.is-y { top: -130%; bottom: -90%; }
 .snd-pad.is-dragging .snd-dot { transition: none; }

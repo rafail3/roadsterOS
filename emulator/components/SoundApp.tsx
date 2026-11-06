@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { bridge, type EqPreset, type ListeningSeat, type SoundSettings, type SpeakerFilter } from "../car/bridge";
 import { setSound, shellAction, useEmulator } from "../car/store";
-import { CAR_SEATS, CAR_VIEW, CarTop } from "./CarTop";
+import { CAR_SEATS, CAR_VIEW, CarTop, speakerLevels } from "./CarTop";
 import { useCloseOntoCard } from "./media";
 import { Group, Row, Segmented, Switch } from "./SettingsApp";
 
@@ -170,7 +170,7 @@ function Balance({ s }: { s: SoundSettings }) {
   return (
     <div className="snd-stage">
       <div className="snd-cabin is-static">
-        <CarTop />
+        <CarTop levels={speakerLevels(s.balance, s.fader)} />
         {/* the pad covers the cabin, so the centre falls between the two rows of seats */}
         <div ref={pad} className={`snd-pad${dragging ? " is-dragging" : ""}`} role="slider" tabIndex={0} aria-label="Balance and fader" aria-valuetext={summary("balance", s)}
           onPointerDown={down} onPointerMove={move} onPointerUp={() => setDragging(false)} onPointerCancel={() => setDragging(false)} onKeyDown={key}>
