@@ -45,6 +45,13 @@ const SCENES = [
   ...looks.map(([theme, design]) => ({ name: `settings-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=settings` })),
   // the status bar's Wi-Fi bars, connected to the strongest network (level 3)
   ...looks.map(([theme, design]) => ({ name: `wifibars-${theme}-${design}`, query: `theme=${theme}&design=${design}`, root: "bar/bar-group:1/span/wifi-bars.bar-wifi" })),
+  // --- setup (SetupScreens.tsx, UnitPicture.tsx): each step once its timers are done; `wait` ms after load, `click` a selector
+  ...[["carname", "car_name"], ["prepare", "prepare", 5000], ["wifi", "wifi", 2500], ["update", "update&release=1.19.0"], ["location", "location"],
+    ["look", "look"], ["files", "files", 3000], ["welcome", "welcome"]].flatMap(([step, setup, wait]) =>
+    looks.map(([theme, design]) => ({ name: `setup-${step}-${theme}-${design}`, query: `theme=${theme}&design=${design}&setup=${setup}`, wait, root: "sf" }))),
+  ...looks.map(([theme, design]) => ({ name: `setup-carname-typing-${theme}-${design}`, query: `theme=${theme}&design=${design}&setup=car_name`, click: ".sf-field", root: "sf" })),
+  ...looks.map(([theme, design]) => ({ name: `unitpicture-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=settings`, click: '.set-nav-item:has-text("About")', root: "music-app.settings-app/set-detail/about-hero" })),
+  // --- end setup
 ];
 
 /** Runs in the page: the visible elements under .screen with their keys, boxes and computed styles. */
@@ -155,6 +162,8 @@ for (const scene of SCENES.filter((s) => !wanted || wanted.includes(s.name))) {
   // the dev server's own badge sits over the page, outside the screen
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   await page.evaluate(() => document.fonts.ready);
+  if (scene.click) await page.click(scene.click);
+  if (scene.wait) await page.waitForTimeout(scene.wait);
   // two frames for layout effects that measure and set state once
   await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
   const layout = await page.evaluate(collect, scene.root ?? null);
