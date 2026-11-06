@@ -1,5 +1,6 @@
 package ro.rdstr.os.settings
 
+import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.bluetooth.BluetoothAdapter
 import android.app.PendingIntent
@@ -60,6 +61,9 @@ object DeveloperTools {
      * our files (journal, covers, map packs, caches), and Android's internet time back on. adb stays on, so the unit
      * can still be reached.
      */
+    // API 27: BLUETOOTH, BLUETOOTH_ADMIN and ACCESS_WIFI_STATE are install-time permissions in the manifest;
+    // BLUETOOTH_CONNECT only exists from API 31
+    @SuppressLint("MissingPermission")
     fun erase(context: Context) {
         BluetoothAdapter.getDefaultAdapter()?.bondedDevices?.forEach { device ->
             // API 27: removeBond is hidden, reached by reflection
