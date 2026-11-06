@@ -31,6 +31,8 @@ object Screens {
         Layer.RECENTS to ::RecentsScreen,
         Layer.GESTURES to ::GesturesScreen,
         Layer.VOLUME to ::VolumeScreen,
+        Layer.SETTINGS to ::SettingsScreen,
+        Layer.RESTART_PROMPT to ::RestartPromptScreen,
         Layer.NOTICE to ::NoticeScreen,
         Layer.DEV to ::DevOverlaysScreen,
     )
