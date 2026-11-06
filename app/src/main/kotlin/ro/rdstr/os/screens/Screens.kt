@@ -29,5 +29,12 @@ object Screens {
         Layer.GESTURES to ::GesturesScreen,
         Layer.NOTICE to ::NoticeScreen,
         Layer.DEV to ::DevOverlaysScreen,
+        Layer.PHONE to ::PhoneScreen,
+        Layer.PHONE_SCREEN to ::CastScreen,
+        Layer.CALL to ::CallScreen,
+        Layer.CAMERA to ::CameraScreen,
+        Layer.VOICE to ::VoiceScreen,
+        Layer.BANNER to ::MessageBannerScreen,
+        Layer.CALL_BAR to ::CallBarScreen,
     )
 }

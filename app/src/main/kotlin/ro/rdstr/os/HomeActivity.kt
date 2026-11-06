@@ -48,7 +48,6 @@ class HomeActivity : Activity() {
         setContentView(shell)
         UiTheme.fadeRoot = shell
         for ((layer, make) in Screens.ALL) make(this).also { screens += it; shell.put(layer, it.view) }
-        shell.put(Layer.PHONE_SCREEN, castView())
         startup()
     }
 
@@ -84,28 +83,6 @@ class HomeActivity : Activity() {
 
     private fun versionName() = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull().orEmpty()
 
-    private lateinit var castFrame: android.widget.FrameLayout
-
-    /**
-     * The phone's screen while it plays: black around a 16:9 picture (the stream is 1280x720), its surface handed to
-     * the receiver. ponytail: test screen only; the Phone Screen app's view replaces it once registered in Screens.
-     */
-    private fun castView(): View {
-        val picture = android.view.SurfaceView(this)
-        picture.holder.addCallback(object : android.view.SurfaceHolder.Callback {
-            override fun surfaceCreated(holder: android.view.SurfaceHolder) = CarRuntime.castSurface(holder.surface)
-            override fun surfaceChanged(holder: android.view.SurfaceHolder, format: Int, width: Int, height: Int) = Unit
-            override fun surfaceDestroyed(holder: android.view.SurfaceHolder) = CarRuntime.castSurface(null)
-        })
-        val width = resources.displayMetrics.widthPixels
-        castFrame = android.widget.FrameLayout(this).apply {
-            setBackgroundColor(android.graphics.Color.BLACK)
-            visibility = View.GONE
-            addView(picture, android.widget.FrameLayout.LayoutParams(width, width * 9 / 16, android.view.Gravity.CENTER))
-        }
-        return castFrame
-    }
-
     override fun onResume() {
         super.onResume()
         hideSystemUi()
@@ -113,11 +90,6 @@ class HomeActivity : Activity() {
         bound = uiScope.launch {
             // the look every view draws with: the shell's theme (the auto one decided at the hour), design, font, speed
             launch { combine(CarRuntime.shell, CarRuntime.time.now()) { s, t -> s to hourOf(t) }.collect { (s, h) -> UiTheme.follow(s, h) } }
-            launch {
-                CarRuntime.ui.collect { ui ->
-                    castFrame.visibility = if (ui.state.cast == ro.rdstr.car.CarEvent.PhoneCast.State.LIVE) View.VISIBLE else View.GONE
-                }
-            }
             for (s in screens) s.bind(this)
         }
     }
