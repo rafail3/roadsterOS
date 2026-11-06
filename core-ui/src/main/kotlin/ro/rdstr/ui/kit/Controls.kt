@@ -176,7 +176,7 @@ internal class Gap(private val px: Int) : Drawable() {
  * `--set-group`; on Glassy the glass material) and a footer (15 px, line-height 1.45, at most 70ch), 8 px apart.
  * Rows go in [rows].
  */
-class SettingsGroup(context: Context) : LinearLayout(context) {
+class SettingsGroup(context: Context) : CssColumn(context, 8f) {
     private val d = resources.displayMetrics.density
     private val titleView = KitText(context, TextStyle(15f, 600)).apply { visibility = GONE; uiKey = "set-group-title" }
     private val footerView = KitText(context, TextStyle(15f, 400, lineHeight = 1.45f)).apply { visibility = GONE; uiKey = "set-footer" }
@@ -195,9 +195,6 @@ class SettingsGroup(context: Context) : LinearLayout(context) {
 
     init {
         uiKey = "set-group"
-        orientation = VERTICAL
-        dividerDrawable = Gap((8 * d + 0.5f).toInt())
-        showDividers = SHOW_DIVIDER_MIDDLE
         addView(titleView, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply { leftMargin = (20 * d + 0.5f).toInt() })
         addView(rows, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         addView(footerView, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
@@ -230,11 +227,10 @@ class SettingsGroup(context: Context) : LinearLayout(context) {
 }
 
 /** The card of a [SettingsGroup] (`.set-rows`): rounded, clipping its rows, solid or glass. */
-class SettingsRows(context: Context) : LinearLayout(context) {
+class SettingsRows(context: Context) : CssColumn(context) {
     private val box = CssBox().apply { radius = 18f }
 
     init {
-        orientation = VERTICAL
         setWillNotDraw(false)
         clipToOutline = true
         outlineProvider = object : ViewOutlineProvider() {
@@ -263,7 +259,9 @@ class SettingsRows(context: Context) : LinearLayout(context) {
  * and carry no chevron. [slider] rows (`.set-row.is-slider`) are 80 px and give a slider the whole width.
  */
 @SuppressLint("ViewConstructor")
-class SettingsRow(context: Context, label: CharSequence = "", slider: Boolean = false) : LinearLayout(context) {
+class SettingsRow(context: Context, label: CharSequence = "", slider: Boolean = false) : LinearLayout(context), CssSized {
+    private val minCss = if (slider) 80f else 68f
+    override val cssHeight: Float get() = maxOf(minCss, measuredHeight / resources.displayMetrics.density)
     private val d = resources.displayMetrics.density
     val label = KitText(context, TextStyle(19f, 500)).apply { text = label; maxLines = 1; ellipsize = TextUtils.TruncateAt.END; uiKey = "set-row-label" }
     private val valueView = KitText(context, TextStyle(18f)).apply { maxLines = 1; ellipsize = TextUtils.TruncateAt.END; visibility = GONE; uiKey = "set-row-value" }

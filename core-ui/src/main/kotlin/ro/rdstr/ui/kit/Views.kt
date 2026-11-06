@@ -80,7 +80,7 @@ object Type {
  * lower). Colour is the caller's (`setTextColor`).
  */
 @SuppressLint("ViewConstructor")
-open class KitText(context: Context, style: TextStyle) : TextView(context) {
+open class KitText(context: Context, style: TextStyle) : TextView(context), CssSized {
     var style: TextStyle = style; set(v) { field = v; applyStyle() }
     private var halfLeading = 0f
 
@@ -117,6 +117,12 @@ open class KitText(context: Context, style: TextStyle) : TextView(context) {
         if (style.lineHeight <= 0f || MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.EXACTLY) return
         val lines = maxOf(1, layout?.lineCount ?: 1)
         setMeasuredDimension(measuredWidth, (lines * style.lineHeight * textSize + paddingTop + paddingBottom + 0.5f).toInt())
+    }
+
+    override val cssHeight: Float get() {
+        val d = resources.displayMetrics.density
+        if (style.lineHeight <= 0f) return measuredHeight / d
+        return maxOf(1, layout?.lineCount ?: 1) * style.lineHeight * style.size + (paddingTop + paddingBottom) / d
     }
 
     /** The baseline where CSS puts it: half the leading under the line box's top. */

@@ -84,7 +84,7 @@ class SettingsView(context: Context, private val slots: SettingsSlots? = null) :
     private val navScroll = ScrollView(context)
     private val items = Section.entries.associateWith { NavItem(context, it) }
     private val detail = ScrollView(context)
-    private val content = LinearLayout(context)
+    private val content = ro.rdstr.ui.kit.CssColumn(context, 28f)
     private val pill = TitlePill(context)
     private val keyboard = KeyboardView(context)
     private val networks by lazy { slots?.wifiNetworks(context) }
@@ -133,7 +133,6 @@ class SettingsView(context: Context, private val slots: SettingsSlots? = null) :
         detail.overScrollMode = OVER_SCROLL_NEVER
         detail.clipToPadding = false
         content.orientation = LinearLayout.VERTICAL
-        content.dividerDrawable = Gap(px(28f)); content.showDividers = LinearLayout.SHOW_DIVIDER_MIDDLE
         content.setPadding(px(4f), 0, px(4f), px(24f))
         content.clipChildren = false
         detail.addView(content)

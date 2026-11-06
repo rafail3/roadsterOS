@@ -83,12 +83,9 @@ class SoundView(context: Context) : FrameLayout(context) {
     private val closeButton = GlassButton(context, Icons.CARET_DOWN).apply { uiKey = "glass-button.music-close" }
     private val nav = Nav()
     private val detail = Detail()
-    private val column = LinearLayout(context).apply {
-        orientation = LinearLayout.VERTICAL
+    private val column = ro.rdstr.ui.kit.CssColumn(context, 28f).apply {
         clipChildren = false
         setPadding(dpi(4f), 0, dpi(4f), dpi(24f))
-        dividerDrawable = gap(this, 28f)
-        showDividers = LinearLayout.SHOW_DIVIDER_MIDDLE
     }
     private val pageTitle = KitText(context, TextStyle(26f, 700, -0.01f)).apply {
         uiKey = "set-page-title"
@@ -130,7 +127,7 @@ class SoundView(context: Context) : FrameLayout(context) {
         this.section = section
         nav.update()
         column.removeAllViews()
-        column.addView(pageTitle, LinearLayout.LayoutParams(WRAP, WRAP).apply { topMargin = dpi(4f); bottomMargin = -dpi(8f) })
+        column.addView(pageTitle, ro.rdstr.ui.kit.CssColumn.Params(WRAP, WRAP, cssTop = 4f, cssBottom = -8f))
         pageTitle.text = section.label
         val p = when (section) {
             SoundSection.EQ -> EqPage()
@@ -365,7 +362,7 @@ class SoundView(context: Context) : FrameLayout(context) {
     private interface Page { fun update() }
 
     private fun add(v: View, width: Int = MATCH, top: Float = 0f): View {
-        column.addView(v, LinearLayout.LayoutParams(width, WRAP).apply { topMargin = dpi(top) })
+        column.addView(v, ro.rdstr.ui.kit.CssColumn.Params(width, WRAP, cssTop = top))
         return v
     }
 
