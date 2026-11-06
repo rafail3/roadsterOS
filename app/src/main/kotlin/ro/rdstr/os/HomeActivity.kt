@@ -47,6 +47,7 @@ class HomeActivity : Activity() {
         shell = root.view
         setContentView(shell)
         UiTheme.fadeRoot = shell
+        ro.rdstr.os.screens.SettingsScreen.slots = ro.rdstr.os.screens.HostSlots
         for ((layer, make) in Screens.ALL) make(this).also { screens += it; shell.put(layer, it.view) }
         startup()
     }
