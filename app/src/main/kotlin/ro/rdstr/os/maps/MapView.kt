@@ -30,6 +30,7 @@ import ro.rdstr.map.TileMath
 import ro.rdstr.map.TileRenderer
 import ro.rdstr.map.VectorTile
 import ro.rdstr.map.VisibleTile
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.ceil
 import kotlin.math.cos
@@ -164,19 +165,36 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         if (SystemClock.elapsedRealtime() - streetAt >= Street.EVERY_MS) lookUpStreet()
     }
 
-    private fun followCar() =
-        ease(carLon, carLat, zoom, if (headingUp) carHeading else 0.0, if (carDriving) FOLLOW_DRIVING_MS else FOLLOW_MS, Easing.LINEAR)
+    /**
+     * The zoom the buttons or the locate button asked for, until the map is there (MapsApp.tsx `zoomTarget`): each
+     * follow ease carries it, so a new position does not cut the zoom short; a finger on the map drops it.
+     */
+    private var zoomTarget: Double? = null
 
-    /** The zoom buttons (MapsApp.tsx `zoom(+-1)`): `easeTo({ zoom: getZoom() + steps, duration: 250 })`, within 4..18. */
-    fun zoomBy(steps: Double) = ease(lon, lat, zoom + steps, bearing, ZOOM_MS, Easing.DEFAULT)
+    /** MapsApp.tsx `followCar`: one ease onto the car, its heading (or north) and the zoom asked for while not reached. */
+    private fun followCar() {
+        zoomTarget?.let { if (abs(zoom - it) < 1e-6) zoomTarget = null }
+        ease(carLon, carLat, zoomTarget ?: zoom, if (headingUp) carHeading else 0.0, if (carDriving) FOLLOW_DRIVING_MS else FOLLOW_MS, Easing.LINEAR)
+    }
 
     /**
-     * The locate button (MapsApp.tsx `recentre`): `setFollow(true); easeTo({ zoom: 15.5, duration: 500 })`. As there,
-     * following turned on starts the follow ease right after, which takes over the zoom ease where it is.
+     * The zoom buttons (MapsApp.tsx `zoom(+-1)`): a step goes on from the step under way, so quick presses add up to
+     * whole steps; `easeTo({ zoom: target, duration: 250 })`, within 4..18.
+     */
+    fun zoomBy(steps: Double) {
+        val from = zoomTarget?.takeIf { camera.running } ?: zoom
+        val to = (from + steps).coerceIn(MIN_ZOOM, MAX_ZOOM)
+        zoomTarget = to
+        ease(lon, lat, to, bearing, ZOOM_MS, Easing.DEFAULT)
+    }
+
+    /**
+     * The locate button (MapsApp.tsx `recentre`): back onto the car at the driving zoom in the follow ease itself, so
+     * nothing cancels the zoom; centre, bearing and zoom move together, from wherever a finger left the map.
      */
     fun recentre() {
-        ease(lon, lat, DRIVE_ZOOM, bearing, RECENTRE_MS, Easing.DEFAULT)
-        follow = true
+        zoomTarget = DRIVE_ZOOM
+        if (!follow) follow = true else if (seen) followCar()
     }
 
     private val camera = CameraEase()
@@ -431,6 +449,7 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         override fun onDown(e: MotionEvent) = true
         override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
             camera.stop()
+            zoomTarget = null
             follow = false
             // the finger moves the turned map: undo the turn, then move the centre in world pixels
             val r = Math.toRadians(bearing)
@@ -452,6 +471,7 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
             val wy = TileMath.worldY(lat, zoom) + sx * sin(r) + sy * cos(r)
             camera.startAround(System.nanoTime() / 1e6, lon, lat, zoom, bearing, zoom + 1, TileMath.lon(wx, zoom), TileMath.lat(wy, zoom),
                 TAP_ZOOM_MS, Easing.DEFAULT, MIN_ZOOM, MAX_ZOOM)
+            zoomTarget = null
             lookUpAfterEase = true
             postFrame()
             return true
@@ -461,6 +481,7 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     private val pinch = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScale(d: ScaleGestureDetector): Boolean {
             camera.stop()
+            zoomTarget = null
             zoom = (zoom + ln(d.scaleFactor.toDouble()) / ln(2.0)).coerceIn(MIN_ZOOM, MAX_ZOOM)
             invalidate()
             return true
@@ -515,12 +536,17 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         const val MAX_ZOOM = 18.0
         /** Where the location button brings the map back to, as in the emulator. */
         const val DRIVE_ZOOM = 15.5
-        /** MapsApp.tsx follow ease: `duration: driving ? 260 : 600`, linear. */
-        const val FOLLOW_DRIVING_MS = 260.0
+        /** The unit's GPS gives a position this often while the car drives (MapActivity, the Maps screen). */
+        const val GPS_EVERY_MS = 500L
+        /**
+         * MapsApp.tsx follow ease: `duration: driving ? 260 : 600`, linear. The emulator's 260 ms is its 250 ms drive tick
+         * and a little more; on the unit it is the GPS interval and the same little more, so each ease is still running
+         * when the next position takes it over and the map moves on without a stop.
+         */
+        const val FOLLOW_DRIVING_MS = GPS_EVERY_MS + 10.0
         const val FOLLOW_MS = 600.0
-        /** MapsApp.tsx `zoom(+-1)`: 250 ms; `recentre`: 500 ms; MapLibre's tap zoom: 300 ms. All on MapLibre's default curve. */
+        /** MapsApp.tsx `zoom(+-1)`: 250 ms; MapLibre's tap zoom: 300 ms. Both on MapLibre's default curve. */
         const val ZOOM_MS = 250.0
-        const val RECENTRE_MS = 500.0
         const val TAP_ZOOM_MS = 300.0
         /** Decoded tiles kept for the street and limit lookups: the car's tiles and their neighbours, at two zooms. */
         const val STREET_TILES = 6
