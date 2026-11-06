@@ -52,6 +52,13 @@ const SCENES = [
   ...looks.map(([theme, design]) => ({ name: `radio-fm-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=radio&source=radio`, root: "music-app.radio-app" })),
   ...looks.map(([theme, design]) => ({ name: `radio-am-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=radio&source=radio&band=am`, root: "music-app.radio-app" })),
   // ----- end media -----
+  // --- shell (Screen.tsx and its home): the open apps, the connection notice, the status bar, the dock, the card
+  ...looks.map(([theme, design]) => ({ name: `recents-${theme}-${design}`, query: `theme=${theme}&design=${design}&recents=maps,radio,settings`, root: "recents" })),
+  ...looks.map(([theme, design]) => ({ name: `notice-${theme}-${design}`, query: `theme=${theme}&design=${design}&notice=bt`, root: "notice" })),
+  ...looks.map(([theme, design]) => ({ name: `bar-${theme}-${design}`, query: `theme=${theme}&design=${design}`, root: "bar" })),
+  ...looks.map(([theme, design]) => ({ name: `rail-${theme}-${design}`, query: `theme=${theme}&design=${design}`, root: "rail" })),
+  ...looks.map(([theme, design]) => ({ name: `card-nophone-${theme}-${design}`, query: `theme=${theme}&design=${design}&nophone`, root: "panel" })),
+  // --- end shell
 ];
 
 /** Runs in the page: the visible elements under .screen with their keys, boxes and computed styles. */

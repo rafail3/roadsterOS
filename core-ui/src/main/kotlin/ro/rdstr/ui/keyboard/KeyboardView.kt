@@ -238,7 +238,10 @@ class KeyboardView(context: Context) : View(context) {
             if (layered) canvas.saveLayerAlpha(b.rect.left, b.rect.top, b.rect.right, b.rect.bottom + px(1f), (look.alpha * 255 + 0.5f).toInt())
             draw(canvas, b)
             when (k.type) {
-                KeyType.SHIFT -> icon(canvas, shiftIcon, b.rect)
+                KeyType.SHIFT -> {
+                    icon(canvas, shiftIcon, b.rect)
+                    if (state.shift == Shift.LOCK) lockBar(canvas, b.rect, look.ink)
+                }
                 KeyType.BACKSPACE -> icon(canvas, backspaceIcon, b.rect)
                 KeyType.CHAR -> label(canvas, state.shown(k), b.rect, if (k.digit) 1 else 0, look.ink)
                 KeyType.SPACE -> label(canvas, k.lower, b.rect, 2, look.ink)
@@ -287,6 +290,15 @@ class KeyboardView(context: Context) : View(context) {
         val half = px(KeyboardLook.ICON) / 2f
         icon.setBounds((r.centerX() - half + 0.5f).toInt(), (r.centerY() - half + 0.5f).toInt(), (r.centerX() + half + 0.5f).toInt(), (r.centerY() + half + 0.5f).toInt())
         icon.draw(canvas)
+    }
+
+    /** Caps lock: the bar under the Shift arrow. */
+    private fun lockBar(canvas: Canvas, r: RectF, ink: Int) {
+        val half = px(KeyboardLook.LOCK_BAR_WIDTH) / 2f
+        val bottom = r.bottom - px(KeyboardLook.LOCK_BAR_BOTTOM)
+        val rad = px(KeyboardLook.LOCK_BAR_RADIUS)
+        fill.color = ink
+        canvas.drawRoundRect(r.centerX() - half, bottom - px(KeyboardLook.LOCK_BAR_HEIGHT), r.centerX() + half, bottom, rad, rad, fill)
     }
 
     private fun drawBubble(canvas: Canvas, k: Key, r: RectF) {

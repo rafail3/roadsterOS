@@ -73,6 +73,8 @@ data class UiState(
     val positionAt: Long = 0,
     /** The tuner's report for each frequency heard, by [stationKey]: its RDS name, programme type and signal. */
     val heard: Map<String, CarEvent.Radio> = emptyMap(),
+    /** The station tuned now, with the name heard for it; null until the tuner reports one. */
+    val radio: CarEvent.Radio? = null,
     /** Frequencies starred in our radio app, in order. */
     val favorites: List<Int> = emptyList(),
     /** Bumped whenever the volume bar should come up, even with nothing changed. */
@@ -108,6 +110,7 @@ data class UiState(
             // a station's name arrives a moment after its frequency: a report without one keeps the name heard before
             is CarEvent.Radio -> stationKey(event.band, event.khz).let { key ->
                 if (event.rds.isNotEmpty() || key !in ui.heard) ui = ui.copy(heard = ui.heard + (key to event))
+                ui = ui.copy(radio = ui.heard[key] ?: event)
             }
             is CarEvent.Message -> ui = ui.copy(
                 messages = ui.messages + event,
@@ -572,10 +575,19 @@ object CarRuntime {
         shellAction(ro.rdstr.car.ShellAction.RadioSwitched(ro.rdstr.car.Radio.BLUETOOTH, on))
     }
 
+    /**
+     * The drawer's Wi-Fi switch: RadioSwitched(WIFI) is sent only once Wi-Fi really switched. With location off the
+     * location prompt shows over the open drawer; its yes opens the networks, its no opens nothing.
+     */
+    @Emulates("store.switchWifi")
     fun switchWifi(on: Boolean) {
         setWifi(on)
-        shellAction(ro.rdstr.car.ShellAction.RadioSwitched(ro.rdstr.car.Radio.WIFI, on))
+        if (_ui.value.wifiNeedsLocation) networksAfterLocation = true
+        else shellAction(ro.rdstr.car.ShellAction.RadioSwitched(ro.rdstr.car.Radio.WIFI, on))
     }
+
+    /** The location prompt was raised by the drawer's switch, so its yes opens the networks. */
+    private var networksAfterLocation = false
 
     /** Wi-Fi on or off; on this Android a Wi-Fi scan needs location, so with it off the screen asks for it first. */
     @Emulates("store.setWifi")
@@ -587,10 +599,13 @@ object CarRuntime {
     /** The answer to "Wi-Fi needs location": yes turns location on, then Wi-Fi; no leaves both as they were. */
     @Emulates("store.answerWifiNeedsLocation")
     fun answerWifiNeedsLocation(turnOn: Boolean) {
+        val fromDrawer = networksAfterLocation
+        networksAfterLocation = false
         patch { it.copy(wifiNeedsLocation = false) }
         if (!turnOn) return
         radios.location(true)
         setWifi(true)
+        if (fromDrawer) shellAction(ro.rdstr.car.ShellAction.RadioSwitched(ro.rdstr.car.Radio.WIFI, true))
     }
 
     private const val PHONE_TAG = "rdstr.phone"
