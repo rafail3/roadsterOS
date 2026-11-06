@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.14.0](https://github.com/rafail3/roadsterOS/compare/v1.13.0...v1.14.0) (2026-11-06)
+
+
+### Features
+
+* **rules:** SET key switches between radio and music apps ([ec7a3f8](https://github.com/rafail3/roadsterOS/commit/ec7a3f8b8dff37b2bce2f8d4c8134bb0db74ccb7))
+* **rules:** the SET key goes between the radio and the music app, each opened on screen ([f44bb47](https://github.com/rafail3/roadsterOS/commit/f44bb47f914b174bbc1db19f6f7965794568d9f6))
+
 ## [1.13.0](https://github.com/rafail3/roadsterOS/compare/v1.12.0...v1.13.0) (2026-11-06)
 
 
