@@ -42,6 +42,8 @@ sealed class Action {
     @Serializable @SerialName("Home") data object Home : Action()
     @Serializable @SerialName("Back") data object Back : Action()
     @Serializable @SerialName("ShowVolume") data object ShowVolume : Action()
+    /** The shell opens one of our apps. */
+    @Serializable @SerialName("OpenApp") data class OpenApp(val app: App) : Action()
 }
 
 /** The single place that decides what happens when the car says something. Pure, no Android. */
@@ -198,14 +200,18 @@ object Rules {
             }
             s to listOfNotNull(cmd?.let { Action.Send(it) })
         }
+        // SET on the wheel goes between the radio and the phone's music, each opened on screen; with no phone the
+        // music app opens to connect one and the radio keeps playing
         Key.MODE -> {
-            val next = when (s.source) {
-                AudioSource.BT -> AudioSource.RADIO
-                AudioSource.RADIO -> if (s.btConnected) AudioSource.BT else AudioSource.RADIO
-                AudioSource.NONE -> AudioSource.RADIO
+            val toMusic = s.source == AudioSource.RADIO
+            val next = when {
+                !toMusic -> AudioSource.RADIO
+                s.btConnected -> AudioSource.BT
+                else -> s.source
             }
-            if (next == s.source) s to emptyList()
-            else s.copy(source = next, lastSource = s.source) to listOf(Action.Send(CarCommand.Audio.Source(next)))
+            val open = Action.OpenApp(if (toMusic) App.MUSIC else App.RADIO)
+            if (next == s.source) s to listOf(open)
+            else s.copy(source = next, lastSource = s.source) to listOf(Action.Send(CarCommand.Audio.Source(next)), open)
         }
         Key.PHONE -> s to when (s.call) {
             State.RINGING -> listOf(Action.Send(CarCommand.Phone.Answer))

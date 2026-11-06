@@ -215,6 +215,7 @@ export interface LaunchableApp { id: string; label: string }
 
 export interface RuleAction {
   type: string;
+  app?: App;
   command?: CarCommand;
   on?: boolean;
 }

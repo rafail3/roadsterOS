@@ -174,16 +174,25 @@ class RulesTest {
         val (s1, a1) = Rules.apply(bt, CarEvent.SteeringKey(Key.MODE))
         assertEquals(AudioSource.RADIO, s1.source)
         assertEquals(AudioSource.BT, s1.lastSource)
-        assertEquals(listOf(Action.Send(CarCommand.Audio.Source(AudioSource.RADIO))), a1)
-        val (s2, _) = Rules.apply(s1, CarEvent.SteeringKey(Key.MODE))
+        assertEquals(listOf(Action.Send(CarCommand.Audio.Source(AudioSource.RADIO)), Action.OpenApp(App.RADIO)), a1)
+        val (s2, a2) = Rules.apply(s1, CarEvent.SteeringKey(Key.MODE))
         assertEquals(AudioSource.BT, s2.source)
+        assertEquals(listOf(Action.Send(CarCommand.Audio.Source(AudioSource.BT)), Action.OpenApp(App.MUSIC)), a2)
     }
 
     @Test
-    fun `mode key without bluetooth stays on radio`() {
+    fun `mode key with nothing playing starts the radio and opens it`() {
+        assertEquals(
+            listOf(Action.Send(CarCommand.Audio.Source(AudioSource.RADIO)), Action.OpenApp(App.RADIO)),
+            Rules.apply(RulesState(), CarEvent.SteeringKey(Key.MODE)).second,
+        )
+    }
+
+    @Test
+    fun `mode key without a phone opens the music app to connect one, the radio keeps playing`() {
         val (s, a) = Rules.apply(radio, CarEvent.SteeringKey(Key.MODE))
         assertEquals(AudioSource.RADIO, s.source)
-        assertEquals(emptyList<Action>(), a)
+        assertEquals(listOf<Action>(Action.OpenApp(App.MUSIC)), a)
     }
 
     @Test
