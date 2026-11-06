@@ -13,6 +13,7 @@ class VendorCarBus(context: Context) : CarBus {
     private val phone = VendorPhone(context.applicationContext).also { it.start() }
     private val messages = VendorMessages(context.applicationContext).also { it.start() }
     private val dash = VendorDash()
+    private val sound = VendorSound()
 
     override val events: Flow<CarEvent> = merge(phone.events, messages.events)
 
@@ -23,6 +24,7 @@ class VendorCarBus(context: Context) : CarBus {
             is CarCommand.Bluetooth.Connect -> phone.link(command.device, connect = true)
             CarCommand.Bluetooth.Disconnect -> phone.link(null, connect = false)
             is CarCommand.DashKey -> dash.press(command.key)
+            is CarCommand.Dsp -> sound.write(command.write)
             else -> Log.i("VendorCarBus", "send $command")
         }
     }

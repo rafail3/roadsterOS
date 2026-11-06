@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createCoverDesk } from "./covers";
-import { bridge, HFP, type Band, type LaunchableApp, type TimeSource, type CallRecord, type CarCommand, type CarEvent, type CarState, type Contact, type HfpCall, type Message, type OtherCall, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
+import { bridge, HFP, type Band, type LaunchableApp, type SoundSettings, type TimeSource, type CallRecord, type CarCommand, type CarEvent, type CarState, type Contact, type HfpCall, type Message, type OtherCall, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
 import { MAJOR_COMPUTER, MAJOR_PHONE, SAMPLE_CONTACTS, SAMPLE_PHONE, sampleCalls } from "./phone";
 import { BANDS, STATIONS, stationAt } from "./radio";
 import { GPS_PLACES } from "./gps";
@@ -435,6 +435,7 @@ function sendToCar(command: CarCommand) {
   set({ log: addLog("out", command) });
   if (PHONE_CALLS.has(command.type)) return void setTimeout(() => phoneCalls(command), ECHO_DELAY_MS);
   if (command.type === "Dash.Key") return pressDash(command.key);
+  if (command.type === "Dsp") return;
   const echo = bridge.echo(command);
   if (echo) setTimeout(() => carEvent(echo), ECHO_DELAY_MS);
   if (command.type === "Phone.SendMessage") setTimeout(() => carEvent({ type: "Message", id: `sent-${Date.now()}`, number: command.number, text: command.text, atMs: Date.now(), sent: true }), ECHO_DELAY_MS);
@@ -811,6 +812,13 @@ export function pressSound(page: "BLUETOOTH" | "RADIO", press: "PREV" | "PLAY" |
 /** One more line in the unit's journal when recording is on: an event, a command or a screen action. */
 const counted = () => (state.shell.recordEvents ? state.recorded + 1 : state.recorded);
 
+/** A change from the sound window: kept with the shell's settings, and the processor gets only the calls that moved it (CarRuntime on the unit). */
+export function setSound(next: SoundSettings) {
+  const writes = bridge.soundWrites(state.shell.dsp, next);
+  shellAction({ type: "SetSound", settings: next });
+  writes.forEach((write) => carCommand({ type: "Dsp", write }));
+}
+
 export function shellAction(action: ShellAction) {
   set({ shell: bridge.shell(state.shell, action), recorded: counted() });
   savePreferences();
@@ -904,6 +912,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   if (q.has("night")) shell = bridge.shell(shell, { type: "SetTheme", mode: "DARK" });
   if (q.has("drawer")) shell = bridge.shell(shell, { type: "OpenDrawer" });
   if (q.has("aod")) shell = bridge.shell(shell, { type: "EnterAod" });
+  if (q.has("sound")) shell = bridge.shell(shell, { type: "OpenSound" });
   if (q.has("analog")) shell = bridge.shell(shell, { type: "SetFace", face: "ANALOG" });
   if (q.get("app") === "music") shell = bridge.shell(shell, { type: "OpenApp", app: "MUSIC" });
   if (q.get("app") === "radio") shell = bridge.shell(shell, { type: "OpenApp", app: "RADIO" });

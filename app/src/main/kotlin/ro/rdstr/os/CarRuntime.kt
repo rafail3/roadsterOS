@@ -189,6 +189,8 @@ object CarRuntime {
         if (after.autoTime != before.autoTime || after.timeSource != before.timeSource) time.apply(after.autoTime, after.timeSource)
         if (after.dashMatched && !before.dashMatched) dash.matched()
         if (after.adbEnabled != before.adbEnabled) ro.rdstr.os.settings.DeveloperTools.setAdb(app, after.adbEnabled)
+        // a change in the sound window: only the processor's values that moved are written
+        if (after.dsp != before.dsp) ro.rdstr.car.Sound.writes(before.dsp, after.dsp).forEach { send(CarCommand.Dsp(it)) }
         if (Shell.preferences(after) != Shell.preferences(before)) {
             prefs.edit().putString(SHELL_KEY, Shell.encodePreferences(after)).apply()
             Log.i(Radios.TAG, "saved ${Shell.encodePreferences(after)}")

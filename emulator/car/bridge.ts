@@ -9,6 +9,16 @@ export type TimeSource = "NETWORK" | "GPS";
 export type DashKey = "HOUR" | "MINUTE" | "CLOCK";
 export type AodFace = "HOME" | "DIGITAL" | "ANALOG";
 export type AnimationSpeed = "NORMAL" | "FAST" | "OFF";
+export type EqPreset = "USER" | "FLAT" | "POP" | "ROCK" | "JAZZ" | "CLASSIC";
+export type ListeningSeat = "CUSTOM" | "FRONT_LEFT" | "FRONT_RIGHT" | "REAR_LEFT" | "REAR_RIGHT" | "ALL";
+export interface SpeakerFilter { highPass: boolean; highPassHz: number; lowPass: boolean; lowPassHz: number }
+/** The sound processor's settings (core-car SoundSettings). */
+export interface SoundSettings {
+  preset: EqPreset; bands: number[]; balance: number; fader: number; seat: ListeningSeat; delays: number[];
+  loudness: boolean; loudLowHz: number; loudLowGain: number; loudHighHz: number; loudHighGain: number;
+  bass: boolean; bassGain: number; subLevel: number; subHz: number; front: SpeakerFilter; rear: SpeakerFilter; antennaPower: boolean;
+}
+export interface DspWrite { call: string; args: number[] }
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";
 export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
 export type Band = "FM" | "AM";
@@ -39,6 +49,7 @@ export interface ShellState {
   screenOn: boolean;
   app: App;
   devices: boolean;
+  sound: boolean;
   networks: boolean;
   running: App[];
   recents: boolean;
@@ -72,6 +83,7 @@ export interface ShellState {
   showFrameRate: boolean;
   animationSpeed: AnimationSpeed;
   setupDone: boolean;
+  dsp: SoundSettings;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -108,6 +120,7 @@ export type CarCommand =
   | { type: "Phone.Mute"; on: boolean }
   | { type: "Phone.Dial"; number: string }
   | { type: "Dash.Key"; key: DashKey }
+  | { type: "Dsp"; write: DspWrite }
   | { type: "Phone.Dtmf"; digit: string }
   | { type: "Phone.AudioInCar"; on: boolean }
   | { type: "Phone.Redial" | "Phone.Hold" | "Phone.Merge" | "Phone.DeclineWaiting" }
@@ -151,9 +164,11 @@ export type ShellAction =
   | { type: "SetAodAfter"; minutes: number }
   | { type: "SetAodFace"; face: AodFace }
   | { type: "EnterAod" | "ExitAod" }
+  | { type: "OpenSound" | "CloseSound" }
   | { type: "SetDeveloper" | "SetAdb" | "SetShowTouches" | "SetShowFrameRate"; on: boolean }
   | { type: "SetAnimationSpeed"; speed: AnimationSpeed }
-  | { type: "FinishSetup" };
+  | { type: "FinishSetup" }
+  | { type: "SetSound"; settings: SoundSettings };
 
 export interface PhoneNumber { number: string; label: string }
 export interface Contact { name: string; numbers: PhoneNumber[] }
@@ -234,6 +249,14 @@ interface Kotlin {
       timeZoneRegion(id: string): string;
       timeZoneOffset(minutes: number): string;
       dashFollow(shownBefore: number, jump: number): string;
+      soundWrites(a: string, b: string): string;
+      soundPreset(s: string, preset: string): string;
+      soundBand(s: string, band: number, db: number): string;
+      soundResetLoudness(s: string): string;
+      soundResetBass(s: string): string;
+      soundBands(): string;
+      soundHpf(): string;
+      soundLpf(): string;
       callDuration(ms: number): string;
       clockText(hour: number, minute: number, h24: boolean): string;
       meridiem(hour: number): string;
@@ -333,6 +356,15 @@ export const bridge = {
   timeZoneOffset: (minutes: number) => K!.Bridge.timeZoneOffset(minutes),
   /** The dash display's keys for a jump of the unit's local time (core-car DashClock). */
   dashFollow: (shownBefore: number, jump: number): DashKey[] => JSON.parse(K!.Bridge.dashFollow(shownBefore, jump)),
+  /** The sound window (core-car Sound). */
+  soundWrites: (a: SoundSettings, b: SoundSettings): DspWrite[] => JSON.parse(K!.Bridge.soundWrites(JSON.stringify(a), JSON.stringify(b))),
+  soundPreset: (s: SoundSettings, p: EqPreset): SoundSettings => JSON.parse(K!.Bridge.soundPreset(JSON.stringify(s), p)),
+  soundBand: (s: SoundSettings, band: number, db: number): SoundSettings => JSON.parse(K!.Bridge.soundBand(JSON.stringify(s), band, db)),
+  soundResetLoudness: (s: SoundSettings): SoundSettings => JSON.parse(K!.Bridge.soundResetLoudness(JSON.stringify(s))),
+  soundResetBass: (s: SoundSettings): SoundSettings => JSON.parse(K!.Bridge.soundResetBass(JSON.stringify(s))),
+  soundBands: (): string[] => JSON.parse(K!.Bridge.soundBands()),
+  soundHpf: (): number[] => JSON.parse(K!.Bridge.soundHpf()),
+  soundLpf: (): number[] => JSON.parse(K!.Bridge.soundLpf()),
   callDuration: (ms: number) => K!.Bridge.callDuration(ms),
   /** The big clock's text on the 24- or 12-hour clock, and the half of the day beside a 12-hour one. */
   clockText: (hour: number, minute: number, h24: boolean) => K!.Bridge.clockText(hour, minute, h24),

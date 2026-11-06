@@ -38,6 +38,8 @@ data class ShellState(
     val app: App = App.HOME,
     /** The saved-devices sheet over the music app. */
     val devices: Boolean = false,
+    /** The sound window (equalizer, balance, sound field, loudness, bass, filters) over the app it was opened from. */
+    val sound: Boolean = false,
     /** The Wi-Fi networks sheet. */
     val networks: Boolean = false,
     /** Our own apps opened since boot and not closed, most recently used first; never [App.HOME]. */
@@ -83,6 +85,8 @@ data class ShellState(
     val animationSpeed: AnimationSpeed = AnimationSpeed.NORMAL,
     /** False after a factory reset: the unit starts in setup until it is finished. */
     val setupDone: Boolean = true,
+    /** The sound processor's settings, as last set from the sound window (Sound). */
+    val dsp: SoundSettings = SoundSettings(),
     /** Every car event is written to a file on the unit, for troubleshooting. */
     val recordEvents: Boolean = false,
 )
@@ -108,6 +112,8 @@ sealed class ShellAction {
     @Serializable @SerialName("Back") data object Back : ShellAction()
     @Serializable @SerialName("OpenApp") data class OpenApp(val app: App) : ShellAction()
     @Serializable @SerialName("OpenDevices") data object OpenDevices : ShellAction()
+    @Serializable @SerialName("OpenSound") data object OpenSound : ShellAction()
+    @Serializable @SerialName("CloseSound") data object CloseSound : ShellAction()
     @Serializable @SerialName("CloseDevices") data object CloseDevices : ShellAction()
     @Serializable @SerialName("OpenNetworks") data object OpenNetworks : ShellAction()
     @Serializable @SerialName("CloseNetworks") data object CloseNetworks : ShellAction()
@@ -155,6 +161,7 @@ sealed class ShellAction {
     @Serializable @SerialName("SetShowFrameRate") data class SetShowFrameRate(val on: Boolean) : ShellAction()
     @Serializable @SerialName("SetAnimationSpeed") data class SetAnimationSpeed(val speed: AnimationSpeed) : ShellAction()
     @Serializable @SerialName("FinishSetup") data object FinishSetup : ShellAction()
+    @Serializable @SerialName("SetSound") data class SetSound(val settings: SoundSettings) : ShellAction()
     /** The screen was left alone long enough (see [Shell.aodDue]). */
     @Serializable @SerialName("EnterAod") data object EnterAod : ShellAction()
     /** A touch, a key, a call or reverse gear. */
@@ -244,6 +251,8 @@ object Shell {
         )
         ShellAction.Home -> goHome(s)
         ShellAction.OpenDevices -> s.copy(devices = true, networks = false, drawer = false)
+        ShellAction.OpenSound -> s.copy(sound = true, drawer = false, devices = false)
+        ShellAction.CloseSound -> s.copy(sound = false)
         ShellAction.CloseDevices -> s.copy(devices = false)
         ShellAction.OpenNetworks -> s.copy(networks = true, devices = false, drawer = false)
         ShellAction.CloseNetworks -> s.copy(networks = false)
@@ -298,6 +307,7 @@ object Shell {
         is ShellAction.SetShowFrameRate -> s.copy(showFrameRate = a.on)
         is ShellAction.SetAnimationSpeed -> s.copy(animationSpeed = a.speed)
         ShellAction.FinishSetup -> s.copy(setupDone = true)
+        is ShellAction.SetSound -> s.copy(dsp = Sound.clamp(a.settings))
         ShellAction.EnterAod -> if (s.aodEnabled && s.screenOn) s.copy(aod = true, drawer = false) else s
         ShellAction.ExitAod -> s.copy(aod = false)
         is ShellAction.SetFaceMode -> s.copy(faceMode = a.mode, face = when (a.mode) {
@@ -313,6 +323,7 @@ object Shell {
             s.drawer -> s.copy(drawer = false)
             s.recents -> s.copy(recents = false)
             s.devices -> s.copy(devices = false)
+            s.sound -> s.copy(sound = false)
             s.networks -> s.copy(networks = false)
             else -> s.copy(app = App.HOME, card = cardAfter(s))
         }
@@ -320,7 +331,7 @@ object Shell {
 
     /** Home goes home in a call too: the call folds into its bar. */
     private fun goHome(s: ShellState) = s.copy(
-        app = App.HOME, recents = false, drawer = false, devices = false, networks = false, card = cardAfter(s),
+        app = App.HOME, recents = false, drawer = false, devices = false, networks = false, sound = false, card = cardAfter(s),
         callView = if (s.callView == CallView.FULL) CallView.BAR else s.callView,
     )
 
@@ -337,7 +348,7 @@ object Shell {
         autoTime = s.autoTime, timeSource = s.timeSource, dashMatched = s.dashMatched,
         aodEnabled = s.aodEnabled, aodAfterMin = s.aodAfterMin, aodFace = s.aodFace,
         developer = s.developer, adbEnabled = s.adbEnabled, showTouches = s.showTouches, showFrameRate = s.showFrameRate,
-        animationSpeed = s.animationSpeed, setupDone = s.setupDone,
+        animationSpeed = s.animationSpeed, setupDone = s.setupDone, dsp = s.dsp,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))

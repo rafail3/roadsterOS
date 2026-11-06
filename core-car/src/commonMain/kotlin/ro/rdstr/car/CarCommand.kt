@@ -58,6 +58,9 @@ sealed class CarCommand {
     /** A key of the car's dash display (hour +1, minute +1, clock or consumption); the display reports nothing back. */
     @Serializable @SerialName("Dash.Key") data class DashKey(val key: DashClock.Key) : CarCommand()
 
+    /** One call on the vendor's sound processor (Sound.writes). */
+    @Serializable @SerialName("Dsp") data class Dsp(val write: DspWrite) : CarCommand()
+
     /** Phones by the name the unit lists them under: connect or drop a saved one, look for new ones and pair. */
     @Serializable
     sealed class Bluetooth : CarCommand() {

@@ -205,6 +205,9 @@ export function RadioApp({ open }: { open: boolean }) {
       <button className="glass-button music-close" aria-label="Close radio" onClick={() => shellAction({ type: "Home" })}>
         <span className="icon i-caret-down" aria-hidden="true" />
       </button>
+      <button className="glass-button music-sound" aria-label="Sound" onClick={() => shellAction({ type: "OpenSound" })}>
+        <span className="icon i-snd-faders" aria-hidden="true" />
+      </button>
 
       <div className="radio-main">
         <div className="radio-hero">

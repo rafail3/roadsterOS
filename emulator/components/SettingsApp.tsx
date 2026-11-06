@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { bridge, type AnimationSpeed, type AodFace, type FaceMode, type ThemeMode, type TimeSource } from "../car/bridge";
-import { allTimeZones, carCommand, factoryReset, openAndroidSettings, restartShell, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
+import { allTimeZones, carCommand, factoryReset, setSound, openAndroidSettings, restartShell, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
 import { Keyboard } from "./Keyboard";
 import { PillSlider } from "./Drawer";
 import { useCloseOntoCard } from "./media";
@@ -15,7 +15,7 @@ const MB = 1024 * 1024;
 const ABOUT = { android: "8.1.0", model: "8227L_demo", screen: "1024 × 600", appMemory: 27 * MB, freeMemory: 214 * MB, totalMemory: 1003 * MB, freeStorage: 8.6 * 1024 * MB, totalStorage: 11.9 * 1024 * MB };
 const VERSION = process.env.RDSTR_VERSION ?? "dev";
 
-function Switch({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
+export function Switch({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
   return (
     <button className={`switch${on ? " is-on" : ""}`} role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)}>
       <span className="switch-knob" aria-hidden="true" />
@@ -23,7 +23,7 @@ function Switch({ label, on, onChange }: { label: string; on: boolean; onChange:
   );
 }
 
-function Segmented<T extends string>({ label, options, value, onChange }: { label: string; options: [T, string][]; value: T; onChange: (v: T) => void }) {
+export function Segmented<T extends string>({ label, options, value, onChange }: { label: string; options: [T, string][]; value: T; onChange: (v: T) => void }) {
   return (
     <div className="set-seg" role="radiogroup" aria-label={label}>
       {options.map(([v, text]) => (
@@ -33,7 +33,7 @@ function Segmented<T extends string>({ label, options, value, onChange }: { labe
   );
 }
 
-function Group({ title, footer, children }: { title?: string; footer?: ReactNode; children: ReactNode }) {
+export function Group({ title, footer, children }: { title?: string; footer?: ReactNode; children: ReactNode }) {
   return (
     <section className="set-group">
       {title && <h3 className="set-group-title">{title}</h3>}
@@ -44,7 +44,7 @@ function Group({ title, footer, children }: { title?: string; footer?: ReactNode
 }
 
 /** One line of a group: its name, then a value, a control or a chevron when it opens something. */
-function Row({ label, value, onPress, danger, children }: { label: ReactNode; value?: ReactNode; onPress?: () => void; danger?: boolean; children?: ReactNode }) {
+export function Row({ label, value, onPress, danger, children }: { label: ReactNode; value?: ReactNode; onPress?: () => void; danger?: boolean; children?: ReactNode }) {
   const body = (<>
     <span className="set-row-label">{label}</span>
     {value !== undefined && <span className="set-row-value">{value}</span>}
@@ -293,6 +293,12 @@ function Sound({ e }: { e: EmulatorState }) {
           readout={<span className="pill-readout" aria-hidden="true">{car.muted ? "Muted" : car.volume}</span>}
         />
       </div>
+    </Group>
+    <Group footer="Equalizer, balance, the listening position, loudness, bass and the speakers' filters.">
+      <Row label="Sound Effects" onPress={() => shellAction({ type: "OpenSound" })} />
+    </Group>
+    <Group title="Radio" footer="Powers an amplified antenna through the antenna lead. Off for a passive antenna.">
+      <Row label="Antenna Power"><Switch label="Antenna Power" on={e.shell.dsp.antennaPower} onChange={(antennaPower) => setSound({ ...e.shell.dsp, antennaPower })} /></Row>
     </Group>
     <Group footer={limit ? `The car starts no louder than ${shell.startVolume} of ${max}; a quieter level stays as it was.` : "The car starts at the volume it was switched off with."}>
       <Row label="Limit Start Volume"><Switch label="Limit Start Volume" on={limit} onChange={(on) => shellAction({ type: "SetStartVolume", level: on ? START_VOLUME_DEFAULT : 0 })} /></Row>

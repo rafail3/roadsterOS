@@ -15,6 +15,7 @@ import { RadioApp } from "./RadioApp";
 import { MapsApp } from "./MapsApp";
 import { PhoneApp, PhoneNetwork, useUnread } from "./PhoneApp";
 import { SettingsApp } from "./SettingsApp";
+import { SoundApp } from "./SoundApp";
 import { MapOffer } from "./MapOffer";
 import { DevicesSheet } from "./DevicesSheet";
 import { NetworksSheet } from "./NetworksSheet";
@@ -222,6 +223,7 @@ export function Screen() {
       <MusicApp open={shell.app === "MUSIC"} />
       <PhoneApp open={shell.app === "PHONE"} />
       <SettingsApp open={shell.app === "SETTINGS"} />
+      <SoundApp open={shell.sound} />
       <RadioApp open={shell.app === "RADIO"} />
       <MapsApp open={shell.app === "MAPS"} inCard={!inApp && card.shown === "NAVIGATION" && shell.screenOn} light={light} />
       {/* over any screen: opened from the music app or by a long press on the drawer's Bluetooth */}

@@ -224,6 +224,19 @@ object Bridge {
 
     fun factoryPreferences(): String = Shell.encodePreferences(Shell.factoryState())
 
+    private fun sound(text: String) = json.decodeFromString(SoundSettings.serializer(), text)
+    private fun sound(s: SoundSettings) = json.encodeToString(SoundSettings.serializer(), s)
+
+    /** The sound window (core-car Sound): the calls a change makes, presets, bands, resets and the ranges. */
+    fun soundWrites(a: String, b: String): String = json.encodeToString(ListSerializer(DspWrite.serializer()), Sound.writes(sound(a), sound(b)))
+    fun soundPreset(s: String, preset: String): String = sound(Sound.withPreset(sound(s), EqPreset.valueOf(preset)))
+    fun soundBand(s: String, band: Int, db: Int): String = sound(Sound.withBand(sound(s), band, db))
+    fun soundResetLoudness(s: String): String = sound(Sound.resetLoudness(sound(s)))
+    fun soundResetBass(s: String): String = sound(Sound.resetBass(sound(s)))
+    fun soundBands(): String = json.encodeToString(strings, Sound.BANDS)
+    fun soundHpf(): String = json.encodeToString(ListSerializer(Int.serializer()), Sound.HPF_HZ)
+    fun soundLpf(): String = json.encodeToString(ListSerializer(Int.serializer()), Sound.LPF_HZ)
+
     fun shell(state: String, action: String): String {
         val next = Shell.reduce(
             json.decodeFromString(ShellState.serializer(), state),
