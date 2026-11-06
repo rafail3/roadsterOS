@@ -210,6 +210,12 @@ object Bridge {
     fun arrangeSettle(from: Int, dx: Double, slot: Double, count: Int): Double = HomeArrange.settle(from, dx, slot, count)
     fun arrangeKeeps(from: Int, to: Int): Boolean = HomeArrange.keepsArranging(from, to)
     fun arrangeOpens(arranging: Boolean, pickedUp: Boolean): Boolean = HomeArrange.opens(arranging, pickedUp)
+    fun arrangeTimes(): String = "[${HomeArrange.REMOVE_MS},${HomeArrange.GLIDE_MS},${HomeArrange.GROW_MS}]"
+    /** [before] and [after]: JSON objects of each icon's left edge by id; answers the glides as JSON. */
+    fun arrangeGlides(before: String, after: String): String {
+        val edges = kotlinx.serialization.builtins.MapSerializer(String.serializer(), Double.serializer())
+        return json.encodeToString(ListSerializer(HomeArrange.Glide.serializer()), HomeArrange.glides(json.decodeFromString(edges, before), json.decodeFromString(edges, after)))
+    }
 
     private val strings = ListSerializer(String.serializer())
     fun timeZones(ids: String): String = json.encodeToString(strings, TimeZones.places(json.decodeFromString(strings, ids)))

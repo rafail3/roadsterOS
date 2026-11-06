@@ -250,6 +250,8 @@ interface Kotlin {
       arrangeSettle(from: number, dx: number, slot: number, count: number): number;
       arrangeKeeps(from: number, to: number): boolean;
       arrangeOpens(arranging: boolean, pickedUp: boolean): boolean;
+      arrangeTimes(): string;
+      arrangeGlides(before: string, after: string): string;
       ownApps(): string;
       timeZones(ids: string): string;
       timeZoneSearch(ids: string, query: string): string;
@@ -378,6 +380,10 @@ export const bridge = {
     settle: (from: number, dx: number, slot: number, count: number) => K!.Bridge.arrangeSettle(from, dx, slot, count),
     keeps: (from: number, to: number) => K!.Bridge.arrangeKeeps(from, to),
     opens: (arranging: boolean, pickedUp: boolean) => K!.Bridge.arrangeOpens(arranging, pickedUp),
+    /** Remove, glide and grow durations in ms. */
+    times: (): [number, number, number] => JSON.parse(K!.Bridge.arrangeTimes()),
+    glides: (before: Record<string, number>, after: Record<string, number>): { id: string; fromDx?: number; added?: boolean }[] =>
+      JSON.parse(K!.Bridge.arrangeGlides(JSON.stringify(before), JSON.stringify(after))),
   },
   ownApps: (): LaunchableApp[] => JSON.parse(K!.Bridge.ownApps()),
   /** The zones named after a place, by city, and a search over them (core-car TimeZones). */

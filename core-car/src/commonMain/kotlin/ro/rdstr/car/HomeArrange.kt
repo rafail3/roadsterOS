@@ -43,6 +43,32 @@ object HomeArrange {
     /** Whether the arranging goes on after a drop: only when the icon stayed in its place. */
     fun keepsArranging(from: Int, to: Int): Boolean = from == to
 
+    /** An icon taken off shrinks away this long before it leaves the row. */
+    const val REMOVE_MS = 180L
+    /** The icons that stay glide this long to the row's new centre; one added grows in this long. */
+    const val GLIDE_MS = 320L
+    const val GROW_MS = 240L
+
+    /** How an icon moves when the row changes: glides from [fromDx] pixels away, or grows in when [added]. */
+    @kotlinx.serialization.Serializable
+    data class Glide(val id: String, val fromDx: Double = 0.0, val added: Boolean = false)
+
+    /**
+     * When icons come or go, the row re-centres: each icon that stays starts where it was and glides to its new place,
+     * a new one grows in. [before] and [after] are each icon's left edge, by id; a first layout moves nothing.
+     */
+    fun glides(before: Map<String, Double>, after: Map<String, Double>): List<Glide> {
+        if (before.isEmpty()) return emptyList()
+        return after.mapNotNull { (id, x) ->
+            val was = before[id]
+            when {
+                was == null -> Glide(id, added = true)
+                was != x -> Glide(id, fromDx = was - x)
+                else -> null
+            }
+        }
+    }
+
     /** A tap opens the app only outside the arranging and when the press did not pick the icon up. */
     fun opens(arranging: Boolean, pickedUp: Boolean): Boolean = !arranging && !pickedUp
 }

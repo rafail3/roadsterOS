@@ -31,6 +31,16 @@ class HomeArrangeTest {
     }
 
     @Test
+    fun `when an icon goes the rest glide to the new centre, a new one grows in`() {
+        val before = mapOf("A" to 100.0, "B" to 216.0, "C" to 332.0)
+        // B taken off: the row of two re-centres
+        val after = mapOf("A" to 158.0, "C" to 274.0)
+        assertEquals(listOf(HomeArrange.Glide("A", -58.0), HomeArrange.Glide("C", 58.0)), HomeArrange.glides(before, after))
+        assertEquals(listOf(HomeArrange.Glide("D", added = true)), HomeArrange.glides(after, after + ("D" to 390.0)))
+        assertTrue(HomeArrange.glides(emptyMap(), after).isEmpty())
+    }
+
+    @Test
     fun `holds, swipes, the end of the arranging and opening`() {
         assertTrue(HomeArrange.cancelsHold(12.0))
         assertFalse(HomeArrange.cancelsHold(-8.0))

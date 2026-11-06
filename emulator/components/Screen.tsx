@@ -294,28 +294,28 @@ function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unr
   const row = useRef<HTMLDivElement>(null);
   // an icon taken off shrinks away first; then the row re-centres
   const [leaving, setLeaving] = useState<string | null>(null);
-  const placed = useRef(new Map<string, number>());
+  const placed = useRef<Record<string, number>>({});
   const ids = apps.map((a) => a.id).join();
 
   // when icons come or go the row re-centres: each one glides from where it was to its new place, a new one grows in
   useLayoutEffect(() => {
     const els = row.current ? ([...row.current.children] as HTMLElement[]) : [];
-    const now = new Map(els.map((el, i) => [apps[i]?.id ?? "", el.offsetLeft]));
-    const had = placed.current;
-    // a drop places the icons itself (settle); only additions and removals glide here
-    if (had.size && !settle && !drag) els.forEach((el, i) => {
-      const before = had.get(apps[i].id);
-      const after = now.get(apps[i].id)!;
-      if (before === undefined) el.animate([{ opacity: 0, transform: "scale(0.6)" }, { opacity: 1, transform: "none" }], { duration: 240, easing: "cubic-bezier(0.2, 0, 0, 1)" });
-      else if (before !== after) el.animate([{ transform: `translateX(${before - after}px)` }, { transform: "none" }], { duration: 320, easing: "cubic-bezier(0.2, 0, 0, 1)" });
-    });
+    const now: Record<string, number> = Object.fromEntries(els.map((el, i) => [apps[i]?.id ?? "", el.offsetLeft]));
+    const [, glideMs, growMs] = bridge.arrange.times();
+    // a drop places the icons itself (settle); only additions and removals glide here (core-car HomeArrange.glides)
+    if (!settle && !drag) for (const g of bridge.arrange.glides(placed.current, now)) {
+      const el = els[apps.findIndex((a) => a.id === g.id)];
+      if (!el) continue;
+      if (g.added) el.animate([{ opacity: 0, transform: "scale(0.6)" }, { opacity: 1, transform: "none" }], { duration: growMs, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+      else el.animate([{ transform: `translateX(${g.fromDx ?? 0}px)` }, { transform: "none" }], { duration: glideMs, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+    }
     placed.current = now;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ids]);
 
   const remove = (id: string) => {
     setLeaving(id);
-    setTimeout(() => { shellAction({ type: "ToggleHomeApp", id }); setLeaving(null); }, 180);
+    setTimeout(() => { shellAction({ type: "ToggleHomeApp", id }); setLeaving(null); }, bridge.arrange.times()[0]);
   };
   // where the held icon would drop, never past the row's ends, and where each icon is drawn meanwhile (core-car HomeArrange)
   const count = apps.length;
