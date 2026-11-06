@@ -86,6 +86,8 @@ function Frame({ step, title, text, children, next, nextLabel = "Continue", canN
 /** The car's name, typed on our keyboard; it is also the name phones see when they share their screen. */
 function CarName({ saved, next }: { saved: string; next: () => void }) {
   const [name, setName] = useState(saved);
+  // the keyboard comes up when the field is touched, and goes with Done
+  const [typing, setTyping] = useState(false);
   const trimmed = name.trim();
   const save = () => {
     if (!trimmed) return;
@@ -94,12 +96,12 @@ function CarName({ saved, next }: { saved: string; next: () => void }) {
   };
   return (
     <Frame step="CAR_NAME" title="Name your car" text="Phones see this name when they share their screen with the car." next={save} canNext={trimmed !== ""}>
-      <div className="sf-field" role="textbox" aria-label="Car name">
+      <button className={`sf-field${typing ? " is-typing" : ""}`} aria-label={`Car name${name ? `: ${name}` : ""}`} onClick={() => setTyping(true)}>
         <span className="sf-value">{name}</span>
-        <span className="sf-cursor" aria-hidden="true" />
-      </div>
-      <Keyboard open onKey={(c) => setName((n) => (n + c).slice(0, 24))} onBackspace={() => setName((n) => n.slice(0, -1))}
-        onSubmit={save} submitLabel="Done" submitEnabled={trimmed !== ""} />
+        {typing && <span className="sf-cursor" aria-hidden="true" />}
+      </button>
+      <Keyboard open={typing} onKey={(c) => setName((n) => (n + c).slice(0, 24))} onBackspace={() => setName((n) => n.slice(0, -1))}
+        onSubmit={() => setTyping(false)} submitLabel="Done" submitEnabled />
     </Frame>
   );
 }
@@ -153,13 +155,14 @@ function WifiScreen({ next }: { next: () => void }) {
   const { wifiOn, wifi, locationOn } = useEmulator();
   const [joining, setJoining] = useState<string | null>(null);
   const [password, setPassword] = useState("");
+  const [typing, setTyping] = useState(false);
   useEffect(() => {
     if (!wifiOn || !locationOn) return;
     wifiScan();
     const timer = setInterval(wifiScan, 10000);
     return () => clearInterval(timer);
   }, [wifiOn, locationOn]);
-  useEffect(() => { setPassword(""); }, [joining]);
+  useEffect(() => { setPassword(""); setTyping(false); }, [joining]);
   useEffect(() => { if (joining && wifi.connected === joining) setJoining(null); }, [joining, wifi.connected]);
   const seen = WIFI_NETWORKS.filter((n) => wifi.seen.includes(n.ssid) || wifi.connected === n.ssid);
   const pick = (n: WifiNetwork) => (n.secure && !wifi.saved.includes(n.ssid) ? setJoining(n.ssid) : wifiConnect(n.ssid));
@@ -172,11 +175,12 @@ function WifiScreen({ next }: { next: () => void }) {
       <Frame step="WIFI" title={joining} text={wifi.wrongPassword === joining ? "Incorrect password. Try again." : "Enter the password, at least 8 characters."}
         next={send} nextLabel={wifi.connecting === joining ? "Connecting…" : "Join"} canNext={password.length >= 8 && wifi.connecting !== joining} back={false}
         extra={<button className="sf-button" onClick={() => setJoining(null)}>Cancel</button>}>
-        <div className="sf-field" role="textbox" aria-label="Password">
+        <button className={`sf-field${typing ? " is-typing" : ""}`} aria-label="Password" onClick={() => setTyping(true)}>
           <span className="sf-value">{"•".repeat(password.length)}</span>
-          <span className="sf-cursor" aria-hidden="true" />
-        </div>
-        <Keyboard open onKey={(c) => setPassword((p) => p + c)} onBackspace={() => setPassword((p) => p.slice(0, -1))} onSubmit={send} submitLabel="Join" submitEnabled={password.length >= 8} />
+          {typing && <span className="sf-cursor" aria-hidden="true" />}
+        </button>
+        <Keyboard open={typing} onKey={(c) => setPassword((p) => p + c)} onBackspace={() => setPassword((p) => p.slice(0, -1))}
+          onSubmit={() => { setTyping(false); send(); }} submitLabel="Join" submitEnabled={password.length >= 8} />
       </Frame>
     );
   }

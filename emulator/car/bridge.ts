@@ -217,7 +217,7 @@ export type ShellAction =
   | { type: "SetCastVisible"; on: boolean }
   | { type: "SetPhoneRegion"; region: string }
   | { type: "SetupNext"; wifi?: boolean; updateAvailable?: boolean }
-  | { type: "SetupBack" }
+  | { type: "SetupBack" | "RestartSetup" }
   | { type: "SetCarName"; name: string }
   | { type: "CastChanged"; state: CastState }
   | { type: "OpenCamera" | "CloseCamera" };

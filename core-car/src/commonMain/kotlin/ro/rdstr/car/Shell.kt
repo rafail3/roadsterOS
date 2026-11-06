@@ -188,6 +188,8 @@ sealed class ShellAction {
     /** The setup's next screen; the host says whether Wi-Fi is up and a newer version is out (Setup.next). */
     @Serializable @SerialName("SetupNext") data class SetupNext(val wifi: Boolean = false, val updateAvailable: Boolean = false) : ShellAction()
     @Serializable @SerialName("SetupBack") data object SetupBack : ShellAction()
+    /** The setup from its first screen again, every other setting kept (the emulator's control panel). */
+    @Serializable @SerialName("RestartSetup") data object RestartSetup : ShellAction()
     /** A blank or spaces-only name is ignored (Setup.carName). */
     @Serializable @SerialName("SetCarName") data class SetCarName(val name: String) : ShellAction()
     /** Sent when the picture starts or stops: the app opens over everything, and leaves to home when it stops. */
@@ -348,6 +350,7 @@ object Shell {
         is ShellAction.SetPhoneRegion -> if (PhoneFormat.callingCode(a.region) != null) s.copy(phoneRegion = a.region) else s
         is ShellAction.SetupNext -> Setup.next(s.setupStep, a.wifi, a.updateAvailable)?.let { s.copy(setupStep = it) } ?: s.copy(setupDone = true)
         ShellAction.SetupBack -> s.copy(setupStep = Setup.back(s.setupStep))
+        ShellAction.RestartSetup -> s.copy(setupDone = false, setupStep = Setup.Step.LOGO)
         is ShellAction.SetCarName -> Setup.carName(a.name)?.let { s.copy(carName = it) } ?: s
         is ShellAction.CastChanged -> when {
             a.state == CarEvent.PhoneCast.State.LIVE -> reduce(s, ShellAction.OpenApp(App.PHONE_SCREEN))

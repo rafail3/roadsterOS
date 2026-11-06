@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { Face, SteeringKey, ThemeMode } from "../car/bridge";
 import { SAMPLE_CALLERS, SAMPLE_PHONE } from "../car/phone";
-import { carEvent, dashMinutes, resetDash, setInstalled, UNIT_APPS, GPS_PLACES, incomingCall, incomingMessage, remoteHangUp, removePack, setPhoneStatus, setSteering, shareLaptopWindow, stopLaptopWindow, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, setReleaseOut, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
+import { carEvent, dashMinutes, resetDash, setInstalled, UNIT_APPS, GPS_PLACES, incomingCall, incomingMessage, remoteHangUp, removePack, setPhoneStatus, setSteering, shareLaptopWindow, stopLaptopWindow, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, setReleaseOut, restartSetup, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Field, holdToRepeat, Section, Segmented, Switch } from "./controls";
 
 const DEFAULT_TRACK_MS = 228000;
@@ -196,6 +196,7 @@ function DisplayControls() {
   const now = useNow(hour);
   return (
     <Section title="Display" open>
+      <button className="button" onClick={restartSetup}>Start the setup again</button>
       <Row label="Theme"><Segmented label="Theme" options={THEMES} value={shell.theme} onChange={(mode) => shellAction({ type: "SetTheme", mode })} /></Row>
       <Row label="Clock"><Segmented label="Clock face" options={FACES} value={shell.face} onChange={(face) => shellAction({ type: "SetFace", face })} /></Row>
       <Row label="Time"><Segmented label="Clock source" options={CLOCKS} value={hour === null ? "live" : "fixed"} onChange={(v) => setHour(v === "live" ? null : FIXED_HOUR)} /></Row>

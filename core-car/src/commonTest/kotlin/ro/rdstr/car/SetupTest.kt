@@ -45,6 +45,10 @@ class SetupTest {
         var end = s.copy(setupStep = Step.WELCOME)
         end = Shell.reduce(end, ShellAction.SetupNext())
         assertTrue(end.setupDone)
+        val again = Shell.reduce(end, ShellAction.RestartSetup)
+        assertEquals(Step.LOGO, again.setupStep)
+        assertFalse(again.setupDone)
+        assertEquals("Mazda 6", again.carName)
     }
 
     @Test

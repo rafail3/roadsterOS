@@ -615,6 +615,12 @@ export function declinePack(code: string) {
   set({ maps: { ...state.maps, declined: [...state.maps.declined, code] } });
 }
 
+/** The setup from its first screen, as after a factory reset but keeping every setting; the unit starts again. */
+export function restartSetup() {
+  shellAction({ type: "RestartSetup" });
+  window.location.reload();
+}
+
 /** A newer version on GitHub, or none (the control panel's switch). */
 export function setReleaseOut(version: string | null) {
   set({ releaseOut: version });
