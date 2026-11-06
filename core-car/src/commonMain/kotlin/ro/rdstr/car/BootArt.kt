@@ -160,7 +160,7 @@ object BootArt {
     /** Ease-out with a small overshoot, for things that land. */
     fun outBack(t: Double): Double { val c = clamp(t); val k = 1.6; return 1 + (k + 1) * (c - 1).pow(3) + k * (c - 1).pow(2) }
 
-    const val CAPTION_TEXT = "ROADSTEROS"
+    const val CAPTION_TEXT = "ROADSTER_OS"
     /** The line under the wordmark on the start screen. */
     const val SUBTITLE_TEXT = "THE OS FOR YOUR CAR"
     /** The cursor's half period, and the soft refresh band's full sweep. */

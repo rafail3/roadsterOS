@@ -414,6 +414,8 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .sf-cursor { width: 16px; height: 36px; margin-left: 2px; background: var(--amber); animation: sf-blink 1060ms steps(1) infinite; }
 @keyframes sf-blink { 50% { opacity: 0; } }
 .sf-field.is-typing { border-color: rgba(255, 138, 26, 0.55); }
+.sf-hint { margin: 12px 0 0 4px; font-size: 18px; color: var(--ink-subtle); }
+.sf-hint.is-short { color: var(--amber-caption); }
 .sf-field:focus-visible { outline: 3px solid var(--amber-caption); outline-offset: 2px; }
 .sf-field.is-typing:focus-visible { outline: none; }
 /* the setup's one accent on our keyboard too */

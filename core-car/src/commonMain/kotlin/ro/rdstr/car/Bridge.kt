@@ -290,6 +290,12 @@ object Bridge {
     }
 
     fun isNewer(candidate: String, current: String): Boolean = Updater.isNewer(candidate, current)
+
+    /** The car's name as it would be kept, or "" while it breaks the rules (Setup.carName). */
+    fun carName(typed: String): String = Setup.carName(typed).orEmpty()
+    fun carNameChar(c: String): Boolean = c.length == 1 && Setup.carNameChar(c[0])
+    fun carNameMin(): Int = Setup.CAR_NAME_MIN
+    fun carNameMax(): Int = Setup.CAR_NAME_MAX
     fun restartInS(): Int = Updater.RESTART_IN_S
 
     private fun sound(text: String) = json.decodeFromString(SoundSettings.serializer(), text)

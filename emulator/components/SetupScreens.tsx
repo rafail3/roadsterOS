@@ -88,19 +88,28 @@ function CarName({ saved, next }: { saved: string; next: () => void }) {
   const [name, setName] = useState(saved);
   // the keyboard comes up when the field is touched, and goes with Done
   const [typing, setTyping] = useState(false);
-  const trimmed = name.trim();
+  const kept = bridge.carName(name);
   const save = () => {
-    if (!trimmed) return;
-    shellAction({ type: "SetCarName", name });
+    if (!kept) return;
+    shellAction({ type: "SetCarName", name: kept });
     next();
   };
+  // only letters, digits and spaces reach the field; a space never starts the name or doubles one
+  const type = (c: string) => setName((n) => {
+    if (!bridge.carNameChar(c) || (c === " " && (n === "" || n.endsWith(" ")))) return n;
+    return (n + c).slice(0, bridge.carNameMax());
+  });
+  const letters = name.replace(/\s/g, "").length;
   return (
-    <Frame step="CAR_NAME" title="Name your car" text="Phones see this name when they share their screen with the car." next={save} canNext={trimmed !== ""}>
+    <Frame step="CAR_NAME" title="Name your car" text="Your car's name. Phones and other devices see it when they look for the car or share their screen with it." next={save} canNext={kept !== ""}>
       <button className={`sf-field${typing ? " is-typing" : ""}`} aria-label={`Car name${name ? `: ${name}` : ""}`} onClick={() => setTyping(true)}>
         <span className="sf-value">{name}</span>
         {typing && <span className="sf-cursor" aria-hidden="true" />}
       </button>
-      <Keyboard open={typing} onKey={(c) => setName((n) => (n + c).slice(0, 24))} onBackspace={() => setName((n) => n.slice(0, -1))}
+      <p className={`sf-hint${name && !kept ? " is-short" : ""}`} aria-live="polite">
+        Letters and numbers, {bridge.carNameMin()} to {bridge.carNameMax()} characters{name && !kept ? `, ${bridge.carNameMin() - letters} more` : ""}
+      </p>
+      <Keyboard open={typing} symbols={false} onKey={type} onBackspace={() => setName((n) => n.slice(0, -1))}
         onSubmit={() => setTyping(false)} submitLabel="Done" submitEnabled />
     </Frame>
   );

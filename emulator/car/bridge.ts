@@ -267,6 +267,10 @@ interface Kotlin {
       downloadStep(total: number, done: number, speed: number, bytes: number, ms: number): string;
       isNewer(candidate: string, current: string): boolean;
       restartInS(): number;
+      carName(typed: string): string;
+      carNameChar(c: string): boolean;
+      carNameMin(): number;
+      carNameMax(): number;
       aodDue(state: string, idleMs: number, busy: boolean): boolean;
       aodFace(state: string): "DIGITAL" | "ANALOG";
       wakesAod(event: string): boolean;
@@ -422,6 +426,11 @@ export const bridge = {
     JSON.parse(K!.Bridge.downloadStep(d.total, d.done, d.bytesPerSecond, bytes, ms)),
   isNewer: (candidate: string, current: string): boolean => K!.Bridge.isNewer(candidate, current),
   restartInS: (): number => K!.Bridge.restartInS(),
+  /** The car's name rules (core-car Setup.carName): letters, digits and spaces, 3 to 24; "" while it breaks them. */
+  carName: (typed: string): string => K!.Bridge.carName(typed),
+  carNameChar: (c: string): boolean => K!.Bridge.carNameChar(c),
+  carNameMin: (): number => K!.Bridge.carNameMin(),
+  carNameMax: (): number => K!.Bridge.carNameMax(),
   /** The always-on display: due after the wait, its face, the car events that end it (core-car Shell). */
   aodDue: (state: ShellState, idleMs: number, busy: boolean) => K!.Bridge.aodDue(JSON.stringify(state), idleMs, busy),
   aodFace: (state: ShellState) => K!.Bridge.aodFace(JSON.stringify(state)),

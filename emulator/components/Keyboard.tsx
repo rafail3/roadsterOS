@@ -31,8 +31,10 @@ function Key({ char, onPress, wide }: { char: string; onPress: (c: string) => vo
  * Our own on-screen keyboard: letters with Shift and caps lock, numbers, symbols, a held backspace that repeats,
  * and a submit key that names the action. It types into whatever field the screen shows above it.
  */
-export function Keyboard({ open, onKey, onBackspace, onSubmit, submitLabel, submitEnabled }: {
+export function Keyboard({ open, onKey, onBackspace, onSubmit, submitLabel, submitEnabled, symbols = true }: {
   open: boolean; onKey: (c: string) => void; onBackspace: () => void; onSubmit: () => void; submitLabel: string; submitEnabled: boolean;
+  /** false: letters and digits only, no symbols layer (the car's name) */
+  symbols?: boolean;
 }) {
   const [layer, setLayer] = useState<Layer>("letters");
   const [shift, setShift] = useState<"off" | "once" | "lock">("off");
@@ -72,7 +74,7 @@ export function Keyboard({ open, onKey, onBackspace, onSubmit, submitLabel, subm
         </button>
       </div>
       <div className="kb-row">
-        <button type="button" className="kb-key kb-fn kb-layer" onClick={() => setLayer(layer === "letters" ? "symbols" : "letters")}>{layer === "letters" ? "#+=" : "ABC"}</button>
+        {symbols && <button type="button" className="kb-key kb-fn kb-layer" onClick={() => setLayer(layer === "letters" ? "symbols" : "letters")}>{layer === "letters" ? "#+=" : "ABC"}</button>}
         <button type="button" className="kb-key kb-space" onClick={() => onKey(" ")}>space</button>
         <button type="button" className="kb-key kb-fn kb-submit" disabled={!submitEnabled} onClick={onSubmit}>{submitLabel}</button>
       </div>

@@ -30,14 +30,21 @@ object Setup {
         return at.takeIf { it.ordinal >= Step.START.ordinal } ?: step
     }
 
+    const val CAR_NAME_MIN = 3
     const val CAR_NAME_MAX = 24
+
+    /** What a car name is made of: letters, digits, and spaces between words. */
+    fun carNameChar(c: Char) = c.isLetterOrDigit() || c == ' '
 
     /**
      * The car's name as typed: spaces trimmed and collapsed, cut to [CAR_NAME_MAX] characters (it is also the name
-     * phones see for screen casting, and Wi-Fi Direct allows 32 bytes). Blank gives null: the screen keeps asking.
+     * phones see for screen casting, and Wi-Fi Direct allows 32 bytes). Null for anything but letters, digits and
+     * spaces, or fewer than [CAR_NAME_MIN] letters and digits: the screen keeps asking.
      */
-    fun carName(typed: String): String? =
-        typed.trim().split(Regex("\\s+")).joinToString(" ").take(CAR_NAME_MAX).trimEnd().ifEmpty { null }
+    fun carName(typed: String): String? {
+        val name = typed.trim().split(Regex("\\s+")).joinToString(" ").take(CAR_NAME_MAX).trimEnd()
+        return name.takeIf { n -> n.all(::carNameChar) && n.count { it.isLetterOrDigit() } >= CAR_NAME_MIN }
+    }
 
     /**
      * What the system preparation does, in this order. [KEYS] checks that the unit's firmware trusts our signing

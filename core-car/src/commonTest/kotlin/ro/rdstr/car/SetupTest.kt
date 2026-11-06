@@ -60,6 +60,17 @@ class SetupTest {
     }
 
     @Test
+    fun `a car name is letters and digits, at least three of them`() {
+        assertEquals("Mazda 6", Setup.carName("Mazda 6"))
+        assertEquals("GT3", Setup.carName("GT3"))
+        assertNull(Setup.carName("ab"))
+        assertNull(Setup.carName("a b"))
+        assertNull(Setup.carName("Mazda-6"))
+        assertNull(Setup.carName("car!"))
+        assertTrue(Setup.carNameChar('7') && Setup.carNameChar(' ') && !Setup.carNameChar('#'))
+    }
+
+    @Test
     fun `the preparation runs in order and finishes with every outcome known`() {
         var p = Setup.Prepare()
         val ran = mutableListOf<Task>()

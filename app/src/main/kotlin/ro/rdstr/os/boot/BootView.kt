@@ -144,7 +144,7 @@ class BootView(context: Context, private val mode: Mode, private val version: St
                 rect(s, 760 + i * 4.6, y + 4 + j * 3.6, 3.0, 2.6, bar)
             }
         }
-        bar(48.0, "ROADSTEROS $version")
+        bar(48.0, "${BootArt.CAPTION_TEXT} $version")
         drawCube(s, 262.0, 300.0, 4.2)
         drawWord(s, 420.0, 240.0, 4.6)
         tinyText(s, BootArt.SUBTITLE_TEXT, 424.0, 412.0, 2.0, subtitle)

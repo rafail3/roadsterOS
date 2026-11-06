@@ -9,7 +9,7 @@ const PHOSPHOR = "#fff1c9";
 const CAPTION = "#ffb02e";
 const BAR = "#ff8a1a";
 const SUBTITLE = "#c9b9a6";
-const CAPTION_TEXT = "ROADSTEROS";
+const CAPTION_TEXT = "ROADSTER_OS";
 const SUBTITLE_TEXT = "THE OS FOR YOUR CAR";
 /** After the picture is complete the boot screen stays this long before what comes next. */
 const HOLD_MS = 800;
@@ -129,7 +129,7 @@ export function drawStart(s: CanvasRenderingContext2D, t: number, version: strin
       s.fillStyle = BAR; s.fillRect(760 + i * 4.6, y + 4 + j * 3.6, 3, 2.6);
     }
   };
-  bar(48, `ROADSTEROS ${version}`);
+  bar(48, `${CAPTION_TEXT} ${version}`);
   drawCube(s, 262, 300, 4.2);
   drawWord(s, 420, 240, 4.6);
   tinyText(s, SUBTITLE_TEXT, 424, 412, 2, SUBTITLE);
