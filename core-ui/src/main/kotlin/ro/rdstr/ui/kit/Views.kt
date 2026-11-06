@@ -56,17 +56,20 @@ object Type {
 
     /**
      * [style] on [paint], in the theme's family. The weight is the font's own `wght` axis; the optical size stays
-     * at the font's default, as `font-optical-sizing: none` keeps it in the emulator. Call it when the style or the
-     * theme changes, not while drawing: each call makes a typeface for the axis.
+     * at the font's default, as `font-optical-sizing: none` keeps it in the emulator. The weight comes baked in the
+     * typeface ([UiTheme.typeface]), so layoutlib's TextView and the unit draw it alike. Call it when the style or
+     * the theme changes, not while drawing.
      */
     fun apply(paint: Paint, style: TextStyle, context: Context) {
-        paint.typeface = UiTheme.typeface(context)
+        // settings left on the paint first: clearing them later would rebuild the face without its weight
+        paint.fontVariationSettings = null
+        val face = UiTheme.typeface(context, style.weight)
+        paint.typeface = face ?: UiTheme.typeface(context)
+        // the fallback: the axis on the paint (a new typeface drops it, and the same string again would be skipped)
+        if (face == null) paint.fontVariationSettings = "'wght' ${style.weight}"
         paint.textSize = style.size * context.resources.displayMetrics.density
         paint.letterSpacing = style.tracking
         paint.fontFeatureSettings = FEATURES
-        // a new typeface drops the axis, but the paint keeps the settings string and skips the same one again
-        paint.fontVariationSettings = null
-        paint.fontVariationSettings = "'wght' ${style.weight}"
         linear(paint)
     }
 }
@@ -88,13 +91,14 @@ open class KitText(context: Context, style: TextStyle) : TextView(context) {
     }
 
     private fun applyStyle() {
-        typeface = UiTheme.typeface(context)
+        // see Type.apply: the weight is in the typeface, settings cleared before it is set
+        fontVariationSettings = null
+        val face = UiTheme.typeface(context, style.weight)
+        typeface = face ?: UiTheme.typeface(context)
+        if (face == null) fontVariationSettings = "'wght' ${style.weight}"
         setTextSize(TypedValue.COMPLEX_UNIT_PX, style.size * resources.displayMetrics.density)
         letterSpacing = style.tracking
         fontFeatureSettings = Type.FEATURES
-        // see Type.apply: the same settings after a new typeface would be skipped
-        fontVariationSettings = null
-        fontVariationSettings = "'wght' ${style.weight}"
         Type.linear(paint)
         if (style.lineHeight > 0f) {
             val m = paint.fontMetrics
