@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createCoverDesk } from "./covers";
-import { bridge, HFP, type Band, type LaunchableApp, type SoundSettings, type TimeSource, type CallRecord, type CarCommand, type CarEvent, type CarState, type Contact, type HfpCall, type Message, type OtherCall, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
+import { bridge, HFP, type Band, type LaunchableApp, type SoundSettings, type CameraSettings, type TimeSource, type CallRecord, type CarCommand, type CarEvent, type CarState, type Contact, type HfpCall, type Message, type OtherCall, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
 import { MAJOR_COMPUTER, MAJOR_PHONE, SAMPLE_CONTACTS, SAMPLE_PHONE, sampleCalls } from "./phone";
 import { BANDS, STATIONS, stationAt } from "./radio";
 import { GPS_PLACES } from "./gps";
@@ -62,6 +62,8 @@ export interface EmulatorState {
   calls: CallRecord[];
   /** what the phone reports over the hands-free link: battery and signal 0..5, the network */
   phoneStatus: { battery: number; signal: number; operator: string; roaming: boolean };
+  /** the steering wheel, -1 full left .. 1 full right; only the vendor's camera screen reads it, from the CAN box */
+  steering: number;
   /** Bluetooth switching on, asked by the phone app */
   btTurningOn: boolean;
   /** the phone Bluetooth reports as connected */
@@ -792,6 +794,10 @@ export function dismissMessage() {
   if (state.newMessage) set({ newMessage: null });
 }
 
+export function setSteering(steering: number) {
+  set({ steering });
+}
+
 export function setPhoneStatus(status: { battery?: number; signal?: number; operator?: string; roaming?: boolean }) {
   carEvent({ type: "PhoneStatus", ...status });
 }
@@ -821,6 +827,13 @@ export function setSound(next: SoundSettings) {
   const writes = bridge.soundWrites(state.shell.dsp, next);
   shellAction({ type: "SetSound", settings: next });
   writes.forEach((write) => carCommand({ type: "Dsp", write }));
+}
+
+/** The camera settings: only the vendor values that moved are written (core-car Camera.writes). */
+export function setCamera(next: CameraSettings) {
+  const writes = bridge.cameraWrites(state.shell.camera, next);
+  shellAction({ type: "SetCamera", settings: next });
+  writes.forEach((write) => carCommand({ type: "Camera.Write", write }));
 }
 
 export function shellAction(action: ShellAction) {
@@ -973,6 +986,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     contacts: SAMPLE_CONTACTS,
     calls: sampleCalls(Date.now()),
     phoneStatus: { battery: 4, signal: 3, operator: "Vela Mobile", roaming: false },
+    steering: 0,
     btTurningOn: false,
     voiceAssistant: false,
     messages: [

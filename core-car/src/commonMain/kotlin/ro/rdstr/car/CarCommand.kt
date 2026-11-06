@@ -92,5 +92,7 @@ sealed class CarCommand {
     sealed class Camera : CarCommand() {
         @Serializable @SerialName("Camera.Show") data object Show : Camera()
         @Serializable @SerialName("Camera.Hide") data object Hide : Camera()
+        /** One call on the vendor's camera settings (Camera.writes). */
+        @Serializable @SerialName("Camera.Write") data class Write(val write: DspWrite) : Camera()
     }
 }

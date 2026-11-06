@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { Face, SteeringKey, ThemeMode } from "../car/bridge";
 import { SAMPLE_CALLERS, SAMPLE_PHONE } from "../car/phone";
-import { carEvent, dashMinutes, resetDash, setInstalled, UNIT_APPS, GPS_PLACES, incomingCall, incomingMessage, remoteHangUp, removePack, setPhoneStatus, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
+import { carEvent, dashMinutes, resetDash, setInstalled, UNIT_APPS, GPS_PLACES, incomingCall, incomingMessage, remoteHangUp, removePack, setPhoneStatus, setSteering, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Field, holdToRepeat, Section, Segmented, Switch } from "./controls";
 
 const DEFAULT_TRACK_MS = 228000;
@@ -42,11 +42,14 @@ function SteeringWheel() {
 }
 
 function Signals() {
-  const { car, acc } = useEmulator();
+  const { car, acc, steering } = useEmulator();
   return (
     <Section title="Signals" open>
       <Switch label="Ignition (ACC)" checked={acc} onChange={(on) => carEvent({ type: "Power", acc: on })} />
       <Switch label="Reverse gear" checked={car.camera} onChange={(on) => carEvent({ type: "ReverseGear", on })} />
+      <Row label={`Steering ${steering < 0 ? "left" : steering > 0 ? "right" : "straight"}`}>
+        <input type="range" min="-1" max="1" step="0.05" value={steering} onChange={(e) => setSteering(Number(e.target.value))} />
+      </Row>
       <Switch label="Headlights" checked={car.night} onChange={(on) => carEvent({ type: "Illumination", on })} />
     </Section>
   );

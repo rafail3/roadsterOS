@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { bridge } from "../car/bridge";
-import { carCommand, carEvent, dismissMessage, openThread, shellAction, useNow, type EmulatorState } from "../car/store";
+import { bridge, type CameraSettings } from "../car/bridge";
+import { carCommand, carEvent, dismissMessage, openThread, shellAction, useEmulator, useNow, type EmulatorState } from "../car/store";
 import { Contacts, PadKey } from "./PhoneApp";
 
 const TONE_KEYS: [string, string][] = [
@@ -209,11 +209,43 @@ export function MessageBanner({ emulator }: { emulator: EmulatorState }) {
   );
 }
 
+// the lines as the vendor's camera screen draws them on the 1024x600 screen: near the car at the bottom, far up
+const GUIDE_NEAR_Y = 560;
+const GUIDE_DEPTH = 260;
+const GUIDE_NEAR_X = 250;
+const GUIDE_NARROWING = 150;
+/** How far the far end of a line moves sideways at full lock. */
+const GUIDE_BEND = 170;
+const GUIDE_TICK = 36;
+const GUIDE_SEGMENTS: [number, number, string][] = [[0, 0.3, "#ff453a"], [0.3, 0.6, "#ffd60a"], [0.6, 1, "#30d158"]];
+
+/** Fixed lines, or lines that bend with [steering] (-1 full left .. 1 full right); [linePos] moves them up or down. */
+export function GuideLines({ camera, steering }: { camera: CameraSettings; steering: number }) {
+  if (camera.guidelines === "OFF") return null;
+  const bend = camera.guidelines === "STEERING" ? steering * GUIDE_BEND : 0;
+  const at = (side: -1 | 1, t: number) => [512 + side * (512 - GUIDE_NEAR_X - GUIDE_NARROWING * t) + bend * t * t, GUIDE_NEAR_Y - GUIDE_DEPTH * t];
+  const line = (side: -1 | 1, from: number, to: number) =>
+    Array.from({ length: 9 }, (_, i) => at(side, from + ((to - from) * i) / 8).join(",")).join(" ");
+  return (
+    <svg className="guide-lines" viewBox="0 0 1024 600" aria-hidden="true" style={{ transform: `translateY(${(camera.linePos / 600) * 100}%)` }}>
+      {([-1, 1] as const).map((side) => GUIDE_SEGMENTS.map(([from, to, color]) => {
+        const [x, y] = at(side, to);
+        return (<g key={`${side}${from}`} stroke={color}>
+          <polyline points={line(side, from, to)} />
+          <line x1={x} y1={y} x2={x - side * GUIDE_TICK} y2={y} />
+        </g>);
+      }))}
+    </svg>
+  );
+}
+
 export function CameraOverlay() {
+  const { shell, steering } = useEmulator();
   return (
     <section className="overlay camera" role="dialog" aria-modal="true" aria-label="Reverse camera">
-      <div className="camera-feed" role="img" aria-label="Reverse camera, synthetic frame">
-        <div className="guide guide-l" aria-hidden="true" /><div className="guide guide-r" aria-hidden="true" />
+      <div className="camera-feed" role="img" aria-label={`Reverse camera, synthetic frame${shell.camera.mirror ? ", mirrored" : ""}`}>
+        <div className={`camera-scene${shell.camera.mirror ? " is-mirrored" : ""}`} aria-hidden="true" />
+        <GuideLines camera={shell.camera} steering={steering} />
       </div>
       <button className="camera-close" aria-label="Close camera" onClick={() => carEvent({ type: "ReverseGear", on: false })}><span className="icon i-x" /></button>
       <p className="camera-label">Reverse camera</p>

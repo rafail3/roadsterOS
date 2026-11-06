@@ -25,6 +25,8 @@ class VendorCarBus(context: Context) : CarBus {
             CarCommand.Bluetooth.Disconnect -> phone.link(null, connect = false)
             is CarCommand.DashKey -> dash.press(command.key)
             is CarCommand.Dsp -> sound.write(command.write)
+            // the vendor's camera screen reads these from libts50xhw; logged until the unit shows which way in works
+            is CarCommand.Camera.Write -> Log.i("rdstr.camera", "${command.write.call}(${command.write.args.joinToString()})")
             else -> Log.i("VendorCarBus", "send $command")
         }
     }

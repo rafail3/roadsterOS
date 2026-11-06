@@ -1,16 +1,26 @@
 import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
-import { bridge, type AnimationSpeed, type AodFace, type FaceMode, type ThemeMode, type TimeSource } from "../car/bridge";
-import { allTimeZones, carCommand, factoryReset, setSound, openAndroidSettings, restartShell, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
+import { bridge, type AnimationSpeed, type AodFace, type CameraSettings, type FaceMode, type Guidelines, type ReverseDip, type ThemeMode, type TimeSource } from "../car/bridge";
+import { allTimeZones, carCommand, factoryReset, setCamera, setSound, openAndroidSettings, restartShell, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
 import { Keyboard } from "./Keyboard";
 import { PillSlider } from "./Drawer";
 import { useCloseOntoCard } from "./media";
+import { GuideLines } from "./Overlays";
 
-type Page = "wifi" | "bluetooth" | "location" | "display" | "datetime" | "dash" | "sound" | "phone" | "home" | "maps" | "about" | "developer";
+type Page = "wifi" | "bluetooth" | "location" | "display" | "datetime" | "dash" | "camera" | "sound" | "phone" | "home" | "maps" | "about" | "developer";
 
 /** The level a start is capped at when the limit is first switched on. */
 const START_VOLUME_DEFAULT = 12;
 const BRIGHTNESS_KEY_STEP = 5;
 const MB = 1024 * 1024;
+// the vendor's range for the lines' height, in pixels of the 1024x600 screen (core-car Camera)
+const LINE_POS_MIN = -200;
+const LINE_POS_MAX = 70;
+const LINE_POS_STEP = 10;
+const GUIDE_FOOTERS: Record<Guidelines, string> = {
+  OFF: "No lines over the picture.",
+  FIXED: "Two lines show the car's width and how close things are: red is nearest, then yellow and green.",
+  STEERING: "The lines bend as the steering wheel turns, from the angle the car's CAN box sends. Red is nearest.",
+};
 // what the unit's About page reads (SystemInfo on Android); fixed values for the emulator
 const ABOUT = { android: "8.1.0", model: "8227L_demo", screen: "1024 × 600", appMemory: 27 * MB, freeMemory: 214 * MB, totalMemory: 1003 * MB, freeStorage: 8.6 * 1024 * MB, totalStorage: 11.9 * 1024 * MB };
 const VERSION = process.env.RDSTR_VERSION ?? "dev";
@@ -323,6 +333,43 @@ function Sound({ e }: { e: EmulatorState }) {
   </>);
 }
 
+function ReverseCamera({ e }: { e: EmulatorState }) {
+  const camera = e.shell.camera;
+  const put = (patch: Partial<CameraSettings>) => setCamera({ ...camera, ...patch });
+  // the screen's y grows downwards: the lines go up with a smaller value, shown as a higher number
+  const height = -camera.linePos;
+  return (<>
+    <Group title="Picture" footer="Flips the picture left to right. Turn it on when things on the screen sit on the other side than in the car's mirrors.">
+      <Row label="Mirror Image"><Switch label="Mirror Image" on={camera.mirror} onChange={(mirror) => put({ mirror })} /></Row>
+    </Group>
+    <Group title="Guidelines" footer={GUIDE_FOOTERS[camera.guidelines]}>
+      <Row label="Lines">
+        <Segmented<Guidelines> label="Guidelines" options={[["OFF", "Off"], ["FIXED", "Fixed"], ["STEERING", "Steering"]]} value={camera.guidelines} onChange={(guidelines) => put({ guidelines })} />
+      </Row>
+      {camera.guidelines !== "OFF" && (<>
+        <div className="set-row cam-preview-row">
+          <div className="camera-feed cam-preview" role="img" aria-label="Preview of the guidelines">
+            <div className={`camera-scene${camera.mirror ? " is-mirrored" : ""}`} aria-hidden="true" />
+            <GuideLines camera={camera} steering={e.steering} />
+          </div>
+        </div>
+        <Row label="Height">
+          <span className="set-stepper">
+            <button aria-label="Move the lines down" disabled={camera.linePos >= LINE_POS_MAX} onClick={() => put({ linePos: Math.min(LINE_POS_MAX, camera.linePos + LINE_POS_STEP) })}><span className="icon i-caret-down" aria-hidden="true" /></button>
+            <output aria-live="polite" aria-label="Guideline height">{height > 0 ? `+${height}` : height}</output>
+            <button aria-label="Move the lines up" disabled={camera.linePos <= LINE_POS_MIN} onClick={() => put({ linePos: Math.max(LINE_POS_MIN, camera.linePos - LINE_POS_STEP) })}><span className="icon i-caret-up" aria-hidden="true" /></button>
+          </span>
+        </Row>
+      </>)}
+    </Group>
+    <Group title="Music" footer="While reverse gear is in, music and the radio play quieter; they go back to their level when it comes out.">
+      <Row label="Lower the Music">
+        <Segmented<ReverseDip> label="Lower the music while reversing" options={[["NONE", "Off"], ["WEAK", "A Little"], ["MEDIUM", "Medium"], ["STRONG", "A Lot"]]} value={camera.dip} onChange={(dip) => put({ dip })} />
+      </Row>
+    </Group>
+  </>);
+}
+
 function Phone({ e }: { e: EmulatorState }) {
   const on = e.shell.lockTypingWhileMoving;
   return (
@@ -521,6 +568,7 @@ const PAGES: { id: Page; label: string; icon: string; tint: string }[] = [
   { id: "sound", label: "Sound", icon: "i-speaker-high-fill", tint: "#ff375f" },
   { id: "phone", label: "Phone", icon: "i-phone-fill", tint: "#17d847" },
   { id: "dash", label: "Car Display", icon: "i-car-fill", tint: "#ff3b30" },
+  { id: "camera", label: "Reverse Camera", icon: "i-camera", tint: "#ff9f0a" },
   { id: "home", label: "Home Screen", icon: "i-house-fill", tint: "#5e5ce6" },
   { id: "maps", label: "Maps", icon: "i-map-trifold-fill", tint: "#30d158" },
   { id: "about", label: "About", icon: "i-info-fill", tint: "#8e8e93" },
@@ -576,6 +624,7 @@ export function SettingsApp({ open }: { open: boolean }) {
         {page === "maps" && <Maps e={e} />}
         {page === "home" && <HomeScreen e={e} />}
         {page === "dash" && <CarDisplay e={e} />}
+        {page === "camera" && <ReverseCamera e={e} />}
         {shown === "about" && <About e={e} />}
         {shown === "developer" && <Developer e={e} />}
       </div>

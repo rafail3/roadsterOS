@@ -136,6 +136,8 @@ object CarRuntime {
         ro.rdstr.os.settings.DeveloperTools.setAdb(app, _shell.value.adbEnabled)
         time = ro.rdstr.os.settings.TimeKeeper(app).also { it.apply(_shell.value.autoTime, _shell.value.timeSource) }
         startCallVolume()
+        // the vendor keeps its own copy of the camera settings: ours are written over it at each start
+        ro.rdstr.car.Camera.writes(null, _shell.value.camera).forEach { send(CarCommand.Camera.Write(it)) }
         dash = ro.rdstr.os.settings.DashFollower(app, prefs) { send(CarCommand.DashKey(it)) }.also { it.start { _shell.value.dashMatched } }
         val header = "roadsterOS ${runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull()} " +
             "Android ${android.os.Build.VERSION.RELEASE} ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
@@ -193,6 +195,7 @@ object CarRuntime {
         if (after.adbEnabled != before.adbEnabled) ro.rdstr.os.settings.DeveloperTools.setAdb(app, after.adbEnabled)
         // a change in the sound window: only the processor's values that moved are written
         if (after.dsp != before.dsp) ro.rdstr.car.Sound.writes(before.dsp, after.dsp).forEach { send(CarCommand.Dsp(it)) }
+        if (after.camera != before.camera) ro.rdstr.car.Camera.writes(before.camera, after.camera).forEach { send(CarCommand.Camera.Write(it)) }
         if (Shell.preferences(after) != Shell.preferences(before)) {
             prefs.edit().putString(SHELL_KEY, Shell.encodePreferences(after)).apply()
             Log.i(Radios.TAG, "saved ${Shell.encodePreferences(after)}")

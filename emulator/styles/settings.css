@@ -123,3 +123,7 @@
 .set-app-icon { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; font-size: 18px; font-weight: 700; color: #fff; }
 .set-app-icon.app-mark-other { background: linear-gradient(145deg, hsl(var(--mark-hue) 45% 34%), hsl(var(--mark-hue) 45% 16%)); }
 .set-app-name { display: inline-flex; align-items: center; gap: 14px; }
+
+/* the guidelines over a still frame, to set their height without reverse gear */
+.cam-preview-row { padding-top: 12px; padding-bottom: 12px; }
+.cam-preview { width: 100%; height: auto; aspect-ratio: 1024 / 600; border-radius: 12px; overflow: hidden; }

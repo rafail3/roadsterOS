@@ -87,6 +87,8 @@ data class ShellState(
     val setupDone: Boolean = true,
     /** The sound processor's settings, as last set from the sound window (Sound). */
     val dsp: SoundSettings = SoundSettings(),
+    /** The reverse camera's picture, its lines and the music while reversing (Camera). */
+    val camera: CameraSettings = CameraSettings(),
     /** Every car event is written to a file on the unit, for troubleshooting. */
     val recordEvents: Boolean = false,
 )
@@ -162,6 +164,7 @@ sealed class ShellAction {
     @Serializable @SerialName("SetAnimationSpeed") data class SetAnimationSpeed(val speed: AnimationSpeed) : ShellAction()
     @Serializable @SerialName("FinishSetup") data object FinishSetup : ShellAction()
     @Serializable @SerialName("SetSound") data class SetSound(val settings: SoundSettings) : ShellAction()
+    @Serializable @SerialName("SetCamera") data class SetCamera(val settings: CameraSettings) : ShellAction()
     /** The screen was left alone long enough (see [Shell.aodDue]). */
     @Serializable @SerialName("EnterAod") data object EnterAod : ShellAction()
     /** A touch, a key, a call or reverse gear. */
@@ -308,6 +311,7 @@ object Shell {
         is ShellAction.SetAnimationSpeed -> s.copy(animationSpeed = a.speed)
         ShellAction.FinishSetup -> s.copy(setupDone = true)
         is ShellAction.SetSound -> s.copy(dsp = Sound.clamp(a.settings))
+        is ShellAction.SetCamera -> s.copy(camera = Camera.clamp(a.settings))
         ShellAction.EnterAod -> if (s.aodEnabled && s.screenOn) s.copy(aod = true, drawer = false) else s
         ShellAction.ExitAod -> s.copy(aod = false)
         is ShellAction.SetFaceMode -> s.copy(faceMode = a.mode, face = when (a.mode) {
@@ -351,6 +355,7 @@ object Shell {
         animationSpeed = s.animationSpeed, setupDone = s.setupDone,
         // the call level is for this drive only
         dsp = s.dsp.copy(callVolume = Sound.CALL_VOLUME_DEFAULT),
+        camera = s.camera,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))
