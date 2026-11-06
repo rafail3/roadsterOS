@@ -13,7 +13,9 @@ import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
@@ -40,6 +42,20 @@ class DisplayPlugin : Plugin<Project> {
             kotlinOut.set(project.layout.buildDirectory.dir("generated/rdstr/kotlin"))
             resOut.set(project.layout.buildDirectory.dir("generated/rdstr/res"))
         }
+        val root = project.rootProject.layout.projectDirectory
+        val check = project.tasks.register("checkDisplayLogic", CheckDisplayLogic::class.java) {
+            group = "verification"
+            description = "Checks that the display app implements every piece of logic the emulator's screen uses."
+            components.from(emulator.dir("components").asFileTree.matching { include("*.tsx", "*.ts") })
+            car.from(emulator.dir("car").asFileTree.matching { include("*.ts") })
+            coreCar.from(root.dir("core-car/src/commonMain/kotlin").asFileTree.matching { include("**/*.kt") })
+            android.from(root.dir("app/src/main/kotlin").asFileTree.matching { include("**/*.kt") })
+            android.from(project.layout.projectDirectory.dir("src/main/kotlin").asFileTree.matching { include("**/*.kt") })
+            strict.set(project.providers.gradleProperty("rdstr.display.strict").map { it.toBoolean() }.orElse(false))
+            report.set(project.layout.buildDirectory.file("reports/rdstr/display-logic.md"))
+            base.set(root)
+        }
+        project.tasks.matching { it.name == "test" || it.name == "check" }.configureEach { dependsOn(check) }
         project.extensions.getByType(AndroidComponentsExtension::class.java).onVariants { v ->
             v.sources.kotlin?.addGeneratedSourceDirectory(task, GenerateDisplayUi::kotlinOut)
             v.sources.res?.addGeneratedSourceDirectory(task, GenerateDisplayUi::resOut)
@@ -81,6 +97,36 @@ abstract class GenerateDisplayUi : DefaultTask() {
         val drawables = File(res, "drawable").apply { mkdirs() }
         for ((name, xml) in result.drawables) File(drawables, "$name.xml").writeText(xml)
         logger.lifecycle("rdstr.display: ${result.classCount} token classes, ${result.drawables.size} icons, ${result.fontFiles.size} fonts")
+    }
+}
+
+@CacheableTask
+abstract class CheckDisplayLogic : DefaultTask() {
+    @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val components: ConfigurableFileCollection
+    @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val car: ConfigurableFileCollection
+    @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val coreCar: ConfigurableFileCollection
+    @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val android: ConfigurableFileCollection
+    /** Every gap fails, not only those in components that already have a view. */
+    @get:Input abstract val strict: Property<Boolean>
+    @get:OutputFile abstract val report: RegularFileProperty
+    /** The repository, for paths in the report. */
+    @get:Internal abstract val base: DirectoryProperty
+
+    @TaskAction
+    fun check() {
+        val root = base.get().asFile
+        val result = LogicCheck.run(
+            components.files.associate { it.name to it.readText() },
+            car.files.associate { it.nameWithoutExtension to it.readText() },
+            coreCar.files.map { it.readText() },
+            android.files.associate { it.relativeTo(root).invariantSeparatorsPath to it.readText() },
+        )
+        report.get().asFile.apply { parentFile.mkdirs() }.writeText(result.markdown())
+        val failures = result.failures(strict.get())
+        val logic = result.uses.map { it.key }.distinct()
+        logger.lifecycle("rdstr.display: ${result.screen.size - result.missingViews.size}/${result.screen.size} screen files mirrored, " +
+            "${logic.size - result.missingLogic.map { it.key }.distinct().size}/${logic.size} logic values implemented; report ${report.get().asFile}")
+        if (failures.isNotEmpty()) throw DisplayBuildException("display logic gaps:" + failures.joinToString("") { "\n  $it" })
     }
 }
 

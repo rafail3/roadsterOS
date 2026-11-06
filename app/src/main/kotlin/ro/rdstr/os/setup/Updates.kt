@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import ro.rdstr.car.Updater
 import java.io.File
+import ro.rdstr.ui.Emulates
 
 /**
  * New versions from GitHub Releases (core-car [Updater]): checked once in the background each time the unit joins
@@ -48,6 +49,7 @@ class Updates(private val context: Context) {
     private val current get() = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty()
 
     /** When this version went on the unit, for Settings > About > Software Update (ms since 1970). */
+    @Emulates("store.installedAt")
     val installedAt: Long get() = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime }.getOrDefault(0L)
 
     /** The last check that got an answer, or 0. */
@@ -69,6 +71,7 @@ class Updates(private val context: Context) {
     }
 
     /** Settings > About and the setup check on demand; the result lands in [state]. */
+    @Emulates("store.checkForUpdate")
     fun check() {
         if (_state.value is State.Downloading || _state.value is State.Installing) return
         if (!onWifi) { _state.value = State.NeedsWifi; return }

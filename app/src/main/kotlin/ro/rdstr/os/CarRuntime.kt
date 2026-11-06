@@ -40,6 +40,7 @@ import ro.rdstr.os.cover.CoverDesk
 import ro.rdstr.os.phone.PhoneBookReader
 import ro.rdstr.os.settings.Radios
 import ro.rdstr.os.settings.SystemInfo
+import ro.rdstr.ui.Emulates
 
 data class UiState(
     val state: RulesState = RulesState(),
@@ -101,6 +102,7 @@ object CarRuntime {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var bus: CarBus
     private val _ui = MutableStateFlow(UiState())
+    @Emulates("store.useEmulator")
     val ui: StateFlow<UiState> = _ui
     private var started = false
     private var covers: CoverDesk? = null
@@ -197,6 +199,7 @@ object CarRuntime {
         if (event is CarEvent.PhoneCast && wasLive != (event.state == CarEvent.PhoneCast.State.LIVE)) shellAction(ShellAction.CastChanged(event.state))
     }
 
+    @Emulates("store.carCommand")
     fun send(command: CarCommand) {
         // a phone picked by hand ends the wait for the last one
         if (command is CarCommand.Bluetooth.Connect && !reconnecting) connecting?.cancel()
@@ -206,6 +209,7 @@ object CarRuntime {
     }
 
     /** A shell action from the screen; a changed preference is written at once, so a power cut does not lose it. */
+    @Emulates("store.shellAction")
     fun shellAction(action: ShellAction) {
         val before = _shell.value
         val after = Shell.reduce(before, action)
@@ -228,6 +232,7 @@ object CarRuntime {
     private var lastActivity = android.os.SystemClock.elapsedRealtime()
 
     /** A touch on any of our screens, or a key: the always-on display ends and its wait starts again. */
+    @Emulates("store.userActivity")
     fun userActivity() {
         lastActivity = android.os.SystemClock.elapsedRealtime()
         if (_shell.value.aod) shellAction(ShellAction.ExitAod)
@@ -304,18 +309,22 @@ object CarRuntime {
         shellAction(ShellAction.AppsInstalled(apps.map { it.id }))
     }
 
+    @Emulates("store.launchApp")
     fun launch(pkg: String) = ro.rdstr.os.settings.InstalledApps.launch(app, pkg)
 
     /** The Developer section: adb's address on Wi-Fi, Android's developer options. */
+    @Emulates("store.UNIT_IP")
     fun adbAddress() = ro.rdstr.os.settings.DeveloperTools.adbAddress(app)
 
     /** Settings > About > Restart the Unit, after the question: the whole unit reboots (DeveloperTools.reboot). */
+    @Emulates("store.restartUnit")
     fun restartUnit() = ro.rdstr.os.settings.DeveloperTools.reboot(app)
 
     /**
      * Factory reset: every preference file cleared, our files, paired phones and saved networks erased, then a restart
      * into setup (Shell.factoryState).
      */
+    @Emulates("store.factoryReset")
     fun factoryReset() {
         java.io.File(app.applicationInfo.dataDir, "shared_prefs").listFiles()?.forEach { file ->
             app.getSharedPreferences(file.nameWithoutExtension, Context.MODE_PRIVATE).edit().clear().commit()
@@ -325,6 +334,7 @@ object CarRuntime {
         ro.rdstr.os.settings.DeveloperTools.restart(app)
     }
 
+    @Emulates("store.openAndroidSettings")
     fun openAndroidSettings() = ro.rdstr.os.settings.DeveloperTools.openAndroidSettings(app)
 
     /** The About page, read when it opens. */
@@ -361,6 +371,7 @@ object CarRuntime {
      * Opening the phone app: calls need a phone connected for calls, so Bluetooth is switched on when it is off,
      * and the screen asks for a phone until one is connected.
      */
+    @Emulates("store.openPhone")
     fun openPhone(): PhoneGate.Screen {
         val on = radios.bluetoothOn
         if (!on && radios.bluetooth(true)) connectLastPhone()
@@ -371,11 +382,13 @@ object CarRuntime {
      * The drawer's Bluetooth and Wi-Fi switches: on opens the radio's list (Shell RadioSwitched). Bluetooth then asks for
      * the last phone with Connect to Last Phone on; Wi-Fi joins a saved network in range by itself (Android's own).
      */
+    @Emulates("store.setBluetooth")
     fun switchBluetooth(on: Boolean) {
         if (radios.bluetooth(on) && on) connectLastPhone()
         shellAction(ro.rdstr.car.ShellAction.RadioSwitched(ro.rdstr.car.Radio.BLUETOOTH, on))
     }
 
+    @Emulates("store.setWifi")
     fun switchWifi(on: Boolean) {
         radios.wifi(on)
         shellAction(ro.rdstr.car.ShellAction.RadioSwitched(ro.rdstr.car.Radio.WIFI, on))

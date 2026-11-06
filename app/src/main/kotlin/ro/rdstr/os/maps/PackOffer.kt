@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import ro.rdstr.car.MapPacks
+import ro.rdstr.ui.Emulates
 
 /**
  * The offer of the map of the country under the car, by the same rule as the emulator (core-car [MapPacks.offer]):
@@ -16,12 +17,14 @@ class PackOffer(private val context: Context, private val borders: List<MapPacks
     /** A country whose pack is being downloaded; none yet, as there is no download source. */
     var downloading: String? = null
 
+    @Emulates("store.mapOffer")
     fun at(lon: Double, lat: Double): Pair<MapPacks.Country?, MapPacks.Offer> {
         val country = MapPacks.countryAt(borders, lon, lat)
         return country to MapPacks.offer(country?.code, installed, wifi(), declined(), downloading)
     }
 
     /** "Not now": the country is not offered again. */
+    @Emulates("store.declinePack")
     fun decline(code: String) = prefs.edit().putStringSet(DECLINED, declined() + code).apply()
 
     private fun declined(): Set<String> = prefs.getStringSet(DECLINED, emptySet()).orEmpty()

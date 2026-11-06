@@ -7,6 +7,7 @@ import kotlin.math.PI
 import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.sin
+import ro.rdstr.ui.Emulates
 
 /**
  * The over-limit chime, the emulator's two notes: 880 Hz, then 1318.5 Hz 120 ms later, each rising in 10 ms to 0.18 and
@@ -38,6 +39,7 @@ class Chime {
         track.write(samples, 0, samples.size)
     }
 
+    @Emulates("roads.chime")
     fun play() {
         if (track.playState == AudioTrack.PLAYSTATE_PLAYING) track.stop()
         track.reloadStaticData()

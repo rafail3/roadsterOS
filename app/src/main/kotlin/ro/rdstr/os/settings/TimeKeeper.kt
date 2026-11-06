@@ -17,6 +17,7 @@ import ro.rdstr.car.TimeZones
 import ro.rdstr.os.AdminReceiver
 import java.util.TimeZone
 import ro.rdstr.car.Settings as CarSettings
+import ro.rdstr.ui.Emulates
 
 /**
  * The unit's clock: Android's own internet time (Settings.Global.AUTO_TIME, switched as device owner), the time of
@@ -37,6 +38,7 @@ class TimeKeeper(private val context: Context) {
     }
 
     /** The sync chosen in the settings: Android's internet time only for NETWORK, GPS fixes followed only for GPS. */
+    @Emulates("store.setTimeSync")
     fun apply(auto: Boolean, source: TimeSource) {
         val network = auto && source == TimeSource.NETWORK
         val dpm = context.getSystemService(DevicePolicyManager::class.java)
@@ -64,18 +66,22 @@ class TimeKeeper(private val context: Context) {
     }
 
     /** Sets the clock: the settings' date and time steppers, or a GPS fix. */
+    @Emulates("store.shiftClock")
     fun set(ms: Long): Boolean =
         runCatching { alarms.setTime(ms) }.onFailure { Log.w(Radios.TAG, "clock not set", it) }.isSuccess
             .also { Log.i(Radios.TAG, "clock -> $ms ok=$it") }
 
+    @Emulates("store.setTimeZone")
     fun setZone(id: String): Boolean =
         runCatching { alarms.setTimeZone(id) }.onFailure { Log.w(Radios.TAG, "time zone not set", it) }.isSuccess
             .also { Log.i(Radios.TAG, "time zone -> $id ok=$it") }
 
     /** Every zone named after a place, by city (core-car TimeZones). */
+    @Emulates("store.allTimeZones")
     fun zones(): List<String> = TimeZones.places(TimeZone.getAvailableIDs().toList())
 
     /** The zone's offset from GMT right now, summer time included. */
+    @Emulates("store.zoneOffsetMinutes")
     fun offsetMinutes(id: String): Int = TimeZone.getTimeZone(id).getOffset(System.currentTimeMillis()) / 60_000
 
     private companion object { const val GPS_EVERY_MS = 60_000L }
