@@ -56,7 +56,6 @@ const SCENES = [
   ...[["carname", "car_name"], ["prepare", "prepare", 5000], ["wifi", "wifi", 2500], ["update", "update&release=1.19.0"], ["location", "location"],
     ["look", "look"], ["files", "files", 3000], ["welcome", "welcome"]].flatMap(([step, setup, wait]) =>
     looks.map(([theme, design]) => ({ name: `setup-${step}-${theme}-${design}`, query: `theme=${theme}&design=${design}&setup=${setup}`, wait, root: "sf" }))),
-  ...looks.map(([theme, design]) => ({ name: `setup-carname-typing-${theme}-${design}`, query: `theme=${theme}&design=${design}&setup=car_name`, click: ".sf-field", root: "sf" })),
   ...looks.map(([theme, design]) => ({ name: `unitpicture-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=settings`, click: '.set-nav-item:has-text("About")', root: "music-app.settings-app/set-detail/about-hero" })),
   // --- end setup
 ];
