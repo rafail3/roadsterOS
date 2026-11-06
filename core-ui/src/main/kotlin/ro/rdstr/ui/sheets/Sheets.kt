@@ -516,6 +516,8 @@ internal fun emptyLine(context: Context) = text(context, "devices-empty", TextSt
 }
 
 /** A `p` that wraps; [balanced] spreads its lines evenly (`text-wrap: balance`). */
+// Layout.BREAK_STRATEGY_* are the values LineBreaker (API 29) names, available from API 23
+@SuppressLint("WrongConstant")
 internal fun paragraph(context: Context, key: String, style: TextStyle, center: Boolean, balanced: Boolean = false) =
     text(context, key, style, lines = 8).apply {
         if (center) gravity = Gravity.CENTER_HORIZONTAL

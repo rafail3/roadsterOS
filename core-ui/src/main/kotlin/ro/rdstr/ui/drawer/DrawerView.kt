@@ -324,18 +324,7 @@ internal class DrawerGrid(context: Context) : Flex(context, "drawer-grid") {
         val total = outerWidth(widthMeasureSpec)
         val n = childCount
         val mins = FloatArray(n) { i -> (getChildAt(i) as Toggle).minContent() }
-        val fixed = BooleanArray(n)
-        val avail = total - GAP * (n - 1)
-        var share: Float
-        while (true) {
-            val rest = avail - (0 until n).filter { fixed[it] }.sumOf { mins[it].toDouble() }.toFloat()
-            val free = (0 until n).count { !fixed[it] }
-            share = if (free == 0) 0f else rest / free
-            val grow = (0 until n).filter { !fixed[it] && mins[it] > share }
-            if (grow.isEmpty()) break
-            grow.forEach { fixed[it] = true }
-        }
-        ws = FloatArray(n) { if (fixed[it]) mins[it] else share }
+        ws = columns(mins, total, GAP)
         xs = FloatArray(n)
         var x = 0f
         for (i in 0 until n) { xs[i] = x; x += ws[i] + GAP }
@@ -350,9 +339,29 @@ internal class DrawerGrid(context: Context) : Flex(context, "drawer-grid") {
         }
     }
 
-    private companion object {
-        const val GAP = 16f
-        const val TOGGLE_H = 72f
+    companion object {
+        private const val GAP = 16f
+        private const val TOGGLE_H = 72f
+
+        /**
+         * `repeat(n, 1fr)` over [total] with [gap] between: a column narrower than its [mins] entry keeps that
+         * width and the others share what is left, again until none is under its minimum.
+         */
+        fun columns(mins: FloatArray, total: Float, gap: Float): FloatArray {
+            val n = mins.size
+            val fixed = BooleanArray(n)
+            val avail = total - gap * (n - 1)
+            var share: Float
+            while (true) {
+                val rest = avail - (0 until n).filter { fixed[it] }.sumOf { mins[it].toDouble() }.toFloat()
+                val free = (0 until n).count { !fixed[it] }
+                share = if (free == 0) 0f else rest / free
+                val grow = (0 until n).filter { !fixed[it] && mins[it] > share }
+                if (grow.isEmpty()) break
+                grow.forEach { fixed[it] = true }
+            }
+            return FloatArray(n) { if (fixed[it]) mins[it] else share }
+        }
     }
 }
 
