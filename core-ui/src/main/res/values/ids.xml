@@ -2,4 +2,6 @@
 <resources>
     <!-- View tag holding the element key of the visual parity check (UiKey.kt) -->
     <item name="rdstr_ui_key" type="id" />
+    <!-- View tag holding the shell layer a view was put in (ShellView.put) -->
+    <item name="rdstr_layer" type="id" />
 </resources>
