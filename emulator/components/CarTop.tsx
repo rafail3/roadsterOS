@@ -21,7 +21,10 @@ export function speakerLevels(balance: number, fader: number): number[] {
   return [left * front, right * front, left * rear, right * rear];
 }
 
-/** A speaker badge: grille, cone and dust cap, with sound waves towards the cabin as loud as it plays. */
+/** The speaker picture (images/speaker.webp, 160x170, its cone facing right). */
+const SPEAKER = { w: 62, h: 66 };
+
+/** A speaker turned towards the cabin, with sound waves as loud as it plays. */
 function Speaker({ cx, cy, level, side }: { cx: number; cy: number; level: number; side: 1 | -1 }) {
   const wave = (r: number) => {
     const a = Math.PI / 4.2;
@@ -29,13 +32,12 @@ function Speaker({ cx, cy, level, side }: { cx: number; cy: number; level: numbe
     return `M${x1} ${y1} A${r} ${r} 0 0 ${side > 0 ? 1 : 0} ${x1} ${y2}`;
   };
   return (
-    <g className="car-speaker" style={{ opacity: 0.35 + 0.65 * level }}>
-      <circle cx={cx} cy={cy} r="25" className="spk-ring" />
-      <circle cx={cx} cy={cy} r="19" fill="url(#spk-cone)" />
-      <circle cx={cx} cy={cy} r="13" className="spk-surround" />
-      <circle cx={cx} cy={cy} r="6.5" fill="url(#spk-cap)" />
-      {level > 0.02 && <path d={wave(33)} className="spk-wave" style={{ opacity: level }} />}
-      {level > 0.5 && <path d={wave(42)} className="spk-wave" style={{ opacity: (level - 0.5) * 2 }} />}
+    <g className="car-speaker" style={{ opacity: 0.4 + 0.6 * level }}>
+      {/* the picture faces right: the left side's speakers as they are, the right side's mirrored */}
+      <image href="/images/speaker.webp" x={-SPEAKER.w / 2} y={-SPEAKER.h / 2} width={SPEAKER.w} height={SPEAKER.h}
+        transform={`translate(${cx} ${cy}) scale(${side} 1)`} />
+      {level > 0.02 && <path d={wave(40)} className="spk-wave" style={{ opacity: level }} />}
+      {level > 0.5 && <path d={wave(50)} className="spk-wave" style={{ opacity: (level - 0.5) * 2 }} />}
     </g>
   );
 }
@@ -47,17 +49,6 @@ function Speaker({ cx, cy, level, side }: { cx: number; cy: number; level: numbe
 export function CarTop({ lit, levels = [1, 1, 1, 1] }: { lit?: (seat: ListeningSeat) => boolean; levels?: number[] }) {
   return (
     <svg className="car-top" viewBox={`0 0 ${CAR_VIEW.w} ${CAR_VIEW.h}`} aria-hidden="true">
-      <defs>
-        <radialGradient id="spk-cone" cx="40%" cy="35%" r="70%">
-          <stop offset="0" stopColor="#5b616b" />
-          <stop offset="0.6" stopColor="#2a2e34" />
-          <stop offset="1" stopColor="#15171a" />
-        </radialGradient>
-        <radialGradient id="spk-cap" cx="35%" cy="30%" r="75%">
-          <stop offset="0" stopColor="#c9ced6" />
-          <stop offset="1" stopColor="#4a4f57" />
-        </radialGradient>
-      </defs>
       <image href="/images/car-top.webp" x={PICTURE.x} y="0" width={PICTURE.w} height={CAR_VIEW.h} />
       {CAR_SEATS.map((s) => {
         const on = lit?.(s.id) ?? false;
