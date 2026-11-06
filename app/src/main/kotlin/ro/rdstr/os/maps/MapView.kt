@@ -536,7 +536,7 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         const val MAX_ZOOM = 18.0
         /** Where the location button brings the map back to, as in the emulator. */
         const val DRIVE_ZOOM = 15.5
-        /** The unit's GPS gives a position this often while the car drives (MapActivity, the Maps screen). */
+        /** The unit's GPS gives a position this often while the car drives (the Maps screen). */
         const val GPS_EVERY_MS = 500L
         /**
          * MapsApp.tsx follow ease: `duration: driving ? 260 : 600`, linear. The emulator's 260 ms is its 250 ms drive tick
