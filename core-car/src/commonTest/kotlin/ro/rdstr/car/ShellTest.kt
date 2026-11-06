@@ -30,6 +30,20 @@ class ShellTest {
     }
 
     @Test
+    fun `wi-fi waiting for the location prompt opens its networks only after the yes`() {
+        // the prompt is up: nothing is sent, the drawer stays and no list opens under the prompt
+        val asking = ShellState(drawer = true)
+        assertTrue(asking.drawer)
+        assertFalse(asking.networks)
+        // a yes switches Wi-Fi on, then the switch is sent: the list opens and the drawer closes
+        val yes = Shell.reduce(asking, ShellAction.RadioSwitched(Radio.WIFI, on = true))
+        assertTrue(yes.networks)
+        assertFalse(yes.drawer)
+        // switched off again, the list closes
+        assertFalse(Shell.reduce(yes, ShellAction.RadioSwitched(Radio.WIFI, on = false)).networks)
+    }
+
+    @Test
     fun `the sound window opens over the app and Back or Home closes it`() {
         val music = Shell.reduce(ShellState(), ShellAction.OpenApp(App.MUSIC))
         val open = Shell.reduce(music, ShellAction.OpenSound)

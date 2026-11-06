@@ -154,11 +154,11 @@ export function Contacts({ emulator, onDialed, search }: { emulator: EmulatorSta
   );
 }
 
-/** A dial pad key; used by the keypad here and the tones keypad on the call screen. */
-export function PadKey({ digit, letters, onPress }: { digit: string; letters: string; onPress: (key: string) => void }) {
+/** A dial pad key; used by the keypad here and the tones keypad on the call screen; [plus]: holding 0 types "+" (a number to dial, not tones). */
+export function PadKey({ digit, letters, onPress, plus = true }: { digit: string; letters: string; onPress: (key: string) => void; plus?: boolean }) {
   const hold = useRef<{ timer?: ReturnType<typeof setTimeout>; held: boolean }>({ held: false });
   const down = (e: PointerEvent) => {
-    if (e.button !== 0 || digit !== "0") return;
+    if (e.button !== 0 || digit !== "0" || !plus) return;
     hold.current.held = false;
     hold.current.timer = setTimeout(() => { hold.current.held = true; onPress("+"); }, PLUS_HOLD_MS);
   };

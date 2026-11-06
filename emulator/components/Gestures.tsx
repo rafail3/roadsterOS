@@ -15,7 +15,7 @@ const FLICK_SPEED = 0.5;
 const BACK_PX = 72;
 
 /** The pointer's travel in canvas pixels, whatever scale the screen is drawn at. */
-function scaleOf(el: HTMLElement) {
+export function scaleOf(el: HTMLElement) {
   return el.getBoundingClientRect().height / el.offsetHeight || 1;
 }
 

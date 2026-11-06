@@ -396,12 +396,28 @@ export function setLocation(on: boolean) {
   }
 }
 
+/** The drawer's switch asked for location: its networks list waits for the answer. */
+let networksAfterLocation = false;
+
+/**
+ * The drawer's Wi-Fi switch: Shell RadioSwitched once Wi-Fi has really switched, which opens the networks list when
+ * on; with location off the list waits for the prompt's yes and does not open after a no.
+ */
+export function switchWifi(on: boolean) {
+  setWifi(on);
+  if (state.wifiNeedsLocation) networksAfterLocation = true;
+  else shellAction({ type: "RadioSwitched", radio: "WIFI", on });
+}
+
 /** The answer to "Wi-Fi needs location": yes turns location on, then Wi-Fi; no leaves both as they were. */
 export function answerWifiNeedsLocation(turnOn: boolean) {
+  const fromDrawer = networksAfterLocation;
+  networksAfterLocation = false;
   set({ wifiNeedsLocation: false });
   if (!turnOn) return;
   setLocation(true);
   setWifi(true);
+  if (fromDrawer) shellAction({ type: "RadioSwitched", radio: "WIFI", on: true });
 }
 
 export function wifiScan() {

@@ -3,6 +3,7 @@ import { bridge, type App } from "../car/bridge";
 import { formatFreq } from "../car/radio";
 import { genreColor } from "./RadioApp";
 import { shellAction, type EmulatorState } from "../car/store";
+import { scaleOf } from "./Gestures";
 
 /** Our own apps as the open-apps screen shows them; each new screen of the shell adds its entry here. */
 const APP_META: Record<Exclude<App, "HOME">, { label: string; icon: string }> = {
@@ -13,7 +14,7 @@ const APP_META: Record<Exclude<App, "HOME">, { label: string; icon: string }> = 
   SETTINGS: { label: "Settings", icon: "i-gear-six" },
   PHONE_SCREEN: { label: "Phone Screen", icon: "i-device-mobile" },
 };
-/** A card pushed up past this many pixels, or flicked up, is closed. */
+/** A card pushed up past this many canvas pixels, or flicked up, is closed. */
 const CLOSE_DISTANCE = 120;
 const CLOSE_SPEED = 0.8;
 const TAP_SLOP = 6;
@@ -85,7 +86,8 @@ function Card({ app, emulator }: { app: Exclude<App, "HOME">; emulator: Emulator
   const meta = APP_META[app];
   const [dy, setDy] = useState(0);
   const [leaving, setLeaving] = useState(false);
-  const drag = useRef<{ y: number; t: number; lastY: number; lastT: number } | null>(null);
+  // in canvas pixels; [sideways] is decided once the finger has moved past the tap slop: sideways scrolls the row
+  const drag = useRef<{ x: number; y: number; t: number; scale: number; list: HTMLElement | null; left: number; sideways: boolean | null } | null>(null);
   // the card flies up, then the app closes; a timer rather than transitionend, which never comes with reduced motion off-screen
   const close = () => {
     setDy(0);
@@ -95,26 +97,31 @@ function Card({ app, emulator }: { app: Exclude<App, "HOME">; emulator: Emulator
 
   const down = (e: PointerEvent<HTMLButtonElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { y: e.clientY, t: e.timeStamp, lastY: e.clientY, lastT: e.timeStamp };
+    const list = e.currentTarget.closest<HTMLElement>(".recents-list");
+    drag.current = { x: e.clientX, y: e.clientY, t: e.timeStamp, scale: scaleOf(e.currentTarget), list, left: list?.scrollLeft ?? 0, sideways: null };
   };
+  const travelOf = (e: PointerEvent<HTMLButtonElement>, d: NonNullable<typeof drag.current>) =>
+    ({ x: (e.clientX - d.x) / d.scale, y: (e.clientY - d.y) / d.scale });
   const move = (e: PointerEvent<HTMLButtonElement>) => {
     const d = drag.current;
     if (!d) return;
-    d.lastY = e.clientY;
-    d.lastT = e.timeStamp;
+    const travel = travelOf(e, d);
+    if (d.sideways === null && Math.hypot(travel.x, travel.y) >= TAP_SLOP) d.sideways = Math.abs(travel.x) > Math.abs(travel.y);
+    // sideways: the row scrolls under the finger, when it is wider than the screen
+    if (d.sideways) { if (d.list) d.list.scrollLeft = d.left - travel.x; return; }
     // only upward travel moves the card; downward is resisted
-    const travel = e.clientY - d.y;
-    setDy(travel < 0 ? travel : travel / 6);
+    setDy(travel.y < 0 ? travel.y : travel.y / 6);
   };
   const up = (e: PointerEvent<HTMLButtonElement>) => {
     const d = drag.current;
     drag.current = null;
     if (!d) return;
-    const travel = e.clientY - d.y;
-    const speed = -travel / Math.max(1, e.timeStamp - d.t);
-    if (travel < -CLOSE_DISTANCE || (travel < -TAP_SLOP * 4 && speed > CLOSE_SPEED)) return close();
+    const travel = travelOf(e, d);
     setDy(0);
-    if (Math.abs(travel) < TAP_SLOP) shellAction({ type: "OpenApp", app });
+    if (d.sideways) return;
+    const speed = -travel.y / Math.max(1, e.timeStamp - d.t);
+    if (travel.y < -CLOSE_DISTANCE || (travel.y < -TAP_SLOP * 4 && speed > CLOSE_SPEED)) return close();
+    if (Math.hypot(travel.x, travel.y) < TAP_SLOP) shellAction({ type: "OpenApp", app });
   };
 
   return (

@@ -120,8 +120,8 @@ class Tokens(private val declarations: List<Declaration>) {
         val ALIASES = mapOf(
             // the apps with their own coloured backdrop and the call, dark by day too (tokens.css)
             ":is(.music-app:not(.settings-app, .phone-app, .maps-app), .call)" to ".immersive",
-            // the status bar over an open music or radio app (music.css)
-            ".screen:has(.music-app:not(.settings-app, .phone-app, .maps-app).is-open) :is(.bar, .bar-text, #bar-theme)" to ".screen .music-bar",
+            // the status bar over an open music, radio or phone screen app (music.css)
+            ".screen:has(:is(.music-app:not(.settings-app, .phone-app, .maps-app), .cast-app).is-open) :is(.bar, .bar-text, #bar-theme)" to ".screen .music-bar",
         )
 
         fun scopeOf(file: String, selector: String): Scope {

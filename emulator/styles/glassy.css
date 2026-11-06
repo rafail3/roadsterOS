@@ -57,7 +57,7 @@
 }
 /* coloured keys and badges keep their colour as tinted glass: the same sheen, rim and frost over their own fill;
    :is, not :where, so the sheen stays over the coloured states (a green answer key, a red decline) */
-[data-design="glassy"] :is(.cast-action, .setup-start, .map-offer-button, .map-offer-icon, .music-nophone-pair, .kb-submit,
+[data-design="glassy"] :is(.cast-action, .map-offer-button, .map-offer-icon, .music-nophone-pair, .kb-submit,
   .wifi-location-on, .voice-mic, .ctl-primary, .ctl-accent, .ctl-danger, .device-trash, .call-key, .phone-send, .message-banner-icon,
   .notice-disc, .alert-button.is-primary, .radio-tag.is-band, .radio-genre, .phone-avatar, .call-avatar) {
   background-image: var(--glassy-sheen);
@@ -65,6 +65,8 @@
   backdrop-filter: var(--glassy-frost);
   box-shadow: var(--glassy-shadow);
 }
+/* the avatars' own colour is a gradient: the sheen goes over it (.screen: the list above weighs as two classes) */
+.screen[data-design="glassy"] :is(.phone-avatar, .call-avatar) { background-image: var(--glassy-sheen), var(--phone-avatar); }
 
 /* a quick toggle that is on: its colour as tinted glass, the sheen, rim and frost over it */
 [data-design="glassy"] .toggle.is-on {
@@ -75,7 +77,7 @@
 }
 
 /* the chosen section keeps its colour, under the same sheen and rim */
-[data-design="glassy"] :is(.set-nav-item.is-current, .radio-row.is-active, .phone-tabs button[aria-pressed="true"], .radio-bands button[aria-pressed="true"]) { background-image: var(--glassy-sheen); box-shadow: var(--glassy-shadow); }
+[data-design="glassy"] :is(.set-nav-item.is-current, .radio-row.is-active, .phone-tabs button[aria-selected="true"], .radio-bands button[aria-pressed="true"]) { background-image: var(--glassy-sheen); box-shadow: var(--glassy-shadow); }
 
 /* transport keys sit on glass discs drawn inside their touch area (the area stays as on Solid), about two thirds of
    it, so the keys keep their spacing on the card and the strip as well as in the apps; play's is lighter */
