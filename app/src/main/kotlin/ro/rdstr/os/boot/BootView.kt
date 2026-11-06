@@ -11,6 +11,7 @@ import android.graphics.Shader
 import android.os.SystemClock
 import android.view.View
 import ro.rdstr.car.BootArt
+import ro.rdstr.ui.Mirrors
 import kotlin.math.floor
 import kotlin.math.min
 
@@ -19,6 +20,7 @@ import kotlin.math.min
  * emulator draws them (emulator/components/Boot.tsx): the dots, the font and the timeline come from core-car BootArt,
  * and every position, size and colour below is the emulator's. A screen of another size gets the picture scaled to fit.
  */
+@Mirrors("Boot.tsx")
 class BootView(context: Context, private val mode: Mode, private val version: String = "", private val onDone: () -> Unit) : View(context) {
     enum class Mode { BOOT, START }
 
