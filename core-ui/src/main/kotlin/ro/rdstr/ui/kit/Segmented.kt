@@ -37,6 +37,9 @@ class KitSegmented(context: Context) : KitView(context) {
     var selected = -1
         set(v) { if (field == v) return; field = v; changed() }
     var onChange: ((Int) -> Unit)? = null
+    /** Solid only: equal segments across the whole width it is given (`flex: 1; min-width: 0` on each button). */
+    var stretch = false
+        set(v) { field = v; requestLayout() }
 
     private var glassy = false
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -143,7 +146,16 @@ class KitSegmented(context: Context) : KitView(context) {
         if (glassy) { w = tab * labels.size; h = tabH } else {
             w = 2 * SOLID_PAD + widths.sum() + SOLID_GAP * max(0, labels.size - 1); h = 2 * SOLID_PAD + SOLID_H
         }
-        setMeasuredDimension(resolveSize((w * d + 0.5f).toInt(), widthMeasureSpec), resolveSize((h * d + 0.5f).toInt(), heightMeasureSpec))
+        if (stretch && !glassy && MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.UNSPECIFIED && labels.isNotEmpty()) {
+            val all = MeasureSpec.getSize(widthMeasureSpec)
+            val each = (all / d - 2 * SOLID_PAD - SOLID_GAP * (labels.size - 1)) / labels.size
+            widths = FloatArray(labels.size) { each }
+            setMeasuredDimension(all, resolveSize((h * d + 0.5f).toInt(), heightMeasureSpec))
+            return
+        }
+        // a stretched control keeps its own width on Glassy, whatever its parent gives it
+        val mw = if (stretch) (w * d + 0.5f).toInt() else resolveSize((w * d + 0.5f).toInt(), widthMeasureSpec)
+        setMeasuredDimension(mw, resolveSize((h * d + 0.5f).toInt(), heightMeasureSpec))
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) { if (glassy) glass(0) }
