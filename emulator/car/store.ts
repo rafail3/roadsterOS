@@ -90,6 +90,10 @@ export interface EmulatorState {
   locationOn: boolean;
   /** a newer version published on GitHub (simulated), or null when the unit runs the latest */
   releaseOut: string | null;
+  /** the "restart the unit?" question is on screen */
+  restartAsked: boolean;
+  /** Settings > About > Software Update: the last check and what it found */
+  updateCheck: { state: "IDLE" | "CHECKING" | "LATEST" | "AVAILABLE" | "FAILED"; at: number | null };
   /** Wi-Fi was asked to turn on while location is off: the screen asks to turn location on first */
   wifiNeedsLocation: boolean;
   acc: boolean;
@@ -1120,6 +1124,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     wifi: { saved: [WIFI_NETWORKS[0].ssid], connected: WIFI_NETWORKS[0].ssid, connecting: null, wrongPassword: null, seen: [] },
     locationOn: true,
     releaseOut: null,
+    restartAsked: false,
+    updateCheck: { state: "IDLE", at: null },
     wifiNeedsLocation: false,
     acc: true,
     hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : null,
@@ -1228,7 +1234,32 @@ export function shiftClock(ms: number) {
 export const UNIT_IP = "192.168.43.120";
 
 /** Restart roadsterOS: the process ends and home opens again (DeveloperTools.restart); here, the page reloads. */
-export function restartShell() {
+/** Looks for a newer version on GitHub, as the unit does on demand (Updates.check); Wi-Fi only. */
+export function checkForUpdate() {
+  if (!state.wifi.connected || state.updateCheck.state === "CHECKING") return;
+  set({ updateCheck: { state: "CHECKING", at: state.updateCheck.at } });
+  setTimeout(() => set({ updateCheck: { state: state.releaseOut ? "AVAILABLE" : "LATEST", at: Date.now() } }), 1200);
+}
+
+/** When this version went on the unit (on the unit: the package's last update time), kept from the first start. */
+export function installedAt(): number {
+  try {
+    const kept = Number(localStorage.getItem("rdstr.installed"));
+    if (kept) return kept;
+    const now = Date.now();
+    localStorage.setItem("rdstr.installed", String(now));
+    return now;
+  } catch { return Date.now(); }
+}
+
+/** The question before a restart, from About or a long press on Settings in the drawer (which closes). */
+export function askRestart(on: boolean) {
+  if (on) shellAction({ type: "CloseDrawer" });
+  set({ restartAsked: on });
+}
+
+/** The whole unit starts again (CarRuntime.restartUnit): here the page loads again, from the boot screen. */
+export function restartUnit() {
   window.location.reload();
 }
 

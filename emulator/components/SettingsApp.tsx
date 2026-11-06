@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { bridge, type AnimationSpeed, type Design, type AodFace, type CameraSettings, type FaceMode, type Guidelines, type ReverseDip, type ThemeMode, type TimeSource } from "../car/bridge";
-import { allTimeZones, carCommand, factoryReset, setCamera, setCastVisible, setSound, openAndroidSettings, restartShell, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
+import { allTimeZones, carCommand, factoryReset, setCamera, setCastVisible, setSound, openAndroidSettings, askRestart, checkForUpdate, installedAt, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
+import { UnitPicture } from "./UnitPicture";
+import { downloadFigures, useUpdateInstall } from "./update";
 import { Keyboard } from "./Keyboard";
 import { PillSlider } from "./Drawer";
 import { useCloseOntoCard } from "./media";
@@ -566,11 +568,55 @@ function HomeScreen({ e }: { e: EmulatorState }) {
   </>);
 }
 
+/** Settings > About > Software Update: the version on the unit, when it came, and a check for a newer one. */
+function SoftwareUpdate({ e, onDone }: { e: EmulatorState; onDone: () => void }) {
+  const { download, done, restartIn, install } = useUpdateInstall();
+  const check = e.updateCheck;
+  const wifi = e.wifi.connected !== null;
+  const when = (ms: number, time = false) => new Date(ms).toLocaleString("en-GB", time
+    ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "long", year: "numeric" });
+  return (<>
+    <button className="set-back" onClick={onDone}><span className="icon i-caret-left" aria-hidden="true" />About</button>
+    <h3 className="set-sub-title">Software Update</h3>
+    <Group>
+      <Row label="Version" value={`roadsterOS ${VERSION}`} />
+      <Row label="Installed" value={when(installedAt())} />
+    </Group>
+    {download ? (
+      <Group footer={done ? `Installed. The unit restarts in ${restartIn} s.` : downloadFigures(download)}>
+        <div className="set-row set-update-progress" aria-live="polite">
+          <span className="set-row-label">{done ? `roadsterOS ${e.releaseOut ?? ""} installed` : `Downloading roadsterOS ${e.releaseOut ?? ""}`}</span>
+          <span className="set-row-value">{download.percent}%</span>
+          <span className="set-progress" aria-hidden="true"><span style={{ transform: `scaleX(${download.fraction})` }} /></span>
+        </div>
+      </Group>
+    ) : check.state === "AVAILABLE" && e.releaseOut ? (
+      <Group footer="Downloads over Wi-Fi and installs while the car is parked; the unit restarts once it is in.">
+        <Row label={`roadsterOS ${e.releaseOut}`} value="2.5 MB" />
+        <Row label="Download and Install" onPress={install} />
+      </Group>
+    ) : (
+      <Group footer={!wifi ? "Connect the unit to Wi-Fi to look for a newer version." : check.state === "FAILED" ? "GitHub did not answer. Try again in a moment."
+        : check.at ? `Last checked ${when(check.at, true)}.` : "The unit also looks by itself each time it joins Wi-Fi."}>
+        {check.state === "LATEST" && <Row label="roadsterOS is up to date" value={VERSION} />}
+        {wifi
+          ? <Row label={check.state === "CHECKING" ? "Checking…" : "Check for Updates"} onPress={check.state === "CHECKING" ? undefined : checkForUpdate} />
+          : <Row label="Connect to Wi-Fi" onPress={() => shellAction({ type: "OpenNetworks" })} />}
+      </Group>
+    )}
+  </>);
+}
+
 function About({ e }: { e: EmulatorState }) {
   const [confirm, setConfirm] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  if (updating) return <SoftwareUpdate e={e} onDone={() => setUpdating(false)} />;
   return (<>
+    <UnitPicture />
     <Group>
-      <Row label="roadsterOS" value={VERSION} />
+      <Row label="Car" value={e.shell.carName || "Not named"} />
+      <Row label="roadsterOS" value={VERSION} onPress={() => setUpdating(true)} />
+      <Row label="Screen Sharing" value={bridge.castReceiver()} />
       <Row label="Android" value={ABOUT.android} />
       <Row label="Platform" value={ABOUT.model} />
       <Row label="Screen" value={ABOUT.screen} />
@@ -587,6 +633,9 @@ function About({ e }: { e: EmulatorState }) {
     </Group>
     <Group footer="Shows the Developer section after About: adb, touches and the frame rate on screen, the animation speed.">
       <Row label="Developer Settings"><Switch label="Developer Settings" on={e.shell.developer} onChange={(on) => shellAction({ type: "SetDeveloper", on })} /></Row>
+    </Group>
+    <Group footer="Starts the whole unit again, as switching the car off and on does.">
+      <Row label="Restart the Unit…" onPress={() => askRestart(true)} />
     </Group>
     <Group footer={confirm ? "Theme, brightness, clock and sound settings go back to their defaults. Phones, networks and maps stay." : undefined}>
       {confirm
@@ -617,7 +666,6 @@ function Developer({ e }: { e: EmulatorState }) {
     <Group title="System" footer={opened
       ? "On the unit this opens Android's own developer options over roadsterOS; the emulator has no Android behind it, so it only logs the request."
       : "Android's own developer options hold every other setting of the unit."}>
-      <Row label="Restart roadsterOS" onPress={restartShell} />
       <Row label="Android Developer Options" onPress={() => { openAndroidSettings(); setOpened(true); }} />
     </Group>
     <Group footer={erasing

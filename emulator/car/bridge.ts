@@ -270,6 +270,7 @@ interface Kotlin {
       carName(typed: string): string;
       carNameChar(c: string): boolean;
       carNameMin(): number;
+      castReceiver(): string;
       networkOrder(networks: string, connected: string | null, saved: string): string;
       carNameMax(): number;
       aodDue(state: string, idleMs: number, busy: boolean): boolean;
@@ -431,6 +432,8 @@ export const bridge = {
   carName: (typed: string): string => K!.Bridge.carName(typed),
   carNameChar: (c: string): boolean => K!.Bridge.carNameChar(c),
   carNameMin: (): number => K!.Bridge.carNameMin(),
+  /** The screen-sharing receiver's name and version, for About (core-car PhoneCast.RECEIVER). */
+  castReceiver: (): string => K!.Bridge.castReceiver(),
   /** The Wi-Fi screen's list: joined first, then saved, then by signal (core-car Setup.networkOrder). */
   networkOrder: (networks: { ssid: string; signal: number; secure: boolean }[], connected: string | null, saved: string[]): { ssid: string; signal: number; secure: boolean }[] =>
     JSON.parse(K!.Bridge.networkOrder(JSON.stringify(networks.map(({ ssid, signal, secure }) => ({ ssid, signal, secure }))), connected, JSON.stringify(saved))),

@@ -1,7 +1,7 @@
 import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from "react";
 import { useGlisse } from "./glassy";
 import { bridge } from "../car/bridge";
-import { carCommand, setBluetooth, setLocation, setVolume, setWifi, shellAction, type EmulatorState } from "../car/store";
+import { askRestart, carCommand, setBluetooth, setLocation, setVolume, setWifi, shellAction, type EmulatorState } from "../car/store";
 import { useMuteFill } from "./VolumeHud";
 
 const THEME_LABEL = { AUTO: "Auto", LIGHT: "Day", DARK: "Night" };
@@ -45,25 +45,32 @@ export function useDrawerDrag(drawer: RefObject<HTMLElement | null>) {
 /** Held this long, a toggle opens its details instead of switching. */
 const LONG_PRESS_MS = 500;
 
-/** A quick toggle: an icon disc, its name and its state; the disc takes the function's colour while on. */
-function Toggle({ kind, on, icon, title, state, onClick, onLongPress }: { kind: string; on: boolean; icon: string; title: string; state: string; onClick: () => void; onLongPress?: () => void }) {
+/** A tap does [onClick]; held [LONG_PRESS_MS] it does [onLongPress] instead, and the click that ends the hold is not a tap. */
+function useLongPress(onClick: () => void, onLongPress?: () => void) {
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const held = useRef(false);
   const cancel = () => clearTimeout(timer.current);
+  return {
+    onPointerDown: () => {
+      held.current = false;
+      if (onLongPress) timer.current = setTimeout(() => { held.current = true; onLongPress(); }, LONG_PRESS_MS);
+    },
+    onPointerUp: cancel,
+    onPointerLeave: cancel,
+    onPointerCancel: cancel,
+    onClick: () => { if (held.current) held.current = false; else onClick(); },
+  };
+}
+
+/** A quick toggle: an icon disc, its name and its state; the disc takes the function's colour while on. */
+function Toggle({ kind, on, icon, title, state, onClick, onLongPress }: { kind: string; on: boolean; icon: string; title: string; state: string; onClick: () => void; onLongPress?: () => void }) {
+  const press = useLongPress(onClick, onLongPress);
   return (
     <button
       className={`toggle toggle-${kind}${on ? " is-on" : ""}`}
       aria-pressed={on}
       aria-description={onLongPress ? "Hold for details" : undefined}
-      onPointerDown={() => {
-        held.current = false;
-        if (onLongPress) timer.current = setTimeout(() => { held.current = true; onLongPress(); }, LONG_PRESS_MS);
-      }}
-      onPointerUp={cancel}
-      onPointerLeave={cancel}
-      onPointerCancel={cancel}
-      // the click that ends a long press is not a tap
-      onClick={() => { if (held.current) held.current = false; else onClick(); }}
+      {...press}
     >
       <span className="toggle-disc"><span className={`icon ${icon}`} aria-hidden="true" /></span>
       <span className="toggle-text">
@@ -143,6 +150,8 @@ export function PillSlider({ className, label, min, max, step, value, valueText,
 }
 
 export function Drawer({ emulator, panel, dragging }: { emulator: EmulatorState; panel: RefObject<HTMLElement | null>; dragging: boolean }) {
+  // Settings opens the settings app; held, it asks to restart the unit, a shortcut to About's restart
+  const settingsPress = useLongPress(() => shellAction({ type: "OpenApp", app: "SETTINGS" }), () => askRestart(true));
   const { car, shell } = emulator;
   const open = shell.drawer;
   const muteFill = useMuteFill(car.muted);
@@ -163,7 +172,7 @@ export function Drawer({ emulator, panel, dragging }: { emulator: EmulatorState;
         <Toggle kind="mute" on={car.muted} icon="i-speaker-slash-fill" title="Mute" state={car.muted ? "On" : "Off"} onClick={() => carCommand({ type: "Audio.Mute", on: !car.muted })} />
         <Toggle kind="theme" on={shell.theme === "AUTO"} icon={THEME_ICON[shell.theme]} title="Theme" state={THEME_LABEL[shell.theme]} onClick={() => shellAction({ type: "CycleTheme" })} />
         {/* not a switch: it opens the settings, so it has no on state */}
-        <button className="toggle toggle-settings" onClick={() => shellAction({ type: "OpenApp", app: "SETTINGS" })}>
+        <button className="toggle toggle-settings" aria-description="Hold to restart the unit" {...settingsPress}>
           <span className="toggle-disc is-app" aria-hidden="true" />
           <span className="toggle-text"><span className="toggle-title">Settings</span></span>
         </button>

@@ -295,6 +295,7 @@ object Bridge {
     fun carName(typed: String): String = Setup.carName(typed).orEmpty()
     fun carNameChar(c: String): Boolean = c.length == 1 && Setup.carNameChar(c[0])
     fun carNameMin(): Int = Setup.CAR_NAME_MIN
+    fun castReceiver(): String = CarEvent.PhoneCast.RECEIVER
 
     /** The Wi-Fi screen's order (Setup.networkOrder): [networks] and [saved] as JSON lists. */
     fun networkOrder(networks: String, connected: String?, saved: String): String {

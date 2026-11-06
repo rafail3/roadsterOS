@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { bridge, type Design, type Download, type Prepare, type PrepareTask, type SetupStep, type TaskState, type ThemeMode } from "../car/bridge";
-import { setLocation, setReleaseOut, setWifi, shellAction, useEmulator, WIFI_NETWORKS, wifiConnect, wifiScan, type WifiNetwork } from "../car/store";
+import { useEffect, useState, type ReactNode } from "react";
+import { bridge, type Design, type Prepare, type PrepareTask, type SetupStep, type TaskState, type ThemeMode } from "../car/bridge";
+import { setLocation, setWifi, shellAction, useEmulator, WIFI_NETWORKS, wifiConnect, wifiScan, type WifiNetwork } from "../car/store";
 import { CubeMark, pixelFont } from "./Boot";
 import { Keyboard } from "./Keyboard";
+import { downloadFigures, useUpdateInstall } from "./update";
 import { WifiBars } from "./WifiBars";
 
 // The setup's screens after the start screen: the home screen's dark glass and type, with the boot screen's tube
@@ -231,39 +232,8 @@ function WifiScreen({ next }: { next: () => void }) {
 
 /** The download of a new version: percent, speed, size and time left, then a countdown and a restart. */
 function UpdateScreen({ version, next }: { version: string; next: () => void }) {
-  const [d, setD] = useState<Download | null>(null);
-  const [restartIn, setRestartIn] = useState<number | null>(null);
-  const last = useRef(0);
-  const install = () => {
-    // the emulated release: a 2.6 MB APK arriving at a few hundred KB a second
-    last.current = performance.now();
-    setD(bridge.downloadStep({ total: 2_617_448, done: 0, bytesPerSecond: 0 }, 0, 0));
-  };
-  useEffect(() => {
-    if (!d || d.done >= d.total) return;
-    const timer = setTimeout(() => {
-      const now = performance.now();
-      const ms = now - last.current;
-      last.current = now;
-      setD(bridge.downloadStep(d, Math.round((380 + Math.random() * 260) * 1024 * ms / 1000), ms));
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [d]);
-  useEffect(() => {
-    if (!d || d.done < d.total || restartIn !== null) return;
-    setReleaseOut(null);
-    setRestartIn(bridge.restartInS());
-  }, [d, restartIn]);
-  useEffect(() => {
-    if (restartIn === null) return;
-    // the new version is in: the setup moves past this screen, then the unit restarts and resumes there
-    if (restartIn <= 0) { next(); window.location.reload(); return; }
-    const timer = setTimeout(() => setRestartIn(restartIn - 1), 1000);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restartIn]);
-
-  const done = d !== null && d.done >= d.total;
+  // the new version is in: the setup moves past this screen, then the unit restarts and resumes there
+  const { download: d, done, restartIn, install } = useUpdateInstall(next);
   return (
     <Frame step="UPDATE" title={`roadsterOS ${version} is out`} text="Install it now, or later from Settings > About."
       next={d ? () => undefined : install} nextLabel={d ? (done ? "Installed" : "Installing…") : "Install now"} canNext={!d}
@@ -275,7 +245,7 @@ function UpdateScreen({ version, next }: { version: string; next: () => void }) 
             <PixelText text={`${d.percent}%`} className="sf-caption" />
           </div>
           <p className="sf-figures">
-            {done ? <>Installed. Restarting in <b>{restartIn ?? bridge.restartInS()} s</b></> : <>{d.doneText} of {d.totalText} · {d.speed}{d.left ? ` · ${d.left}` : ""}</>}
+            {done ? <>Installed. Restarting in <b>{restartIn} s</b></> : downloadFigures(d)}
           </p>
         </div>
       )}

@@ -304,10 +304,11 @@ object CarRuntime {
 
     fun launch(pkg: String) = ro.rdstr.os.settings.InstalledApps.launch(app, pkg)
 
-    /** The Developer section: adb's address on Wi-Fi, restarting roadsterOS, Android's developer options. */
+    /** The Developer section: adb's address on Wi-Fi, Android's developer options. */
     fun adbAddress() = ro.rdstr.os.settings.DeveloperTools.adbAddress(app)
 
-    fun restart() = ro.rdstr.os.settings.DeveloperTools.restart(app)
+    /** Settings > About > Restart the Unit, after the question: the whole unit reboots (DeveloperTools.reboot). */
+    fun restartUnit() = ro.rdstr.os.settings.DeveloperTools.reboot(app)
 
     /**
      * Factory reset: every preference file cleared, our files, paired phones and saved networks erased, then a restart
