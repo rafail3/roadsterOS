@@ -391,10 +391,9 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 /* arranging: no pressed highlight behind the icons, only the icon moves */
 .apps.is-arranging .app, .apps .app.is-dragged { background: none; }
 
-/* arranging: a remove badge on each icon's corner */
-.app-remove { position: absolute; top: -9px; left: -9px; z-index: 3; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #48484a; border: 2px solid var(--canvas); color: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); animation: badge-in 180ms var(--seamless); }
+/* arranging: a red remove badge on each icon's top right corner, on every icon at once, the held one too */
+.app-remove { position: absolute; top: -9px; right: -9px; z-index: 3; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #ff3b30; border: 2px solid var(--canvas); color: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); animation: badge-in 180ms var(--seamless); }
 .app-remove::before { content: ""; width: 12px; height: 2.5px; border-radius: 2px; background: currentColor; }
-.app-remove:active { background: #636366; }
-.app.is-dragged .app-remove { display: none; }
+.app-remove:active { background: #d70015; }
 .app-mark { position: relative; }
 @keyframes badge-in { from { transform: scale(0.4); opacity: 0; } to { transform: none; opacity: 1; } }
