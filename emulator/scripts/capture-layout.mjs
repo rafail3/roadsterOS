@@ -287,6 +287,8 @@ for (const scene of SCENES.filter((s) => !wanted || wanted.includes(s.name))) {
     await page.click(target);
     await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
   }
+  // a click scrolls its target into view, which a tap on the unit does not: lists go back to their top
+  if (scene.clicks?.length) await page.evaluate(() => document.querySelectorAll(".screen *").forEach((e) => { if (e.scrollTop) e.scrollTop = 0; }));
   if (scene.wait) await page.waitForTimeout(scene.wait);
   // a scene may click its way to the state it shows
   if (scene.act) {

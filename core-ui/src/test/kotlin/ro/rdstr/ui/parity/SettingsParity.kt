@@ -92,7 +92,7 @@ class SettingsParity {
 
     private fun settings(scene: String, shell: ShellState, s: SettingsState, after: (View) -> Unit = {}) =
         scene(scene, "music-app.settings-app") {
-            SettingsView(ctx).apply { open = true; bind(shell, rules, s); after(this) }
+            SettingsView(ctx, Slots).apply { open = true; bind(shell, rules, s); after(this) }
         }
 
     /** Taps the row labelled [label] (the first one), as a click in the browser scene. */
@@ -177,4 +177,10 @@ class SettingsParity {
         val WEB = File(System.getProperty("rdstr.parity.web") ?: "../build/parity/web")
         val ANDROID = File(System.getProperty("rdstr.parity.android") ?: "../build/parity/android")
     }
+}
+
+/** The unit picture as the display app places it in About (HostSlots); the Wi-Fi list has its own scenes. */
+private object Slots : ro.rdstr.ui.settings.SettingsSlots {
+    override fun wifiNetworks(context: android.content.Context): android.view.View = android.view.View(context)
+    override fun unitPicture(context: android.content.Context, width: Float): android.view.View = ro.rdstr.ui.setup.UnitPicture(context, width)
 }
