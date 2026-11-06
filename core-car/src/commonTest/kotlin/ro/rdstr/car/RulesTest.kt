@@ -23,11 +23,44 @@ class RulesTest {
     }
 
     @Test
-    fun `ringing call shows the overlay`() {
+    fun `ringing call shows the overlay and stops the music at the first ring`() {
         val call = CarEvent.Call(State.RINGING, "+40", "A")
         val (s, a) = Rules.apply(bt, call)
         assertEquals(State.RINGING, s.call)
-        assertEquals(listOf(Action.ShowCall(call)), a)
+        assertEquals(listOf(Action.ShowCall(call), Action.Send(CarCommand.Media.Pause)), a)
+        assertTrue(s.resumeAfterCall)
+        // answered: no second pause, the resume kept
+        val (active, a2) = Rules.apply(s, CarEvent.Call(State.ACTIVE, "+40"))
+        assertEquals(listOf(Action.ShowCall(CarEvent.Call(State.ACTIVE, "+40"))), a2)
+        assertTrue(active.resumeAfterCall)
+    }
+
+    @Test
+    fun `a declined or missed call brings the music back`() {
+        val (ringing, _) = Rules.apply(bt, CarEvent.Call(State.RINGING, "+40"))
+        val (idle, a) = Rules.apply(ringing, CarEvent.Call(State.IDLE))
+        assertEquals(listOf(Action.HideCall, Action.Send(CarCommand.Media.Play)), a)
+        assertFalse(idle.resumeAfterCall)
+    }
+
+    @Test
+    fun `dialling stops the radio and hanging up plays it again`() {
+        val (out, a1) = Rules.apply(radio, CarEvent.Call(State.OUTGOING, "+40"))
+        assertEquals(listOf(Action.ShowCall(CarEvent.Call(State.OUTGOING, "+40")), Action.Send(CarCommand.Radio.Pause)), a1)
+        assertFalse(out.radioOn)
+        val (back, a2) = Rules.apply(out, CarEvent.Call(State.IDLE))
+        assertEquals(listOf(Action.HideCall, Action.Send(CarCommand.Radio.Play)), a2)
+        assertTrue(back.radioOn)
+    }
+
+    @Test
+    fun `a muted or paused radio stays as it was after a call`() {
+        for (quiet in listOf(radio.copy(muted = true), radio.copy(radioOn = false))) {
+            val (ringing, a1) = Rules.apply(quiet, CarEvent.Call(State.RINGING, "+40"))
+            assertEquals(1, a1.size)
+            val (_, a2) = Rules.apply(ringing, CarEvent.Call(State.IDLE))
+            assertEquals(listOf(Action.HideCall), a2)
+        }
     }
 
     @Test
@@ -41,11 +74,11 @@ class RulesTest {
     }
 
     @Test
-    fun `active call mutes radio and idle unmutes it`() {
+    fun `active call pauses the radio and idle plays it again`() {
         val (active, a1) = Rules.apply(radio, CarEvent.Call(State.ACTIVE))
-        assertEquals(listOf(Action.Send(CarCommand.Audio.Mute(true))), a1)
+        assertEquals(listOf(Action.Send(CarCommand.Radio.Pause)), a1)
         val (_, a2) = Rules.apply(active, CarEvent.Call(State.IDLE))
-        assertEquals(listOf(Action.HideCall, Action.Send(CarCommand.Audio.Mute(false))), a2)
+        assertEquals(listOf(Action.HideCall, Action.Send(CarCommand.Radio.Play)), a2)
     }
 
     @Test

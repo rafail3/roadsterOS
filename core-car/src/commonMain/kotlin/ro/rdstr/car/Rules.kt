@@ -116,31 +116,35 @@ object Rules {
         else -> s
     }
 
+    /**
+     * A call stops the music at its first ring or its first dial, once: a later step of the same call (answered, a
+     * second line) or a pause report from the phone must not lose the resume. When the call ends, is declined or is
+     * missed, the source plays again, only if it was playing before.
+     */
     private fun call(s: RulesState, e: CarEvent.Call): Pair<RulesState, List<Action>> = when (e.state) {
-        State.RINGING -> s.copy(call = State.RINGING) to listOf(Action.ShowCall(e))
-        // placing a call or talking: the sound stops once; a later pause report must not lose the resume
-        State.OUTGOING, State.ACTIVE -> {
-            val inCall = s.call == State.OUTGOING || s.call == State.ACTIVE
-            val pause = if (inCall) null else pauseCommand(s)
-            val show = if (e.state == State.OUTGOING || e.number.isNotEmpty()) listOf(Action.ShowCall(e)) else emptyList()
-            s.copy(call = e.state, resumeAfterCall = s.resumeAfterCall || pause != null) to show + listOfNotNull(pause?.let { Action.Send(it) })
+        State.RINGING, State.OUTGOING, State.ACTIVE -> {
+            val pause = if (s.call != State.IDLE) null else pauseCommand(s)
+            val show = if (e.state != State.ACTIVE || e.number.isNotEmpty()) listOf(Action.ShowCall(e)) else emptyList()
+            val paused = pause?.let { onCommand(s, it) } ?: s
+            paused.copy(call = e.state, resumeAfterCall = s.resumeAfterCall || pause != null) to show + listOfNotNull(pause?.let { Action.Send(it) })
         }
         State.IDLE -> {
             val resume = if (s.resumeAfterCall) resumeCommand(s) else null
-            s.copy(call = State.IDLE, resumeAfterCall = false) to listOfNotNull(Action.HideCall, resume?.let { Action.Send(it) })
+            val back = resume?.let { onCommand(s, it) } ?: s
+            back.copy(call = State.IDLE, resumeAfterCall = false) to listOfNotNull(Action.HideCall, resume?.let { Action.Send(it) })
         }
     }
 
+    /** What stops the source that plays: the phone's music paused, the radio's station paused (its volume untouched). */
     private fun pauseCommand(s: RulesState): CarCommand? = when {
-        !s.playing -> null
-        s.source == AudioSource.BT -> CarCommand.Media.Pause
-        s.source == AudioSource.RADIO -> CarCommand.Audio.Mute(true)
+        s.source == AudioSource.BT && s.playing -> CarCommand.Media.Pause
+        s.source == AudioSource.RADIO && s.radioOn && !s.muted -> CarCommand.Radio.Pause
         else -> null
     }
 
     private fun resumeCommand(s: RulesState): CarCommand? = when (s.source) {
         AudioSource.BT -> CarCommand.Media.Play
-        AudioSource.RADIO -> CarCommand.Audio.Mute(false)
+        AudioSource.RADIO -> CarCommand.Radio.Play
         AudioSource.NONE -> null
     }
 
