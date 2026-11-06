@@ -9,12 +9,12 @@ type Layer = "letters" | "symbols";
 /** Two Shift taps this close lock capitals on. */
 const CAPS_LOCK_MS = 350;
 
-function Key({ char, onPress, wide }: { char: string; onPress: (c: string) => void; wide?: boolean }) {
+function Key({ char, onPress }: { char: string; onPress: (c: string) => void }) {
   const [down, setDown] = useState(false);
   return (
     <button
       type="button"
-      className={`kb-key${wide ? " is-wide" : ""}${down ? " is-down" : ""}`}
+      className={`kb-key${down ? " is-down" : ""}`}
       data-char={char}
       onPointerDown={() => setDown(true)}
       onPointerUp={() => setDown(false)}
@@ -68,7 +68,7 @@ export function Keyboard({ open, onKey, onBackspace, onSubmit, submitLabel, subm
           // the symbols layer has no Shift; the slot stays so the row keeps its shape
           <span className="kb-key kb-fn kb-spacer" aria-hidden="true" />
         )}
-        <div className="kb-row-keys">{[...rows[2]].map((c) => <Key key={c} char={shown(c)} onPress={type} wide={layer !== "letters"} />)}</div>
+        <div className="kb-row-keys">{[...rows[2]].map((c) => <Key key={c} char={shown(c)} onPress={type} />)}</div>
         <button type="button" className="kb-key kb-fn" aria-label="Delete" {...holdToRepeat(onBackspace)}>
           <span className="icon i-backspace" aria-hidden="true" />
         </button>

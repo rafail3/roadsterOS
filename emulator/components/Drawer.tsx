@@ -1,7 +1,7 @@
 import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from "react";
 import { useGlisse } from "./glassy";
 import { bridge } from "../car/bridge";
-import { askRestart, carCommand, setBluetooth, setLocation, setVolume, setWifi, shellAction, type EmulatorState } from "../car/store";
+import { askRestart, carCommand, setBluetooth, setLocation, setVolume, shellAction, switchWifi, type EmulatorState } from "../car/store";
 import { useMuteFill } from "./VolumeHud";
 
 const THEME_LABEL = { AUTO: "Auto", LIGHT: "Day", DARK: "Night" };
@@ -21,8 +21,10 @@ export function useDrawerDrag(drawer: RefObject<HTMLElement | null>) {
     const scale = el.getBoundingClientRect().height / height;
     const distance = (e: PointerEvent) => (e.clientY - down.clientY) / scale;
 
+    let dragged = false;
     const move = (e: PointerEvent) => {
       if (distance(e) < DRAG_THRESHOLD) return;
+      dragged = true;
       setDragging(true);
       el.style.transform = `translateY(${Math.min(height, distance(e)) - height}px)`;
     };
@@ -33,6 +35,11 @@ export function useDrawerDrag(drawer: RefObject<HTMLElement | null>) {
       setDragging(false);
       el.style.transform = "";
       if (distance(e) >= DRAG_THRESHOLD) shellAction({ type: "DrawerReleased", fraction: distance(e) / height });
+      // a drag is not a tap: the click a release over the handle still fires is dropped (it comes in this same task)
+      if (!dragged) return;
+      const swallow = (c: MouseEvent) => { c.stopPropagation(); c.preventDefault(); };
+      window.addEventListener("click", swallow, { capture: true, once: true });
+      setTimeout(() => window.removeEventListener("click", swallow, { capture: true }));
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", finish);
@@ -167,7 +174,7 @@ export function Drawer({ emulator, panel, dragging }: { emulator: EmulatorState;
     >
       <div className="drawer-grid">
         <Toggle kind="bt" on={emulator.btOn} icon="i-bluetooth" title="Bluetooth" state={!emulator.btOn ? "Off" : car.btConnected ? emulator.device : "On"} onClick={() => { const on = !emulator.btOn; setBluetooth(on); shellAction({ type: "RadioSwitched", radio: "BLUETOOTH", on }); }} onLongPress={() => shellAction({ type: "OpenDevices" })} />
-        <Toggle kind="wifi" on={emulator.wifiOn} icon="i-wifi-high" title="Wi-Fi" state={!emulator.wifiOn ? "Off" : emulator.wifi.connected ?? "On"} onClick={() => { const on = !emulator.wifiOn; setWifi(on); shellAction({ type: "RadioSwitched", radio: "WIFI", on }); }} onLongPress={() => shellAction({ type: "OpenNetworks" })} />
+        <Toggle kind="wifi" on={emulator.wifiOn} icon="i-wifi-high" title="Wi-Fi" state={!emulator.wifiOn ? "Off" : emulator.wifi.connected ?? "On"} onClick={() => switchWifi(!emulator.wifiOn)} onLongPress={() => shellAction({ type: "OpenNetworks" })} />
         <Toggle kind="location" on={emulator.locationOn} icon="i-navigation-arrow-fill" title="Location" state={emulator.locationOn ? "On" : "Off"} onClick={() => setLocation(!emulator.locationOn)} />
         <Toggle kind="mute" on={car.muted} icon="i-speaker-slash-fill" title="Mute" state={car.muted ? "On" : "Off"} onClick={() => carCommand({ type: "Audio.Mute", on: !car.muted })} />
         <Toggle kind="theme" on={shell.theme === "AUTO"} icon={THEME_ICON[shell.theme]} title="Theme" state={THEME_LABEL[shell.theme]} onClick={() => shellAction({ type: "CycleTheme" })} />
