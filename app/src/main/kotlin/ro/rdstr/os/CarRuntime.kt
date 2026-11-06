@@ -83,6 +83,7 @@ data class UiState(
     val restartAsked: Boolean = false,
     /** Wi-Fi was asked to turn on with location off: the screen asks to turn location on first. */
     val wifiNeedsLocation: Boolean = false,
+    val wifi: ro.rdstr.os.settings.WifiState = ro.rdstr.os.settings.WifiState(),
 ) {
     fun reduce(state: RulesState, actions: List<Action>, event: CarEvent, now: Long = System.currentTimeMillis()): UiState {
         var ui = copy(state = state, lastEvent = event.toString(), track = event as? CarEvent.Track ?: track)
@@ -172,6 +173,10 @@ object CarRuntime {
     lateinit var radios: Radios
         private set
 
+    /** Scans, joins and forgets Wi-Fi networks; its state is [UiState.wifi]. */
+    lateinit var wifi: ro.rdstr.os.settings.Wifi
+        private set
+
     /** The cover of the playing Bluetooth track, ready before any screen asks for it. */
     val cover: StateFlow<Cover?> get() = covers?.cover ?: noCover
 
@@ -181,6 +186,8 @@ object CarRuntime {
         app = context.applicationContext
         bus = CarBusFactory.create(context)
         radios = Radios(app)
+        wifi = ro.rdstr.os.settings.Wifi(app, radios, { _ui.value.wifi }) { change -> patch { it.copy(wifi = change(it.wifi)) } }
+            .also { it.start() }
         prefs = context.getSharedPreferences("rdstr", Context.MODE_PRIVATE)
         _shell.value = Shell.decodePreferences(prefs.getString(SHELL_KEY, null))
         val favorites = prefs.getString(FAVORITES_KEY, null).orEmpty().split(',').mapNotNull { it.toIntOrNull() }
