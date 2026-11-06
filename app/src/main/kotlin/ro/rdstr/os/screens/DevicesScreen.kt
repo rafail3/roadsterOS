@@ -1,10 +1,10 @@
 package ro.rdstr.os.screens
 
+import android.app.Activity
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import ro.rdstr.car.CarCommand
@@ -20,10 +20,11 @@ import ro.rdstr.ui.sheets.DevicesState
  * asks for them, and their states (connecting, failed, nearby, the code check) show once the bus reports them.
  */
 @Mirrors("DevicesSheet.tsx")
-object DevicesScreen {
-    fun view(context: Context, scope: CoroutineScope): DevicesSheetView {
-        RadioWatch.start(context)
-        val view = DevicesSheetView(context)
+class DevicesScreen(activity: Activity) : Screen {
+    override val view = DevicesSheetView(activity)
+
+    init {
+        RadioWatch.start(activity)
         view.actions = object : DevicesSheetView.Actions {
             override fun setBluetooth(on: Boolean) { if (on) CarRuntime.turnOnBluetooth() else CarRuntime.radios.bluetooth(false) }
             override fun connect(name: String) = CarRuntime.send(CarCommand.Bluetooth.Connect(name))
@@ -34,7 +35,10 @@ object DevicesScreen {
             override fun confirmPairing(accept: Boolean) = CarRuntime.send(CarCommand.Bluetooth.ConfirmPairing(accept))
             override fun close() = CarRuntime.shellAction(ShellAction.CloseDevices)
         }
-        scope.launch(Dispatchers.Main) {
+    }
+
+    override fun bind(scope: CoroutineScope) {
+        scope.launch {
             combine(CarRuntime.ui, CarRuntime.shell, RadioWatch.tick) { ui, shell, _ ->
                 DevicesState(
                     open = shell.devices,
@@ -44,7 +48,6 @@ object DevicesScreen {
                 )
             }.collect(view::bind)
         }
-        return view
     }
 
     @SuppressLint("MissingPermission") // BLUETOOTH is granted at install on API 27

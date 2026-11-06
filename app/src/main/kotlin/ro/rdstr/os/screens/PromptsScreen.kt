@@ -1,5 +1,6 @@
 package ro.rdstr.os.screens
 
+import android.app.Activity
 import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Location
@@ -8,7 +9,6 @@ import android.location.LocationManager
 import android.os.Bundle
 import android.os.Looper
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -26,29 +26,33 @@ import ro.rdstr.ui.sheets.AlertPromptView
 import ro.rdstr.ui.sheets.MapOfferState
 import ro.rdstr.ui.sheets.MapOfferView
 
-/** LocationPrompt.tsx and RestartPrompt.tsx on the unit. */
-@Mirrors("LocationPrompt.tsx", "RestartPrompt.tsx")
-object PromptsScreen {
-    /** "Wi-Fi needs Location": `answerWifiNeedsLocation`. */
-    fun location(context: Context, scope: CoroutineScope): AlertPromptView {
-        val view = AlertPromptView(context, restart = false)
-        view.actions = object : AlertPromptView.Actions {
+/** LocationPrompt.tsx on the unit: "Wi-Fi needs Location", `answerWifiNeedsLocation`. */
+@Mirrors("LocationPrompt.tsx")
+class LocationPromptScreen(activity: Activity) : Screen {
+    override val view = AlertPromptView(activity, restart = false).apply {
+        actions = object : AlertPromptView.Actions {
             override fun primary() = CarRuntime.answerWifiNeedsLocation(true)
             override fun cancel() = CarRuntime.answerWifiNeedsLocation(false)
         }
-        scope.launch(Dispatchers.Main) { CarRuntime.ui.map { it.wifiNeedsLocation }.distinctUntilChanged().collect { view.show(it) } }
-        return view
     }
 
-    /** "Restart the unit?": `restartUnit()`, `askRestart(false)`. */
-    fun restart(context: Context, scope: CoroutineScope): AlertPromptView {
-        val view = AlertPromptView(context, restart = true)
-        view.actions = object : AlertPromptView.Actions {
+    override fun bind(scope: CoroutineScope) {
+        scope.launch { CarRuntime.ui.map { it.wifiNeedsLocation }.distinctUntilChanged().collect { view.show(it) } }
+    }
+}
+
+/** RestartPrompt.tsx on the unit: "Restart the unit?", `restartUnit()` or `askRestart(false)`. */
+@Mirrors("RestartPrompt.tsx")
+class RestartPromptScreen(activity: Activity) : Screen {
+    override val view = AlertPromptView(activity, restart = true).apply {
+        actions = object : AlertPromptView.Actions {
             override fun primary() { CarRuntime.restartUnit() }
             override fun cancel() = CarRuntime.askRestart(false)
         }
-        scope.launch(Dispatchers.Main) { CarRuntime.ui.map { it.restartAsked }.distinctUntilChanged().collect { view.show(it) } }
-        return view
+    }
+
+    override fun bind(scope: CoroutineScope) {
+        scope.launch { CarRuntime.ui.map { it.restartAsked }.distinctUntilChanged().collect { view.show(it) } }
     }
 }
 
@@ -57,15 +61,14 @@ object PromptsScreen {
  * from the GPS every few seconds; hidden under a full-screen call, the camera and the drawer.
  */
 @Mirrors("MapOffer.tsx")
-object MapOfferScreen {
-    private const val GPS_EVERY_MS = 5_000L
+class MapOfferScreen(activity: Activity) : Screen {
+    override val view = MapOfferView(activity)
+    private val offers = PackOffer(activity, MapHost.borders)
+    private val fix = MutableStateFlow<Location?>(null)
+    private val declined = MutableStateFlow(0)
+    private var code = ""
 
-    @SuppressLint("MissingPermission") // location is granted to the device owner
-    fun view(context: Context, scope: CoroutineScope): MapOfferView {
-        val view = MapOfferView(context)
-        val offers = PackOffer(context, MapHost.borders)
-        val fix = MutableStateFlow<Location?>(null)
-        val declined = MutableStateFlow(0)
+    init {
         val listener = object : LocationListener {
             override fun onLocationChanged(l: Location) { fix.value = l }
             @Deprecated("Deprecated in Java")
@@ -73,16 +76,19 @@ object MapOfferScreen {
             override fun onProviderEnabled(provider: String) = Unit
             override fun onProviderDisabled(provider: String) = Unit
         }
-        runCatching {
-            context.getSystemService(LocationManager::class.java)?.requestLocationUpdates(LocationManager.GPS_PROVIDER, GPS_EVERY_MS, 0f, listener, Looper.getMainLooper())
+        @SuppressLint("MissingPermission") // location is granted to the device owner
+        val ask = runCatching {
+            activity.getSystemService(LocationManager::class.java)?.requestLocationUpdates(LocationManager.GPS_PROVIDER, GPS_EVERY_MS, 0f, listener, Looper.getMainLooper())
         }
-        var code = ""
         view.actions = object : MapOfferView.Actions {
             override fun decline() { offers.decline(code); declined.value++ }
             override fun download() = CarRuntime.downloadPack(code)
             override fun openNetworks() = CarRuntime.shellAction(ShellAction.OpenNetworks)
         }
-        scope.launch(Dispatchers.Main) {
+    }
+
+    override fun bind(scope: CoroutineScope) {
+        scope.launch {
             combine(CarRuntime.ui, CarRuntime.shell, fix, declined) { ui, shell, at, _ ->
                 val (country, offer) = at?.let { offers.at(it.longitude, it.latitude) } ?: (null to MapPacks.Offer.NONE)
                 val downloading = ui.maps.downloading
@@ -97,8 +103,13 @@ object MapOfferScreen {
                     progress = downloading?.progress,
                     waiting = downloading != null && ui.wifi.connected == null,
                 )
-            }.collect(view::bind)
+            }.collect {
+                view.bind(it)
+                // the connection notice stands over the offer while it shows
+                NoticeScreen.mapOffer.value = it.shown
+            }
         }
-        return view
     }
+
+    private companion object { const val GPS_EVERY_MS = 5_000L }
 }

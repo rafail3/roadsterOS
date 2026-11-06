@@ -1,8 +1,8 @@
 package ro.rdstr.os.screens
 
+import android.app.Activity
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import ro.rdstr.car.ShellAction
@@ -17,7 +17,34 @@ import ro.rdstr.ui.sheets.WifiNetworksView
 
 /** NetworksSheet.tsx on the unit: the Wi-Fi sheet, and the networks list Settings > Wi-Fi shows too. */
 @Mirrors("NetworksSheet.tsx")
-object NetworksScreen {
+class NetworksScreen(activity: Activity) : Screen {
+    override val view = NetworksSheetView(activity)
+
+    init {
+        RadioWatch.start(activity)
+        view.networks.actions = listActions
+        view.networks.keyboard = object : KeyboardSlot {
+            override fun open(onKey: (String) -> Unit, onBackspace: () -> Unit, onSubmit: () -> Unit) { keyboard?.open(onKey, onBackspace, onSubmit) }
+            override fun close() { keyboard?.close() }
+            override fun submit(label: String, enabled: Boolean) { keyboard?.submit(label, enabled) }
+        }
+        view.actions = object : NetworksSheetView.Actions {
+            override fun setWifi(on: Boolean) = CarRuntime.setWifi(on)
+            override fun close() = CarRuntime.shellAction(ShellAction.CloseNetworks)
+        }
+    }
+
+    override fun bind(scope: CoroutineScope) {
+        scope.launch {
+            combine(CarRuntime.ui, CarRuntime.shell, RadioWatch.tick) { ui, shell, _ -> shell.networks to list(ui) }
+                .collect { (open, list) -> view.bind(open, list) }
+        }
+    }
+
+    companion object {
+    /** The screen's keyboard for the password, connected by the keyboard's glue (Keyboard.tsx). */
+    var keyboard: KeyboardSlot? = null
+
     /** `wifiScan`, `wifiConnect`, `wifiForget`, `setLocation`: what the networks list asks, here or in Settings. */
     val listActions = object : WifiNetworksView.Actions {
         override fun scan() = CarRuntime.wifi.scan()
@@ -38,20 +65,5 @@ object NetworksScreen {
         searching = ui.wifi.seen.isEmpty(),
     )
 
-    /** The sheet; [keyboard] is the screen's keyboard for passwords. */
-    fun view(context: Context, scope: CoroutineScope, keyboard: KeyboardSlot?): NetworksSheetView {
-        RadioWatch.start(context)
-        val view = NetworksSheetView(context)
-        view.networks.actions = listActions
-        view.networks.keyboard = keyboard
-        view.actions = object : NetworksSheetView.Actions {
-            override fun setWifi(on: Boolean) = CarRuntime.setWifi(on)
-            override fun close() = CarRuntime.shellAction(ShellAction.CloseNetworks)
-        }
-        scope.launch(Dispatchers.Main) {
-            combine(CarRuntime.ui, CarRuntime.shell, RadioWatch.tick) { ui, shell, _ -> shell.networks to list(ui) }
-                .collect { (open, list) -> view.bind(open, list) }
-        }
-        return view
     }
 }

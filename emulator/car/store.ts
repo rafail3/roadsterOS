@@ -1063,6 +1063,12 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   if (q.get("app") === "phone") shell = bridge.shell(shell, { type: "OpenApp", app: "PHONE" });
   if (q.get("app") === "settings") shell = bridge.shell(shell, { type: "OpenApp", app: "SETTINGS" });
   if (q.has("devices")) shell = bridge.shell(shell, { type: "OpenDevices" });
+  // ?recents=maps,radio: those apps opened in that order, then the open apps over them
+  const recents = q.get("recents");
+  if (recents !== null) {
+    for (const app of recents.split(",").filter(Boolean)) shell = bridge.shell(shell, { type: "OpenApp", app: app.toUpperCase() as ShellState["app"] });
+    shell = bridge.shell(shell, { type: "OpenRecents" });
+  }
   const font = q.get("font");
   if (font) shell = bridge.shell(shell, { type: "SetFont", name: font });
   const brightness = q.get("brightness");
@@ -1160,7 +1166,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     replayError: null,
     volumeOpened: 0,
     pressedKey: null,
-    notice: null,
+    // ?notice=bt|wifi, ?notice=bt-off|wifi-off: a connection notice on screen
+    notice: q.get("notice") ? { id: 1, kind: q.get("notice")!.startsWith("wifi") ? "wifi" : "bt", connected: !q.get("notice")!.endsWith("-off"), name: q.get("notice")!.startsWith("wifi") ? WIFI_NETWORKS[0].ssid : SAMPLE_PHONE } : null,
   };
 }
 

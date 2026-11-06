@@ -1,0 +1,39 @@
+package ro.rdstr.os.screens
+
+import android.app.Activity
+import android.view.View
+import kotlinx.coroutines.CoroutineScope
+import ro.rdstr.ui.shell.Layer
+
+/**
+ * One screen's glue, made once per activity: its view (a core-ui view) and the collectors that keep it bound to
+ * `CarRuntime` while the activity is in front. Its actions call `CarRuntime` (`shellAction`, `send`, the `@Emulates`
+ * functions).
+ */
+interface Screen {
+    val view: View
+
+    /** Collects the runtime's state into [view] while [scope] lives (from resume to pause). */
+    fun bind(scope: CoroutineScope)
+}
+
+/**
+ * Every screen the shell stacks, one line each: the layer its view goes in and the glue that makes it. The shell's
+ * own root (Screen.tsx, [ShellScreen]) is made by HomeActivity; [Layer.PANEL] goes in the panel's grid cell,
+ * [Layer.CLOCK] in the field above the icons, [Layer.AOD_DIAL] in the always-on display.
+ */
+object Screens {
+    val ALL: List<Pair<Layer, (Activity) -> Screen>> = listOf(
+        Layer.PANEL to ::HomeCardScreen,
+        Layer.DEVICES to ::DevicesScreen,
+        Layer.NETWORKS to ::NetworksScreen,
+        Layer.RECENTS to ::RecentsScreen,
+        Layer.DRAWER to ::DrawerScreen,
+        Layer.LOCATION_PROMPT to ::LocationPromptScreen,
+        Layer.RESTART_PROMPT to ::RestartPromptScreen,
+        Layer.MAP_OFFER to ::MapOfferScreen,
+        Layer.GESTURES to ::GesturesScreen,
+        Layer.NOTICE to ::NoticeScreen,
+        Layer.DEV to ::DevOverlaysScreen,
+    )
+}

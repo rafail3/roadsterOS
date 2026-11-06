@@ -1,5 +1,6 @@
 package ro.rdstr.os.screens
 
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -8,7 +9,6 @@ import android.content.IntentFilter
 import android.location.LocationManager
 import android.net.wifi.WifiManager
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -47,11 +47,13 @@ internal object RadioWatch {
 
 /** Drawer.tsx on the unit: the drawer view fed from CarRuntime, its calls sent to it. */
 @Mirrors("Drawer.tsx")
-object DrawerScreen {
-    /** The drawer, kept up to date on the main thread while [scope] lives. */
-    fun view(context: Context, scope: CoroutineScope): DrawerView {
-        RadioWatch.start(context)
-        val view = DrawerView(context)
+class DrawerScreen(activity: Activity) : Screen {
+    override val view = DrawerView(activity)
+
+    init {
+        RadioWatch.start(activity)
+        // the status bar's pull (Drawer.tsx useDrawerDrag)
+        ShellScreen.drawerDrag = { e -> view.drag.onTouch(e) }
         view.actions = object : DrawerView.Actions {
             // setBluetooth(on): on asks for the last phone once the adapter is on; then the list opens (or closes)
             override fun bluetooth(on: Boolean) {
@@ -71,7 +73,10 @@ object DrawerScreen {
             override fun close() = CarRuntime.shellAction(ShellAction.CloseDrawer)
             override fun released(fraction: Double) = CarRuntime.shellAction(ShellAction.DrawerReleased(fraction))
         }
-        scope.launch(Dispatchers.Main) {
+    }
+
+    override fun bind(scope: CoroutineScope) {
+        scope.launch {
             combine(CarRuntime.ui, CarRuntime.shell, RadioWatch.tick) { ui, shell, _ ->
                 val radios = CarRuntime.radios
                 DrawerState(
@@ -88,6 +93,5 @@ object DrawerScreen {
                 )
             }.collect(view::bind)
         }
-        return view
     }
 }
