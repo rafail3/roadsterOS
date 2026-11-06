@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { bridge, type Source } from "../car/bridge";
+import { bridge, type SetupStep, type Source } from "../car/bridge";
 import { userActivity, watchIdle } from "../car/store";
 import { Dial } from "./Clock";
 import { DevOverlays } from "./DevOverlays";
@@ -26,6 +26,8 @@ import { Recents } from "./Recents";
 import { EdgeBack, NavBar } from "./Gestures";
 import { useCoverColors } from "./media";
 import { useFingerMouse } from "./controls";
+import { BootScreen, StartScreen } from "./Boot";
+import { SetupScreen } from "./SetupScreens";
 
 const THEME_FADE_MS = 750;
 
@@ -250,7 +252,7 @@ export function Screen() {
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.dark.toFixed(3) }} />
       {/* always there: it fades in to switch the screen off and lifts to switch it on; a tap on it wakes the screen */}
       <DevOverlays touches={shell.showTouches} fps={shell.showFrameRate} speed={shell.animationSpeed} />
-      {!shell.setupDone && <Setup />}
+      <Startup setupDone={shell.setupDone} step={shell.setupStep} carName={shell.carName} wifi={emulator.wifi.connected !== null} update={emulator.releaseOut !== null} />
       <AlwaysOn on={shell.aod} now={now} face={bridge.aodFace(shell)} h24={shell.clock24h} />
       <button className={classes("screen-off", !shell.screenOn && "is-on", waking && "is-lifting")} aria-label="Screen off, tap to wake" tabIndex={shell.screenOn ? -1 : 0} aria-hidden={shell.screenOn} onClick={() => shellAction({ type: "Wake" })} />
     </div>
@@ -271,15 +273,21 @@ function AlwaysOn({ on, now, face, h24 }: { on: boolean; now: Date; face: "DIGIT
   );
 }
 
-/** After a factory reset the unit starts here until setup is finished. */
-function Setup() {
-  return (
-    <section className="setup" aria-label="Setup">
-      <h1 className="setup-title">Welcome to roadsterOS</h1>
-      <p className="setup-text">Let's set up the unit.</p>
-      <button className="setup-start" onClick={() => shellAction({ type: "FinishSetup" })}>Continue</button>
-    </section>
-  );
+// ?noboot skips the boot screen, for captures of the other screens
+const BOOTS = typeof window === "undefined" || !new URLSearchParams(window.location.search).has("noboot");
+
+/**
+ * A cold start: the boot screen, then the setup until it is finished. A first start (setup at the logo) moves on to the
+ * start screen once the boot picture is complete; a unit switched off halfway through setup boots, then resumes there.
+ */
+function Startup({ setupDone, step, carName, wifi, update }: { setupDone: boolean; step: SetupStep; carName: string; wifi: boolean; update: boolean }) {
+  const [booting, setBooting] = useState(BOOTS);
+  const next = () => shellAction({ type: "SetupNext", wifi, updateAvailable: update });
+  if (booting) return <BootScreen onDone={() => { setBooting(false); if (!setupDone && step === "LOGO") next(); }} />;
+  if (setupDone) return null;
+  if (step === "LOGO") return <BootScreen onDone={next} />;
+  if (step === "START") return <StartScreen version={process.env.RDSTR_VERSION ?? ""} onStart={next} />;
+  return <SetupScreen step={step} carName={carName} next={next} />;
 }
 
 /**

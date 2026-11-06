@@ -239,6 +239,72 @@ object Bridge {
 
     fun factoryPreferences(): String = Shell.encodePreferences(Shell.factoryState())
 
+    /**
+     * The boot picture (core-car BootArt): the colour table, the font, and the dots as flat lists, six numbers per dot
+     * (x, y, colour, layer or face, letter index or glyph, dissolve order), drawn the same here and on the unit.
+     */
+    fun bootArt(): String = buildString {
+        val word = BootArt.word()
+        append("{\"colors\":[").append(BootArt.COLORS.joinToString(",") { "\"$it\"" }).append("]")
+        append(",\"tiny\":{").append(BootArt.TINY.entries.joinToString(",") { (k, v) -> "\"$k\":\"$v\"" }).append("}")
+        append(",\"word\":{\"width\":${word.width},\"height\":${word.height},\"dots\":[")
+        append(word.dots.joinToString(",") { "${it.x},${it.y},${it.color},${it.layer},${it.letter},${it.order}" }).append("]}")
+        append(",\"cube\":[").append(BootArt.cube().joinToString(",") { "${it.x},${it.y},${it.color},${it.face},${if (it.glyph) 1 else 0},${it.order}" }).append("]}")
+    }
+
+    /** What the boot screen draws [t] ms after it starts (BootArt.frame). */
+    fun bootFrame(t: Double): String {
+        val f = BootArt.frame(t)
+        val tube = f.tube?.let { "{\"x\":${it.x},\"y\":${it.y},\"w\":${it.w},\"h\":${it.h},\"alpha\":${it.alpha}}" } ?: "null"
+        return "{\"tube\":$tube,\"cube\":${f.cube?.joinToString(",", "[", "]") ?: "null"},\"flash\":${f.flash}" +
+            ",\"letters\":${f.letters?.joinToString(",", "[", "]") ?: "null"},\"depth\":${f.depth},\"typed\":${f.typed}" +
+            ",\"cursor\":${f.cursor},\"flicker\":${f.flicker},\"rollY\":${BootArt.rollY(t)}}"
+    }
+
+    fun bootDoneMs(): Double = BootArt.DONE_MS
+
+    /** The system preparation (Setup.Prepare) with what the screen shows: the next task, progress, finished, ok. */
+    private fun prepareJson(p: Setup.Prepare) =
+        """{"tasks":${json.encodeToString(Setup.Prepare.serializer(), p).substringAfter(":").dropLast(1)},"next":${p.next?.let { "\"$it\"" } ?: "null"},""" +
+            """"progress":${p.progress},"finished":${p.finished},"ok":${p.ok}}"""
+
+    fun setupPrepare(): String = prepareJson(Setup.Prepare())
+
+    /** [op] is running, done, failed or retry; [task] is ignored for retry. */
+    fun setupPrepareStep(tasks: String, op: String, task: String): String {
+        val p = Setup.Prepare(json.decodeFromString(Setup.Prepare.serializer(), """{"tasks":$tasks}""").tasks)
+        return prepareJson(when (op) {
+            "running" -> p.running(Setup.Task.valueOf(task))
+            "done" -> p.result(Setup.Task.valueOf(task), true)
+            "failed" -> p.result(Setup.Task.valueOf(task), false)
+            else -> p.retry()
+        })
+    }
+
+    /** A download step (Updater.Download.step) with the progress bar's texts. */
+    fun downloadStep(total: Double, done: Double, speed: Double, bytes: Double, ms: Double): String {
+        val d = Updater.Download(total.toLong(), done.toLong(), speed).let { if (bytes > 0 || ms > 0) it.step(bytes.toLong(), ms.toLong()) else it }
+        return """{"total":${d.total},"done":${d.done},"bytesPerSecond":${d.bytesPerSecond},"percent":${d.percent},"fraction":${d.fraction},""" +
+            """"speed":"${Updater.speedText(d.bytesPerSecond)}","left":${d.secondsLeft?.let { "\"${Updater.leftText(it)}\"" } ?: "null"},""" +
+            """"doneText":"${Updater.sizeText(d.done)}","totalText":"${Updater.sizeText(d.total)}"}"""
+    }
+
+    fun isNewer(candidate: String, current: String): Boolean = Updater.isNewer(candidate, current)
+
+    /** The car's name as it would be kept, or "" while it breaks the rules (Setup.carName). */
+    fun carName(typed: String): String = Setup.carName(typed).orEmpty()
+    fun carNameChar(c: String): Boolean = c.length == 1 && Setup.carNameChar(c[0])
+    fun carNameMin(): Int = Setup.CAR_NAME_MIN
+
+    /** The Wi-Fi screen's order (Setup.networkOrder): [networks] and [saved] as JSON lists. */
+    fun networkOrder(networks: String, connected: String?, saved: String): String {
+        val list = json.decodeFromString(ListSerializer(Setup.Network.serializer()), networks)
+        val order = Setup.networkOrder(list, connected, json.decodeFromString(ListSerializer(String.serializer()), saved).toSet())
+        return json.encodeToString(ListSerializer(Setup.Network.serializer()), order)
+    }
+    fun carNameMax(): Int = Setup.CAR_NAME_MAX
+    fun restartInS(): Int = Updater.RESTART_IN_S
+
     private fun sound(text: String) = json.decodeFromString(SoundSettings.serializer(), text)
     private fun sound(s: SoundSettings) = json.encodeToString(SoundSettings.serializer(), s)
 

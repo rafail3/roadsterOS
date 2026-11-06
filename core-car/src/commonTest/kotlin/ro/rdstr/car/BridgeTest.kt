@@ -1,6 +1,8 @@
 package ro.rdstr.car
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -71,5 +73,19 @@ class BridgeTest {
         assertEquals("DARK", Bridge.effectiveTheme(s, 22))
         assertEquals("LIGHT", Bridge.effectiveTheme(s, 12))
         assertEquals("DARK", Bridge.effectiveTheme(Bridge.shellInitial(), 12))
+    }
+
+    @Test
+    fun `the preparation and a download step through the bridge`() {
+        val start = Json.parseToJsonElement(Bridge.setupPrepare()).jsonObject
+        assertEquals("KEYS", start.getValue("next").jsonPrimitive.content)
+        val tasks = start.getValue("tasks").toString()
+        val skipped = Json.parseToJsonElement(Bridge.setupPrepareStep(tasks, "failed", "KEYS")).jsonObject
+        assertEquals("SKIPPED", skipped.getValue("tasks").jsonObject.getValue("PACKAGES").jsonPrimitive.content)
+        assertEquals("HOME", skipped.getValue("next").jsonPrimitive.content)
+        val d = Json.parseToJsonElement(Bridge.downloadStep(20.0 * 1024 * 1024, 0.0, 0.0, 2.0 * 1024 * 1024, 1000.0)).jsonObject
+        assertEquals(10, d.getValue("percent").jsonPrimitive.content.toInt())
+        assertEquals("2.0 MB/s", d.getValue("speed").jsonPrimitive.content)
+        assertEquals("9 s left", d.getValue("left").jsonPrimitive.content)
     }
 }

@@ -17,6 +17,13 @@ object MapPacks {
 
     enum class Offer { NONE, DOWNLOAD, NEEDS_WIFI }
 
+    /** Installed with the OS, so the map works before any download. */
+    const val PRELOADED = "RO"
+    const val EXTENSION = ".mbtiles"
+
+    /** A pack's file in the `maps` release; the release keeps a fixed tag, so the link never changes. */
+    fun packUrl(code: String) = "https://github.com/${Updater.REPO}/releases/download/maps/$code$EXTENSION"
+
     /**
      * Pack sizes, in MB. Romania is measured (built and slimmed); the others are the Geofabrik extract size times the
      * ratio measured on Romania (363 MB pack from a 333 MB extract), until each is built.

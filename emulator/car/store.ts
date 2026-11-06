@@ -88,6 +88,8 @@ export interface EmulatorState {
   wifi: WifiState;
   /** location services; on at every start, as navigation and the Wi-Fi scan need it */
   locationOn: boolean;
+  /** a newer version published on GitHub (simulated), or null when the unit runs the latest */
+  releaseOut: string | null;
   /** Wi-Fi was asked to turn on while location is off: the screen asks to turn location on first */
   wifiNeedsLocation: boolean;
   acc: boolean;
@@ -613,6 +615,17 @@ export function declinePack(code: string) {
   set({ maps: { ...state.maps, declined: [...state.maps.declined, code] } });
 }
 
+/** The setup from its first screen, as after a factory reset but keeping every setting; the unit starts again. */
+export function restartSetup() {
+  shellAction({ type: "RestartSetup" });
+  window.location.reload();
+}
+
+/** A newer version on GitHub, or none (the control panel's switch). */
+export function setReleaseOut(version: string | null) {
+  set({ releaseOut: version });
+}
+
 /** Remove a pack from the unit, as from the maps settings; Romania can go too. */
 export function removePack(code: string) {
   set({ maps: { ...state.maps, installed: state.maps.installed.filter((c) => c !== code), declined: state.maps.declined.filter((c) => c !== code) } });
@@ -1106,6 +1119,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     wifiOn: true,
     wifi: { saved: [WIFI_NETWORKS[0].ssid], connected: WIFI_NETWORKS[0].ssid, connecting: null, wrongPassword: null, seen: [] },
     locationOn: true,
+    releaseOut: null,
     wifiNeedsLocation: false,
     acc: true,
     hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : null,
