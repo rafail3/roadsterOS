@@ -348,7 +348,9 @@ object Shell {
         autoTime = s.autoTime, timeSource = s.timeSource, dashMatched = s.dashMatched,
         aodEnabled = s.aodEnabled, aodAfterMin = s.aodAfterMin, aodFace = s.aodFace,
         developer = s.developer, adbEnabled = s.adbEnabled, showTouches = s.showTouches, showFrameRate = s.showFrameRate,
-        animationSpeed = s.animationSpeed, setupDone = s.setupDone, dsp = s.dsp,
+        animationSpeed = s.animationSpeed, setupDone = s.setupDone,
+        // the call level is for this drive only
+        dsp = s.dsp.copy(callVolume = Sound.CALL_VOLUME_DEFAULT),
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))

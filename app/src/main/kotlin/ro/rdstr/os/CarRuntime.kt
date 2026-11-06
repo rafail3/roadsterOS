@@ -135,6 +135,7 @@ object CarRuntime {
         _shell.value = Shell.decodePreferences(prefs.getString(SHELL_KEY, null))
         ro.rdstr.os.settings.DeveloperTools.setAdb(app, _shell.value.adbEnabled)
         time = ro.rdstr.os.settings.TimeKeeper(app).also { it.apply(_shell.value.autoTime, _shell.value.timeSource) }
+        startCallVolume()
         dash = ro.rdstr.os.settings.DashFollower(app, prefs) { send(CarCommand.DashKey(it)) }.also { it.start { _shell.value.dashMatched } }
         val header = "roadsterOS ${runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull()} " +
             "Android ${android.os.Build.VERSION.RELEASE} ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
@@ -160,6 +161,7 @@ object CarRuntime {
                     else -> Unit
                 }
                 // the car starts: a loud last level comes down to the start volume chosen in the settings
+                if (event is CarEvent.Power && event.acc) startCallVolume()
                 if (event is CarEvent.Power && event.acc) for (c in Settings.startVolume(next, _shell.value.startVolume)) {
                     bus.send(c)
                     next = Rules.onCommand(next, c)
@@ -213,6 +215,13 @@ object CarRuntime {
             val busy = ui.camera || ui.state.call != CarEvent.Call.State.IDLE || _shell.value.app == ro.rdstr.car.App.MAPS
             if (Shell.aodDue(_shell.value, android.os.SystemClock.elapsedRealtime() - lastActivity, busy)) shellAction(ShellAction.EnterAod)
         }
+    }
+
+    /** Each start of the unit and of the car: the call level back to its default (core-car Sound.atStart). */
+    private fun startCallVolume() {
+        val (dsp, writes) = ro.rdstr.car.Sound.atStart(_shell.value.dsp)
+        _shell.value = _shell.value.copy(dsp = dsp)
+        writes.forEach { send(CarCommand.Dsp(it)) }
     }
 
     /** The troubleshooting journal in files/journal, one file a day (core-car JournalFiles); adb pull it to read. */

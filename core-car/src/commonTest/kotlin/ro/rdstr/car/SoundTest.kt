@@ -6,6 +6,17 @@ import kotlin.test.assertTrue
 
 class SoundTest {
     @Test
+    fun `the call level is not kept across starts and each start writes the default`() {
+        val loud = Shell.reduce(ShellState(), ShellAction.SetSound(SoundSettings(callVolume = 30, navVolume = 80)))
+        val back = Shell.decodePreferences(Shell.encodePreferences(loud))
+        assertEquals(Sound.CALL_VOLUME_DEFAULT, back.dsp.callVolume)
+        assertEquals(80, back.dsp.navVolume)
+        val (start, writes) = Sound.atStart(loud.dsp)
+        assertEquals(Sound.CALL_VOLUME_DEFAULT, start.callVolume)
+        assertEquals(listOf(DspWrite("SetVolume", listOf(1, Sound.CALL_VOLUME_DEFAULT))), writes)
+    }
+
+    @Test
     fun `call and navigation volumes, and the music under the navigation voice`() {
         val s = SoundSettings()
         assertEquals(

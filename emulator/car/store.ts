@@ -702,6 +702,8 @@ export function watchIdle() {
 
 export function carEvent(event: CarEvent) {
   if (bridge.wakesAod(event)) userActivity();
+  // the car starts: the call level back to its default, as each start of the unit does (core-car Sound.atStart)
+  if (event.type === "Power" && event.acc) queueMicrotask(() => setSound({ ...state.shell.dsp, callVolume: CALL_VOLUME_DEFAULT }));
   const step = bridge.apply(state.car, event);
   set({ ...displayData(event), car: step.state, log: addLog("in", event), recorded: counted() });
   step.actions.forEach(runAction);
@@ -811,6 +813,8 @@ export function pressSound(page: "BLUETOOTH" | "RADIO", press: "PREV" | "PLAY" |
 
 /** One more line in the unit's journal when recording is on: an event, a command or a screen action. */
 const counted = () => (state.shell.recordEvents ? state.recorded + 1 : state.recorded);
+
+const CALL_VOLUME_DEFAULT = 20;
 
 /** A change from the sound window: kept with the shell's settings, and the processor gets only the calls that moved it (CarRuntime on the unit). */
 export function setSound(next: SoundSettings) {

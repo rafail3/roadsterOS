@@ -55,8 +55,8 @@ data class SoundSettings(
     val rear: SpeakerFilter = SpeakerFilter(),
     /** Power on the antenna lead, for an amplified radio antenna (FtSet.SetExAmp). */
     val antennaPower: Boolean = true,
-    /** The phone call's level, 0..30 like the music (the vendor's Bluetooth channel, Iop.SetVolume(1, v)). */
-    val callVolume: Int = 20,
+    /** The phone call's level, 0..30 like the music (the vendor's Bluetooth channel, Iop.SetVolume(1, v)); not kept across starts. */
+    val callVolume: Int = Sound.CALL_VOLUME_DEFAULT,
     /** The navigation voice's level, 0..100 (StSet.SetNvol). */
     val navVolume: Int = 60,
     /** The music's level while the navigation speaks, 0..100 % of its own; 100 leaves it as it is (StSet.Setmvwns). */
@@ -88,6 +88,12 @@ object Sound {
     const val GAIN_DB = 12
     const val SUB_LEVEL = 15
     const val CALL_VOLUME = 30
+    /** Every start of the unit begins at this call level, whatever it was changed to on the last drive. */
+    const val CALL_VOLUME_DEFAULT = 20
+
+    /** The unit starts: the call level back to its default, on screen and in the processor. */
+    fun atStart(s: SoundSettings): Pair<SoundSettings, List<DspWrite>> =
+        s.copy(callVolume = CALL_VOLUME_DEFAULT) to listOf(DspWrite("SetVolume", listOf(1, CALL_VOLUME_DEFAULT)))
     const val PERCENT = 100
     val SUB_HZ = 80..240
     private const val VBASS_RAW = 400

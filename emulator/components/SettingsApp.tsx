@@ -297,7 +297,7 @@ function Sound({ e }: { e: EmulatorState }) {
     <Group footer="Equalizer, balance, the listening position, loudness, bass and the speakers' filters.">
       <Row label="Sound Effects" onPress={() => shellAction({ type: "OpenSound" })} />
     </Group>
-    <Group title="Calls" footer="How loud the other side of a call is in the car. Music keeps its own level.">
+    <Group title="Calls" footer="How loud the other side of a call is in the car, for this drive: each start of the unit goes back to 20. Music keeps its own level.">
       <div className="set-row is-slider">
         <PillSlider label="Call volume" min={0} max={30} step={1} value={e.shell.dsp.callVolume} valueText={String(e.shell.dsp.callVolume)}
           onValue={(callVolume) => setSound({ ...e.shell.dsp, callVolume })}
