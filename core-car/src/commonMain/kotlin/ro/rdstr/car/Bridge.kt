@@ -263,6 +263,35 @@ object Bridge {
 
     fun bootDoneMs(): Double = BootArt.DONE_MS
 
+    /** The system preparation (Setup.Prepare) with what the screen shows: the next task, progress, finished, ok. */
+    private fun prepareJson(p: Setup.Prepare) =
+        """{"tasks":${json.encodeToString(Setup.Prepare.serializer(), p).substringAfter(":").dropLast(1)},"next":${p.next?.let { "\"$it\"" } ?: "null"},""" +
+            """"progress":${p.progress},"finished":${p.finished},"ok":${p.ok}}"""
+
+    fun setupPrepare(): String = prepareJson(Setup.Prepare())
+
+    /** [op] is running, done, failed or retry; [task] is ignored for retry. */
+    fun setupPrepareStep(tasks: String, op: String, task: String): String {
+        val p = Setup.Prepare(json.decodeFromString(Setup.Prepare.serializer(), """{"tasks":$tasks}""").tasks)
+        return prepareJson(when (op) {
+            "running" -> p.running(Setup.Task.valueOf(task))
+            "done" -> p.result(Setup.Task.valueOf(task), true)
+            "failed" -> p.result(Setup.Task.valueOf(task), false)
+            else -> p.retry()
+        })
+    }
+
+    /** A download step (Updater.Download.step) with the progress bar's texts. */
+    fun downloadStep(total: Double, done: Double, speed: Double, bytes: Double, ms: Double): String {
+        val d = Updater.Download(total.toLong(), done.toLong(), speed).let { if (bytes > 0 || ms > 0) it.step(bytes.toLong(), ms.toLong()) else it }
+        return """{"total":${d.total},"done":${d.done},"bytesPerSecond":${d.bytesPerSecond},"percent":${d.percent},"fraction":${d.fraction},""" +
+            """"speed":"${Updater.speedText(d.bytesPerSecond)}","left":${d.secondsLeft?.let { "\"${Updater.leftText(it)}\"" } ?: "null"},""" +
+            """"doneText":"${Updater.sizeText(d.done)}","totalText":"${Updater.sizeText(d.total)}"}"""
+    }
+
+    fun isNewer(candidate: String, current: String): Boolean = Updater.isNewer(candidate, current)
+    fun restartInS(): Int = Updater.RESTART_IN_S
+
     private fun sound(text: String) = json.decodeFromString(SoundSettings.serializer(), text)
     private fun sound(s: SoundSettings) = json.encodeToString(SoundSettings.serializer(), s)
 

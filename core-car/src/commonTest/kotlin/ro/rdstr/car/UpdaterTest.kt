@@ -76,6 +76,9 @@ class UpdaterTest {
         assertEquals("3.0 MB/s", Updater.speedText(d.bytesPerSecond))
         assertEquals(100, d.step(50 * mb, 1000).percent)
         assertEquals("850 KB/s", Updater.speedText(850.0 * 1024))
+        assertEquals("2.4 MB", Updater.sizeText(2_617_448))
+        assertEquals("1.1 MB", Updater.sizeText(1_200_000))
+        assertEquals("512 KB", Updater.sizeText(512 * 1024))
         assertEquals("45 s left", Updater.leftText(45))
         assertEquals("3 min left", Updater.leftText(170))
     }

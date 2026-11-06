@@ -79,6 +79,7 @@ object Updater {
         check is Check.Available && (dismissed == null || isNewer(check.release.version, dismissed))
 
     /** A download as the progress bar shows it; [bytesPerSecond] is smoothed so the figures do not jump. */
+    @kotlinx.serialization.Serializable
     data class Download(val total: Long, val done: Long = 0, val bytesPerSecond: Double = 0.0) {
         val percent get() = if (total <= 0) 0 else (done * 100 / total).toInt().coerceIn(0, 100)
         val fraction get() = if (total <= 0) 0f else (done.toDouble() / total).toFloat().coerceIn(0f, 1f)
@@ -96,6 +97,13 @@ object Updater {
     /** "850 KB/s", "1.2 MB/s". */
     fun speedText(bytesPerSecond: Double): String = if (bytesPerSecond < 1024 * 1024) "${(bytesPerSecond / 1024).toLong()} KB/s"
     else "${(bytesPerSecond * 10 / (1024 * 1024)).toLong().let { "${it / 10}.${it % 10}" }} MB/s"
+
+    /** A download's size: "850 KB", "2.5 MB" (one decimal, so a small file still moves), "1.2 GB". */
+    fun sizeText(bytes: Long): String = when {
+        bytes < 1024 * 1024 -> "${bytes / 1024} KB"
+        bytes < 1024L * 1024 * 1024 -> "${bytes * 10 / (1024 * 1024)}".let { "${it.dropLast(1).ifEmpty { "0" }}.${it.last()} MB" }
+        else -> Settings.size(bytes)
+    }
 
     /** "45 s left", "3 min left". */
     fun leftText(seconds: Long): String = if (seconds < 60) "$seconds s left" else "${(seconds + 30) / 60} min left"

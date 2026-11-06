@@ -43,12 +43,15 @@ object Setup {
      * What the system preparation does, in this order. [KEYS] checks that the unit's firmware trusts our signing
      * key (the public platform key), which gives our app the system's own permissions; the next two need it.
      */
+    @kotlinx.serialization.Serializable
     enum class Task { KEYS, PACKAGES, PERMISSIONS, HOME }
 
+    @kotlinx.serialization.Serializable
     enum class TaskState { WAITING, RUNNING, DONE, FAILED, SKIPPED }
 
     private val NEEDS_KEYS = setOf(Task.PACKAGES, Task.PERMISSIONS)
 
+    @kotlinx.serialization.Serializable
     data class Prepare(val tasks: Map<Task, TaskState> = Task.entries.associateWith { TaskState.WAITING }) {
         /** The next task to run, or null when all have an outcome. */
         val next get() = Task.entries.firstOrNull { tasks[it] == TaskState.WAITING }
