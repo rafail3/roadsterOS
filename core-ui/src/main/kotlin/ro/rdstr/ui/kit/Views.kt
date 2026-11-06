@@ -45,6 +45,16 @@ object Type {
     const val FEATURES = "'tnum' 1, 'cv11' 1"
 
     /**
+     * Glyph advances and positions as the browser lays them: linear (the outline's own advance, not the one hinted to
+     * whole pixels at the text size, which is up to 8 % narrower at 13 px) and at fractional positions, unhinted.
+     * Android and layoutlib both hint and round without it; the `'wght'` axis applies either way.
+     */
+    fun linear(paint: Paint) {
+        paint.flags = paint.flags or Paint.SUBPIXEL_TEXT_FLAG or Paint.LINEAR_TEXT_FLAG
+        paint.hinting = Paint.HINTING_OFF
+    }
+
+    /**
      * [style] on [paint], in the theme's family. The weight is the font's own `wght` axis; the optical size stays
      * at the font's default, as `font-optical-sizing: none` keeps it in the emulator. Call it when the style or the
      * theme changes, not while drawing: each call makes a typeface for the axis.
@@ -55,6 +65,7 @@ object Type {
         paint.letterSpacing = style.tracking
         paint.fontFeatureSettings = FEATURES
         paint.fontVariationSettings = "'wght' ${style.weight}"
+        linear(paint)
     }
 }
 
@@ -80,6 +91,7 @@ class KitText(context: Context, style: TextStyle) : TextView(context) {
         letterSpacing = style.tracking
         fontFeatureSettings = Type.FEATURES
         fontVariationSettings = "'wght' ${style.weight}"
+        Type.linear(paint)
         if (style.lineHeight > 0f) {
             val m = paint.fontMetrics
             val leading = style.lineHeight * textSize - (m.descent - m.ascent)
