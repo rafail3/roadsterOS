@@ -36,10 +36,6 @@ const RAIL = [
   { id: "maps", label: "Maps", mark: "app-mark-nav" },
   { id: "camera", label: "Camera", mark: "app-mark-camera" },
 ];
-/** A press held this long on a home icon starts arranging the icons. */
-const ARRANGE_HOLD_MS = 500;
-/** A finger moving this far before the hold cancels it: it is a swipe, not a press. */
-const ARRANGE_SLOP_PX = 10;
 /** The tile colour of each of our apps on home; other apps get one from their name. */
 const MARKS: Record<string, string> = { MAPS: "app-mark-nav", MUSIC: "app-mark-music", PHONE: "app-mark-phone", RADIO: "app-mark-radio", SETTINGS: "app-mark-settings" };
 const hue = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
@@ -296,14 +292,10 @@ function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unr
   const [settle, setSettle] = useState<{ id: string; dx: number } | null>(null);
   const press = useRef<{ timer: ReturnType<typeof setTimeout> | null; x: number; held: boolean }>({ timer: null, x: 0, held: false });
   const row = useRef<HTMLDivElement>(null);
-  const to = drag ? Math.max(0, Math.min(apps.length - 1, drag.from + Math.round(drag.dx / drag.slot))) : -1;
-  const shift = (i: number) => {
-    if (!drag) return 0;
-    if (i === drag.from) return drag.dx;
-    if (drag.from < i && i <= to) return -drag.slot;
-    if (to <= i && i < drag.from) return drag.slot;
-    return 0;
-  };
+  // where the held icon would drop, never past the row's ends, and where each icon is drawn meanwhile (core-car HomeArrange)
+  const count = apps.length;
+  const to = drag ? bridge.arrange.dropIndex(drag.from, drag.dx, drag.slot, count) : -1;
+  const shift = (i: number) => (drag ? bridge.arrange.offset(i, drag.from, drag.dx, drag.slot, count) : 0);
 
   useEffect(() => {
     if (!settle) return;
@@ -340,11 +332,11 @@ function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unr
       press.current.held = true;
       setArranging(true);
       startDrag(el, id, i, press.current.x);
-    }, ARRANGE_HOLD_MS);
+    }, bridge.arrange.holdMs());
   };
   const move = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (drag) return setDrag({ ...drag, dx: (e.clientX - press.current.x) / drag.scale });
-    if (press.current.timer && Math.abs(e.clientX - press.current.x) > ARRANGE_SLOP_PX) { clearTimeout(press.current.timer); press.current.timer = null; }
+    if (press.current.timer && bridge.arrange.cancelsHold(e.clientX - press.current.x)) { clearTimeout(press.current.timer); press.current.timer = null; }
   };
   const up = () => {
     if (press.current.timer) { clearTimeout(press.current.timer); press.current.timer = null; }
@@ -352,16 +344,17 @@ function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unr
     if (to !== drag.from) {
       shellAction({ type: "MoveHomeApp", id: drag.id, by: to - drag.from });
       // the icon is in its new slot now: what is left of the finger's offset from there
-      setSettle({ id: drag.id, dx: drag.dx - (to - drag.from) * drag.slot });
+      setSettle({ id: drag.id, dx: bridge.arrange.settle(drag.from, drag.dx, drag.slot, count) });
     }
     setDrag(null);
     // a move ends the arranging; a hold without one keeps it, so an icon can be taken off with its badge
-    if (to !== drag.from) setArranging(false);
+    if (!bridge.arrange.keeps(drag.from, to)) setArranging(false);
   };
   const open = (id: string) => {
     // a press that picked the icon up (the hold, or a grab while arranging), or a tap while arranging, opens nothing
-    if (press.current.held || arranging) { press.current.held = false; return; }
-    launchApp(id);
+    const picked = press.current.held;
+    press.current.held = false;
+    if (bridge.arrange.opens(arranging, picked)) launchApp(id);
   };
   const key = (e: React.KeyboardEvent<HTMLButtonElement>, id: string) => {
     const by = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;

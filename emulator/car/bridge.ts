@@ -243,6 +243,13 @@ interface Kotlin {
       quickReplies(): string;
       homeApps(chosen: string, installed: string): string;
       homeAppsMax(): number;
+      arrangeHoldMs(): number;
+      arrangeCancelsHold(dx: number): boolean;
+      arrangeDropIndex(from: number, dx: number, slot: number, count: number): number;
+      arrangeOffset(i: number, from: number, dx: number, slot: number, count: number): number;
+      arrangeSettle(from: number, dx: number, slot: number, count: number): number;
+      arrangeKeeps(from: number, to: number): boolean;
+      arrangeOpens(arranging: boolean, pickedUp: boolean): boolean;
       ownApps(): string;
       timeZones(ids: string): string;
       timeZoneSearch(ids: string, query: string): string;
@@ -348,6 +355,16 @@ export const bridge = {
   /** The icons home shows: the chosen ones still installed, in order (core-car HomeApps). */
   homeApps: (chosen: string[], installed: LaunchableApp[]): LaunchableApp[] => JSON.parse(K!.Bridge.homeApps(JSON.stringify(chosen), JSON.stringify(installed))),
   homeAppsMax: () => K!.Bridge.homeAppsMax(),
+  /** Arranging the icons on home (core-car HomeArrange). */
+  arrange: {
+    holdMs: () => K!.Bridge.arrangeHoldMs(),
+    cancelsHold: (dx: number) => K!.Bridge.arrangeCancelsHold(dx),
+    dropIndex: (from: number, dx: number, slot: number, count: number) => K!.Bridge.arrangeDropIndex(from, dx, slot, count),
+    offset: (i: number, from: number, dx: number, slot: number, count: number) => K!.Bridge.arrangeOffset(i, from, dx, slot, count),
+    settle: (from: number, dx: number, slot: number, count: number) => K!.Bridge.arrangeSettle(from, dx, slot, count),
+    keeps: (from: number, to: number) => K!.Bridge.arrangeKeeps(from, to),
+    opens: (arranging: boolean, pickedUp: boolean) => K!.Bridge.arrangeOpens(arranging, pickedUp),
+  },
   ownApps: (): LaunchableApp[] => JSON.parse(K!.Bridge.ownApps()),
   /** The zones named after a place, by city, and a search over them (core-car TimeZones). */
   timeZones: (ids: string[]): string[] => JSON.parse(K!.Bridge.timeZones(JSON.stringify(ids))),

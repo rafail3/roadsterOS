@@ -202,6 +202,15 @@ object Bridge {
 
     fun homeAppsMax(): Int = HomeApps.MAX
 
+    /** Arranging the icons on home (core-car HomeArrange). */
+    fun arrangeHoldMs(): Double = HomeArrange.HOLD_MS.toDouble()
+    fun arrangeCancelsHold(dx: Double): Boolean = HomeArrange.cancelsHold(dx)
+    fun arrangeDropIndex(from: Int, dx: Double, slot: Double, count: Int): Int = HomeArrange.dropIndex(from, dx, slot, count)
+    fun arrangeOffset(i: Int, from: Int, dx: Double, slot: Double, count: Int): Double = HomeArrange.offset(i, from, dx, slot, count)
+    fun arrangeSettle(from: Int, dx: Double, slot: Double, count: Int): Double = HomeArrange.settle(from, dx, slot, count)
+    fun arrangeKeeps(from: Int, to: Int): Boolean = HomeArrange.keepsArranging(from, to)
+    fun arrangeOpens(arranging: Boolean, pickedUp: Boolean): Boolean = HomeArrange.opens(arranging, pickedUp)
+
     private val strings = ListSerializer(String.serializer())
     fun timeZones(ids: String): String = json.encodeToString(strings, TimeZones.places(json.decodeFromString(strings, ids)))
     fun timeZoneSearch(ids: String, query: String): String = json.encodeToString(strings, TimeZones.search(json.decodeFromString(strings, ids), query))
