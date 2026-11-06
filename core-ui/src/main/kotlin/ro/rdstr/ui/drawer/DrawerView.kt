@@ -96,6 +96,11 @@ class DrawerView(context: Context) : Flex(context, "drawer", column = true) {
     var muteFill: MuteFill = DefaultMuteFill()
     /** The brightness slider is held: the screen's scrim goes while it is. */
     var onClearing: ((Boolean) -> Unit)? = null
+    /**
+     * The screen's scrim lies under the drawer (`.scrim`, `--scrim`), so the glass frosts the screen dimmed by it;
+     * the baked frost is of the screen alone, so the dimming is drawn under the glass here.
+     */
+    var frostOverScrim = true; set(v) { field = v; restyle() }
 
     private var state = DrawerState()
     private val grid = DrawerGrid(context)
@@ -113,6 +118,7 @@ class DrawerView(context: Context) : Flex(context, "drawer", column = true) {
     private val handleLine = Flex(context, "handle-line")
     private val line = Paint()
     private var held = false
+    private val scrimUnder: (Canvas) -> Unit = { c -> c.drawColor(UiTheme.base.scrim) }
     private var dragging = false
 
     init {
@@ -214,6 +220,7 @@ class DrawerView(context: Context) : Flex(context, "drawer", column = true) {
         val b = UiTheme.base
         if (held) box.solid(0)
         else if (UiTheme.glassy) box.glassy(UiTheme.glass) else box.solid(b.sheet)
+        box.under = if (UiTheme.glassy && !held && frostOverScrim) scrimUnder else null
         // .slider-light.is-held: the sheet around the slider, 12 px out
         if (held) { lightRow.box.solid(b.sheet); lightRow.box.shadows = listOf(Shadow(false, 0f, 0f, 0f, 12f, b.sheet)) } else lightRow.box.solid(0)
         handleLine.box.fill = if (handle.isPressed) b.inkMuted else b.inkSubtle

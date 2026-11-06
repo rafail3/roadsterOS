@@ -54,7 +54,7 @@ internal class TextButton(context: Context, key: String, style: TextStyle) : Kit
     init {
         uiKey = key
         paintFlags = paintFlags or android.graphics.Paint.SUBPIXEL_TEXT_FLAG or android.graphics.Paint.LINEAR_TEXT_FLAG
-        maxLines = 1; isSingleLine = true
+        isSingleLine = true; setHorizontallyScrolling(false)
         gravity = Gravity.CENTER
         background = BoxDrawable(this, box)
         isClickable = true
@@ -128,9 +128,11 @@ open class SheetFrame(context: Context, key: String, title: String) : ViewGroup(
     }
 
     private fun frameStyle() {
-        scrimBox.fill = 0x66000000
+        scrimBox.fill = SCRIM
         panel.box.borderColor = on(0.1f)
         panel.box.look(UiTheme.base.panel, listOf(Shadow(false, 0f, 18f, 48f, 0f, 0x73000000)))
+        // the glass frosts the screen dimmed by the scrim under it: the baked frost is of the screen alone
+        panel.box.under = if (UiTheme.glassy) { c -> c.drawColor(CssColor.fade(SCRIM, scrim.alpha)) } else null
         titleView.setTextColor(UiTheme.base.ink)
         switch.uiKey = if (UiTheme.glassy) "lg-switch.set-switch-glass" else "switch"
         restyle()
@@ -207,6 +209,8 @@ open class SheetFrame(context: Context, key: String, title: String) : ViewGroup(
         const val WIDTH = 480f
         const val BOTTOM = 24f
         const val KEYBOARD_BOTTOM = 396f
+        /** `.devices-scrim { background: rgba(0, 0, 0, 0.4) }` */
+        const val SCRIM = 0x66000000
     }
 }
 

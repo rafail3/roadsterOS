@@ -42,12 +42,15 @@ class DrawerParity : ParityCapture() {
         // the sample car: the phone connected, the hotspot joined, location on, volume 16, night theme
         component("drawerpanel-$name") {
             DrawerView(paparazzi.context).apply {
+                // the scene shows the drawer without the screen's scrim
+                frostOverScrim = false
                 bind(DrawerState(open = true, btOn = true, btDevice = "Pixel 8", wifiOn = true, wifiConnected = "Phone hotspot", locationOn = true, volume = 16, theme = if (light) ThemeMode.LIGHT else ThemeMode.DARK, brightness = 100))
             }
         }
         // Bluetooth, Wi-Fi and location switched off, mute on
         component("drawerpanel-off-$name") {
             DrawerView(paparazzi.context).apply {
+                frostOverScrim = false
                 bind(DrawerState(open = true, muted = true, volume = 16, theme = if (light) ThemeMode.LIGHT else ThemeMode.DARK, brightness = 100))
             }
         }

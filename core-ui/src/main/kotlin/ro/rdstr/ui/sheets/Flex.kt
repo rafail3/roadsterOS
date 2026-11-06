@@ -279,6 +279,12 @@ open class Flex(context: Context, key: String?, val column: Boolean = false) : V
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean = if (isClickable) super.onTouchEvent(event) else false
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        // an outer box-shadow paints outside the box, which the parent would clip
+        if (box.shadows.any { !it.inset }) (parent as? ViewGroup)?.clipChildren = false
+    }
 }
 
 /** A text element: [KitText] with its key, one line ellipsized unless [lines] says otherwise. */
@@ -286,7 +292,8 @@ fun text(context: Context, key: String, style: TextStyle, lines: Int = 1): KitTe
     uiKey = key
     // advances in fractions of a pixel, unhinted, as the browser lays text out
     paintFlags = paintFlags or android.graphics.Paint.SUBPIXEL_TEXT_FLAG or android.graphics.Paint.LINEAR_TEXT_FLAG
-    if (lines == 1) { maxLines = 1; isSingleLine = true; ellipsize = TextUtils.TruncateAt.END } else maxLines = lines
+    // one line laid out at the box's width (a single line otherwise scrolls inside a very wide layout)
+    if (lines == 1) { isSingleLine = true; setHorizontallyScrolling(false); ellipsize = TextUtils.TruncateAt.END } else maxLines = lines
 }
 
 /** An icon element (`span.icon.i-…`): its glyph masked in [IconView.color]; its background is the mask's, a box. */

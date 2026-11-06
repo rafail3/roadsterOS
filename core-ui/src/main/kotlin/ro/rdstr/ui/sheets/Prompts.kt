@@ -82,6 +82,8 @@ class AlertPromptView(context: Context, restart: Boolean) : ViewGroup(context) {
         val b = UiTheme.base
         card.box.look(b.panel, listOf(Shadow(false, 0f, 18f, 48f, 0f, 0x73000000)))
         card.box.borderColor = on(0.1f)
+        // the glass frosts the screen dimmed by the scrim under it (see SheetFrame)
+        card.box.under = if (UiTheme.glassy) { c -> c.drawColor(ro.rdstr.ui.kit.CssColor.fade(0x73000000, scrim.alpha)) } else null
         disc.box.look(0x2E0A84FF)
         glyph.color = 0xFF0A84FF.toInt()
         title.setTextColor(b.ink); line.setTextColor(on(0.62f))
