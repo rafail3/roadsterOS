@@ -80,7 +80,7 @@ const KEY_DIRECTION: Record<string, number> = { ArrowRight: 1, ArrowUp: 1, Arrow
  * A thick track filled from the left, dragged anywhere along it. The icon sits inside the filled end,
  * so any value above the minimum keeps it on the fill; the readout stays outside, on the drawer.
  */
-function PillSlider({ className, label, min, max, step, value, valueText, onValue, icon, readout, fillStyle }: {
+export function PillSlider({ className, label, min, max, step, value, valueText, onValue, icon, readout, fillStyle }: {
   className?: string; label: string; min: number; max: number; step: number; value: number; valueText: string;
   onValue: (value: number) => void; icon: ReactNode; readout: ReactNode; fillStyle?: CSSProperties;
 }) {
@@ -144,8 +144,8 @@ export function Drawer({ emulator, panel, dragging }: { emulator: EmulatorState;
         <Toggle kind="mute" on={car.muted} icon="i-speaker-slash-fill" title="Mute" state={car.muted ? "On" : "Off"} onClick={() => carCommand({ type: "Audio.Mute", on: !car.muted })} />
         <Toggle kind="theme" on={shell.theme === "AUTO"} icon={THEME_ICON[shell.theme]} title="Theme" state={THEME_LABEL[shell.theme]} onClick={() => shellAction({ type: "CycleTheme" })} />
         {/* not a switch: it opens the settings, so it has no on state */}
-        <button className="toggle toggle-settings" onClick={() => shellAction({ type: "CloseDrawer" })}>
-          <span className="toggle-disc"><span className="icon i-gear-six" aria-hidden="true" /></span>
+        <button className="toggle toggle-settings" onClick={() => shellAction({ type: "OpenApp", app: "SETTINGS" })}>
+          <span className="toggle-disc is-app" aria-hidden="true" />
           <span className="toggle-text"><span className="toggle-title">Settings</span></span>
         </button>
       </div>

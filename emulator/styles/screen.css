@@ -64,6 +64,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .i-x { --m: url(/icons/x.svg); }
 .i-circle-half { --m: url(/icons/circle-half.svg); }
 .i-caret-down { --m: url(/icons/caret-down.svg); }
+.i-caret-up { --m: url(/icons/caret-up.svg); }
 .i-caret-left { --m: url(/icons/caret-left.svg); }
 .i-power { --m: url(/icons/power.svg); }
 .i-house { --m: url(/icons/house.svg); }
@@ -86,28 +87,30 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .handle-line { width: 48px; height: 4px; border-radius: 2px; background: var(--ink-subtle); transition: background var(--fast); }
 .handle:hover .handle-line, .handle:active .handle-line { background: var(--ink-muted); }
 
-/* rail */
-.rail { grid-row: 2; display: flex; flex-direction: column; justify-content: center; gap: var(--space-3); padding: 0 var(--space-3) var(--space-5); position: relative; z-index: 1; }
-.rail-item {
-  height: 88px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  border-radius: var(--radius-sm); color: var(--ink-muted); font-size: var(--size-label); font-weight: 500;
-  transition: background var(--fast), color var(--fast);
-}
-.rail-item .icon { width: 30px; height: 30px; }
-.rail-item:active { background: var(--glass-pressed); }
-.rail-item.is-active { color: var(--accent); background: var(--glass); border: 1px solid var(--hairline); }
+/* rail: a dock of app icons down the left edge, a tinted rounded panel with no live blur */
+.rail { grid-row: 2; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 0 var(--space-5) var(--space-3); position: relative; z-index: 1; }
+.dock { display: flex; flex-direction: column; gap: 14px; padding: 14px; border-radius: 30px; background: rgba(255, 255, 255, 0.09); border: 1px solid var(--hairline); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+.screen.light .dock { background: rgba(255, 255, 255, 0.55); border-color: rgba(20, 28, 38, 0.08); }
+.dock-item { position: relative; display: grid; place-items: center; border-radius: 18px; transition: transform 200ms var(--spring-glyph, ease-out); }
+.dock-item .app-mark { width: 68px; height: 68px; border-radius: 16px; }
+.dock-item:active { transform: scale(0.92); }
+.dock-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 /* centre field */
 .field { grid-row: 2; display: flex; flex-direction: column; justify-content: space-between; padding: var(--space-6) var(--space-6) var(--space-5) var(--space-5); position: relative; z-index: 1; }
 /* clock faces live in clock.css */
 
-.apps { display: flex; gap: var(--space-4); }
-.app { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); width: 96px; padding: var(--space-3) 0; border-radius: var(--radius-sm); color: var(--ink-muted); font-size: var(--size-label); font-weight: 500; transition: background var(--fast), color var(--fast); }
-.app:active { background: var(--glass-pressed); }
-.app-mark { width: 56px; height: 56px; border-radius: 14px; border: 1px solid var(--hairline-strong); }
+/* the icons centred in the space between the dock and the card, again with each one added or taken off */
+.apps { display: flex; justify-content: center; gap: 16px; }
+/* the larger icons reach up into the clock's margin, so the clock keeps its height on the screen */
+.apps { margin-top: -24px; }
+.app { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); width: 100px; padding: var(--space-3) 0; border-radius: var(--radius-sm); color: var(--ink-muted); font-size: var(--size-label); font-weight: 500; transition: background var(--fast), color var(--fast); }
+/* a press dims the icon a little and sinks it, as a phone's home does; no box behind it */
+.app:active .app-mark { transform: scale(0.94); filter: brightness(0.85); }
+.app-mark { width: 80px; height: 80px; border-radius: 19px; border: 1px solid var(--hairline-strong); }
 /* synthetic app marks: stand-ins for the installed apps' icons */
-.app-mark-nav { background: linear-gradient(145deg, #1f3b5a, #0f1c2c); }
-.app-mark-music { background: linear-gradient(145deg, #3a1f4a, #1a0f24); }
+.app-mark-nav { background: url(/images/app-maps.webp) center / cover no-repeat; border-color: transparent; }
+.app-mark-music { background: url(/images/app-music.webp) center / cover no-repeat; border-color: transparent; }
 .app-mark-pod { background: linear-gradient(145deg, #4a2a1f, #24130f); }
 
 /* glass panel */
@@ -255,9 +258,13 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 /* synthetic camera frame: the unit shows the AV_IN video here */
 .camera-feed { position: relative; width: 100%; height: 100%; background:
   linear-gradient(180deg, #1a1d22 0%, #2a2d33 55%, #15171b 100%); }
-.guide { position: absolute; bottom: 8%; width: 3px; height: 46%; background: rgba(159, 211, 255, 0.6); transform-origin: bottom; }
-.guide-l { left: 34%; transform: rotate(-14deg); }
-.guide-r { right: 34%; transform: rotate(14deg); }
+/* something on the left of the frame, a post and a kerb, so a mirrored picture shows */
+.camera-scene { position: absolute; inset: 0; overflow: hidden; }
+.camera-scene.is-mirrored { transform: scaleX(-1); }
+.camera-scene::before { content: ""; position: absolute; left: 14%; bottom: 34%; width: 3.4%; height: 30%; border-radius: 6px 6px 0 0;
+  background: repeating-linear-gradient(180deg, #e8b730 0 18%, #2a2a2a 18% 36%); }
+.camera-scene::after { content: ""; position: absolute; left: -10%; bottom: 14%; width: 42%; height: 2.4%; background: #5b5f66; transform: rotate(-10deg); transform-origin: left; }
+.guide-lines { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke-width: 8; }
 .camera-close { position: absolute; top: var(--space-4); right: var(--space-4); width: var(--target); height: var(--target); border-radius: 50%; background: var(--glass-strong); border: 1px solid var(--hairline-strong); color: var(--ink); display: grid; place-items: center; }
 .camera-close .icon { width: 24px; height: 24px; }
 .camera-label { margin: 0; padding: var(--space-3) var(--space-5); font-size: var(--size-label); color: var(--ink-muted); background: var(--canvas); justify-self: stretch; }
@@ -346,3 +353,57 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
   .notice, .notice.is-shown { transition-duration: 0.01ms; }
   .notice-disc, .notice-text, .notice.is-off .notice-disc::after { animation: none; }
 }
+
+/* the status bar: a light tint of the sheet that fades out at its lower edge, so what is under it shows through
+   with no hard line. No live blur: the unit's Mali-450 cannot blur moving content each frame */
+.bar { background: linear-gradient(to bottom, color-mix(in srgb, var(--sheet) 58%, transparent) 0%, color-mix(in srgb, var(--sheet) 40%, transparent) 55%, transparent 100%); }
+.bar-clock { font-size: var(--size-label); font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+.bar-meridiem { margin-left: 4px; font-size: 0.8em; font-weight: 500; }
+
+/* the always-on display: black over everything but the screen-off layer, the clock and the date in a dimmed white */
+.aod { position: absolute; inset: 0; z-index: 9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-5); background: #000; color: rgba(255, 255, 255, 0.5); opacity: 0; pointer-events: none; transition: opacity 600ms var(--ease-out); }
+.aod.is-on { opacity: 1; pointer-events: auto; cursor: default; }
+.aod-time { font-size: 168px; font-weight: 600; line-height: 1; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.aod-meridiem { margin-left: 12px; font-size: 40px; font-weight: 400; }
+.aod-dial { width: 320px; height: 320px; opacity: 0.55; filter: grayscale(1); }
+.aod-date { margin: 0; font-size: 26px; font-weight: 400; color: rgba(255, 255, 255, 0.38); }
+@media (prefers-reduced-motion: reduce) { .aod { transition-duration: 0.01ms; } }
+
+/* Developer section tools: a dot under each finger, the frame rate in the corner; above everything, never in the way */
+.dev-overlays { position: absolute; inset: 0; z-index: 11; pointer-events: none; }
+.dev-touch { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); border: 2px solid rgba(255, 255, 255, 0.8); }
+.dev-fps { position: absolute; right: 12px; bottom: 34px; padding: 4px 10px; border-radius: 8px; background: rgba(0, 0, 0, 0.7); color: #30d158; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* setup after a factory reset: over the whole shell, under the screen-off layer */
+.setup { position: absolute; inset: 0; z-index: 8; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); background: var(--sheet); color: var(--ink); }
+.setup-title { margin: 0; font-size: 48px; font-weight: 700; letter-spacing: -0.02em; }
+.setup-text { margin: 0; font-size: 22px; color: var(--ink-muted); }
+.setup-start { margin-top: var(--space-6); min-width: 240px; height: 64px; padding: 0 var(--space-7); border-radius: 32px; background: #0a84ff; color: #fff; font-size: 20px; font-weight: 600; }
+.setup-start:active { background: #0060df; }
+
+.app-mark-camera { background: url(/images/app-camera.webp) center / cover no-repeat; border-color: transparent; }
+
+/* arranging the home icons: they jiggle, the held one follows the finger, the others slide aside */
+.app { transition: transform 220ms var(--seamless); touch-action: manipulation; }
+.apps.is-arranging .app { touch-action: none; }
+.apps.is-arranging .app .app-mark { animation: icon-jiggle 280ms ease-in-out infinite alternate; animation-delay: calc(var(--i) * -70ms); }
+.app .app-mark { transition: transform 200ms var(--seamless), box-shadow 200ms var(--seamless); }
+.app.is-dragged { position: relative; z-index: 2; transition: none; }
+/* the held icon lifts: bigger, with a shadow, and still while the others jiggle */
+.apps .app.is-dragged .app-mark { animation: none; transform: scale(1.15); box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5); }
+/* the frame of the drop: no transition, so nothing jumps while the order changes under it */
+.apps.is-settling .app { transition: none; }
+@keyframes icon-jiggle { from { transform: rotate(-2.2deg); } to { transform: rotate(2.2deg); } }
+@media (prefers-reduced-motion: reduce) { .apps.is-arranging .app .app-mark { animation: none; } }
+/* arranging: no pressed highlight behind the icons, only the icon moves */
+.apps.is-arranging .app, .apps .app.is-dragged { background: none; }
+
+/* arranging: a red remove badge on each icon's top right corner, on every icon at once, the held one too */
+.app-remove { position: absolute; top: -9px; right: -9px; z-index: 3; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #ff3b30; border: 2px solid var(--canvas); color: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); animation: badge-in 180ms var(--seamless); }
+.app-remove::before { content: ""; width: 12px; height: 2.5px; border-radius: 2px; background: currentColor; }
+.app-remove:active { background: #d70015; }
+.app-mark { position: relative; }
+@keyframes badge-in { from { transform: scale(0.4); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* an icon taken off home shrinks and fades before the row re-centres */
+.app.is-leaving { opacity: 0; transform: scale(0.5); transition: opacity 180ms var(--seamless), transform 180ms var(--seamless); pointer-events: none; }

@@ -4,10 +4,36 @@ export type Source = "NONE" | "BT" | "RADIO";
 export type CallState = "IDLE" | "RINGING" | "OUTGOING" | "ACTIVE";
 export type ThemeMode = "AUTO" | "LIGHT" | "DARK";
 export type Face = "DIGITAL" | "ANALOG";
+export type FaceMode = "BOTH" | "DIGITAL" | "ANALOG";
+export type TimeSource = "NETWORK" | "GPS";
+export type DashKey = "HOUR" | "MINUTE" | "CLOCK";
+export type AodFace = "HOME" | "DIGITAL" | "ANALOG";
+export type AnimationSpeed = "NORMAL" | "FAST" | "OFF";
+export type EqPreset = "USER" | "FLAT" | "POP" | "ROCK" | "JAZZ" | "CLASSIC";
+export type ListeningSeat = "CUSTOM" | "FRONT_LEFT" | "FRONT_RIGHT" | "REAR_LEFT" | "REAR_RIGHT" | "ALL" | "FRONT" | "REAR";
+export interface SpeakerFilter { highPass: boolean; highPassHz: number; lowPass: boolean; lowPassHz: number }
+/** The sound processor's settings (core-car SoundSettings). */
+export interface SoundSettings {
+  preset: EqPreset; bands: number[]; balance: number; fader: number; seat: ListeningSeat; delays: number[];
+  loudness: boolean; loudLowHz: number; loudLowGain: number; loudHighHz: number; loudHighGain: number;
+  bass: boolean; bassGain: number; subLevel: number; subHz: number; front: SpeakerFilter; rear: SpeakerFilter; antennaPower: boolean;
+  callVolume: number; navVolume: number; musicUnderNav: number;
+}
+export interface DspWrite { call: string; args: number[] }
+export type Guidelines = "OFF" | "FIXED" | "STEERING";
+export type ReverseDip = "NONE" | "WEAK" | "MEDIUM" | "STRONG";
+/** The reverse camera's settings (core-car CameraSettings); linePos in pixels of the 1024x600 screen, negative higher. */
+export interface Point { x: number; y: number }
+/** The guidelines' points on the 1024x600 screen (core-car Guides). */
+export interface Guides {
+  leftFix: Point; leftControl: Point; leftFar: Point; leftMiddle: Point; leftNear: Point;
+  rightFix: Point; rightControl: Point; rightFar: Point; rightMiddle: Point; rightNear: Point;
+}
+export interface CameraSettings { mirror: boolean; guidelines: Guidelines; linePos: number; dip: ReverseDip }
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";
 export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
 export type Band = "FM" | "AM";
-export type App = "HOME" | "MUSIC" | "RADIO" | "MAPS" | "PHONE";
+export type App = "HOME" | "MUSIC" | "RADIO" | "MAPS" | "PHONE" | "SETTINGS";
 
 export interface CarState {
   source: Source;
@@ -34,15 +60,44 @@ export interface ShellState {
   screenOn: boolean;
   app: App;
   devices: boolean;
+  sound: boolean;
   networks: boolean;
   running: App[];
   recents: boolean;
   lastHomeMs: number | null;
   card: CardPage | null;
+  clock24h: boolean;
+  speedChime: boolean;
+  /** the highest volume level the car starts with; 0 keeps the last one */
+  startVolume: number;
   /** how the call shows: none, over the whole screen, or as the bar at the top */
   callView: "NONE" | "FULL" | "BAR";
   /** writing a message is blocked while the car moves (a setting, off by default) */
   lockTypingWhileMoving: boolean;
+  /** the app icons on home, in order: our apps by name, other apps by package */
+  homeApps: string[];
+  recordEvents: boolean;
+  /** the road's speed limit sign on the map's speed */
+  speedLimitSign: boolean;
+  /** both clock faces switched with a tap, or one fixed face */
+  faceMode: FaceMode;
+  autoTime: boolean;
+  timeSource: TimeSource;
+  dashMatched: boolean;
+  aodEnabled: boolean;
+  aodAfterMin: number;
+  aodFace: AodFace;
+  aod: boolean;
+  developer: boolean;
+  adbEnabled: boolean;
+  showTouches: boolean;
+  showFrameRate: boolean;
+  animationSpeed: AnimationSpeed;
+  setupDone: boolean;
+  dsp: SoundSettings;
+  camera: CameraSettings;
+  /** the camera opened from its icon, without reverse gear */
+  cameraOpen: boolean;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -78,6 +133,9 @@ export type CarCommand =
   | { type: "Phone.Answer" | "Phone.HangUp" }
   | { type: "Phone.Mute"; on: boolean }
   | { type: "Phone.Dial"; number: string }
+  | { type: "Dash.Key"; key: DashKey }
+  | { type: "Dsp"; write: DspWrite }
+  | { type: "Camera.Write"; write: DspWrite }
   | { type: "Phone.Dtmf"; digit: string }
   | { type: "Phone.AudioInCar"; on: boolean }
   | { type: "Phone.Redial" | "Phone.Hold" | "Phone.Merge" | "Phone.DeclineWaiting" }
@@ -93,7 +151,9 @@ export type CarCommand =
   | { type: "Bt.ConfirmPairing"; accept: boolean };
 
 export type ShellAction =
-  | { type: "CycleTheme" | "OpenDrawer" | "CloseDrawer" | "ToggleFace" | "ToggleScreen" | "Wake" | "Home" | "Back" | "OpenDevices" | "CloseDevices" | "OpenNetworks" | "CloseNetworks" | "CloseAllApps" | "OpenRecents" | "CloseRecents" | "Sleep" }
+  | { type: "CycleTheme" | "OpenDrawer" | "CloseDrawer" | "ToggleFace" | "ToggleScreen" | "Wake" | "Home" | "Back" | "OpenDevices" | "CloseDevices" | "OpenNetworks" | "CloseNetworks" | "CloseAllApps" | "OpenRecents" | "CloseRecents" | "Sleep" | "ResetSettings" }
+  | { type: "SetClock24h" | "SetSpeedChime"; on: boolean }
+  | { type: "SetStartVolume"; level: number }
   | { type: "HomePressed"; atMs: number }
   | { type: "CloseApp"; app: App }
   | { type: "SetTheme"; mode: ThemeMode }
@@ -106,7 +166,26 @@ export type ShellAction =
   | { type: "ShowCard"; page: CardPage }
   | { type: "CallChanged"; state: CallState }
   | { type: "ExpandCall" }
-  | { type: "SetTypingLock"; on: boolean };
+  | { type: "SetTypingLock"; on: boolean }
+  | { type: "ToggleHomeApp"; id: string }
+  | { type: "MoveHomeApp"; id: string; by: number }
+  | { type: "AppsInstalled"; ids: string[] }
+  | { type: "SetRecording"; on: boolean }
+  | { type: "SetSpeedLimitSign"; on: boolean }
+  | { type: "SetFaceMode"; mode: FaceMode }
+  | { type: "SetTimeSync"; auto: boolean; source: TimeSource }
+  | { type: "SetDashMatched"; on: boolean }
+  | { type: "SetAod"; on: boolean }
+  | { type: "SetAodAfter"; minutes: number }
+  | { type: "SetAodFace"; face: AodFace }
+  | { type: "EnterAod" | "ExitAod" }
+  | { type: "OpenSound" | "CloseSound" }
+  | { type: "SetDeveloper" | "SetAdb" | "SetShowTouches" | "SetShowFrameRate"; on: boolean }
+  | { type: "SetAnimationSpeed"; speed: AnimationSpeed }
+  | { type: "FinishSetup" }
+  | { type: "SetSound"; settings: SoundSettings }
+  | { type: "SetCamera"; settings: CameraSettings }
+  | { type: "OpenCamera" | "CloseCamera" };
 
 export interface PhoneNumber { number: string; label: string }
 export interface Contact { name: string; numbers: PhoneNumber[] }
@@ -123,6 +202,9 @@ export interface Conversation { number: string; name: string; last: string; atMs
 export interface HfpCall { id: number; state: number; number: string; multiparty?: boolean }
 export const HFP = { ACTIVE: 0, HELD: 1, DIALING: 2, ALERTING: 3, INCOMING: 4, WAITING: 5 } as const;
 
+/** An app the unit can start: ours by name, another by its package. */
+export interface LaunchableApp { id: string; label: string }
+
 export interface RuleAction {
   type: string;
   command?: CarCommand;
@@ -138,6 +220,13 @@ interface Kotlin {
       coverColors(pixels: string, width: number): string;
       effectiveTheme(state: string, hour: number): "LIGHT" | "DARK";
       minBrightness(): number;
+      encodePreferences(state: string): string;
+      decodePreferences(text: string): string;
+      factoryPreferences(): string;
+      aodDue(state: string, idleMs: number, busy: boolean): boolean;
+      aodFace(state: string): "DIGITAL" | "ANALOG";
+      wakesAod(event: string): boolean;
+      aodMinutes(): string;
       maxBrightness(): number;
       veil(state: string): string;
       coverFileName(title: string, artist: string): string;
@@ -168,7 +257,42 @@ interface Kotlin {
       hfpCall(calls: string): string;
       conversations(messages: string, read: string, book: string): string;
       quickReplies(): string;
+      homeApps(chosen: string, installed: string): string;
+      homeAppsMax(): number;
+      arrangeHoldMs(): number;
+      arrangeCancelsHold(dx: number): boolean;
+      arrangeDropIndex(from: number, dx: number, slot: number, count: number): number;
+      arrangeOffset(i: number, from: number, dx: number, slot: number, count: number): number;
+      arrangeSettle(from: number, dx: number, slot: number, count: number): number;
+      arrangeKeeps(from: number, to: number): boolean;
+      arrangeOpens(arranging: boolean, pickedUp: boolean): boolean;
+      arrangeTimes(): string;
+      arrangeGlides(before: string, after: string): string;
+      ownApps(): string;
+      timeZones(ids: string): string;
+      timeZoneSearch(ids: string, query: string): string;
+      timeZoneCity(id: string): string;
+      timeZoneRegion(id: string): string;
+      timeZoneOffset(minutes: number): string;
+      dashFollow(shownBefore: number, jump: number): string;
+      soundWrites(a: string, b: string): string;
+      cameraWrites(a: string, b: string): string;
+      cameraGuides(guidelines: string, eps: number): string;
+      startupPhones(saved: string, last: string | null): string;
+      startupConnectWaitMs(): number;
+      startupConnectTryMs(): number;
+      soundPreset(s: string, preset: string): string;
+      soundBand(s: string, band: number, db: number): string;
+      soundResetLoudness(s: string): string;
+      soundResetBass(s: string): string;
+      soundBands(): string;
+      soundHpf(): string;
+      soundLpf(): string;
       callDuration(ms: number): string;
+      clockText(hour: number, minute: number, h24: boolean): string;
+      meridiem(hour: number): string;
+      startVolume(state: string, cap: number): string;
+      size(bytes: number): string;
     };
 }
 
@@ -179,6 +303,20 @@ function load(): Kotlin | null {
 
 const K = load();
 export const bridgeLoaded = K !== null;
+
+// In development the core-car bundle is loaded once, as a script, and a hot reload of the TypeScript keeps the old one:
+// when a rebuild replaces public/rdstr.js the page reloads whole, so the two never disagree.
+if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
+  let seen: string | null = null;
+  const stamp = (r: Response) => r.headers.get("etag") ?? r.headers.get("last-modified") ?? r.headers.get("content-length");
+  setInterval(() => {
+    fetch("/rdstr.js", { method: "HEAD", cache: "no-store" }).then((r) => {
+      const now = stamp(r);
+      if (seen !== null && now !== null && now !== seen) window.location.reload();
+      seen = now ?? seen;
+    }).catch(() => {});
+  }, 2000);
+}
 
 export const bridge = {
   initial: (): CarState => JSON.parse(K!.Bridge.initial()),
@@ -218,6 +356,15 @@ export const bridge = {
   setVolume: (state: CarState, level: number): CarCommand[] => JSON.parse(K!.Bridge.setVolume(JSON.stringify(state), level)),
   effectiveTheme: (state: ShellState, hour: number) => K!.Bridge.effectiveTheme(JSON.stringify(state), hour),
   minBrightness: () => K!.Bridge.minBrightness(),
+  /** The preferences kept across starts (SharedPreferences on the unit, the browser's storage here). */
+  encodePreferences: (state: ShellState): string => K!.Bridge.encodePreferences(JSON.stringify(state)),
+  decodePreferences: (text: string): ShellState => JSON.parse(K!.Bridge.decodePreferences(text)),
+  factoryPreferences: (): string => K!.Bridge.factoryPreferences(),
+  /** The always-on display: due after the wait, its face, the car events that end it (core-car Shell). */
+  aodDue: (state: ShellState, idleMs: number, busy: boolean) => K!.Bridge.aodDue(JSON.stringify(state), idleMs, busy),
+  aodFace: (state: ShellState) => K!.Bridge.aodFace(JSON.stringify(state)),
+  wakesAod: (event: CarEvent) => K!.Bridge.wakesAod(JSON.stringify(event)),
+  aodMinutes: (): number[] => JSON.parse(K!.Bridge.aodMinutes()),
   maxBrightness: () => K!.Bridge.maxBrightness(),
   veil: (state: ShellState): { dark: number; brightness: number; saturation: number } => JSON.parse(K!.Bridge.veil(JSON.stringify(state))),
   coverFileName: (title: string, artist: string) => K!.Bridge.coverFileName(title, artist),
@@ -242,5 +389,54 @@ export const bridge = {
   conversations: (messages: Message[], read: string[], book: Contact[]): Conversation[] =>
     JSON.parse(K!.Bridge.conversations(JSON.stringify(messages), JSON.stringify(read), JSON.stringify(book))),
   quickReplies: (): string[] => JSON.parse(K!.Bridge.quickReplies()),
+  /** The icons home shows: the chosen ones still installed, in order (core-car HomeApps). */
+  homeApps: (chosen: string[], installed: LaunchableApp[]): LaunchableApp[] => JSON.parse(K!.Bridge.homeApps(JSON.stringify(chosen), JSON.stringify(installed))),
+  homeAppsMax: () => K!.Bridge.homeAppsMax(),
+  /** Arranging the icons on home (core-car HomeArrange). */
+  arrange: {
+    holdMs: () => K!.Bridge.arrangeHoldMs(),
+    cancelsHold: (dx: number) => K!.Bridge.arrangeCancelsHold(dx),
+    dropIndex: (from: number, dx: number, slot: number, count: number) => K!.Bridge.arrangeDropIndex(from, dx, slot, count),
+    offset: (i: number, from: number, dx: number, slot: number, count: number) => K!.Bridge.arrangeOffset(i, from, dx, slot, count),
+    settle: (from: number, dx: number, slot: number, count: number) => K!.Bridge.arrangeSettle(from, dx, slot, count),
+    keeps: (from: number, to: number) => K!.Bridge.arrangeKeeps(from, to),
+    opens: (arranging: boolean, pickedUp: boolean) => K!.Bridge.arrangeOpens(arranging, pickedUp),
+    /** Remove, glide and grow durations in ms. */
+    times: (): [number, number, number] => JSON.parse(K!.Bridge.arrangeTimes()),
+    glides: (before: Record<string, number>, after: Record<string, number>): { id: string; fromDx?: number; added?: boolean }[] =>
+      JSON.parse(K!.Bridge.arrangeGlides(JSON.stringify(before), JSON.stringify(after))),
+  },
+  ownApps: (): LaunchableApp[] => JSON.parse(K!.Bridge.ownApps()),
+  /** The zones named after a place, by city, and a search over them (core-car TimeZones). */
+  timeZones: (ids: string[]): string[] => JSON.parse(K!.Bridge.timeZones(JSON.stringify(ids))),
+  timeZoneSearch: (ids: string[], query: string): string[] => JSON.parse(K!.Bridge.timeZoneSearch(JSON.stringify(ids), query)),
+  timeZoneCity: (id: string) => K!.Bridge.timeZoneCity(id),
+  timeZoneRegion: (id: string) => K!.Bridge.timeZoneRegion(id),
+  timeZoneOffset: (minutes: number) => K!.Bridge.timeZoneOffset(minutes),
+  /** The dash display's keys for a jump of the unit's local time (core-car DashClock). */
+  dashFollow: (shownBefore: number, jump: number): DashKey[] => JSON.parse(K!.Bridge.dashFollow(shownBefore, jump)),
+  /** The sound window (core-car Sound). */
+  soundWrites: (a: SoundSettings, b: SoundSettings): DspWrite[] => JSON.parse(K!.Bridge.soundWrites(JSON.stringify(a), JSON.stringify(b))),
+  /** The vendor calls a change of the camera settings makes (core-car Camera.writes). */
+  /** The guidelines as the vendor draws them, bent by the CAN steering angle [eps] (core-car Camera.guides). */
+  cameraGuides: (guidelines: Guidelines, eps: number): Guides => JSON.parse(K!.Bridge.cameraGuides(guidelines, eps)),
+  /** The saved phones to ask in turn after a start, the last one connected first (core-car Startup). */
+  startupPhones: (saved: string[], last: string | null): string[] => JSON.parse(K!.Bridge.startupPhones(JSON.stringify(saved), last)),
+  startupConnectWaitMs: () => K!.Bridge.startupConnectWaitMs(),
+  startupConnectTryMs: () => K!.Bridge.startupConnectTryMs(),
+  cameraWrites: (a: CameraSettings, b: CameraSettings): DspWrite[] => JSON.parse(K!.Bridge.cameraWrites(JSON.stringify(a), JSON.stringify(b))),
+  soundPreset: (s: SoundSettings, p: EqPreset): SoundSettings => JSON.parse(K!.Bridge.soundPreset(JSON.stringify(s), p)),
+  soundBand: (s: SoundSettings, band: number, db: number): SoundSettings => JSON.parse(K!.Bridge.soundBand(JSON.stringify(s), band, db)),
+  soundResetLoudness: (s: SoundSettings): SoundSettings => JSON.parse(K!.Bridge.soundResetLoudness(JSON.stringify(s))),
+  soundResetBass: (s: SoundSettings): SoundSettings => JSON.parse(K!.Bridge.soundResetBass(JSON.stringify(s))),
+  soundBands: (): string[] => JSON.parse(K!.Bridge.soundBands()),
+  soundHpf: (): number[] => JSON.parse(K!.Bridge.soundHpf()),
+  soundLpf: (): number[] => JSON.parse(K!.Bridge.soundLpf()),
   callDuration: (ms: number) => K!.Bridge.callDuration(ms),
+  /** The big clock's text on the 24- or 12-hour clock, and the half of the day beside a 12-hour one. */
+  clockText: (hour: number, minute: number, h24: boolean) => K!.Bridge.clockText(hour, minute, h24),
+  meridiem: (hour: number) => K!.Bridge.meridiem(hour),
+  /** The commands a car start sends to bring a loud last level down to the settings' start volume. */
+  startVolume: (state: CarState, cap: number): CarCommand[] => JSON.parse(K!.Bridge.startVolume(JSON.stringify(state), cap)),
+  size: (bytes: number) => K!.Bridge.size(bytes),
 };

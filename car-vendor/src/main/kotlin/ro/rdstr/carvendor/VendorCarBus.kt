@@ -12,6 +12,8 @@ import ro.rdstr.car.CarEvent
 class VendorCarBus(context: Context) : CarBus {
     private val phone = VendorPhone(context.applicationContext).also { it.start() }
     private val messages = VendorMessages(context.applicationContext).also { it.start() }
+    private val dash = VendorDash()
+    private val sound = VendorSound()
 
     override val events: Flow<CarEvent> = merge(phone.events, messages.events)
 
@@ -21,6 +23,10 @@ class VendorCarBus(context: Context) : CarBus {
             is CarCommand.Phone -> phone.send(command)
             is CarCommand.Bluetooth.Connect -> phone.link(command.device, connect = true)
             CarCommand.Bluetooth.Disconnect -> phone.link(null, connect = false)
+            is CarCommand.DashKey -> dash.press(command.key)
+            is CarCommand.Dsp -> sound.write(command.write)
+            // the vendor's camera screen reads these from libts50xhw; logged until the unit shows which way in works
+            is CarCommand.Camera.Write -> Log.i("rdstr.camera", "${command.write.call}(${command.write.args.joinToString()})")
             else -> Log.i("VendorCarBus", "send $command")
         }
     }

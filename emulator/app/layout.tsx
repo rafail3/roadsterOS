@@ -8,6 +8,8 @@ import "../styles/music.css";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "../styles/radio.css";
 import "../styles/phone.css";
+import "../styles/settings.css";
+import "../styles/sound.css";
 import "../styles/maps.css";
 import "../styles/chrome.css";
 

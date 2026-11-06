@@ -1,5 +1,6 @@
 /* clock faces: digital with a date card, analog dial. Tap the clock to switch. */
-.clock-block { display: block; text-align: left; margin-top: auto; margin-bottom: auto; padding-bottom: var(--space-7); }
+/* centred between the dock and the card, the date card with it */
+.clock-block { display: block; align-self: center; text-align: left; margin-top: auto; margin-bottom: auto; padding-bottom: var(--space-7); }
 /* the touch target is the time itself: the digits, or the round dial */
 .clock-hit { display: block; cursor: pointer; border-radius: var(--radius); }
 .analog .clock-hit { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; }
@@ -62,3 +63,6 @@
   .digit .glyph.out, .digit .glyph.in { animation-duration: 0.01ms; }
   .hand-hour, .hand-minute { transition: none; }
 }
+
+/* a fixed face: the clock reads the same, it just does not switch */
+.clock-hit:disabled { cursor: default; opacity: 1; color: inherit; }

@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { bridge, type Source } from "../car/bridge";
-import { carCommand, carEvent, openPhone, openVolume, setBluetooth, shellAction, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
+import { userActivity, watchIdle } from "../car/store";
+import { Dial } from "./Clock";
+import { DevOverlays } from "./DevOverlays";
+import { carCommand, carEvent, launchApp, openPhone, openVolume, setBluetooth, shellAction, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Clock } from "./Clock";
 import { Drawer, useDrawerDrag } from "./Drawer";
 import { HomeCard } from "./HomeCard";
@@ -11,6 +14,8 @@ import { MusicApp } from "./MusicApp";
 import { RadioApp } from "./RadioApp";
 import { MapsApp } from "./MapsApp";
 import { PhoneApp, PhoneNetwork, useUnread } from "./PhoneApp";
+import { SettingsApp } from "./SettingsApp";
+import { SoundApp } from "./SoundApp";
 import { MapOffer } from "./MapOffer";
 import { DevicesSheet } from "./DevicesSheet";
 import { NetworksSheet } from "./NetworksSheet";
@@ -23,19 +28,17 @@ import { useFingerMouse } from "./controls";
 
 const THEME_FADE_MS = 750;
 
+/** The dock down the left edge: the functions a driver reaches most, as app icons. */
 const RAIL = [
-  { id: "music", label: "Music", icon: "i-music-notes" },
-  { id: "radio", label: "Radio", icon: "i-radio" },
-  { id: "phone", label: "Phone", icon: "i-phone" },
-  { id: "maps", label: "Maps", icon: "i-navigation-arrow" },
-  { id: "camera", label: "Camera", icon: "i-camera" },
+  { id: "music", label: "Music", mark: "app-mark-music" },
+  { id: "radio", label: "Radio", mark: "app-mark-radio" },
+  { id: "phone", label: "Phone", mark: "app-mark-phone" },
+  { id: "maps", label: "Maps", mark: "app-mark-nav" },
+  { id: "camera", label: "Camera", mark: "app-mark-camera" },
 ];
-/** The app icons on home and the app each opens. */
-const APPS: { label: string; mark: string; app: "MAPS" | "MUSIC" | "PHONE" }[] = [
-  { label: "Maps", mark: "app-mark-nav", app: "MAPS" },
-  { label: "Music", mark: "app-mark-music", app: "MUSIC" },
-  { label: "Phone", mark: "app-mark-phone", app: "PHONE" },
-];
+/** The tile colour of each of our apps on home; other apps get one from their name. */
+const MARKS: Record<string, string> = { MAPS: "app-mark-nav", MUSIC: "app-mark-music", PHONE: "app-mark-phone", RADIO: "app-mark-radio", SETTINGS: "app-mark-settings" };
+const hue = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
 // ponytail: centres of the volume keys on this frame model, in screen pixels; another frame needs its own
 // centres of the frame's volume keys, in canvas units (the screen is drawn at 0.8)
 const KEY_CENTER = { VOL_UP: 520, VOL_DOWN: 645 } as const;
@@ -83,7 +86,7 @@ function useWaking(on: boolean) {
   return waking && on;
 }
 
-function pressRail(id: string, cameraOn: boolean) {
+function pressRail(id: string) {
   if (id === "music") {
     setBluetooth(true);
     carCommand({ type: "Audio.Source", source: "BT" });
@@ -95,7 +98,8 @@ function pressRail(id: string, cameraOn: boolean) {
   }
   if (id === "maps") shellAction({ type: "OpenApp", app: "MAPS" });
   if (id === "phone") openPhone();
-  if (id === "camera") carEvent({ type: "ReverseGear", on: !cameraOn });
+  // the picture without reverse gear: the music keeps its level
+  if (id === "camera") shellAction({ type: "OpenCamera" });
 }
 
 export function Screen() {
@@ -118,7 +122,9 @@ export function Screen() {
     : undefined;
   // the call covers the screen only while it is shown whole; folded into its bar, the shell under it works
   const callFull = car.call !== "IDLE" && shell.callView === "FULL";
-  const covered = shell.drawer || shell.recents || callFull || car.camera;
+  // reverse gear shows the camera; its icon opens it too
+  const camera = car.camera || shell.cameraOpen;
+  const covered = shell.drawer || shell.recents || callFull || camera;
   const veil = bridge.veil(shell);
   const card = bridge.homeCard(car, emulator.btOn, shell.card);
   // a new source brings its page forward on the card
@@ -131,22 +137,31 @@ export function Screen() {
   // above neutral the whole screen goes through one colour filter; none at all otherwise
   const boost = veil.brightness > 1 ? { filter: `brightness(${veil.brightness.toFixed(3)}) saturate(${veil.saturation.toFixed(3)})` } : undefined;
 
+  useEffect(watchIdle, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       shellAction({ type: "CloseDrawer" });
-      if (car.camera) carEvent({ type: "ReverseGear", on: false });
+      shellAction({ type: "CloseCamera" });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [car.camera]);
+  }, []);
 
   return (
-    <div ref={finger} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming", inApp && "in-app", shell.app === "MAPS" && "in-maps", waking && "waking")} style={{ ...glow, ...boost }}>
+    // any touch restarts the always-on display's wait; while it shows, its own layer takes the touch
+    <div ref={finger} onPointerDownCapture={() => { if (!shell.aod) userActivity(); }} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming", inApp && "in-app", shell.app === "MAPS" && "in-maps", waking && "waking")} style={{ ...glow, ...boost }}>
       <div className="ambient" aria-hidden="true" />
 
       <header className="bar" inert={covered} onPointerDown={onPointerDown}>
         <div className="bar-group">
+          {/* inside an app the big clock is gone: the time sits at the bar's left edge */}
+          {inApp && (
+            <time className="bar-clock" dateTime={now.toISOString()}>
+              {bridge.clockText(now.getHours(), now.getMinutes(), shell.clock24h)}{!shell.clock24h && <span className="bar-meridiem">{bridge.meridiem(now.getHours())}</span>}
+            </time>
+          )}
           {/* first, the connected phone's network and battery, as it reports them over the hands-free link */}
           {car.hfpConnected && <PhoneNetwork status={emulator.phoneStatus} />}
           <span
@@ -176,30 +191,18 @@ export function Screen() {
       </header>
 
       <nav className="rail" aria-label="Functions" inert={covered || inApp}>
-        {RAIL.map(({ id, label, icon }) => {
-          const active = (car.source === "BT" && id === "music") || (car.source === "RADIO" && id === "radio");
-          return (
-            <button key={id} className={classes("rail-item", active && "is-active")} aria-current={active ? "page" : undefined} onClick={() => pressRail(id, car.camera)}>
-              <span className={`icon ${icon}`} /><span>{label}</span>
+        <div className="dock">
+          {RAIL.map(({ id, label, mark }) => (
+            <button key={id} className="dock-item" aria-label={label} onClick={() => pressRail(id)}>
+              <span className={`app-mark ${mark}`} aria-hidden="true" />
             </button>
-          );
-        })}
+          ))}
+        </div>
       </nav>
 
       <section className="field" inert={covered || inApp}>
-        <Clock now={now} face={shell.face} />
-        <div className="apps" aria-label="Apps">
-          {APPS.map(({ label, mark, app }) => {
-            // the phone's icon counts its unread messages, as a phone's does
-            const badge = app === "PHONE" ? unread : 0;
-            return (
-              <button key={label} className="app" aria-label={badge ? `${label}, ${badge} unread messages` : label}
-                onClick={() => (app === "PHONE" ? openPhone() : shellAction({ type: "OpenApp", app }))}>
-                <span className={`app-mark ${mark}`}>{badge > 0 && <span className="app-badge" aria-hidden="true">{badge}</span>}</span><span>{label}</span>
-              </button>
-            );
-          })}
-        </div>
+        <Clock now={now} face={shell.face} h24={shell.clock24h} switchable={shell.faceMode === "BOTH"} />
+        <HomeApps apps={bridge.homeApps(shell.homeApps, emulator.installed)} unread={unread} />
       </section>
 
       <section className="panel" aria-label="Now playing and navigation" inert={covered || inApp}>
@@ -208,6 +211,8 @@ export function Screen() {
 
       <MusicApp open={shell.app === "MUSIC"} />
       <PhoneApp open={shell.app === "PHONE"} />
+      <SettingsApp open={shell.app === "SETTINGS"} />
+      <SoundApp open={shell.sound} />
       <RadioApp open={shell.app === "RADIO"} />
       <MapsApp open={shell.app === "MAPS"} inCard={!inApp && card.shown === "NAVIGATION" && shell.screenOn} light={light} />
       {/* over any screen: opened from the music app or by a long press on the drawer's Bluetooth */}
@@ -217,7 +222,7 @@ export function Screen() {
       <Recents emulator={emulator} />
       {/* always there, as on a phone, except under the drawer, a devices or networks panel (its keyboard reaches the edges), a call or the camera */}
       {/* the bottom handle stays over a call too, so it can be swiped home into its bar */}
-      {!shell.drawer && !shell.devices && !shell.networks && !car.camera && (
+      {!shell.drawer && !shell.devices && !shell.networks && !camera && (
         <>
           <NavBar />
           <EdgeBack side="left" />
@@ -227,21 +232,185 @@ export function Screen() {
       <div className={classes("scrim", shell.drawer && "is-open")} onClick={() => shellAction({ type: "CloseDrawer" })} />
       <Drawer emulator={emulator} panel={drawer} dragging={dragging} />
       {callFull && <CallOverlay emulator={emulator} />}
-      {car.call !== "IDLE" && shell.callView === "BAR" && !car.camera && <CallBar emulator={emulator} />}
+      {car.call !== "IDLE" && shell.callView === "BAR" && !camera && <CallBar emulator={emulator} />}
       {emulator.voiceAssistant && <VoiceOverlay />}
-      {!callFull && !car.camera && <MessageBanner emulator={emulator} />}
-      {car.camera && <CameraOverlay />}
+      {!callFull && !camera && <MessageBanner emulator={emulator} />}
+      {camera && <CameraOverlay />}
       {(Object.keys(KEY_CENTER) as (keyof typeof KEY_CENTER)[]).map((key) => (
         <svg key={key} className={classes("edge-bulge", emulator.pressedKey === key && "is-pressed")} style={{ top: KEY_CENTER[key] }} viewBox="0 0 12 136" preserveAspectRatio="none" aria-hidden="true">
           <path d={BULGE_PATH} />
         </svg>
       ))}
-      <ConnectionNotice notice={emulator.notice} hidden={callFull || car.camera} />
-      <MapOffer hidden={callFull || car.camera || shell.drawer} />
+      <ConnectionNotice notice={emulator.notice} hidden={callFull || camera} />
+      <MapOffer hidden={callFull || camera || shell.drawer} />
       <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC" || shell.drawer} />
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.dark.toFixed(3) }} />
       {/* always there: it fades in to switch the screen off and lifts to switch it on; a tap on it wakes the screen */}
+      <DevOverlays touches={shell.showTouches} fps={shell.showFrameRate} speed={shell.animationSpeed} />
+      {!shell.setupDone && <Setup />}
+      <AlwaysOn on={shell.aod} now={now} face={bridge.aodFace(shell)} h24={shell.clock24h} />
       <button className={classes("screen-off", !shell.screenOn && "is-on", waking && "is-lifting")} aria-label="Screen off, tap to wake" tabIndex={shell.screenOn ? -1 : 0} aria-hidden={shell.screenOn} onClick={() => shellAction({ type: "Wake" })} />
+    </div>
+  );
+}
+
+/** The always-on display: black, the clock and the date in a soft white; a touch brings the screen back and does nothing else. */
+function AlwaysOn({ on, now, face, h24 }: { on: boolean; now: Date; face: "DIGITAL" | "ANALOG"; h24: boolean }) {
+  const date = now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  return (
+    <div className={classes("aod", on && "is-on")} aria-hidden={!on} role={on ? "button" : undefined} aria-label={on ? "Always on display, tap to wake" : undefined}
+      onPointerDown={(e) => { if (!on) return; e.stopPropagation(); userActivity(); }}>
+      {face === "ANALOG"
+        ? <div className="aod-dial"><Dial now={now} /></div>
+        : <time className="aod-time" dateTime={now.toISOString()}>{bridge.clockText(now.getHours(), now.getMinutes(), h24)}{!h24 && <span className="aod-meridiem">{bridge.meridiem(now.getHours())}</span>}</time>}
+      <p className="aod-date">{date}</p>
+    </div>
+  );
+}
+
+/** After a factory reset the unit starts here until setup is finished. */
+function Setup() {
+  return (
+    <section className="setup" aria-label="Setup">
+      <h1 className="setup-title">Welcome to roadsterOS</h1>
+      <p className="setup-text">Let's set up the unit.</p>
+      <button className="setup-start" onClick={() => shellAction({ type: "FinishSetup" })}>Continue</button>
+    </section>
+  );
+}
+
+/**
+ * The icons on home. A press held on one starts arranging them, as a phone's home screen does: they jiggle, the held
+ * one follows the finger left or right while the others make room, and the drop moves it (core-car HomeApps.move).
+ * A tap outside the row ends the arranging; while it lasts a tap opens nothing.
+ */
+function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unread: number }) {
+  const [arranging, setArranging] = useState(false);
+  const [drag, setDrag] = useState<{ id: string; from: number; dx: number; slot: number; scale: number } | null>(null);
+  // after a drop: the icon already in its new place, drawn where the finger left it, then sliding the rest of the way
+  const [settle, setSettle] = useState<{ id: string; dx: number } | null>(null);
+  const press = useRef<{ timer: ReturnType<typeof setTimeout> | null; x: number; held: boolean }>({ timer: null, x: 0, held: false });
+  const row = useRef<HTMLDivElement>(null);
+  // an icon taken off shrinks away first; then the row re-centres
+  const [leaving, setLeaving] = useState<string | null>(null);
+  const placed = useRef<Record<string, number>>({});
+  const ids = apps.map((a) => a.id).join();
+
+  // when icons come or go the row re-centres: each one glides from where it was to its new place, a new one grows in
+  useLayoutEffect(() => {
+    const els = row.current ? ([...row.current.children] as HTMLElement[]) : [];
+    const now: Record<string, number> = Object.fromEntries(els.map((el, i) => [apps[i]?.id ?? "", el.offsetLeft]));
+    const [, glideMs, growMs] = bridge.arrange.times();
+    // a drop places the icons itself (settle); only additions and removals glide here (core-car HomeArrange.glides)
+    if (!settle && !drag) for (const g of bridge.arrange.glides(placed.current, now)) {
+      const el = els[apps.findIndex((a) => a.id === g.id)];
+      if (!el) continue;
+      if (g.added) el.animate([{ opacity: 0, transform: "scale(0.6)" }, { opacity: 1, transform: "none" }], { duration: growMs, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+      else el.animate([{ transform: `translateX(${g.fromDx ?? 0}px)` }, { transform: "none" }], { duration: glideMs, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+    }
+    placed.current = now;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ids]);
+
+  const remove = (id: string) => {
+    setLeaving(id);
+    setTimeout(() => { shellAction({ type: "ToggleHomeApp", id }); setLeaving(null); }, bridge.arrange.times()[0]);
+  };
+  // where the held icon would drop, never past the row's ends, and where each icon is drawn meanwhile (core-car HomeArrange)
+  const count = apps.length;
+  const to = drag ? bridge.arrange.dropIndex(drag.from, drag.dx, drag.slot, count) : -1;
+  const shift = (i: number) => (drag ? bridge.arrange.offset(i, drag.from, drag.dx, drag.slot, count) : 0);
+
+  useEffect(() => {
+    if (!settle) return;
+    // one frame drawn without transitions at the drop's offset, then the icon glides to its place
+    let b = 0;
+    const a = requestAnimationFrame(() => { b = requestAnimationFrame(() => setSettle(null)); });
+    return () => { cancelAnimationFrame(a); cancelAnimationFrame(b); };
+  }, [settle]);
+
+  useEffect(() => {
+    if (!arranging) return;
+    const away = (e: PointerEvent) => { if (!row.current?.contains(e.target as Node)) setArranging(false); };
+    window.addEventListener("pointerdown", away, true);
+    return () => window.removeEventListener("pointerdown", away, true);
+  }, [arranging]);
+
+  const startDrag = (el: HTMLElement, id: string, from: number, x: number) => {
+    const r = el.getBoundingClientRect();
+    // the screen is drawn scaled: pointer pixels to layout pixels, and one icon's step to the next
+    const scale = r.width / el.offsetWidth;
+    const next = (el.nextElementSibling ?? el.previousElementSibling) as HTMLElement | null;
+    const slot = next ? Math.abs(next.getBoundingClientRect().left - r.left) / scale : el.offsetWidth;
+    press.current.x = x;
+    // a press that picked an icon up never opens it, whatever the arranging does by the time its click comes
+    press.current.held = true;
+    setDrag({ id, from, dx: 0, slot, scale });
+  };
+  const down = (e: React.PointerEvent<HTMLButtonElement>, id: string, i: number) => {
+    const el = e.currentTarget;
+    el.setPointerCapture(e.pointerId);
+    press.current = { timer: null, x: e.clientX, held: false };
+    if (arranging) return startDrag(el, id, i, e.clientX);
+    press.current.timer = setTimeout(() => {
+      press.current.held = true;
+      setArranging(true);
+      startDrag(el, id, i, press.current.x);
+    }, bridge.arrange.holdMs());
+  };
+  const move = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (drag) return setDrag({ ...drag, dx: (e.clientX - press.current.x) / drag.scale });
+    if (press.current.timer && bridge.arrange.cancelsHold(e.clientX - press.current.x)) { clearTimeout(press.current.timer); press.current.timer = null; }
+  };
+  const up = () => {
+    if (press.current.timer) { clearTimeout(press.current.timer); press.current.timer = null; }
+    if (!drag) return;
+    if (to !== drag.from) {
+      shellAction({ type: "MoveHomeApp", id: drag.id, by: to - drag.from });
+      // the icon is in its new slot now: what is left of the finger's offset from there
+      setSettle({ id: drag.id, dx: bridge.arrange.settle(drag.from, drag.dx, drag.slot, count) });
+    }
+    setDrag(null);
+    // a move ends the arranging; a hold without one keeps it, so an icon can be taken off with its badge
+    if (!bridge.arrange.keeps(drag.from, to)) setArranging(false);
+  };
+  const open = (id: string) => {
+    // a press that picked the icon up (the hold, or a grab while arranging), or a tap while arranging, opens nothing
+    const picked = press.current.held;
+    press.current.held = false;
+    if (bridge.arrange.opens(arranging, picked)) launchApp(id);
+  };
+  const key = (e: React.KeyboardEvent<HTMLButtonElement>, id: string) => {
+    const by = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
+    if (arranging && by) { e.preventDefault(); shellAction({ type: "MoveHomeApp", id, by }); }
+    if (arranging && e.key === "Escape") setArranging(false);
+  };
+
+  return (
+    <div ref={row} className={classes("apps", arranging && "is-arranging", settle !== null && "is-settling")} aria-label={arranging ? "Apps, arranging: drag an icon or use the arrow keys" : "Apps"}>
+      {/* the icons chosen in the settings (core-car HomeApps) */}
+      {apps.map(({ id, label }, i) => {
+        // the phone's icon counts its unread messages, as a phone's does
+        const badge = id === "PHONE" ? unread : 0;
+        return (
+          <button key={id} className={classes("app", drag?.id === id && "is-dragged", leaving === id && "is-leaving")}
+            style={{ "--i": i, transform: drag ? `translateX(${shift(i)}px)` : settle?.id === id ? `translateX(${settle.dx}px)` : undefined } as CSSProperties}
+            aria-label={badge ? `${label}, ${badge} unread messages` : label}
+            onPointerDown={(e) => down(e, id, i)} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onKeyDown={(e) => key(e, id)} onClick={() => open(id)}>
+            <span className={`app-mark ${MARKS[id] ?? "app-mark-other"}`} style={MARKS[id] ? undefined : { "--mark-hue": hue(id) } as CSSProperties}>
+              {badge > 0 && !arranging && <span className="app-badge" aria-hidden="true">{badge}</span>}
+              {/* arranging: the badge that takes the icon off home (it stays in the settings' More Apps) */}
+              {arranging && (
+                <span className="app-remove" role="button" tabIndex={0} aria-label={`Remove ${label} from home`}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); remove(id); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); remove(id); } }} />
+              )}
+            </span>
+            <span>{label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

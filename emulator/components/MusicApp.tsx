@@ -71,6 +71,9 @@ export function MusicApp({ open }: { open: boolean }) {
       <button className="glass-button music-close" aria-label="Close music" onClick={() => shellAction({ type: "Home" })}>
         <span className="icon i-caret-down" aria-hidden="true" />
       </button>
+      <button className="glass-button music-sound" aria-label="Sound" onClick={() => shellAction({ type: "OpenSound" })}>
+        <span className="icon i-snd-faders" aria-hidden="true" />
+      </button>
       <button className="glass-button music-devices" aria-label="Devices" onClick={() => shellAction({ type: "OpenDevices" })}>
         <span className="icon i-bluetooth" aria-hidden="true" />
       </button>

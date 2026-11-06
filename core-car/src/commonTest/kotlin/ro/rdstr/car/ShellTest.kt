@@ -7,6 +7,16 @@ import kotlin.test.assertTrue
 
 class ShellTest {
     @Test
+    fun `the sound window opens over the app and Back or Home closes it`() {
+        val music = Shell.reduce(ShellState(), ShellAction.OpenApp(App.MUSIC))
+        val open = Shell.reduce(music, ShellAction.OpenSound)
+        kotlin.test.assertTrue(open.sound)
+        kotlin.test.assertEquals(App.MUSIC, Shell.reduce(open, ShellAction.Back).app)
+        kotlin.test.assertFalse(Shell.reduce(open, ShellAction.Back).sound)
+        kotlin.test.assertFalse(Shell.reduce(open, ShellAction.Home).sound)
+    }
+
+    @Test
     fun `typing in motion is allowed unless the setting locks it`() {
         assertFalse(ShellState().lockTypingWhileMoving)
         assertTrue(Shell.reduce(ShellState(), ShellAction.SetTypingLock(true)).lockTypingWhileMoving)

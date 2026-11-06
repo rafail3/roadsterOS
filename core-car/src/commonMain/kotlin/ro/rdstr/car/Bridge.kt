@@ -182,7 +182,84 @@ object Bridge {
 
     fun callDuration(ms: Double): String = PhoneBook.duration(ms.toLong())
 
+    fun clockText(hour: Int, minute: Int, h24: Boolean): String = Settings.clockText(hour, minute, h24)
+
+    fun meridiem(hour: Int): String = Settings.meridiem(hour)
+
+    /** The commands a car start sends to cap a loud last level at the shell's start volume. */
+    fun startVolume(state: String, cap: Int): String = json.encodeToString(
+        ListSerializer(CarCommand.serializer()),
+        Settings.startVolume(json.decodeFromString(RulesState.serializer(), state), cap),
+    )
+
+    fun size(bytes: Double): String = Settings.size(bytes.toLong())
+
+    /** [installed]: a JSON array of {"id","label"}; answers the icons home shows. */
+    fun homeApps(chosen: String, installed: String): String {
+        val apps = ListSerializer(LaunchableApp.serializer())
+        return json.encodeToString(apps, HomeApps.shown(json.decodeFromString(ListSerializer(String.serializer()), chosen), json.decodeFromString(apps, installed)))
+    }
+
+    fun homeAppsMax(): Int = HomeApps.MAX
+
+    /** Arranging the icons on home (core-car HomeArrange). */
+    fun arrangeHoldMs(): Double = HomeArrange.HOLD_MS.toDouble()
+    fun arrangeCancelsHold(dx: Double): Boolean = HomeArrange.cancelsHold(dx)
+    fun arrangeDropIndex(from: Int, dx: Double, slot: Double, count: Int): Int = HomeArrange.dropIndex(from, dx, slot, count)
+    fun arrangeOffset(i: Int, from: Int, dx: Double, slot: Double, count: Int): Double = HomeArrange.offset(i, from, dx, slot, count)
+    fun arrangeSettle(from: Int, dx: Double, slot: Double, count: Int): Double = HomeArrange.settle(from, dx, slot, count)
+    fun arrangeKeeps(from: Int, to: Int): Boolean = HomeArrange.keepsArranging(from, to)
+    fun arrangeOpens(arranging: Boolean, pickedUp: Boolean): Boolean = HomeArrange.opens(arranging, pickedUp)
+    fun arrangeTimes(): String = "[${HomeArrange.REMOVE_MS},${HomeArrange.GLIDE_MS},${HomeArrange.GROW_MS}]"
+    /** [before] and [after]: JSON objects of each icon's left edge by id; answers the glides as JSON. */
+    fun arrangeGlides(before: String, after: String): String {
+        val edges = kotlinx.serialization.builtins.MapSerializer(String.serializer(), Double.serializer())
+        return json.encodeToString(ListSerializer(HomeArrange.Glide.serializer()), HomeArrange.glides(json.decodeFromString(edges, before), json.decodeFromString(edges, after)))
+    }
+
+    private val strings = ListSerializer(String.serializer())
+    fun timeZones(ids: String): String = json.encodeToString(strings, TimeZones.places(json.decodeFromString(strings, ids)))
+    fun timeZoneSearch(ids: String, query: String): String = json.encodeToString(strings, TimeZones.search(json.decodeFromString(strings, ids), query))
+    fun timeZoneCity(id: String): String = TimeZones.city(id)
+    fun timeZoneRegion(id: String): String = TimeZones.region(id)
+    fun timeZoneOffset(minutes: Int): String = TimeZones.offset(minutes)
+
+    private val dashKeys = ListSerializer(DashClock.Key.serializer())
+    /** The dash display's keys for a jump of the unit's local time (core-car DashClock). */
+    fun dashFollow(shownBefore: Int, jump: Int): String = json.encodeToString(dashKeys, DashClock.follow(shownBefore, jump))
+
+    fun ownApps(): String = json.encodeToString(ListSerializer(LaunchableApp.serializer()), HomeApps.OWN)
+
     fun shellInitial(): String = json.encodeToString(ShellState.serializer(), ShellState())
+
+    /** The shell's preferences as stored across starts, and back (Shell.encodePreferences / decodePreferences). */
+    fun encodePreferences(state: String): String = Shell.encodePreferences(json.decodeFromString(ShellState.serializer(), state))
+
+    fun decodePreferences(text: String): String = json.encodeToString(ShellState.serializer(), Shell.decodePreferences(text))
+
+    fun factoryPreferences(): String = Shell.encodePreferences(Shell.factoryState())
+
+    private fun sound(text: String) = json.decodeFromString(SoundSettings.serializer(), text)
+    private fun sound(s: SoundSettings) = json.encodeToString(SoundSettings.serializer(), s)
+
+    /** The sound window (core-car Sound): the calls a change makes, presets, bands, resets and the ranges. */
+    fun soundWrites(a: String, b: String): String = json.encodeToString(ListSerializer(DspWrite.serializer()), Sound.writes(sound(a), sound(b)))
+    fun startupPhones(saved: String, last: String?): String =
+        json.encodeToString(ListSerializer(String.serializer()), Startup.phonesToTry(json.decodeFromString(ListSerializer(String.serializer()), saved), last))
+    fun startupConnectWaitMs(): Int = Startup.CONNECT_WAIT_MS
+    fun startupConnectTryMs(): Int = Startup.CONNECT_TRY_MS
+    fun cameraGuides(guidelines: String, eps: Int): String = json.encodeToString(Guides.serializer(), Camera.guides(Guidelines.valueOf(guidelines), eps))
+    fun cameraWrites(a: String, b: String): String = json.encodeToString(
+        ListSerializer(DspWrite.serializer()),
+        Camera.writes(json.decodeFromString(CameraSettings.serializer(), a), json.decodeFromString(CameraSettings.serializer(), b)),
+    )
+    fun soundPreset(s: String, preset: String): String = sound(Sound.withPreset(sound(s), EqPreset.valueOf(preset)))
+    fun soundBand(s: String, band: Int, db: Int): String = sound(Sound.withBand(sound(s), band, db))
+    fun soundResetLoudness(s: String): String = sound(Sound.resetLoudness(sound(s)))
+    fun soundResetBass(s: String): String = sound(Sound.resetBass(sound(s)))
+    fun soundBands(): String = json.encodeToString(strings, Sound.BANDS)
+    fun soundHpf(): String = json.encodeToString(ListSerializer(Int.serializer()), Sound.HPF_HZ)
+    fun soundLpf(): String = json.encodeToString(ListSerializer(Int.serializer()), Sound.LPF_HZ)
 
     fun shell(state: String, action: String): String {
         val next = Shell.reduce(
@@ -208,6 +285,15 @@ object Bridge {
         Shell.effectiveTheme(json.decodeFromString(ShellState.serializer(), state), hour).name
 
     fun minBrightness(): Int = Shell.MIN_BRIGHTNESS
+
+    fun aodDue(state: String, idleMs: Double, busy: Boolean): Boolean =
+        Shell.aodDue(json.decodeFromString(ShellState.serializer(), state), idleMs.toLong(), busy)
+
+    fun aodFace(state: String): String = Shell.aodFace(json.decodeFromString(ShellState.serializer(), state)).name
+
+    fun wakesAod(event: String): Boolean = Shell.wakesAod(json.decodeFromString(CarEvent.serializer(), event))
+
+    fun aodMinutes(): String = json.encodeToString(ListSerializer(Int.serializer()), Shell.AOD_MINUTES)
 
     fun maxBrightness(): Int = Shell.MAX_BRIGHTNESS
 

@@ -67,7 +67,7 @@ const SpeedTicks = memo(function SpeedTicks({ lit, tone }: { lit: number; tone: 
  * Closed, the same map shows on the card on home ([inCard] while that page is in view); it works only while seen.
  */
 export function MapsApp({ open, inCard, light }: { open: boolean; inCard: boolean; light: boolean }) {
-  const { gps, maps, driving, speed } = useEmulator();
+  const { gps, maps, driving, speed, shell } = useEmulator();
   const seen = open || inCard;
   const section = useRef<HTMLElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -89,8 +89,8 @@ export function MapsApp({ open, inCard, light }: { open: boolean; inCard: boolea
   const [credit, setCredit] = useState(false);
   const [borders, setBorders] = useState<GeoJSON.FeatureCollection | null>(null);
   const streetAtMs = useRef(0);
-  const latest = useRef({ gps, speed });
-  latest.current = { gps, speed };
+  const latest = useRef({ gps, speed, speedChime: shell.speedChime });
+  latest.current = { gps, speed, speedChime: shell.speedChime };
 
   useEffect(() => { loadBorders().then(setBorders).catch(() => {}); }, []);
   // the packs built on this laptop: with one, the map draws from it and needs no network, as on the unit
@@ -130,7 +130,7 @@ export function MapsApp({ open, inCard, light }: { open: boolean; inCard: boolea
       setStreet(streetAt(m, at.lon, at.lat, m.getZoom(), heading));
       roadLimit.current = limitAt(m, at.lon, at.lat, heading);
       const w = bridge.speedWarning(roadLimit.current, performance.now());
-      if (w.chime) chime();
+      if (w.chime && latest.current.speedChime) chime();
       setWarning((old) => (old.limit === w.limit && old.over === w.over && old.lit === w.lit && old.tone === w.tone ? old : w));
     });
     const el = document.createElement("div");
@@ -186,7 +186,8 @@ export function MapsApp({ open, inCard, light }: { open: boolean; inCard: boolea
       roadLimit.current = limitAt(m, gps.lon, gps.lat, heading);
     }
     const w = bridge.speedWarning(roadLimit.current, now);
-    if (w.chime) chime();
+    // the chime can be switched off in the settings; the sign and the red ring stay
+    if (w.chime && latest.current.speedChime) chime();
     setWarning((old) => (old.limit === w.limit && old.over === w.over && old.lit === w.lit && old.tone === w.tone ? old : w));
   }, [gps, speed, follow, headingUp, seen, driving]);
 
@@ -224,8 +225,9 @@ export function MapsApp({ open, inCard, light }: { open: boolean; inCard: boolea
           <SpeedTicks lit={warning.lit} tone={warning.tone} />
           <b>{speed.kmh}</b>
           <small>km/h</small>
-          <span className={`map-limit${warning.limit !== null ? " is-shown" : ""}`} role="img"
-            aria-label={warning.limit !== null ? `Speed limit ${warning.limit} km/h` : undefined} aria-hidden={warning.limit === null}>
+          {/* the sign can be switched off in the settings; the ring and its red over the limit stay */}
+          <span className={`map-limit${warning.limit !== null && shell.speedLimitSign ? " is-shown" : ""}`} role="img"
+            aria-label={warning.limit !== null && shell.speedLimitSign ? `Speed limit ${warning.limit} km/h` : undefined} aria-hidden={warning.limit === null || !shell.speedLimitSign}>
             <b key={shownLimit.current ?? 0}>{shownLimit.current}</b>
           </span>
         </span>

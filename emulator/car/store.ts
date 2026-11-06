@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createCoverDesk } from "./covers";
-import { bridge, HFP, type Band, type CallRecord, type CarCommand, type CarEvent, type CarState, type Contact, type HfpCall, type Message, type OtherCall, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
+import { bridge, HFP, type Band, type LaunchableApp, type SoundSettings, type CameraSettings, type TimeSource, type CallRecord, type CarCommand, type CarEvent, type CarState, type Contact, type HfpCall, type Message, type OtherCall, type RuleAction, type ShellAction, type ShellState, type PanelKey } from "./bridge";
 import { MAJOR_COMPUTER, MAJOR_PHONE, SAMPLE_CONTACTS, SAMPLE_PHONE, sampleCalls } from "./phone";
 import { BANDS, STATIONS, stationAt } from "./radio";
 import { GPS_PLACES } from "./gps";
@@ -53,11 +53,17 @@ export interface EmulatorState {
   newMessage: Message | null;
   /** the unit's Bluetooth stack carries text messages (MAP client on); many units have it off */
   messagesSupported: boolean;
+  /** other apps installed on the unit, as its launcher lists them */
+  installed: LaunchableApp[];
+  /** car events written to the unit's journal while recording is on */
+  recorded: number;
   /** the phone book and history the connected phone shared (PBAP) */
   contacts: Contact[];
   calls: CallRecord[];
   /** what the phone reports over the hands-free link: battery and signal 0..5, the network */
   phoneStatus: { battery: number; signal: number; operator: string; roaming: boolean };
+  /** the steering angle as the CAN box reports it, positive to the left, -1080..1080; only the camera's lines read it */
+  eps: number;
   /** Bluetooth switching on, asked by the phone app */
   btTurningOn: boolean;
   /** the phone Bluetooth reports as connected */
@@ -85,6 +91,11 @@ export interface EmulatorState {
   acc: boolean;
   /** null = live clock, otherwise a simulated hour 0..23 */
   hour: number | null;
+  /** the unit's time zone, and how far the clock was set by hand from the real time */
+  timeZone: string;
+  clockShiftMs: number;
+  /** the car's dash display: how far its clock is from the browser's, and whether it shows the consumption */
+  dash: { offsetMin: number; fuel: boolean };
   log: LogEntry[];
   replay: { name: string; progress: number } | null;
   replayError: string | null;
@@ -425,6 +436,8 @@ export function setPcMedia(on: boolean) {
 function sendToCar(command: CarCommand) {
   set({ log: addLog("out", command) });
   if (PHONE_CALLS.has(command.type)) return void setTimeout(() => phoneCalls(command), ECHO_DELAY_MS);
+  if (command.type === "Dash.Key") return pressDash(command.key);
+  if (command.type === "Dsp") return;
   const echo = bridge.echo(command);
   if (echo) setTimeout(() => carEvent(echo), ECHO_DELAY_MS);
   if (command.type === "Phone.SendMessage") setTimeout(() => carEvent({ type: "Message", id: `sent-${Date.now()}`, number: command.number, text: command.text, atMs: Date.now(), sent: true }), ECHO_DELAY_MS);
@@ -671,9 +684,58 @@ function phoneSkips(forward: boolean) {
   carEvent({ type: "Playback", playing: state.car.playing, positionMs: 0 });
 }
 
+let lastActivity = Date.now();
+
+/** A touch on the screen or a key: the always-on display ends and its wait starts again. */
+export function userActivity() {
+  lastActivity = Date.now();
+  if (state.shell.aod) shellAction({ type: "ExitAod" });
+}
+
+let aodTimer: ReturnType<typeof setInterval> | null = null;
+/** Checks the wait of the always-on display once a second; a call, the camera or the map keep the screen as it is. */
+export function watchIdle() {
+  if (aodTimer) return;
+  aodTimer = setInterval(() => {
+    const busy = state.car.call !== "IDLE" || state.car.camera || state.shell.cameraOpen || state.shell.app === "MAPS";
+    if (bridge.aodDue(state.shell, Date.now() - lastActivity, busy)) shellAction({ type: "EnterAod" });
+  }, 1000);
+}
+
+/** The phone connected last; the unit asks it first when the car starts. */
+let lastPhone: string | null = null;
+let connecting: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * A few seconds after the car starts, with no phone connected by then, the saved ones are asked in turn, the last one
+ * first, until one connects (core-car Startup; CarRuntime.connectLastPhone on the unit).
+ */
+function connectLastPhone() {
+  if (connecting) clearTimeout(connecting);
+  const next = (phones: string[], i: number) => {
+    connecting = null;
+    if (!state.btOn || !state.acc || state.car.btConnected || i >= phones.length) return;
+    tryConnect(phones[i]);
+    connecting = setTimeout(() => next(phones, i + 1), bridge.startupConnectTryMs());
+  };
+  connecting = setTimeout(() => next(bridge.startupPhones(state.saved.map((d) => d.name), lastPhone), 0), bridge.startupConnectWaitMs());
+}
+
 export function carEvent(event: CarEvent) {
+  if (bridge.wakesAod(event)) userActivity();
+  if (event.type === "BtConnection" && event.connected && event.device) lastPhone = event.device;
+  // the car switched off: the unit sleeps and the phone's link drops with it, as on the unit
+  if (event.type === "Power" && !event.acc) {
+    if (connecting) clearTimeout(connecting);
+    if (state.car.btConnected) {
+      lastPhone = state.device;
+      carEvent({ type: "BtConnection", connected: false, device: state.device });
+    }
+  }
+  // the car starts: the call level back to its default, as each start of the unit does (core-car Sound.atStart)
+  if (event.type === "Power" && event.acc) queueMicrotask(() => setSound({ ...state.shell.dsp, callVolume: CALL_VOLUME_DEFAULT }));
   const step = bridge.apply(state.car, event);
-  set({ ...displayData(event), car: step.state, log: addLog("in", event) });
+  set({ ...displayData(event), car: step.state, log: addLog("in", event), recorded: counted() });
   step.actions.forEach(runAction);
   // a phone brings its hands-free link up and down with it; a tablet or the laptop has none
   if (event.type === "BtConnection") {
@@ -683,13 +745,18 @@ export function carEvent(event: CarEvent) {
   }
   // a new call fills the screen, an ended one goes; Home folds it into its bar (core-car Shell)
   if (event.type === "Call") shellAction({ type: "CallChanged", state: event.state });
+  // reverse gear takes the screen from a camera opened by hand, and closes it when it comes out
+  if (event.type === "ReverseGear") shellAction({ type: "CloseCamera" });
   // the screen follows the ignition: dark with the car off, back on when it starts
   if (event.type === "Power") shellAction({ type: event.acc ? "Wake" : "Sleep" });
+  // a loud last level comes down to the start volume chosen in the settings (core-car Settings.startVolume)
+  if (event.type === "Power" && event.acc) bridge.startVolume(state.car, state.shell.startVolume).forEach(carCommand);
+  if (event.type === "Power" && event.acc) connectLastPhone();
 }
 
 /** A command from our own UI: the rules remember it, then it goes to the car. */
 export function carCommand(command: CarCommand) {
-  set({ car: bridge.command(state.car, command) });
+  set({ car: bridge.command(state.car, command), recorded: counted() });
   sendToCar(command);
 }
 
@@ -720,6 +787,23 @@ export function remoteHangUp() {
   publishCalls();
 }
 
+/** Apps the control panel can put on the unit, as if installed with adb; none at start. */
+export const UNIT_APPS: LaunchableApp[] = [{ id: "com.waze", label: "Waze" }, { id: "com.spotify.music", label: "Spotify" }, { id: "org.videolan.vlc", label: "VLC" }];
+
+/** An app installed on the unit or removed from it; a removed one comes off home too. */
+export function setInstalled(app: LaunchableApp, on: boolean) {
+  const installed = on ? [...state.installed.filter((a) => a.id !== app.id), app] : state.installed.filter((a) => a.id !== app.id);
+  set({ installed });
+  shellAction({ type: "AppsInstalled", ids: installed.map((a) => a.id) });
+}
+
+/** An icon on home: our apps open in the shell, another app opens full screen on the unit (only logged here). */
+export function launchApp(id: string) {
+  if (id === "PHONE") return openPhone();
+  if (id === "MAPS" || id === "MUSIC" || id === "RADIO" || id === "SETTINGS") return shellAction({ type: "OpenApp", app: id });
+  set({ log: addLog("out", { type: "LaunchApp", package: id }) });
+}
+
 /** A text message reaches the phone, as the control panel sends one. */
 export function incomingMessage(number: string, text: string) {
   if (!state.car.hfpConnected || !state.messagesSupported) return;
@@ -741,6 +825,10 @@ export function dismissMessage() {
   if (state.newMessage) set({ newMessage: null });
 }
 
+export function setSteering(eps: number) {
+  set({ eps });
+}
+
 export function setPhoneStatus(status: { battery?: number; signal?: number; operator?: string; roaming?: boolean }) {
   carEvent({ type: "PhoneStatus", ...status });
 }
@@ -760,8 +848,59 @@ export function pressSound(page: "BLUETOOTH" | "RADIO", press: "PREV" | "PLAY" |
   bridge.homeCardPress(state.car, page, press).forEach(carCommand);
 }
 
+/** One more line in the unit's journal when recording is on: an event, a command or a screen action. */
+const counted = () => (state.shell.recordEvents ? state.recorded + 1 : state.recorded);
+
+const CALL_VOLUME_DEFAULT = 20;
+
+/** A change from the sound window: kept with the shell's settings, and the processor gets only the calls that moved it (CarRuntime on the unit). */
+export function setSound(next: SoundSettings) {
+  const writes = bridge.soundWrites(state.shell.dsp, next);
+  shellAction({ type: "SetSound", settings: next });
+  writes.forEach((write) => carCommand({ type: "Dsp", write }));
+}
+
+/** The camera settings: only the vendor values that moved are written (core-car Camera.writes). */
+export function setCamera(next: CameraSettings) {
+  const writes = bridge.cameraWrites(state.shell.camera, next);
+  shellAction({ type: "SetCamera", settings: next });
+  writes.forEach((write) => carCommand({ type: "Camera.Write", write }));
+}
+
 export function shellAction(action: ShellAction) {
-  set({ shell: bridge.shell(state.shell, action) });
+  set({ shell: bridge.shell(state.shell, action), recorded: counted() });
+  savePreferences();
+}
+
+// var: the store writes savedPrefs while building its first state, before this line runs
+var PREFS_KEY = "rdstr.shell";
+var savedPrefs = "";
+
+/** A changed preference is written at once, as the unit does; the browser may refuse storage, the shell works on. */
+function savePreferences() {
+  const text = bridge.encodePreferences(state.shell);
+  if (text === savedPrefs) return;
+  savedPrefs = text;
+  try { localStorage.setItem(PREFS_KEY, text); } catch { /* private window or storage off */ }
+}
+
+/** The preferences kept from the last run, or the defaults; ?fresh starts from the defaults. */
+function storedShell(q: URLSearchParams) {
+  if (q.has("fresh")) return bridge.shellInitial();
+  try {
+    const text = localStorage.getItem("rdstr.shell"); // PREFS_KEY is not set yet this early
+    if (text) {
+      savedPrefs = text;
+      return bridge.decodePreferences(text);
+    }
+  } catch { /* storage off */ }
+  return bridge.shellInitial();
+}
+
+/** Factory reset: every preference back to its default and setup to go through again, then a restart (CarRuntime.factoryReset). */
+export function factoryReset() {
+  try { localStorage.setItem(PREFS_KEY, bridge.factoryPreferences()); } catch { /* storage off: the reload starts from defaults anyway */ }
+  window.location.reload();
 }
 
 export function pressKey(key: PanelKey | null) {
@@ -795,7 +934,9 @@ export async function replay(name: string) {
     const lines: { t: number; event: CarEvent }[] = (await response.text())
       .split("\n")
       .filter(Boolean)
-      .map((line) => JSON.parse(line));
+      .map((line) => JSON.parse(line))
+      // a unit's journal also holds commands, screen actions and errors: only the car events replay
+      .filter((line) => line.event);
     const total = lines[lines.length - 1].t || 1;
     set({ replay: { name, progress: 0 } });
     replayTimers = lines.map((line) =>
@@ -811,18 +952,21 @@ export async function replay(name: string) {
 
 /** URL state for captures, e.g. ?bare&theme=light&hour=20&source=radio&call=ringing&drawer&camera&brightness=40&analog&app=music&track=1 */
 function fromUrl(q: URLSearchParams): EmulatorState {
-  let shell = bridge.shellInitial();
+  let shell = storedShell(q);
   let car = bridge.initial();
   const applyEvent = (event: CarEvent) => { car = bridge.apply(car, event).state; };
   const theme = q.get("theme")?.toUpperCase();
   if (theme === "AUTO" || theme === "LIGHT" || theme === "DARK") shell = bridge.shell(shell, { type: "SetTheme", mode: theme });
   if (q.has("night")) shell = bridge.shell(shell, { type: "SetTheme", mode: "DARK" });
   if (q.has("drawer")) shell = bridge.shell(shell, { type: "OpenDrawer" });
+  if (q.has("aod")) shell = bridge.shell(shell, { type: "EnterAod" });
+  if (q.has("sound")) shell = bridge.shell(shell, { type: "OpenSound" });
   if (q.has("analog")) shell = bridge.shell(shell, { type: "SetFace", face: "ANALOG" });
   if (q.get("app") === "music") shell = bridge.shell(shell, { type: "OpenApp", app: "MUSIC" });
   if (q.get("app") === "radio") shell = bridge.shell(shell, { type: "OpenApp", app: "RADIO" });
   if (q.get("app") === "maps") shell = bridge.shell(shell, { type: "OpenApp", app: "MAPS" });
   if (q.get("app") === "phone") shell = bridge.shell(shell, { type: "OpenApp", app: "PHONE" });
+  if (q.get("app") === "settings") shell = bridge.shell(shell, { type: "OpenApp", app: "SETTINGS" });
   if (q.has("devices")) shell = bridge.shell(shell, { type: "OpenDevices" });
   const font = q.get("font");
   if (font) shell = bridge.shell(shell, { type: "SetFont", name: font });
@@ -873,6 +1017,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     contacts: SAMPLE_CONTACTS,
     calls: sampleCalls(Date.now()),
     phoneStatus: { battery: 4, signal: 3, operator: "Vela Mobile", roaming: false },
+    eps: 0,
     btTurningOn: false,
     voiceAssistant: false,
     messages: [
@@ -887,6 +1032,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     newMessage: null,
     // ?nomap: a unit whose Bluetooth stack has no message client
     messagesSupported: !q.has("nomap"),
+    installed: [],
+    recorded: 0,
     device: SAMPLE_PHONE,
     // the names phones give themselves in their Bluetooth settings
     saved: [{ name: SAMPLE_PHONE, inRange: true, major: MAJOR_PHONE }, { name: "Galaxy S23", inRange: false, major: MAJOR_PHONE }, { name: "Galaxy Tab S9", inRange: true, major: MAJOR_COMPUTER }],
@@ -904,6 +1051,10 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     wifiNeedsLocation: false,
     acc: true,
     hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : null,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    clockShiftMs: 0,
+    // a car's clock is rarely right: a few minutes off at start
+    dash: { offsetMin: 7, fuel: false },
     log: [],
     replay: null,
     replayError: null,
@@ -922,12 +1073,98 @@ export function useEmulator() {
   return useSyncExternalStore(subscribe, () => state);
 }
 
-/** The time the shell shows: live, or a fixed moment when an hour is simulated. */
+/** The time the shell shows: live (as set by hand, in the unit's zone), or a fixed moment when an hour is simulated. */
 export function useNow(hour: number | null) {
   const [live, setLive] = useState(() => new Date());
   useEffect(() => {
     const timer = setInterval(() => setLive(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-  return hour === null ? live : new Date(2026, 9, 31, hour, 0);
+  if (hour !== null) return new Date(2026, 9, 31, hour, 0);
+  return shownNow(live);
+}
+
+/** The unit's local time: the browser's, as set by hand and in the unit's zone (the browser's getters read local time). */
+function shownNow(live = new Date()) {
+  const zoneShift = (zoneOffsetMinutes(state.timeZone, live) + live.getTimezoneOffset()) * 60_000;
+  return new Date(live.getTime() + state.clockShiftMs + zoneShift);
+}
+
+const minutesOfDay = (d: Date) => d.getHours() * 60 + d.getMinutes();
+const DAY_MIN = 24 * 60;
+
+/** What the dash display shows now, in minutes of the day. */
+export function dashMinutes(): number {
+  return (((minutesOfDay(new Date()) + state.dash.offsetMin) % DAY_MIN) + DAY_MIN) % DAY_MIN;
+}
+
+/** A key reaching the dash display over CAN: hour and minute count up and wrap on their own, the clock key switches. */
+function pressDash(key: "HOUR" | "MINUTE" | "CLOCK") {
+  if (key === "CLOCK") return set({ dash: { ...state.dash, fuel: !state.dash.fuel } });
+  const shown = dashMinutes();
+  const h = Math.floor(shown / 60);
+  const m = shown % 60;
+  const next = key === "HOUR" ? ((h + 1) % 24) * 60 + m : h * 60 + ((m + 1) % 60);
+  set({ dash: { ...state.dash, offsetMin: state.dash.offsetMin + next - shown } });
+}
+
+/** The car's battery was disconnected: the dash clock starts again from 00:00. */
+export function resetDash() {
+  set({ dash: { offsetMin: -minutesOfDay(new Date()), fuel: false } });
+}
+
+/** After a jump of the unit's local time, a matched display gets the keys that follow it (DashFollower on the unit). */
+function followDash(change: () => void) {
+  const before = minutesOfDay(shownNow());
+  const beforeMs = shownNow().getTime();
+  change();
+  const jump = Math.round((shownNow().getTime() - beforeMs) / 60_000);
+  if (!state.shell.dashMatched || jump === 0) return;
+  for (const key of bridge.dashFollow(before, jump)) carCommand({ type: "Dash.Key", key });
+}
+
+const zoneFormats = new Map<string, Intl.DateTimeFormat>();
+/** A zone's offset from GMT at a moment, in minutes, summer time included. */
+export function zoneOffsetMinutes(zone: string, at: Date): number {
+  let f = zoneFormats.get(zone);
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-US", { timeZone: zone, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric" });
+    zoneFormats.set(zone, f);
+  }
+  const p = Object.fromEntries(f.formatToParts(at).map((x) => [x.type, x.value]));
+  const minute = Math.floor(at.getTime() / 60_000) * 60_000;
+  return Math.round((Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute) - minute) / 60_000);
+}
+
+/** Every zone the browser knows, as Android's TimeZone.getAvailableIDs lists them. */
+export function allTimeZones(): string[] {
+  return (Intl as unknown as { supportedValuesOf(key: string): string[] }).supportedValuesOf("timeZone");
+}
+
+/** Automatic from the internet or GPS, or by hand; going back to automatic corrects a clock set by hand. */
+export function setTimeSync(auto: boolean, source: TimeSource) {
+  if (auto) followDash(() => set({ clockShiftMs: 0 }));
+  shellAction({ type: "SetTimeSync", auto, source });
+}
+
+/** The date and time steppers: the clock moves by this much (AlarmManager.setTime on the unit). */
+export function shiftClock(ms: number) {
+  followDash(() => set({ clockShiftMs: state.clockShiftMs + ms }));
+}
+
+/** The unit's address on the hotspot, as WifiManager reports it; fixed in the emulator. */
+export const UNIT_IP = "192.168.43.120";
+
+/** Restart roadsterOS: the process ends and home opens again (DeveloperTools.restart); here, the page reloads. */
+export function restartShell() {
+  window.location.reload();
+}
+
+/** Android's developer options open over the shell on the unit (DeveloperTools.openAndroidSettings); only logged here. */
+export function openAndroidSettings() {
+  set({ log: addLog("out", { type: "OpenAndroidSettings", action: "android.settings.APPLICATION_DEVELOPMENT_SETTINGS" }) });
+}
+
+export function setTimeZone(timeZone: string) {
+  followDash(() => set({ timeZone }));
 }

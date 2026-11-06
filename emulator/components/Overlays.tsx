@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { bridge } from "../car/bridge";
-import { carCommand, carEvent, dismissMessage, openThread, shellAction, useNow, type EmulatorState } from "../car/store";
+import { useEffect, useId, useState } from "react";
+import { bridge, type CameraSettings } from "../car/bridge";
+import { carCommand, carEvent, dismissMessage, openThread, shellAction, useEmulator, useNow, type EmulatorState } from "../car/store";
 import { Contacts, PadKey } from "./PhoneApp";
 
 const TONE_KEYS: [string, string][] = [
@@ -209,14 +209,53 @@ export function MessageBanner({ emulator }: { emulator: EmulatorState }) {
   );
 }
 
+// the vendor's colours (MainUI com.ts.can.CameraUIView); the lines are yellow where no band recolours them
+const GUIDE_GREEN = "#4CAF50";
+const GUIDE_YELLOW = "#FFFF00";
+const GUIDE_RED = "#FF0000";
+const SCREEN_W = 1024;
+
+/** The guidelines as the vendor draws them on the 1024x600 screen, bent by the CAN steering angle [eps]. */
+export function GuideLines({ camera, eps }: { camera: CameraSettings; eps: number }) {
+  const id = useId();
+  if (camera.guidelines === "OFF") return null;
+  const g = bridge.cameraGuides(camera.guidelines, eps);
+  const curves = [g.leftFix, g.leftControl, g.leftFar, g.rightFix, g.rightControl, g.rightFar];
+  const path = [0, 3].map((i) => `M${curves[i].x} ${curves[i].y}Q${curves[i + 1].x} ${curves[i + 1].y} ${curves[i + 2].x} ${curves[i + 2].y}`).join("");
+  // the bands that recolour the curves, as the vendor's rectangles: red near the car, green far
+  const red: [number, number, number, number][] = [
+    [0, g.leftNear.y - 5, g.leftNear.x + 5, g.leftFix.y + 5], [g.rightNear.x - 5, g.rightNear.y - 5, SCREEN_W, g.rightFix.y + 5]];
+  const green: [number, number, number, number][] = [
+    [0, g.leftFar.y - 5, Math.max(g.leftFar.x, g.leftMiddle.x) + 8, g.leftMiddle.y - 3],
+    [Math.min(g.rightFar.x, g.rightMiddle.x) - 8, g.rightFar.y - 5, SCREEN_W, g.rightMiddle.y - 3]];
+  const clip = (name: string, rects: [number, number, number, number][]) => (
+    <clipPath id={`${id}${name}`}>{rects.map(([x1, y1, x2, y2], i) => <rect key={i} x={x1} y={y1} width={x2 - x1} height={y2 - y1} />)}</clipPath>
+  );
+  const bar = (a: { x: number; y: number }, b: { x: number; y: number }, color: string) => <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={color} />;
+  return (
+    <svg className="guide-lines" viewBox="0 0 1024 600" aria-hidden="true" style={{ transform: `translateY(${(camera.linePos / 600) * 100}%)` }}>
+      <defs>{clip("red", red)}{clip("green", green)}</defs>
+      <path d={path} stroke={GUIDE_YELLOW} />
+      <path d={path} stroke={GUIDE_RED} clipPath={`url(#${id}red)`} />
+      <path d={path} stroke={GUIDE_GREEN} clipPath={`url(#${id}green)`} />
+      {bar(g.leftFar, g.rightFar, GUIDE_GREEN)}
+      {bar(g.leftMiddle, g.rightMiddle, GUIDE_YELLOW)}
+      {bar(g.leftNear, g.rightNear, GUIDE_RED)}
+    </svg>
+  );
+}
+
 export function CameraOverlay() {
+  const { car, shell, eps } = useEmulator();
   return (
     <section className="overlay camera" role="dialog" aria-modal="true" aria-label="Reverse camera">
-      <div className="camera-feed" role="img" aria-label="Reverse camera, synthetic frame">
-        <div className="guide guide-l" aria-hidden="true" /><div className="guide guide-r" aria-hidden="true" />
+      <div className="camera-feed" role="img" aria-label={`Reverse camera, synthetic frame${shell.camera.mirror ? ", mirrored" : ""}`}>
+        <div className={`camera-scene${shell.camera.mirror ? " is-mirrored" : ""}`} aria-hidden="true" />
+        <GuideLines camera={shell.camera} eps={eps} />
       </div>
-      <button className="camera-close" aria-label="Close camera" onClick={() => carEvent({ type: "ReverseGear", on: false })}><span className="icon i-x" /></button>
-      <p className="camera-label">Reverse camera</p>
+      {/* in reverse the gear closes it; opened from its icon, this does */}
+      {!car.camera && <button className="camera-close" aria-label="Close camera" onClick={() => shellAction({ type: "CloseCamera" })}><span className="icon i-x" /></button>}
+      <p className="camera-label">{car.camera ? "Reverse gear" : "Camera"}</p>
     </section>
   );
 }

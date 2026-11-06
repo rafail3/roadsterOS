@@ -127,7 +127,7 @@ function Dial({ band, khz, stations, onPreview }: { band: Band; khz: number; sta
   return (
     <div
       ref={box}
-      className={`dial${drag ? " is-dragging" : ""}`}
+      className={`tuner${drag ? " is-dragging" : ""}`}
       role="slider"
       tabIndex={0}
       aria-label="Tuning"
@@ -204,6 +204,9 @@ export function RadioApp({ open }: { open: boolean }) {
     <section ref={section} className={`music-app radio-app${open ? " is-open" : ""}${car.muted ? " is-muted" : ""}`} aria-label="Radio" aria-hidden={!open} inert={!open} style={{ "--genre": genreColor(radio.pty) } as CSSProperties}>
       <button className="glass-button music-close" aria-label="Close radio" onClick={() => shellAction({ type: "Home" })}>
         <span className="icon i-caret-down" aria-hidden="true" />
+      </button>
+      <button className="glass-button music-sound" aria-label="Sound" onClick={() => shellAction({ type: "OpenSound" })}>
+        <span className="icon i-snd-faders" aria-hidden="true" />
       </button>
 
       <div className="radio-main">

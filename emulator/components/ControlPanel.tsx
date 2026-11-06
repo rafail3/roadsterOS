@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { Face, SteeringKey, ThemeMode } from "../car/bridge";
 import { SAMPLE_CALLERS, SAMPLE_PHONE } from "../car/phone";
-import { carEvent, GPS_PLACES, incomingCall, incomingMessage, remoteHangUp, removePack, setPhoneStatus, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
+import { carEvent, dashMinutes, resetDash, setInstalled, UNIT_APPS, GPS_PLACES, incomingCall, incomingMessage, remoteHangUp, removePack, setPhoneStatus, setSteering, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Field, holdToRepeat, Section, Segmented, Switch } from "./controls";
 
 const DEFAULT_TRACK_MS = 228000;
@@ -42,11 +42,15 @@ function SteeringWheel() {
 }
 
 function Signals() {
-  const { car, acc } = useEmulator();
+  const { car, acc, eps } = useEmulator();
   return (
     <Section title="Signals" open>
       <Switch label="Ignition (ACC)" checked={acc} onChange={(on) => carEvent({ type: "Power", acc: on })} />
       <Switch label="Reverse gear" checked={car.camera} onChange={(on) => carEvent({ type: "ReverseGear", on })} />
+      {/* the slider turns right to the right; the CAN angle grows to the left */}
+      <Row label={`Steering ${eps > 0 ? "left" : eps < 0 ? "right" : "straight"}`}>
+        <input type="range" min="-1080" max="1080" step="46" value={-eps} onChange={(e) => setSteering(-Number(e.target.value))} />
+      </Row>
       <Switch label="Headlights" checked={car.night} onChange={(on) => carEvent({ type: "Illumination", on })} />
     </Section>
   );
@@ -233,6 +237,35 @@ function Gps() {
   );
 }
 
+/** The car's small dash display, as the driver sees it; only the keys the unit sends change it. */
+function DashDisplay() {
+  const { dash, gps } = useEmulator();
+  useNow(null);
+  const m = dashMinutes();
+  const clock = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  // a synthetic instant consumption that rises with speed
+  const fuel = gps.kmh > 0 ? `${(4.2 + gps.kmh / 45).toFixed(1)} L/100km` : "-- L/100km";
+  return (
+    <Section title="Car display">
+      <p className="note">The dash shows {dash.fuel ? fuel : clock}.</p>
+      <button className="button" onClick={resetDash}>Battery disconnected (clock to 00:00)</button>
+    </Section>
+  );
+}
+
+/** Other apps on the unit: the ones Settings can put on home. */
+function UnitApps() {
+  const { installed } = useEmulator();
+  return (
+    <Section title="Apps on the unit">
+      <p className="note">Installed apps besides roadsterOS's own; only these can go on home.</p>
+      {UNIT_APPS.map((a) => (
+        <Switch key={a.id} label={a.label} checked={installed.some((i) => i.id === a.id)} onChange={(on) => setInstalled(a, on)} />
+      ))}
+    </Section>
+  );
+}
+
 export function ControlPanel() {
   return (
     <div className="controls-scroll">
@@ -245,6 +278,8 @@ export function ControlPanel() {
       <Phone />
       <Radio />
       <Gps />
+      <DashDisplay />
+      <UnitApps />
       <p className="note">Names, tracks and numbers are synthetic.</p>
     </div>
   );
