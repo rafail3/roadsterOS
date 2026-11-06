@@ -108,7 +108,7 @@ class RadioAppView(context: Context, private val actions: RadioActions) : MediaA
     private val genreText = KitText(context, TextStyle(17f, 600)).apply { includeFontPadding = false; setTextColor(0xFFFFFFFF.toInt()) }
     private val radioActions = LinearLayout(context).apply { uiKey = "radio-actions"; orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER; clipChildren = false; gap(dp(28f)) }
     private val transport = TransportRow(context, TxSizes(RadioActionsTransport.DARK.txGap, RadioActionsTx.DARK.txSize, RadioActionsTx.DARK.txGlyph, RadioActionsTxPlay.DARK.txSize, RadioActionsTxPlay.DARK.txGlyph))
-    private val heroStar = Star(context, row = false)
+    private val heroStar = Star(context, Star.Look.APP)
     private val dial = DialView(context) { preview(it) }
     private val list = Surface(context, "radio-list").apply {
         orientation = LinearLayout.VERTICAL; radius = 28f; border = 1f; glassRule = Surface.GlassRule.BASE
@@ -121,16 +121,6 @@ class RadioAppView(context: Context, private val actions: RadioActions) : MediaA
     private val scan = ScanKey(context)
     private val scroll = ScrollView(context).apply { uiKey = "radio-list-scroll"; isVerticalScrollBarEnabled = false; overScrollMode = OVER_SCROLL_NEVER; clipToPadding = false }
     private val rows = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
-    private var preview: Int? = null
-    private var shownKhz = 0.0
-    private val glide = object : Runnable {
-        override fun run() {
-            val next = FreqDisplay.glide(shownKhz, state.khz)
-            shownKhz = next
-            counter()
-            if (next != state.khz.toDouble()) postOnAnimation(this)
-        }
-    }
 
     init {
         uiKey = "music-app.radio-app"
@@ -188,11 +178,8 @@ class RadioAppView(context: Context, private val actions: RadioActions) : MediaA
         val tag = RadioMath.tag(scanning, s.radioOn, s.stereo)
         stateTag.visibility = if (tag != null) VISIBLE else GONE
         if (tag != null) stateTag.text = tag
-        // the frequency glides to a new tuning in the same band; a band change jumps
-        if (!run || before.band != s.band) { removeCallbacks(glide); shownKhz = s.khz.toDouble() }
-        else if (before.khz != s.khz) { removeCallbacks(glide); postOnAnimation(glide) }
         freqRow.unit.text = RadioMath.unit(s.band)
-        counter()
+        freqRow.counter.tune(s.band, s.khz, run)
         if (s.rds != before.rds || name.text.isEmpty()) {
             name.text = s.rds
             if (run && s.rds.isNotEmpty()) { name.alpha = 0f; name.animate().alpha(1f).setDuration(UiTheme.duration(320)).setInterpolator(interp(SEAMLESS)).start() }
@@ -217,13 +204,7 @@ class RadioAppView(context: Context, private val actions: RadioActions) : MediaA
         invalidate()
     }
 
-    private fun preview(khz: Int?) { preview = khz; counter() }
-
-    private fun counter() {
-        val target = preview ?: state.khz
-        val shown = preview?.toDouble() ?: shownKhz
-        freqRow.counter.bind(FreqDisplay.counter(state.band, shown, target))
-    }
+    private fun preview(khz: Int?) = freqRow.counter.preview(khz)
 
     private fun stationAt(band: Band, khz: Int) = state.stations.firstOrNull { it.band == band && it.khz == khz }
 
@@ -338,7 +319,7 @@ class RadioAppView(context: Context, private val actions: RadioActions) : MediaA
 
 /** `.radio-freq`: the counter and its unit on one baseline, 14 px apart. */
 internal class FreqRow(context: Context) : LinearLayout(context) {
-    val counter = FreqCounterView(context)
+    val counter = FreqCounterView(context, TextStyle(152f, 600, -0.045f, 1f), "radio-freq-num").apply { link { Night.ink } }
     val unit = cssText(context, 32f, 500, key = "radio-freq-unit").apply { setTextColor(0x99FFFFFF.toInt()) }
 
     init {
@@ -354,25 +335,62 @@ internal class FreqRow(context: Context) : LinearLayout(context) {
 /**
  * RadioApp.tsx `FreqCounter` (`span.counter`): core-car `FreqDisplay.counter` drawn as a mechanical counter, each
  * digit a 0-9-0 strip under a one-digit window (`clip-path: inset(0 -0.05em)`), turned by its offset; the exact
- * digits as plain text once the count settles off the FM tenths grid. 152 px, 600, -0.045em, line-height 1.
+ * digits as plain text once the count settles off the FM tenths grid. The shown frequency glides to each new tuning
+ * in the same band (RadioApp.tsx `useGlidingKhz`, core-car `FreqDisplay.glide` each frame); a band change jumps; a
+ * [preview] (the dial under a finger) replaces it. [cls] is the element's class (`radio-freq-num`, the card's
+ * `freq-num`), [link] the ink it follows. Shared with the home card.
  */
-internal class FreqCounterView(context: Context) : LinearLayout(context) {
-    private val style = TextStyle(152f, 600, -0.045f, 1f)
-    private val exact = KitText(context, style).apply { uiKey = "radio-freq-num"; includeFontPadding = false; isSingleLine = true; setTextColor(Night.ink) }
+class FreqCounterView(context: Context, private val style: TextStyle, private val cls: String) : LinearLayout(context) {
+    private var inkOf: () -> Int = { -1 }
+    private val exact = KitText(context, style).apply { uiKey = cls; includeFontPadding = false; isSingleLine = true }
     private var columns = 0
     private var decimalAt = -1
+    private var band = ro.rdstr.car.CarEvent.Radio.Band.FM
+    private var khz = -1
+    private var shown = 0.0
+    private var preview: Int? = null
+    private val glide = object : Runnable {
+        override fun run() {
+            shown = FreqDisplay.glide(shown, khz)
+            render()
+            if (shown != khz.toDouble()) postOnAnimation(this)
+        }
+    }
 
     init {
         orientation = HORIZONTAL
         isBaselineAligned = true
         clipChildren = false
         addView(exact)
-        UiTheme.link(this) { exact.setTextColor(Night.ink); for (g in groups()) g.ink() }
+        UiTheme.link(this) { ink() }
     }
+
+    /** The ink, read again on each theme change. */
+    fun link(of: () -> Int) { inkOf = of; ink() }
+
+    private fun ink() { val c = inkOf(); exact.setTextColor(c); for (g in groups()) g.ink(c) }
+
+    /** Tunes to [khz]: gliding there with [animate] in the same band, else at once. */
+    fun tune(band: ro.rdstr.car.CarEvent.Radio.Band, khz: Int, animate: Boolean) {
+        val jump = !animate || band != this.band || this.khz < 0
+        this.band = band
+        if (khz != this.khz || jump) {
+            this.khz = khz
+            removeCallbacks(glide)
+            if (jump) shown = khz.toDouble() else postOnAnimation(glide)
+        }
+        render()
+    }
+
+    fun preview(khz: Int?) { preview = khz; render() }
+
+    private fun render() = bind(FreqDisplay.counter(band, preview?.toDouble() ?: shown, preview ?: khz))
+
+    override fun onDetachedFromWindow() { removeCallbacks(glide); shown = khz.toDouble(); super.onDetachedFromWindow() }
 
     private fun groups() = (0 until childCount).map(::getChildAt).filterIsInstance<Group>()
 
-    fun bind(c: FreqDisplay.Counter) {
+    private fun bind(c: FreqDisplay.Counter) {
         contentDescription = c.label
         if (c.exact != null) {
             uiKey = null
@@ -380,12 +398,12 @@ internal class FreqCounterView(context: Context) : LinearLayout(context) {
             for (g in groups()) g.visibility = GONE
             return
         }
-        uiKey = "counter.radio-freq-num"
+        uiKey = "counter.$cls"
         exact.visibility = GONE
         if (c.columns.size != columns || c.decimalAt != decimalAt) {
             columns = c.columns.size; decimalAt = c.decimalAt
             for (g in groups()) removeView(g)
-            for (col in c.columns) addView(Group(context, col.place == c.decimalAt - 1 && c.decimalAt > 0))
+            for (col in c.columns) addView(Group(context, col.place == c.decimalAt - 1 && c.decimalAt > 0).apply { ink(inkOf()) })
         }
         for ((i, g) in groups().withIndex()) { g.visibility = VISIBLE; g.turn(c.columns[i].offset) }
     }
@@ -403,10 +421,9 @@ internal class FreqCounterView(context: Context) : LinearLayout(context) {
             clipChildren = false
             if (point) addView(dot)
             addView(digit)
-            ink()
         }
 
-        fun ink() { dot.setTextColor(Night.ink); digit.ink() }
+        fun ink(c: Int) { dot.setTextColor(c); digit.ink(c) }
         fun turn(offset: Double) = digit.turn(offset)
         override fun getBaseline() = digit.baseline
     }
@@ -427,7 +444,7 @@ internal class FreqCounterView(context: Context) : LinearLayout(context) {
             addView(strip, LayoutParams(-1, -2))
         }
 
-        fun ink() { for (t in digits) t.setTextColor(Night.ink) }
+        fun ink(c: Int) { for (t in digits) t.setTextColor(c) }
 
         fun turn(o: Double) { offset = o; place() }
 
@@ -635,52 +652,67 @@ internal class DialView(context: Context, private val onPreview: (Int?) -> Unit)
     }
 }
 
-/** RadioApp.tsx `Star` (`button.radio-star`): yellow when starred, popping 1.3x as it turns on; 56 px, 48 in a row. */
+/**
+ * RadioApp.tsx `Star` (`button.radio-star`): yellow when starred, popping 1.3x as it turns on, pressed 0.88 (120 ms,
+ * back over 300 ms on `--spring-glyph`). [Look.APP] 56 px on white .1 (glass on Glassy), [Look.ROW] 48 px clear in
+ * a station row, [Look.CARD] the home card's 52 px on `--glass-strong` in `--ink-muted` (`#c98f00` starred by day).
+ * Shared with the home card.
+ */
 @SuppressLint("ViewConstructor")
-internal class Star(context: Context, private val row: Boolean) : Surface(context, "radio-star") {
+class Star(context: Context, private val look: Look) : Surface(context, "radio-star") {
+    enum class Look(val size: Float, val glyph: Float) { APP(56f, 26f), ROW(48f, 22f), CARD(52f, 24f) }
+
     private var on = false
-    private var glyph: IconView = icon(context, "i-star", if (row) 22f else 26f)
-    private val scaleT = Transition(1f)
+    private var glyph: IconView = icon(context, "i-star", look.glyph)
 
     init {
         gravity = Gravity.CENTER
         radius = 999f
         isClickable = true
-        fill = if (row) 0 else 0x1AFFFFFF
-        glassRule = if (row) GlassRule.RIM else GlassRule.BASE
         glassPress = true
+        when (look) {
+            Look.APP -> { fill = 0x1AFFFFFF; glassRule = GlassRule.BASE }
+            Look.ROW -> { fill = 0; glassRule = GlassRule.RIM }
+            // `.np-radio .radio-star` keeps its fill over the glass rule: no sheen, the rim and the screen's frost
+            Look.CARD -> { glassRule = GlassRule.RIM; material = { UiTheme.glass }; screenFrost = true }
+        }
         addView(glyph)
-        ink()
+        UiTheme.link(this) { ink() }
     }
 
-    private fun ink() { glyph.color = if (on) 0xFFFFD60A.toInt() else 0xB8FFFFFF.toInt() }
+    private fun ink() {
+        if (look == Look.CARD) fill = UiTheme.base.glassStrong
+        glyph.color = when {
+            !on -> if (look == Look.CARD) UiTheme.base.inkMuted else 0xB8FFFFFF.toInt()
+            look == Look.CARD && UiTheme.light -> 0xFFC98F00.toInt()
+            else -> 0xFFFFD60A.toInt()
+        }
+    }
 
     fun set(on: Boolean, label: String, animate: Boolean) {
         contentDescription = label
         if (on == this.on) return
         this.on = on
         removeView(glyph)
-        glyph = icon(context, if (on) "i-star-fill" else "i-star", if (row) 22f else 26f)
+        glyph = icon(context, if (on) "i-star-fill" else "i-star", look.glyph)
         addView(glyph)
         ink()
-        if (on && animate) ValueAnimator.ofFloat(0f, 1f).apply {
+        if (on && animate && UiTheme.speed > 0f) ValueAnimator.ofFloat(0f, 1f).apply {
             duration = UiTheme.duration(460)
             interpolator = interp(Motion.springGlyph)
             // star-pop: 40 % { scale 1.3 }
-            addUpdateListener { val t = it.animatedValue as Float; val s = if (t < 0.4f) 1f + 0.3f * t / 0.4f else 1.3f - 0.3f * (t - 0.4f) / 0.6f; glyph.scaleX = s; glyph.scaleY = s }
+            addUpdateListener { val t = it.animatedValue as Float; val k = if (t < 0.4f) 1f + 0.3f * t / 0.4f else 1.3f - 0.3f * (t - 0.4f) / 0.6f; glyph.scaleX = k; glyph.scaleY = k }
             start()
         }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val s = MeasureSpec.makeMeasureSpec(dp(if (row) 48f else 56f), MeasureSpec.EXACTLY)
-        super.onMeasure(s, s)
+        val m = MeasureSpec.makeMeasureSpec(dp(look.size), MeasureSpec.EXACTLY)
+        super.onMeasure(m, m)
     }
 
     override fun dispatchSetPressed(pressed: Boolean) {
         super.dispatchSetPressed(pressed)
-        val now = Motion.now()
-        scaleT.to(if (pressed) 0.88f else 1f, now, UiTheme.duration(if (pressed) 120 else 300), Motion.springGlyph)
         animate().scaleX(if (pressed) 0.88f else 1f).scaleY(if (pressed) 0.88f else 1f).setDuration(UiTheme.duration(if (pressed) 120 else 300)).setInterpolator(interp(Motion.springGlyph)).start()
     }
 }
@@ -762,7 +794,7 @@ internal class StationRow(context: Context, band: Band, val khz: Int, ps: String
     private val live = LinearLayout(context).apply { uiKey = "radio-live"; orientation = HORIZONTAL; gravity = Gravity.BOTTOM; gap(dp(2f)) }
     private val bars = (0..2).map { Fill(context, "i").apply { color = genre; radius = 1f } }
     private val anims = ArrayList<ValueAnimator>()
-    val star = Star(context, row = true)
+    val star = Star(context, Star.Look.ROW)
     private val name = RadioMath.rowName(band, khz, ps)
 
     init {

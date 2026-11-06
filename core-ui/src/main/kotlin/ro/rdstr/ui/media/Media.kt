@@ -560,11 +560,15 @@ class TransportButton(context: Context, val kind: Kind, private var size: Float,
  * media.tsx `TransportRow` (`div.transport`): prev, play, next centred, [TxSizes.gap] apart. Shared with the home
  * card (its `--tx-*` sizes and ink) and the radio app.
  */
-class TransportRow(context: Context, sizes: TxSizes) : LinearLayout(context) {
+class TransportRow(context: Context, sizes: TxSizes, onPress: ((Int) -> Unit)? = null) : LinearLayout(context) {
     val prev = TransportButton(context, TransportButton.Kind.PREV, sizes.size, sizes.glyph)
     val play = TransportButton(context, TransportButton.Kind.PLAY, sizes.playSize, sizes.playGlyph)
     val next = TransportButton(context, TransportButton.Kind.NEXT, sizes.size, sizes.glyph)
     private val gapPx = dp(sizes.gap)
+
+    var playing: Boolean
+        get() = play.playing
+        set(v) { play.playing = v }
 
     init {
         uiKey = "transport"
@@ -573,9 +577,25 @@ class TransportRow(context: Context, sizes: TxSizes) : LinearLayout(context) {
         clipChildren = false
         addView(prev); addView(play, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply { leftMargin = gapPx; rightMargin = gapPx }); addView(next)
         for (b in buttons) b.layoutParams = (b.layoutParams as LayoutParams).apply { gravity = Gravity.CENTER_VERTICAL }
+        // glassy.css `.tx-play { --tx-plate: .15 }`
+        play.plate = 0.15f
+        if (onPress != null) for ((i, b) in buttons.withIndex()) b.onPress = { onPress(i) }
     }
 
     val buttons get() = listOf(prev, play, next)
+
+    /** `--tx-color` and `--tx-bloom` of every key. */
+    fun colors(ink: Int, bloom: Int) { for (b in buttons) { b.color = ink; b.bloom = bloom } }
+
+    /** `--tx-plate` of every key (the strip's 0.12). */
+    fun plates(plate: Float) { for (b in buttons) b.plate = plate }
+
+    companion object {
+        /** `.np .tx`: 76 px (play 92), glyphs 36 (48), 4 px apart. */
+        val CARD = TxSizes(4f, 76f, 36f, 92f, 48f)
+        /** `.np .card-strip .tx`: 46 px (play 52), glyphs 22 (28), no gap; its discs at 0.12 ([plates]). */
+        val STRIP = TxSizes(0f, 46f, 22f, 52f, 28f)
+    }
 }
 
 /**

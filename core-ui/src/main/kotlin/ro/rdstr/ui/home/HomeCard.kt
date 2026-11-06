@@ -30,6 +30,8 @@ import ro.rdstr.ui.kit.Motion
 import ro.rdstr.ui.kit.TextStyle
 import ro.rdstr.ui.kit.Transition
 import ro.rdstr.ui.kit.UiTheme
+import ro.rdstr.ui.media.MarqueeText
+import ro.rdstr.ui.media.TransportRow
 import ro.rdstr.ui.tokens.Icons
 import ro.rdstr.ui.tokens.Shadow
 import ro.rdstr.ui.uiKey
@@ -504,12 +506,12 @@ class SoundStrip(context: Context, private val actions: CardActions) : Row(conte
             canvas.restore()
         }
     }
-    private val title = Marquee(context, TextStyle(17f, 600, -0.01f)).apply { uiKey = "np-title.marquee" }
-    private val artist = Marquee(context, TextStyle(14f)).apply { uiKey = "np-artist.marquee" }
+    private val title = MarqueeText(context, TextStyle(17f, 600, -0.01f)).apply { uiKey = "np-title.marquee" }
+    private val artist = MarqueeText(context, TextStyle(14f)).apply { uiKey = "np-artist.marquee" }
     private var kind = AudioSource.BT
-    private val transport = TransportRow(context, TransportRow.STRIP, 0f) {
+    private val transport = TransportRow(context, TransportRow.STRIP) {
         actions.pressSound(if (kind == AudioSource.RADIO) CardPage.RADIO else CardPage.BLUETOOTH, arrayOf(ro.rdstr.car.HomeCard.Press.PREV, ro.rdstr.car.HomeCard.Press.PLAY, ro.rdstr.car.HomeCard.Press.NEXT)[it])
-    }
+    }.apply { plates(0.12f) }
 
     init {
         uiKey = "card-strip"
@@ -539,8 +541,8 @@ class SoundStrip(context: Context, private val actions: CardActions) : Row(conte
         box.borderColor = if (light) 0x14000000 else 0x1FFFFFFF
         coverBox.solid(if (light) 0x0F000000 else 0x14FFFFFF)
         glyph.color = if (light) b.ink else -1
-        title.color = if (light) b.ink else -1
-        artist.color = if (light) b.inkMuted else 0x9EFFFFFF.toInt()
+        title.setTextColor(if (light) b.ink else -1)
+        artist.setTextColor(if (light) b.inkMuted else 0x9EFFFFFF.toInt())
         transport.colors(if (light) b.ink else -1, if (light) 0x14000000 else 0x29FFFFFF)
         invalidate()
     }

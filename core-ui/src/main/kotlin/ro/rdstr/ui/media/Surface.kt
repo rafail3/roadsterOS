@@ -50,6 +50,8 @@ open class Surface(context: Context, key: String?) : LinearLayout(context) {
     var glassPress = false
     var material: () -> Glassy = { Glassy.GLASSY_DARK }
     var frost: FrostSource? = null
+    /** The frost of the screen behind (the kit's baked [ro.rdstr.ui.kit.Backdrop]) instead of an app's own ground. */
+    var screenFrost = false
 
     private val box = CssBox()
     private val shown = ColorTransition(0)
@@ -88,9 +90,10 @@ open class Surface(context: Context, key: String?) : LinearLayout(context) {
             val g = material()
             box.gradient = if (glassRule == GlassRule.RIM) null else g.glassySheen
             box.shadows = g.glassyShadow
-            box.under = if (glassRule != GlassRule.CHOSEN) under else null
+            box.under = if (glassRule != GlassRule.CHOSEN && !screenFrost) under else null
+            box.frost = if (glassRule != GlassRule.CHOSEN && screenFrost) g.glassyFrost else null
         } else {
-            box.gradient = null; box.shadows = shadows; box.under = null
+            box.gradient = null; box.shadows = shadows; box.under = null; box.frost = null
         }
         box.draw(canvas, this, width.toFloat(), height.toFloat())
         super.onDraw(canvas)
