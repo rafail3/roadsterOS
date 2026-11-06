@@ -36,6 +36,15 @@ export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
 export type Band = "FM" | "AM";
 export type App = "HOME" | "MUSIC" | "RADIO" | "MAPS" | "PHONE" | "SETTINGS" | "PHONE_SCREEN";
 export type CastState = "OFF" | "VISIBLE" | "CONNECTING" | "LIVE";
+export type SetupStep = "LOGO" | "START" | "CAR_NAME" | "PREPARE" | "WIFI" | "UPDATE" | "LOCATION" | "LOOK" | "FILES" | "WELCOME";
+/** Dots as flat lists of six numbers: x, y, colour index, layer (word) or face (cube), letter index or glyph, dissolve order. */
+export interface BootArtData { colors: string[]; tiny: Record<string, string>; word: { width: number; height: number; dots: number[] }; cube: number[] }
+export interface BootFrame {
+  tube: { x: number; y: number; w: number; h: number; alpha: number } | null;
+  /** top, left, right */
+  cube: [number, number, number] | null;
+  flash: boolean; letters: number[] | null; depth: number; typed: number; cursor: boolean; flicker: boolean; rollY: number;
+}
 
 export interface CarState {
   source: Source;
@@ -107,6 +116,8 @@ export interface ShellState {
   design: Design;
   /** the country numbers typed without + are grouped by (ISO code) */
   phoneRegion: string;
+  setupStep: SetupStep;
+  carName: string;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -198,6 +209,9 @@ export type ShellAction =
   | { type: "SetCamera"; settings: CameraSettings }
   | { type: "SetCastVisible"; on: boolean }
   | { type: "SetPhoneRegion"; region: string }
+  | { type: "SetupNext"; wifi?: boolean; updateAvailable?: boolean }
+  | { type: "SetupBack" }
+  | { type: "SetCarName"; name: string }
   | { type: "CastChanged"; state: CastState }
   | { type: "OpenCamera" | "CloseCamera" };
 
@@ -238,6 +252,9 @@ interface Kotlin {
       encodePreferences(state: string): string;
       decodePreferences(text: string): string;
       factoryPreferences(): string;
+      bootArt(): string;
+      bootFrame(t: number): string;
+      bootDoneMs(): number;
       aodDue(state: string, idleMs: number, busy: boolean): boolean;
       aodFace(state: string): "DIGITAL" | "ANALOG";
       wakesAod(event: string): boolean;
@@ -379,6 +396,11 @@ export const bridge = {
   encodePreferences: (state: ShellState): string => K!.Bridge.encodePreferences(JSON.stringify(state)),
   decodePreferences: (text: string): ShellState => JSON.parse(K!.Bridge.decodePreferences(text)),
   factoryPreferences: (): string => K!.Bridge.factoryPreferences(),
+  /** The boot picture's dots and font, read once (core-car BootArt). */
+  bootArt: (): BootArtData => JSON.parse(K!.Bridge.bootArt()),
+  /** What the boot screen draws t ms after it starts (core-car BootArt.frame). */
+  bootFrame: (t: number): BootFrame => JSON.parse(K!.Bridge.bootFrame(t)),
+  bootDoneMs: (): number => K!.Bridge.bootDoneMs(),
   /** The always-on display: due after the wait, its face, the car events that end it (core-car Shell). */
   aodDue: (state: ShellState, idleMs: number, busy: boolean) => K!.Bridge.aodDue(JSON.stringify(state), idleMs, busy),
   aodFace: (state: ShellState) => K!.Bridge.aodFace(JSON.stringify(state)),

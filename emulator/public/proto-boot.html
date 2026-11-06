@@ -1,0 +1,260 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>rdstr boot proto</title>
+<style>
+  html,body{margin:0;background:#111;color:#ccc;font:13px system-ui}
+  .row{display:flex;gap:16px;flex-wrap:wrap;padding:16px}
+  canvas{width:1024px;height:600px;background:#07080a;display:block}
+  button{margin:0 16px}
+</style></head><body>
+<div class="row"><canvas id="boot" width="1024" height="600"></canvas><canvas id="start" width="1024" height="600"></canvas></div>
+<button id="replay">replay</button>
+<script>
+// ---- glyphs: '#' = filled cell, rows top to bottom, bottom row is the baseline ----
+const WORD = {
+  r: ["##.###","######","###...","##....","##....","##....","##...."],
+  d: [".....##",".....##",".....##",".######","#######","##...##","##...##","##...##","#######",".######"],
+  s: [".######","#######","###....",".#####.","....###","#######","######."],
+  t: [".##...",".##...","######","######",".##...",".##...",".##...",".#####","..####"],
+};
+const TINY = {
+  A: ".###.#...##...#######...##...##...#",
+  B: "####.#...##...#####.#...##...#####.",
+  C: ".###.#...##....#....#....#...#.###.",
+  D: "####.#...##...##...##...##...#####.",
+  E: "######....#....####.#....#....#####",
+  F: "######....#....####.#....#....#....",
+  G: ".###.#...##....#.####...##...#.####",
+  H: "#...##...##...#######...##...##...#",
+  I: ".###...#....#....#....#....#...###.",
+  J: "..###...#....#....#....#.#..#..##..",
+  K: "#...##..#.#.#..##...#.#..#..#.#...#",
+  L: "#....#....#....#....#....#....#####",
+  M: "#...###.###.#.##.#.##...##...##...#",
+  N: "#...##...###..##.#.##..###...##...#",
+  O: ".###.#...##...##...##...##...#.###.",
+  P: "####.#...##...#####.#....#....#....",
+  Q: ".###.#...##...##...##.#.##..#..##.#",
+  R: "####.#...##...#####.#.#..#..#.#...#",
+  S: ".#####....#.....###.....#....#####.",
+  T: "#####..#....#....#....#....#....#..",
+  U: "#...##...##...##...##...##...#.###.",
+  V: "#...##...##...##...##...#.#.#...#..",
+  W: "#...##...##...##.#.##.#.##.#.#.#.#.",
+  X: "#...##...#.#.#...#...#.#.#...##...#",
+  Y: "#...##...#.#.#...#....#....#....#..",
+  Z: "#####....#...#...#...#...#....#####",
+  '0': ".###.#...##..###.#.###..##...#.###.",
+  '1': "..#...##....#....#....#....#...###.",
+  '2': ".###.#...#....#...#...#...#...#####",
+  '3': "####.....#....#.###.....#....#####.",
+  '4': "...#...##..#.#.#..#.#####...#....#.",
+  '5': "######....####.....#....##...#.###.",
+  '6': ".###.#....#....####.#...##...#.###.",
+  '7': "#####....#...#...#...#....#....#...",
+  '8': ".###.#...##...#.###.#...##...#.###.",
+  '9': ".###.#...##...#.####....#....#.###.",
+  '.': "................................#..",
+  ' ': "...................................",
+  '_': "..............................#####",
+  '-': "...............#####...............",
+};
+const PAL = ["#a3120c","#e0301e","#ff6a14","#ffa41b","#ffd447"]; // bottom (red) to top (yellow)
+const BAYER = [0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5].map(v => (v + 0.5) / 16);
+const bayer = (x, y) => BAYER[(y & 3) * 4 + (x & 3)];
+/** a colour on the ramp at t (0 bottom .. 1 top), ordered-dithered between its two neighbours */
+function ramp(t, x, y) {
+  const f = Math.max(0, Math.min(0.999, t)) * (PAL.length - 1);
+  const i = Math.floor(f);
+  return PAL[f - i > bayer(x, y) ? i + 1 : i];
+}
+
+
+/** a fixed pseudo-random number per dot, 0..1: the order dots dissolve in */
+const hash = (x, y, k = 0) => (((Math.imul(x + 977, 73856093) ^ Math.imul(y + 331, 19349663) ^ Math.imul(k + 7, 83492791)) >>> 0) % 10007) / 10007;
+
+/** the wordmark as dots: each cell is 3x3 dots, rows slant right going up, two dithered extrusion layers behind */
+function wordDots(text) {
+  const D = 3, rows = 10, gap = 1;
+  const face = [];
+  let cx = 0;
+  [...text].forEach((ch, li) => {
+    const g = WORD[ch]; const top = rows - g.length;
+    g.forEach((line, r) => [...line].forEach((c, k) => { if (c === "#") face.push([cx + k, top + r, li]); }));
+    cx += g[0].length + gap;
+  });
+  const H = rows * D, out = [];
+  const slant = (dy) => Math.floor((H - 1 - dy) / 4);
+  for (const layer of [2, 1]) for (const [x, y, li] of face) for (let i = 0; i < D; i++) for (let j = 0; j < D; j++) {
+    const dx = x * D + i, dy = y * D + j;
+    if (layer === 2 && ((dx + dy) & 1)) continue;
+    out.push({ x: dx + slant(dy), y: dy, c: layer === 2 ? "#4a0907" : "#7c1209", layer, li, th: hash(dx, dy, layer) });
+  }
+  for (const [x, y, li] of face) for (let i = 0; i < D; i++) for (let j = 0; j < D; j++) {
+    const dx = x * D + i, dy = y * D + j;
+    out.push({ x: dx + slant(dy), y: dy, c: ramp(1 - dy / (H - 1), dx, dy), layer: 0, li, th: hash(dx, dy) });
+  }
+  return { dots: out, w: cx * D + 12, h: H + 6, letters: text.length };
+}
+
+/** the three letters of the symbol, 6x7 cells each */
+const GLYPHS = {
+  r: ["##.###", "######", "###...", "##....", "##....", "##....", "##...."],
+  O: [".####.", "######", "##..##", "##..##", "##..##", "######", ".####."],
+  S: [".#####", "######", "###...", ".####.", "...###", "######", "#####."],
+};
+/** whether a point of a face's unit square (col across, row down) falls on its letter, set in the middle of the face */
+function inGlyph(g, col, row, at = 0.17, size = 0.66) {
+  const c = Math.floor((col - at) / size * 6), r = Math.floor((row - at + 0.02) / (size + 0.04) * 7);
+  return c >= 0 && c < 6 && r >= 0 && r < 7 && GLYPHS[g][r][c] === "#";
+}
+
+/**
+ * The symbol: an isometric cube of dots. r on the front-left face (roadster), O on the top and S on the right (OS).
+ * Each face has its own density and brightness; the letters are drawn at full density in the face's brightest tone.
+ */
+function cubeDots(n) {
+  const out = [];
+  const sq = Math.sqrt(3) / 2, seam = 0.06;
+  const W = Math.ceil(n * sq) + 2, Hh = n + 2;
+  for (let y = -Hh; y <= Hh; y++) for (let x = -W; x <= W; x++) {
+    const u = (x / sq - 2 * y) / 2 / n, v = (-x / sq - 2 * y) / 2 / n;
+    let face = null, a, b;
+    if (u >= 0 && v >= 0 && u <= 1 && v <= 1) { face = "top"; a = u; b = v; }
+    else if (x <= 0 && x >= -n * sq) { const ty = (y - x * 0.5 / sq) / n; if (ty >= 0 && ty <= 1) { face = "left"; a = -x / (n * sq); b = ty; } }
+    else if (x > 0 && x <= n * sq) { const ty = (y + x * 0.5 / sq) / n; if (ty >= 0 && ty <= 1) { face = "right"; a = x / (n * sq); b = ty; } }
+    if (!face || a < seam || b < seam) continue;
+    let density, t, letter;
+    if (face === "top") { letter = inGlyph("O", a, 1 - b, 0.1, 0.8); density = letter ? 1 : 0.42; t = letter ? 1 : 0.5; }
+    else if (face === "left") { letter = inGlyph("r", 1 - a, b); density = letter ? 1 : 0.5; t = letter ? 0.9 : 0.36 - b * 0.2; }
+    else { letter = inGlyph("S", a, b); density = letter ? 1 : 0.34; t = letter ? 0.7 : 0.14 - b * 0.12; }
+    if (bayer(x + 64, y + 64) > density) continue;
+    out.push({ x, y, c: ramp(t, x + 64, y + 64), face, letter, th: hash(x, y) });
+  }
+  return out;
+}
+
+function tinyText(ctx, text, x, y, cell, color, dot = 0.8) {
+  ctx.fillStyle = color;
+  [...text].forEach((ch, k) => {
+    const g = TINY[ch] ?? TINY[" "];
+    for (let i = 0; i < 35; i++) if (g[i] === "#") ctx.fillRect(x + (k * 6 + i % 5) * cell, y + Math.floor(i / 5) * cell, cell * dot, cell * dot);
+  });
+  return text.length * 6 * cell;
+}
+
+/** the tube: scanlines every 3 px, the corners darker; drawn once into a bitmap, laid over every frame */
+const glass = document.createElement("canvas"); glass.width = 1024; glass.height = 600;
+{
+  const g = glass.getContext("2d");
+  g.fillStyle = "rgba(0,0,0,0.3)";
+  for (let y = 0; y < 600; y += 3) g.fillRect(0, y, 1024, 1);
+  const r = g.createRadialGradient(512, 300, 240, 512, 300, 660);
+  r.addColorStop(0, "rgba(0,0,0,0)"); r.addColorStop(1, "rgba(0,0,0,0.6)");
+  g.fillStyle = r; g.fillRect(0, 0, 1024, 600);
+}
+/** a soft brighter band rolling down the tube every few seconds, as an old screen's refresh does */
+function roll(ctx, t) {
+  const y = ((t % 5200) / 5200) * 760 - 80;
+  const g = ctx.createLinearGradient(0, y - 60, 0, y + 60);
+  g.addColorStop(0, "rgba(255,200,140,0)"); g.addColorStop(0.5, "rgba(255,200,140,0.045)"); g.addColorStop(1, "rgba(255,200,140,0)");
+  ctx.fillStyle = g; ctx.fillRect(0, y - 60, 1024, 120);
+}
+
+const word = wordDots("rdstr");
+const cube = cubeDots(36);
+const clamp = (v) => Math.max(0, Math.min(1, v));
+const outCubic = (t) => 1 - Math.pow(1 - clamp(t), 3);
+const outExpo = (t) => (t = clamp(t)) === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+/** ease-out with a small overshoot, for things that land */
+const outBack = (t) => { t = clamp(t); const c = 1.6; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+
+/** the cube at progress p per face (0 hidden .. 1 whole); dots dissolve in by their fixed order */
+function drawCube(ctx, cx, cy, pitch, p = { left: 1, top: 1, right: 1 }, flash = 0) {
+  for (const d of cube) {
+    const k = p[d.face];
+    if (d.th > k) continue;
+    // a dot that just arrived burns bright for a moment, like phosphor
+    const fresh = k < 1 && d.th > k - 0.18;
+    ctx.fillStyle = fresh || (flash > 0 && d.letter) ? "#fff1c9" : d.c;
+    ctx.fillRect(cx + d.x * pitch, cy + d.y * pitch, pitch * 0.72, pitch * 0.72);
+  }
+}
+
+/** the wordmark: each letter dissolves in while it drops into place; the depth grows out behind the face */
+function drawWord(ctx, ox, oy, pitch, letter = () => 1, depth = 1) {
+  for (const d of word.dots) {
+    const k = letter(d.li);
+    if (k <= 0 || (d.layer && depth <= 0) || d.th > k * 1.15) continue;
+    const drop = (1 - outBack(k)) * -18;
+    const shift = d.layer ? -d.layer * 2 * (1 - outCubic(depth)) + d.layer * 2 : 0;
+    ctx.fillStyle = d.layer === 0 && k < 1 && d.th > k * 1.15 - 0.2 ? "#fff1c9" : d.c;
+    ctx.fillRect(ox + (d.x + (d.layer ? shift : 0)) * pitch, oy + (d.y + (d.layer ? shift : 0)) * pitch + drop, pitch * 0.78, pitch * 0.78);
+  }
+}
+
+// ---- boot: tube power-on, the cube's faces r, O, S dissolving in turn, the word landing letter by letter, the name typed ----
+const boot = document.getElementById("boot").getContext("2d");
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let t0 = performance.now();
+function frame(now) {
+  const t = reduce ? 9999 : now - t0, c = boot;
+  c.fillStyle = "#07080a"; c.fillRect(0, 0, 1024, 600);
+  // 1. the tube lights: a point, a line across, the picture opening up and flashing out
+  if (t > 100 && t < 760) {
+    const dot = outExpo((t - 100) / 140), w = 8 + outExpo((t - 220) / 240) * 1016, h = 2 + outExpo((t - 440) / 200) * 598;
+    const a = t < 480 ? 1 : 1 - clamp((t - 480) / 280);
+    c.fillStyle = `rgba(255,241,201,${a})`;
+    if (t < 220) c.fillRect(512 - 4 * dot, 300 - 4 * dot, 8 * dot, 8 * dot);
+    else c.fillRect(512 - w / 2, 300 - h / 2, w, h);
+  }
+  // 2. the cube, one face after the other: r, then O, then S; the letters flash once it is whole
+  const cubeY = 168, P = 3.4;
+  if (t > 640) {
+    const f = (start) => outCubic((t - start) / 420);
+    drawCube(c, 512, cubeY, P, { left: f(640), top: f(800), right: f(960) }, t > 1420 && t < 1500 ? 1 : 0);
+  }
+  // 3. rdstr, letter by letter, then the depth slides out from behind
+  const wordX = 512 - word.w * 4 / 2, wordY = 322;
+  if (t > 1300) drawWord(c, wordX, wordY, 4, (li) => clamp((t - 1300 - li * 85) / 300), clamp((t - 1820) / 320));
+  // 4. the name typed out with a block cursor
+  if (t > 2150) {
+    const cap = "ROADSTEROS", cell = 2, n = Math.min(cap.length, Math.floor((t - 2150) / 45));
+    const x = 512 - cap.length * 6 * cell / 2;
+    const w = tinyText(c, cap.slice(0, n), x, 492, cell, "#ffb02e");
+    if (n < cap.length || Math.floor(t / 530) % 2 === 0) { c.fillStyle = "#ffb02e"; c.fillRect(x + w + 2, 492, 5 * cell, 7 * cell); }
+  }
+  if (!reduce) roll(c, t);
+  c.drawImage(glass, 0, 0);
+  // the picture flickers twice right after the tube lights
+  if (t > 700 && t < 820 && Math.floor(t / 40) % 2 === 0) { c.fillStyle = "rgba(7,8,10,0.35)"; c.fillRect(0, 0, 1024, 600); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+document.getElementById("replay").onclick = () => { t0 = performance.now(); };
+window.bootAt = (ms) => { t0 = performance.now() - ms; };
+
+// ---- start screen ----
+const s = document.getElementById("start").getContext("2d");
+const ss = performance.now();
+function startScreen(now) {
+  const t = now - ss;
+  s.fillStyle = "#07080a"; s.fillRect(0, 0, 1024, 600);
+  const bar = (y, label) => {
+    s.strokeStyle = "#ff8a1a"; s.lineWidth = 2; s.strokeRect(72, y, 880, 40);
+    tinyText(s, label, 100, y + 13, 2, "#ffb02e");
+    for (let i = 0; i < 40; i++) for (let j = 0; j < 9; j++) {
+      if (bayer(i, j) > 1 - i / 40) continue;
+      s.fillStyle = "#ff8a1a"; s.fillRect(760 + i * 4.6, y + 4 + j * 3.6, 3, 2.6);
+    }
+  };
+  bar(48, "ROADSTEROS 1.16.0");
+  drawCube(s, 262, 300, 4.2);
+  drawWord(s, 420, 240, 4.6);
+  tinyText(s, "THE SHELL FOR YOUR CAR", 424, 412, 2, "#c9b9a6");
+  bar(512, "TOUCH TO START" + (Math.floor(t / 530) % 2 ? "_" : " "));
+  roll(s, t);
+  s.drawImage(glass, 0, 0);
+  requestAnimationFrame(startScreen);
+}
+requestAnimationFrame(startScreen);
+</script></body></html>

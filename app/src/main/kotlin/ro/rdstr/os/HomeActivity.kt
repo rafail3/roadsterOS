@@ -11,6 +11,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import ro.rdstr.car.Setup
+import ro.rdstr.car.ShellAction
+import ro.rdstr.os.boot.BootView
 
 class HomeActivity : Activity() {
 
@@ -25,7 +28,40 @@ class HomeActivity : Activity() {
         setContentView(R.layout.activity_home)
         CarRuntime.ensureService(this)
         addContentView(castView(), android.widget.FrameLayout.LayoutParams(-1, -1))
+        startup()
     }
+
+    /**
+     * A cold start shows the boot screen; a first start (setup at the logo) then moves on to the setup's start screen,
+     * where a touch begins the setup. The other setup screens come with the shell's views.
+     */
+    private fun startup() {
+        val shell = CarRuntime.shell.value
+        when {
+            !booted || (!shell.setupDone && shell.setupStep == Setup.Step.LOGO) -> overlay(BootView(this, BootView.Mode.BOOT) {
+                booted = true
+                val now = CarRuntime.shell.value
+                if (!now.setupDone && now.setupStep == Setup.Step.LOGO) CarRuntime.shellAction(ShellAction.SetupNext())
+                startup()
+            })
+            !shell.setupDone && shell.setupStep == Setup.Step.START -> overlay(BootView(this, BootView.Mode.START, versionName()) {
+                CarRuntime.shellAction(ShellAction.SetupNext())
+                startup()
+            })
+            else -> overlay(null)
+        }
+    }
+
+    private var shown: View? = null
+
+    /** One full-screen view over the home screen at a time, or none. */
+    private fun overlay(view: View?) {
+        shown?.let { (it.parent as? android.view.ViewGroup)?.removeView(it) }
+        shown = view
+        if (view != null) addContentView(view, android.widget.FrameLayout.LayoutParams(-1, -1))
+    }
+
+    private fun versionName() = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull().orEmpty()
 
     private lateinit var castFrame: android.widget.FrameLayout
 
@@ -86,6 +122,11 @@ class HomeActivity : Activity() {
     override fun onDestroy() {
         uiScope.cancel()
         super.onDestroy()
+    }
+
+    private companion object {
+        /** The boot screen shows once per start of the app's process, as the unit starts. */
+        var booted = false
     }
 
     @Deprecated("Back is disabled on the home screen")
