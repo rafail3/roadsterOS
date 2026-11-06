@@ -82,6 +82,13 @@ const SCENES = [
     ].map((x) => ({ ...x, name: `sound-${x.name}-${theme}-${design}`, query: `theme=${theme}&design=${design}&sound` }));
   }),
   // --- end of the sound window
+  // ----- media: the music app (playing, paused, no phone) and the radio app (FM, AM), each alone -----
+  ...looks.map(([theme, design]) => ({ name: `music-playing-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=music`, root: "music-app" })),
+  ...looks.map(([theme, design]) => ({ name: `music-paused-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=music&paused`, root: "music-app" })),
+  ...looks.map(([theme, design]) => ({ name: `music-nophone-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=music&nophone`, root: "music-app" })),
+  ...looks.map(([theme, design]) => ({ name: `radio-fm-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=radio&source=radio`, root: "music-app.radio-app" })),
+  ...looks.map(([theme, design]) => ({ name: `radio-am-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=radio&source=radio&band=am`, root: "music-app.radio-app" })),
+  // ----- end media -----
   // --- shell (Screen.tsx and its home): the open apps, the connection notice, the status bar, the dock, the card
   ...looks.map(([theme, design]) => ({ name: `recents-${theme}-${design}`, query: `theme=${theme}&design=${design}&recents=maps,radio,settings`, root: "recents" })),
   ...looks.map(([theme, design]) => ({ name: `notice-${theme}-${design}`, query: `theme=${theme}&design=${design}&notice=bt`, root: "notice" })),

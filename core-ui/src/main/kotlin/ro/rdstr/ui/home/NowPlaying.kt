@@ -36,7 +36,13 @@ import ro.rdstr.ui.kit.Motion
 import ro.rdstr.ui.kit.TextStyle
 import ro.rdstr.ui.kit.Transition
 import ro.rdstr.ui.kit.UiTheme
+import ro.rdstr.ui.media.FreqCounterView
+import ro.rdstr.ui.media.MarqueeText
+import ro.rdstr.ui.media.ProgressLine
+import ro.rdstr.ui.media.Star
+import ro.rdstr.ui.media.TransportRow
 import ro.rdstr.ui.tokens.Base
+import ro.rdstr.ui.tokens.NpProgressGlassBead
 import ro.rdstr.ui.tokens.Icons
 import ro.rdstr.ui.tokens.Shadow
 import ro.rdstr.ui.uiKey
@@ -55,8 +61,8 @@ class BluetoothPage(context: Context, private val actions: CardActions) : Column
     private val surface = NpSurface()
     private val tint = CoverTint()
     private val cover = CoverView(context)
-    private val title = Marquee(context, TextStyle(24f, 600, -0.01f)).apply { uiKey = "np-title.marquee" }
-    private val artist = Marquee(context, TextStyle(16f)).apply { uiKey = "np-artist.marquee" }
+    private val title = MarqueeText(context, TextStyle(24f, 600, -0.01f)).apply { uiKey = "np-title.marquee" }
+    private val artist = MarqueeText(context, TextStyle(16f)).apply { uiKey = "np-artist.marquee" }
     private val open = Column(context, 16f).apply {
         uiKey = "np-open"
         isClickable = true
@@ -68,7 +74,7 @@ class BluetoothPage(context: Context, private val actions: CardActions) : Column
             addView(artist, LinearLayout.LayoutParams(-1, -2))
         }, LinearLayout.LayoutParams(-1, -2))
     }
-    private val progress = ProgressLine(context)
+    private val progress = ProgressLine(context, 6f, NpProgressGlassBead.DARK.bead).apply { uiKey = "progress-line.np-progress" }
     private val elapsed = context.line(TextStyle(14f), "span:0", false)
     private val remaining = context.line(TextStyle(14f), "span:1", false)
     private val times = FrameLayout(context).apply {
@@ -76,7 +82,7 @@ class BluetoothPage(context: Context, private val actions: CardActions) : Column
         addView(elapsed, FrameLayout.LayoutParams(-2, -2, Gravity.START))
         addView(remaining, FrameLayout.LayoutParams(-2, -2, Gravity.END))
     }
-    private val transport = TransportRow(context, TransportRow.CARD, 4f) { actions.pressSound(CardPage.BLUETOOTH, PRESSES[it]) }
+    private val transport = TransportRow(context, TransportRow.CARD) { actions.pressSound(CardPage.BLUETOOTH, PRESSES[it]) }
     private var state = CardState()
     private val tick = object : Runnable {
         override fun run() { position(); if (state.car.playing) postDelayed(this, TICK_MS) }
@@ -99,8 +105,10 @@ class BluetoothPage(context: Context, private val actions: CardActions) : Column
     private fun theme() {
         val b = UiTheme.base
         surface.theme()
-        title.color = b.ink
-        artist.color = b.inkMuted
+        title.setTextColor(b.ink)
+        artist.setTextColor(b.inkMuted)
+        // .np-progress: --hairline-strong under --ink; Glassy's accent
+        progress.rail = b.hairlineStrong; progress.fill = b.ink; progress.accent = b.accent
         elapsed.setTextColor(b.inkSubtle); remaining.setTextColor(b.inkSubtle)
         val tx = ro.rdstr.ui.tokens.NpTx.of(UiTheme.light, UiTheme.glassy)
         transport.colors(tx.txColor, tx.txBloom)
@@ -278,7 +286,7 @@ class RadioPage(context: Context, private val actions: CardActions) : Column(con
     private var washKey = 0L
     private val band = Tag(context, true)
     private val state = Tag(context, false)
-    private val num = context.line(TextStyle(96f, 600, -0.04f, 1f), "freq-num", false)
+    private val num = FreqCounterView(context, TextStyle(96f, 600, -0.04f, 1f), "freq-num").apply { link { UiTheme.base.ink } }
     private val unit = context.line(TextStyle(24f, 500), "freq-band", false)
     private val name = context.line(TextStyle(24f, 600, -0.01f), "np-title.np-radio-name")
     private val genreChip = KitText(context, TextStyle(17f, 600)).apply { uiKey = "radio-genre"; gravity = Gravity.CENTER; isSingleLine = true }
@@ -287,8 +295,8 @@ class RadioPage(context: Context, private val actions: CardActions) : Column(con
         init { setWillNotDraw(false) }
         override fun onDraw(canvas: Canvas) = genreBox.draw(canvas, this, width.toFloat(), height.toFloat())
     }
-    private val star = StarButton(context) { actions.toggleFavorite(khz) }
-    private val transport = TransportRow(context, TransportRow.CARD, 4f) { actions.pressSound(CardPage.RADIO, PRESSES[it]) }
+    private val star = Star(context, Star.Look.CARD).apply { setOnClickListener { actions.toggleFavorite(khz) } }
+    private val transport = TransportRow(context, TransportRow.CARD) { actions.pressSound(CardPage.RADIO, PRESSES[it]) }
     private var khz = 0
     private var pty = -1
 
@@ -332,11 +340,11 @@ class RadioPage(context: Context, private val actions: CardActions) : Column(con
         surface.theme(0)
         surface.box.gradient = null
         surface.box.under = drawWash
-        num.setTextColor(b.ink); unit.setTextColor(b.inkMuted); name.setTextColor(b.ink)
+        unit.setTextColor(b.inkMuted); name.setTextColor(b.ink)
         genreChip.setTextColor(b.ink)
         val tx = ro.rdstr.ui.tokens.NpTx.of(UiTheme.light, UiTheme.glassy)
         transport.colors(tx.txColor, tx.txBloom)
-        band.theme(); state.theme(); star.onThemeChanged()
+        band.theme(); state.theme()
         washKey = 0L
         chip()
         invalidate()
@@ -357,13 +365,13 @@ class RadioPage(context: Context, private val actions: CardActions) : Column(con
         val tag = when { s.car.source != AudioSource.RADIO -> "Off"; !s.car.radioOn -> "Paused"; r.stereo -> "Stereo"; else -> null }
         state.visibility = if (tag == null) GONE else VISIBLE
         if (tag != null) state.text = tag
-        num.text = FreqDisplay.format(r.band, r.khz)
+        num.tune(r.band, r.khz, isAttachedToWindow)
         unit.text = if (r.band == CarEvent.Radio.Band.FM) "MHz" else "kHz"
         name.text = r.rds.ifEmpty { "Radio" }
         val g = Rds.ptyName(r.pty)
         genreFrame.visibility = if (g.isEmpty()) GONE else VISIBLE
         genreChip.text = g
-        star.on = s.favorite
+        star.set(s.favorite, if (s.favorite) "Remove from favorites" else "Add to favorites", isAttachedToWindow)
         transport.playing = s.car.source == AudioSource.RADIO && s.car.radioOn
         if (r.pty != pty) {
             val to = Genre.color(r.pty)
@@ -441,53 +449,3 @@ internal class BaselineRow(context: Context, gap: Float) : LinearLayout(context)
     }
 }
 
-/**
- * RadioApp.tsx `Star` on the card (`.np-radio .radio-star`): 52 px round on `--glass-strong`, the star 24 px in
- * `--ink-muted`, `#ffd60a` when a favourite (by day `#c98f00`); pressed 0.88 (120 ms), back on `--spring-glyph`.
- */
-@SuppressLint("ViewConstructor")
-class StarButton(context: Context, private val onToggle: () -> Unit) : KitView(context) {
-    var on = false; set(v) { if (field != v) { field = v; glyph = icon(); onTheme(); invalidate() } }
-    private var glyph = icon()
-    private val box = CssBox().apply { radius = 999f }
-    private val scale = Transition(1f)
-    private var down = false
-
-    init { uiKey = "radio-star"; isClickable = true; setOnClickListener { onToggle() }; onTheme() }
-
-    private fun icon() = context.getDrawable(if (on) Icons.STAR_FILL else Icons.STAR)!!.mutate()
-
-    fun onThemeChanged() = onTheme()
-
-    override fun onTheme() {
-        val b = UiTheme.base
-        glyph.setTint(if (!on) b.inkMuted else if (UiTheme.light) 0xFFC98F00.toInt() else 0xFFFFD60A.toInt())
-        // Glassy: the card's star keeps the card rule's fill, under the frost and the glass shadow
-        if (UiTheme.glassy) { box.glassy(UiTheme.glass, if (down) UiTheme.glass.glassyFillStrong else b.glassStrong); box.gradient = null } else box.solid(b.glassStrong)
-    }
-
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val s = (52 * d + 0.5f).toInt()
-        setMeasuredDimension(s, s)
-    }
-
-    override fun setPressed(pressed: Boolean) {
-        super.setPressed(pressed)
-        if (pressed == down) return
-        down = pressed
-        scale.to(if (pressed) 0.88f else 1f, Motion.now(), UiTheme.duration(if (pressed) 120 else 300), Motion.springGlyph)
-        onTheme(); invalidate()
-    }
-
-    override fun onDraw(canvas: Canvas) {
-        val now = Motion.now()
-        val s = scale.value(now)
-        val w = width.toFloat()
-        canvas.save(); canvas.scale(s, s, w / 2, w / 2)
-        box.draw(canvas, this, w, w)
-        IconView.place(glyph, 0f, 0f, w, w, 24 * d)
-        glyph.draw(canvas)
-        canvas.restore()
-        if (scale.running(now)) postInvalidateOnAnimation()
-    }
-}

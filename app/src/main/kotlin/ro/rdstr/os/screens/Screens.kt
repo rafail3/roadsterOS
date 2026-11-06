@@ -29,6 +29,8 @@ object Screens {
         Layer.AOD_DIAL to ::AodDialScreen,
         Layer.MAPS to ::MapsScreen,
         Layer.SOUND to ::SoundScreen,
+        Layer.MUSIC to ::MusicScreen,
+        Layer.RADIO to ::RadioScreen,
         Layer.RECENTS to ::RecentsScreen,
         Layer.GESTURES to ::GesturesScreen,
         Layer.VOLUME to ::VolumeScreen,

@@ -100,6 +100,20 @@ class KitText(context: Context, style: TextStyle) : TextView(context) {
         } else { setLineSpacing(0f, 1f); halfLeading = 0f }
     }
 
+    /**
+     * Each line exactly its line-height tall: API 27 adds the spacing below the last line too, newer renderers (the
+     * JVM's layoutlib) leave it out; both measure the same here.
+     */
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        if (style.lineHeight <= 0f || MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.EXACTLY) return
+        val lines = maxOf(1, layout?.lineCount ?: 1)
+        setMeasuredDimension(measuredWidth, (lines * style.lineHeight * textSize + paddingTop + paddingBottom + 0.5f).toInt())
+    }
+
+    /** The baseline where CSS puts it: half the leading under the line box's top. */
+    override fun getBaseline(): Int = super.getBaseline() + Math.round(halfLeading)
+
     override fun onDraw(canvas: Canvas) {
         if (halfLeading == 0f) return super.onDraw(canvas)
         canvas.save(); canvas.translate(0f, halfLeading); super.onDraw(canvas); canvas.restore()
