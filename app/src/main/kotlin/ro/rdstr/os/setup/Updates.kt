@@ -34,15 +34,24 @@ class Updates(private val context: Context) {
         data object Installing : State
         data class Restarting(val seconds: Int) : State
         data class Failed(val reason: String) : State
+        /** A check asked for without Wi-Fi: the screen offers to connect. */
+        data object NeedsWifi : State
+        data object UpToDate : State
     }
 
     private val _state = MutableStateFlow<State>(State.Idle)
     val state: StateFlow<State> = _state
     private val prefs = context.getSharedPreferences("updates", Context.MODE_PRIVATE)
     private val main = Handler(Looper.getMainLooper())
-    private var onWifi = false
+    @Volatile private var onWifi = false
 
     private val current get() = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty()
+
+    /** When this version went on the unit, for Settings > About > Software Update (ms since 1970). */
+    val installedAt: Long get() = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime }.getOrDefault(0L)
+
+    /** The last check that got an answer, or 0. */
+    val lastChecked: Long get() = prefs.getLong(CHECKED, 0L)
 
     /** Follows Wi-Fi: a network joined (not one kept) starts a check in the background. */
     fun watchWifi() {
@@ -62,13 +71,15 @@ class Updates(private val context: Context) {
     /** Settings > About and the setup check on demand; the result lands in [state]. */
     fun check() {
         if (_state.value is State.Downloading || _state.value is State.Installing) return
+        if (!onWifi) { _state.value = State.NeedsWifi; return }
         _state.value = State.Checking
         Thread {
             val result = Updater.check(current, Http.text(Updater.LATEST))
             Log.i(TAG, "check $current -> $result")
+            if (result != Updater.Check.Failed) prefs.edit().putLong(CHECKED, System.currentTimeMillis()).apply()
             _state.value = when (result) {
                 is Updater.Check.Available -> State.Available(result.release, result.apk, Updater.popUp(result, prefs.getString(DISMISSED, null)))
-                Updater.Check.UpToDate -> State.Idle
+                Updater.Check.UpToDate -> State.UpToDate
                 Updater.Check.Failed -> State.Failed("no answer from GitHub")
             }
         }.start()
@@ -145,5 +156,6 @@ class Updates(private val context: Context) {
         const val TAG = "rdstr.update"
         const val DISMISSED = "dismissed"
         const val UPDATED = "updated"
+        const val CHECKED = "checked"
     }
 }

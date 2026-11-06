@@ -128,3 +128,8 @@
 /* the guidelines over a still frame, to set their height without reverse gear */
 .cam-preview-row { padding-top: 12px; padding-bottom: 12px; }
 .cam-preview { width: 100%; height: auto; aspect-ratio: 1024 / 600; border-radius: 12px; overflow: hidden; }
+/* Settings > About > Software Update */
+.set-sub-title { margin: 0 0 -10px 8px; font-size: 22px; font-weight: 700; }
+.set-update-progress { flex-wrap: wrap; row-gap: 12px; padding-bottom: 18px; }
+.set-progress { flex: 1 0 100%; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.set-progress span { display: block; height: 100%; border-radius: inherit; background: var(--set-blue); transform-origin: 0 50%; transition: transform 200ms linear; }
