@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { Face, SteeringKey, ThemeMode } from "../car/bridge";
 import { SAMPLE_CALLERS, SAMPLE_PHONE } from "../car/phone";
-import { carEvent, dashMinutes, resetDash, setInstalled, UNIT_APPS, GPS_PLACES, incomingCall, incomingMessage, remoteHangUp, removePack, setPhoneStatus, setSteering, shareLaptopWindow, stopLaptopWindow, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
+import { carEvent, dashMinutes, resetDash, setInstalled, UNIT_APPS, GPS_PLACES, incomingCall, incomingMessage, remoteHangUp, removePack, setPhoneStatus, setSteering, shareLaptopWindow, stopLaptopWindow, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, setReleaseOut, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Field, holdToRepeat, Section, Segmented, Switch } from "./controls";
 
 const DEFAULT_TRACK_MS = 228000;
@@ -80,10 +80,14 @@ function Bluetooth() {
 }
 
 /** The simulated networks around the unit, with the passwords that join them. */
+/** The version the "newer version" switch publishes: the next minor after this build. */
+const NEXT_VERSION = (process.env.RDSTR_VERSION ?? "1.0.0").replace(/^(\d+)\.(\d+)\..*$/, (_, a, b) => `${a}.${Number(b) + 1}.0`);
+
 function Wifi() {
-  const { wifi } = useEmulator();
+  const { wifi, releaseOut } = useEmulator();
   return (
     <Section title="Wi-Fi">
+      <Switch label="Newer version on GitHub" checked={releaseOut !== null} onChange={(on) => setReleaseOut(on ? NEXT_VERSION : null)} />
       <p className="note">Networks in range and their passwords, for joining from the screen.</p>
       {WIFI_NETWORKS.map((n) => (
         <div key={n.ssid} className="row">

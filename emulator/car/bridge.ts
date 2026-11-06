@@ -36,6 +36,13 @@ export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
 export type Band = "FM" | "AM";
 export type App = "HOME" | "MUSIC" | "RADIO" | "MAPS" | "PHONE" | "SETTINGS" | "PHONE_SCREEN";
 export type CastState = "OFF" | "VISIBLE" | "CONNECTING" | "LIVE";
+export type PrepareTask = "KEYS" | "PACKAGES" | "PERMISSIONS" | "HOME";
+export type TaskState = "WAITING" | "RUNNING" | "DONE" | "FAILED" | "SKIPPED";
+export interface Prepare { tasks: Record<PrepareTask, TaskState>; next: PrepareTask | null; progress: number; finished: boolean; ok: boolean }
+export interface Download {
+  total: number; done: number; bytesPerSecond: number; percent: number; fraction: number;
+  speed: string; left: string | null; doneText: string; totalText: string;
+}
 export type SetupStep = "LOGO" | "START" | "CAR_NAME" | "PREPARE" | "WIFI" | "UPDATE" | "LOCATION" | "LOOK" | "FILES" | "WELCOME";
 /** Dots as flat lists of six numbers: x, y, colour index, layer (word) or face (cube), letter index or glyph, dissolve order. */
 export interface BootArtData { colors: string[]; tiny: Record<string, string>; word: { width: number; height: number; dots: number[] }; cube: number[] }
@@ -255,6 +262,11 @@ interface Kotlin {
       bootArt(): string;
       bootFrame(t: number): string;
       bootDoneMs(): number;
+      setupPrepare(): string;
+      setupPrepareStep(tasks: string, op: string, task: string): string;
+      downloadStep(total: number, done: number, speed: number, bytes: number, ms: number): string;
+      isNewer(candidate: string, current: string): boolean;
+      restartInS(): number;
       aodDue(state: string, idleMs: number, busy: boolean): boolean;
       aodFace(state: string): "DIGITAL" | "ANALOG";
       wakesAod(event: string): boolean;
@@ -401,6 +413,15 @@ export const bridge = {
   /** What the boot screen draws t ms after it starts (core-car BootArt.frame). */
   bootFrame: (t: number): BootFrame => JSON.parse(K!.Bridge.bootFrame(t)),
   bootDoneMs: (): number => K!.Bridge.bootDoneMs(),
+  /** The system preparation's tasks, as the setup runs them (core-car Setup.Prepare). */
+  setupPrepare: (): Prepare => JSON.parse(K!.Bridge.setupPrepare()),
+  setupPrepareStep: (p: Prepare, op: "running" | "done" | "failed" | "retry", task: PrepareTask | "" = ""): Prepare =>
+    JSON.parse(K!.Bridge.setupPrepareStep(JSON.stringify(p.tasks), op, task)),
+  /** [bytes] more arrived over [ms] (both 0 for the start); the bar's figures (core-car Updater.Download). */
+  downloadStep: (d: Pick<Download, "total" | "done" | "bytesPerSecond">, bytes: number, ms: number): Download =>
+    JSON.parse(K!.Bridge.downloadStep(d.total, d.done, d.bytesPerSecond, bytes, ms)),
+  isNewer: (candidate: string, current: string): boolean => K!.Bridge.isNewer(candidate, current),
+  restartInS: (): number => K!.Bridge.restartInS(),
   /** The always-on display: due after the wait, its face, the car events that end it (core-car Shell). */
   aodDue: (state: ShellState, idleMs: number, busy: boolean) => K!.Bridge.aodDue(JSON.stringify(state), idleMs, busy),
   aodFace: (state: ShellState) => K!.Bridge.aodFace(JSON.stringify(state)),

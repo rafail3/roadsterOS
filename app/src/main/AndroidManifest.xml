@@ -67,6 +67,7 @@
         <receiver android:name=".ServiceReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="ro.rdstr.SERVICE" />
+                <action android:name="ro.rdstr.PREPARE" />
             </intent-filter>
         </receiver>
 
