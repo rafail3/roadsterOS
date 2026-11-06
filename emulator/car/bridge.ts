@@ -10,7 +10,7 @@ export type DashKey = "HOUR" | "MINUTE" | "CLOCK";
 export type AodFace = "HOME" | "DIGITAL" | "ANALOG";
 export type AnimationSpeed = "NORMAL" | "FAST" | "OFF";
 export type EqPreset = "USER" | "FLAT" | "POP" | "ROCK" | "JAZZ" | "CLASSIC";
-export type ListeningSeat = "CUSTOM" | "FRONT_LEFT" | "FRONT_RIGHT" | "REAR_LEFT" | "REAR_RIGHT" | "ALL";
+export type ListeningSeat = "CUSTOM" | "FRONT_LEFT" | "FRONT_RIGHT" | "REAR_LEFT" | "REAR_RIGHT" | "ALL" | "FRONT" | "REAR";
 export interface SpeakerFilter { highPass: boolean; highPassHz: number; lowPass: boolean; lowPassHz: number }
 /** The sound processor's settings (core-car SoundSettings). */
 export interface SoundSettings {

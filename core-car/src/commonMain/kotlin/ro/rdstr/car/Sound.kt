@@ -6,9 +6,14 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class EqPreset(val code: Int) { USER(0), FLAT(1), POP(2), ROCK(3), JAZZ(4), CLASSIC(5) }
 
-/** Where the speakers' delays focus the sound (Iop.DspSetPosMode); CUSTOM uses [SoundSettings.delays]. */
+/**
+ * Where the speakers' delays focus the sound (Iop.DspSetPosMode). CUSTOM uses [SoundSettings.delays]; FRONT and REAR are
+ * the centre of each row, which the processor has no mode for: they go as mode 0 with delays from [Sound.focusDelays].
+ */
 @Serializable
-enum class ListeningSeat(val code: Int) { CUSTOM(0), FRONT_LEFT(1), FRONT_RIGHT(2), REAR_LEFT(3), REAR_RIGHT(4), ALL(5) }
+enum class ListeningSeat(val code: Int) {
+    CUSTOM(0), FRONT_LEFT(1), FRONT_RIGHT(2), REAR_LEFT(3), REAR_RIGHT(4), ALL(5), FRONT(0), REAR(0)
+}
 
 /** A high-pass and a low-pass on one pair of speakers (Iop.DspSetFilter). */
 @Serializable
@@ -33,7 +38,7 @@ data class SoundSettings(
     /** +7 front .. −7 rear. */
     val fader: Int = 0,
     val seat: ListeningSeat = ListeningSeat.ALL,
-    /** Front left, front right, rear left, rear right; 0..200 tenths of a millisecond. */
+    /** The CUSTOM seat's delays: front left, front right, rear left, rear right; 0..200 tenths of a millisecond. */
     val delays: List<Int> = List(4) { 0 },
     val loudness: Boolean = true,
     val loudLowHz: Int = 600,
@@ -81,6 +86,14 @@ object Sound {
     private const val FRONT = 4
     private const val REAR = 8
 
+    // Cabin geometry in metres, x across the car, y along it (0 at the front speakers, negative towards the rear).
+    private const val SPEAKER_X = 0.72
+    private const val REAR_SPEAKER_Y = -1.25
+    private const val FRONT_SEAT_Y = -0.45
+    private const val REAR_SEAT_Y = -1.35
+    /** Speed of sound, m/s. */
+    private const val SOUND_SPEED = 343.0
+
     /**
      * What the processor's own presets do, ten points from 32 Hz to 20 kHz spread over the 30 bands; the unit reads the
      * real curve back after a preset, this is what the screen shows until then.
@@ -124,6 +137,25 @@ object Sound {
 
     fun resetBass(s: SoundSettings) = s.copy(bass = true, bassGain = 6, subLevel = 10, subHz = 240)
 
+    /**
+     * FRONT and REAR: the delays, in tenths of a millisecond, that make all four speakers arrive together at the centre
+     * of that row; the farthest speaker plays undelayed. Null for every other seat.
+     */
+    fun focusDelays(seat: ListeningSeat): List<Int>? {
+        val y = when (seat) {
+            ListeningSeat.FRONT -> FRONT_SEAT_Y
+            ListeningSeat.REAR -> REAR_SEAT_Y
+            else -> return null
+        }
+        val d = listOf(0.0, 0.0, REAR_SPEAKER_Y, REAR_SPEAKER_Y).map { sy -> kotlin.math.hypot(SPEAKER_X, sy - y) }
+        val far = d.max()
+        return d.map { kotlin.math.round((far - it) / SOUND_SPEED * 10_000).toInt().coerceIn(0, DELAY_MAX) }
+    }
+
+    /** The delays the processor holds for [s]'s seat; null for the vendor's own modes, whose delays are not known. */
+    fun effectiveDelays(s: SoundSettings): List<Int>? =
+        if (s.seat == ListeningSeat.CUSTOM) s.delays else focusDelays(s.seat)
+
     /** The calls that take the processor from [a] to [b]; only what changed is written. */
     fun writes(a: SoundSettings, b: SoundSettings): List<DspWrite> = buildList {
         fun w(call: String, vararg args: Int) = add(DspWrite(call, args.toList()))
@@ -135,8 +167,12 @@ object Sound {
         }
         if (b.balance != a.balance) w("DspBalSet", b.balance + BALANCE_STEPS)
         if (b.fader != a.fader) w("DspFadSet", BALANCE_STEPS - b.fader)
-        if (b.seat != a.seat) w("DspSetPosMode", b.seat.code)
-        b.delays.forEachIndexed { ch, v -> if (v != a.delays[ch]) w("DspSetPosDelay", ch, v) }
+        if (b.seat.code != a.seat.code) w("DspSetPosMode", b.seat.code)
+        effectiveDelays(b)?.let { now ->
+            // after a vendor mode the delays are unknown: all four are written
+            val before = effectiveDelays(a)
+            now.forEachIndexed { ch, v -> if (before?.getOrNull(ch) != v) w("DspSetPosDelay", ch, v) }
+        }
         if (b.loudness != a.loudness) w("DspSetLoud", 0, if (b.loudness) 1 else 0)
         if (b.loudLowHz != a.loudLowHz) w("DspSetLoud", 1, b.loudLowHz)
         if (b.loudHighHz != a.loudHighHz) w("DspSetLoud", 2, b.loudHighHz)

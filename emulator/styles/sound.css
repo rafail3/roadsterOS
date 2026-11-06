@@ -40,21 +40,12 @@
 .snd-cabin { position: relative; width: 300px; height: 380px; touch-action: none; cursor: crosshair; border-radius: 90px; }
 .snd-cabin.is-static { cursor: default; }
 .snd-cabin:focus-visible { outline: 2px solid var(--set-blue); outline-offset: 6px; }
-.snd-cabin-art { position: absolute; inset: 0; width: 100%; height: 100%; }
-.snd-body { fill: rgba(255, 255, 255, 0.04); stroke: rgba(235, 235, 245, 0.24); stroke-width: 2; }
-.snd-seat { fill: rgba(118, 118, 128, 0.3); transition: fill 200ms var(--seamless); }
-.snd-seat.is-lit { fill: color-mix(in srgb, var(--set-blue) 70%, transparent); }
-.snd-speaker { fill: #1c1c1e; stroke: rgba(235, 235, 245, 0.5); stroke-width: 3; }
 .snd-axis { position: absolute; background: color-mix(in srgb, var(--set-blue) 55%, transparent); pointer-events: none; }
 .snd-axis.is-x { left: 40px; right: 40px; height: 2px; margin-top: -1px; }
 .snd-axis.is-y { top: 20px; bottom: 20px; width: 2px; margin-left: -1px; }
 .snd-dot { position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%; background: var(--set-blue); border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); pointer-events: none; transition: left 120ms var(--seamless), top 120ms var(--seamless); }
 .snd-cabin.is-dragging .snd-dot { transition: none; }
 .snd-seat-hit { position: absolute; width: 88px; height: 104px; border-radius: 22px; }
-.snd-seat-hit.is-0 { left: 63px; top: 82px; }
-.snd-seat-hit.is-1 { left: 149px; top: 82px; }
-.snd-seat-hit.is-2 { left: 63px; top: 200px; }
-.snd-seat-hit.is-3 { left: 149px; top: 200px; }
 .snd-seat-hit:focus-visible { outline: 2px solid var(--set-blue); outline-offset: 2px; }
 .snd-readout { display: flex; flex-direction: column; align-items: flex-start; gap: 22px; }
 .snd-readout p { display: flex; flex-direction: column; gap: 4px; margin: 0; }
@@ -68,7 +59,6 @@
 .snd-curve-page { fill: rgba(255, 255, 255, 0.05); }
 .snd-eq-pages { display: flex; justify-content: center; margin-top: 14px; }
 .snd-band-value.is-flat { color: var(--ink-muted); }
-.snd-windscreen { fill: none; stroke: rgba(235, 235, 245, 0.24); stroke-width: 2; }
 .snd-readout-actions { display: flex; gap: 8px; }
 .snd-readout-actions .set-inline[aria-pressed="true"] { color: #fff; background: rgba(255, 255, 255, 0.12); }
 .snd-response { padding: 18px 20px 12px; box-shadow: inset 0 -1px 0 var(--set-line); }
@@ -80,3 +70,32 @@
 .snd-bands { margin-top: 10px; }
 /* the station list fills the right side of the radio: the button sits under the close button instead */
 .radio-app .music-sound { left: 32px; right: auto; }
+
+/* the car from above: balance and listening position draw on it */
+.snd-stage { grid-template-columns: 288px minmax(0, 1fr); padding: 16px 32px; }
+.snd-cabin { width: 288px; height: 503px; border-radius: 0; }
+.car-top { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+/* seats drawn faintly on the roof, lit blue where the sound is focused */
+.car-seat rect { fill: rgba(30, 34, 40, 0.07); stroke: rgba(30, 34, 40, 0.22); stroke-width: 1.5; transition: fill 200ms var(--seamless), stroke 200ms var(--seamless); }
+.car-seat.is-lit rect { fill: rgba(10, 132, 255, 0.78); stroke: #0a84ff; }
+.car-speaker circle:first-child { fill: #1c1e22; stroke: rgba(255, 255, 255, 0.9); stroke-width: 2.5; }
+.car-speaker circle:last-child { fill: rgba(255, 255, 255, 0.85); }
+.snd-axis.is-x { left: 16%; right: 16%; }
+.snd-axis.is-y { top: 5%; bottom: 5%; }
+.snd-seat-hit { width: auto; height: auto; }
+.snd-focus { min-height: 48px; padding: 0 18px; border-radius: 12px; font-size: 17px; font-weight: 600; color: var(--set-blue); transition: background var(--fast); }
+.snd-focus[aria-checked="true"] { color: #fff; background: rgba(255, 255, 255, 0.14); }
+.snd-focus:active { background: rgba(255, 255, 255, 0.08); }
+.snd-hint { font-size: 15px; color: var(--ink-muted); }
+.snd-readout-actions { flex-wrap: wrap; }
+
+/* the equalizer is laid out to fit the page whole */
+.set-detail.is-fit { overflow: hidden; }
+.set-detail.is-fit .snd-band-track { height: 150px; }
+
+/* balance: the pad over the cabin, from door to door and from the front seats' fronts to the rear seats' backs */
+.snd-pad { position: absolute; left: 21%; width: 58%; top: 39%; height: 34%; touch-action: none; cursor: crosshair; border-radius: 16px; }
+.snd-pad:focus-visible { outline: 2px solid var(--set-blue); outline-offset: 4px; }
+.snd-pad .snd-axis.is-x { left: -12%; right: -12%; }
+.snd-pad .snd-axis.is-y { top: -60%; bottom: -60%; }
+.snd-pad.is-dragging .snd-dot { transition: none; }

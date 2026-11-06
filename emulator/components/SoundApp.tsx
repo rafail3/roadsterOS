@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { bridge, type EqPreset, type ListeningSeat, type SoundSettings, type SpeakerFilter } from "../car/bridge";
 import { setSound, shellAction, useEmulator } from "../car/store";
+import { CAR_SEATS, CAR_VIEW, CarTop } from "./CarTop";
 import { useCloseOntoCard } from "./media";
 import { Group, Row, Segmented, Switch } from "./SettingsApp";
 
@@ -43,7 +44,7 @@ function summary(id: Section, s: SoundSettings): string {
     case "eq": return PRESETS.find(([p]) => p === s.preset)![1];
     case "balance": return s.balance === 0 && s.fader === 0 ? "Centered"
       : [s.balance && `${s.balance < 0 ? "Left" : "Right"} ${Math.abs(s.balance)}`, s.fader && `${s.fader > 0 ? "Front" : "Rear"} ${Math.abs(s.fader)}`].filter(Boolean).join(", ");
-    case "field": return s.seat === "ALL" ? "All Seats" : s.seat === "CUSTOM" ? "Custom" : SEATS.find((x) => x.id === s.seat)!.label;
+    case "field": return ({ ALL: "Center", FRONT: "Front Row", REAR: "Rear Row", CUSTOM: "Custom" } as Record<string, string>)[s.seat] ?? SEATS.find((x) => x.id === s.seat)!.label;
     case "loudness": return s.loudness ? "On" : "Off";
     case "bass": return s.bass ? `+${s.bassGain} dB` : "Off";
     case "filters": {
@@ -145,20 +146,6 @@ function Equalizer({ s }: { s: SoundSettings }) {
   </>);
 }
 
-/** A plain top view of the cabin: four seats, a speaker in each corner. */
-function Cabin({ lit }: { lit?: (seat: ListeningSeat) => boolean }) {
-  return (
-    <svg className="snd-cabin-art" viewBox="0 0 300 380" aria-hidden="true">
-      <rect x="40" y="20" width="220" height="340" rx="90" className="snd-body" />
-      <path d="M78 66 Q150 40 222 66" className="snd-windscreen" />
-      {SEATS.map((seat, i) => (
-        <rect key={seat.id} x={i % 2 ? 164 : 78} y={i < 2 ? 96 : 214} width="58" height="76" rx="18" className={`snd-seat${lit?.(seat.id) ? " is-lit" : ""}`} />
-      ))}
-      {[[46, 120], [254, 120], [46, 260], [254, 260]].map(([cx, cy]) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="13" className="snd-speaker" />)}
-    </svg>
-  );
-}
-
 /** Where the sound is centred between the four speakers: drag the dot over the cabin, or the arrow keys. */
 function Balance({ s }: { s: SoundSettings }) {
   const pad = useRef<HTMLDivElement>(null);
@@ -182,12 +169,15 @@ function Balance({ s }: { s: SoundSettings }) {
   const y = ((BALANCE - s.fader) / (2 * BALANCE)) * 100;
   return (
     <div className="snd-stage">
-      <div ref={pad} className={`snd-cabin${dragging ? " is-dragging" : ""}`} role="slider" tabIndex={0} aria-label="Balance and fader" aria-valuetext={summary("balance", s)}
-        onPointerDown={down} onPointerMove={move} onPointerUp={() => setDragging(false)} onPointerCancel={() => setDragging(false)} onKeyDown={key}>
-        <Cabin />
-        <span className="snd-axis is-x" style={{ top: `${y}%` }} />
-        <span className="snd-axis is-y" style={{ left: `${x}%` }} />
-        <span className="snd-dot" style={{ left: `${x}%`, top: `${y}%` }} />
+      <div className="snd-cabin is-static">
+        <CarTop />
+        {/* the pad covers the cabin, so the centre falls between the two rows of seats */}
+        <div ref={pad} className={`snd-pad${dragging ? " is-dragging" : ""}`} role="slider" tabIndex={0} aria-label="Balance and fader" aria-valuetext={summary("balance", s)}
+          onPointerDown={down} onPointerMove={move} onPointerUp={() => setDragging(false)} onPointerCancel={() => setDragging(false)} onKeyDown={key}>
+          <span className="snd-axis is-x" style={{ top: `${y}%` }} />
+          <span className="snd-axis is-y" style={{ left: `${x}%` }} />
+          <span className="snd-dot" style={{ left: `${x}%`, top: `${y}%` }} />
+        </div>
       </div>
       <div className="snd-readout">
         <p><span>Left and right</span><strong>{s.balance === 0 ? "Center" : `${s.balance < 0 ? "Left" : "Right"} ${Math.abs(s.balance)}`}</strong></p>
@@ -198,23 +188,34 @@ function Balance({ s }: { s: SoundSettings }) {
   );
 }
 
-/** Where the delays focus the sound: one seat, every seat, or a delay per speaker. */
+/** Where the delays focus the sound: one seat, a row, the middle of the car, or a delay per speaker. */
+const FOCUS: { id: ListeningSeat; label: string; seats: ListeningSeat[] }[] = [
+  { id: "ALL", label: "Center", seats: ["FRONT_LEFT", "FRONT_RIGHT", "REAR_LEFT", "REAR_RIGHT"] },
+  { id: "FRONT", label: "Front", seats: ["FRONT_LEFT", "FRONT_RIGHT"] },
+  { id: "REAR", label: "Rear", seats: ["REAR_LEFT", "REAR_RIGHT"] },
+  { id: "CUSTOM", label: "Custom", seats: [] },
+];
+
 function Field({ s }: { s: SoundSettings }) {
-  const lit = (seat: ListeningSeat) => s.seat === "ALL" || s.seat === seat;
+  const row = FOCUS.find((f) => f.id === s.seat);
+  const lit = (seat: ListeningSeat) => (row ? row.seats.includes(seat) : s.seat === seat);
   return (<>
     <div className="snd-stage">
       <div className="snd-cabin is-static">
-        <Cabin lit={lit} />
-        {SEATS.map((seat, i) => (
-          <button key={seat.id} className={`snd-seat-hit is-${i}`} aria-pressed={s.seat === seat.id} aria-label={seat.label} onClick={() => setSound({ ...s, seat: seat.id })} />
+        <CarTop lit={lit} />
+        {CAR_SEATS.map((seat, i) => (
+          <button key={seat.id} className="snd-seat-hit" aria-pressed={s.seat === seat.id} aria-label={SEATS[i].label} onClick={() => setSound({ ...s, seat: seat.id })}
+            style={{ left: `${(seat.x / CAR_VIEW.w) * 100}%`, top: `${(seat.y / CAR_VIEW.h) * 100}%`, width: `${(seat.w / CAR_VIEW.w) * 100}%`, height: `${(seat.h / CAR_VIEW.h) * 100}%` }} />
         ))}
       </div>
       <div className="snd-readout">
         <p><span>Focused on</span><strong>{summary("field", s)}</strong></p>
-        <div className="snd-readout-actions">
-          <button className="set-inline" aria-pressed={s.seat === "ALL"} disabled={s.seat === "ALL"} onClick={() => setSound({ ...s, seat: "ALL" })}>All Seats</button>
-          <button className="set-inline" aria-pressed={s.seat === "CUSTOM"} disabled={s.seat === "CUSTOM"} onClick={() => setSound({ ...s, seat: "CUSTOM" })}>Custom</button>
+        <div className="snd-readout-actions" role="radiogroup" aria-label="Listening position">
+          {FOCUS.map((f) => (
+            <button key={f.id} role="radio" aria-checked={s.seat === f.id} className="snd-focus" onClick={() => setSound({ ...s, seat: f.id })}>{f.label}</button>
+          ))}
         </div>
+        <p className="snd-hint">Tap a seat to focus the sound there.</p>
       </div>
     </div>
     {s.seat === "CUSTOM" ? (
@@ -225,7 +226,7 @@ function Field({ s }: { s: SoundSettings }) {
           </Row>
         ))}
       </Group>
-    ) : <p className="set-footer">Tap a seat to focus the sound there; All Seats plays every speaker at once.</p>}
+    ) : <p className="set-footer">Center plays every speaker at once. Front and Rear delay the nearer speakers so the sound meets between the two seats of that row.</p>}
   </>);
 }
 
@@ -332,7 +333,7 @@ export function SoundApp({ open }: { open: boolean }) {
           ))}
         </ul>
       </nav>
-      <div className="set-detail" key={section}>
+      <div className={`set-detail${section === "eq" ? " is-fit" : ""}`} key={section}>
         <h2 className="set-page-title">{current.label}</h2>
         {section === "eq" && <Equalizer s={s} />}
         {section === "balance" && <Balance s={s} />}

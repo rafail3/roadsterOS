@@ -40,11 +40,30 @@ class SoundTest {
     fun `seat, delays, loudness, bass and antenna in the vendor's units`() {
         val s = flat.copy(seat = ListeningSeat.CUSTOM, delays = listOf(0, 15, 0, 0), loudLowHz = 180, bass = true, bassGain = 12, subHz = 120, antennaPower = false)
         assertEquals(
-            listOf(w("DspSetPosMode", 0), w("DspSetPosDelay", 1, 15), w("DspSetLoud", 1, 180), w("DspSetVBass", 0, 1),
+            listOf(w("DspSetPosMode", 0), w("DspSetPosDelay", 0, 0), w("DspSetPosDelay", 1, 15), w("DspSetPosDelay", 2, 0),
+                w("DspSetPosDelay", 3, 0), w("DspSetLoud", 1, 180), w("DspSetVBass", 0, 1),
                 w("DspSetVBass", 1, 400), w("SubFreqSet", 120), w("SetExAmp", 0)),
             Sound.writes(flat, s),
         )
         assertEquals(Sound.resetBass(flat), Sound.resetBass(s.copy(antennaPower = true)).copy(seat = flat.seat, delays = flat.delays, loudLowHz = 600))
+    }
+
+    @Test
+    fun `front and rear centre are mode 0 with delays of their own`() {
+        assertEquals(listOf(7, 7, 0, 0), Sound.focusDelays(ListeningSeat.FRONT))
+        assertEquals(listOf(0, 0, 23, 23), Sound.focusDelays(ListeningSeat.REAR))
+        assertEquals(null, Sound.focusDelays(ListeningSeat.FRONT_LEFT))
+        val front = flat.copy(seat = ListeningSeat.FRONT)
+        val rear = flat.copy(seat = ListeningSeat.REAR)
+        assertEquals(
+            listOf(w("DspSetPosMode", 0), w("DspSetPosDelay", 0, 7), w("DspSetPosDelay", 1, 7), w("DspSetPosDelay", 2, 0), w("DspSetPosDelay", 3, 0)),
+            Sound.writes(flat, front),
+        )
+        assertEquals(
+            listOf(w("DspSetPosDelay", 0, 0), w("DspSetPosDelay", 1, 0), w("DspSetPosDelay", 2, 23), w("DspSetPosDelay", 3, 23)),
+            Sound.writes(front, rear),
+        )
+        assertEquals(listOf(w("DspSetPosMode", 1)), Sound.writes(rear, flat.copy(seat = ListeningSeat.FRONT_LEFT)))
     }
 
     @Test
