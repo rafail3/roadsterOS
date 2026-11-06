@@ -305,24 +305,6 @@ function Sound({ e }: { e: EmulatorState }) {
           readout={<span className="pill-readout" aria-hidden="true">{e.shell.dsp.callVolume}</span>} />
       </div>
     </Group>
-    <Group title="Navigation" footer={e.shell.dsp.musicUnderNav === 0
-      ? "The music stops while the navigation speaks and comes back after."
-      : e.shell.dsp.musicUnderNav === 100 ? "The music keeps playing at its level under the navigation voice."
-      : `The music plays at ${e.shell.dsp.musicUnderNav}% of its level while the navigation speaks.`}>
-      <div className="set-row is-slider">
-        <PillSlider label="Navigation voice volume" min={0} max={100} step={5} value={e.shell.dsp.navVolume} valueText={`${e.shell.dsp.navVolume}%`}
-          onValue={(navVolume) => setSound({ ...e.shell.dsp, navVolume })}
-          icon={<span className="pill-icon"><span className="icon i-navigation-arrow-fill" aria-hidden="true" /></span>}
-          readout={<span className="pill-readout" aria-hidden="true">{e.shell.dsp.navVolume}%</span>} />
-      </div>
-      <Row label="Music While It Speaks">
-        <span className="set-stepper">
-          <button aria-label="Quieter music under the navigation voice" disabled={e.shell.dsp.musicUnderNav <= 0} onClick={() => setSound({ ...e.shell.dsp, musicUnderNav: Math.max(0, e.shell.dsp.musicUnderNav - 10) })}><span className="icon i-minus" aria-hidden="true" /></button>
-          <output aria-label="Music under the navigation voice" className="set-mix">{e.shell.dsp.musicUnderNav === 0 ? "Off" : `${e.shell.dsp.musicUnderNav}%`}</output>
-          <button aria-label="Louder music under the navigation voice" disabled={e.shell.dsp.musicUnderNav >= 100} onClick={() => setSound({ ...e.shell.dsp, musicUnderNav: Math.min(100, e.shell.dsp.musicUnderNav + 10) })}><span className="icon i-plus" aria-hidden="true" /></button>
-        </span>
-      </Row>
-    </Group>
     <Group title="Radio" footer="Powers an amplified antenna through the antenna lead. Off for a passive antenna.">
       <Row label="Antenna Power"><Switch label="Antenna Power" on={e.shell.dsp.antennaPower} onChange={(antennaPower) => setSound({ ...e.shell.dsp, antennaPower })} /></Row>
     </Group>
@@ -354,6 +336,24 @@ function Maps({ e }: { e: EmulatorState }) {
   const { installed, downloading } = e.maps;
   const [confirm, setConfirm] = useState<string | null>(null);
   return (<>
+    <Group title="Voice Guidance" footer={`The spoken directions of a navigation app, through the unit. ${e.shell.dsp.musicUnderNav === 0
+      ? "The music stops while a direction is spoken and comes back after."
+      : e.shell.dsp.musicUnderNav === 100 ? "The music keeps its level under the voice."
+      : `The music plays at ${e.shell.dsp.musicUnderNav}% of its level while a direction is spoken.`}`}>
+      <div className="set-row is-slider">
+        <PillSlider label="Voice guidance volume" min={0} max={100} step={5} value={e.shell.dsp.navVolume} valueText={`${e.shell.dsp.navVolume}%`}
+          onValue={(navVolume) => setSound({ ...e.shell.dsp, navVolume })}
+          icon={<span className="pill-icon"><span className="icon i-navigation-arrow-fill" aria-hidden="true" /></span>}
+          readout={<span className="pill-readout" aria-hidden="true">{e.shell.dsp.navVolume}%</span>} />
+      </div>
+      <Row label="Music Under the Voice">
+        <span className="set-stepper">
+          <button aria-label="Quieter music under the navigation voice" disabled={e.shell.dsp.musicUnderNav <= 0} onClick={() => setSound({ ...e.shell.dsp, musicUnderNav: Math.max(0, e.shell.dsp.musicUnderNav - 10) })}><span className="icon i-minus" aria-hidden="true" /></button>
+          <output aria-label="Music under the navigation voice" className="set-mix">{e.shell.dsp.musicUnderNav === 0 ? "Off" : `${e.shell.dsp.musicUnderNav}%`}</output>
+          <button aria-label="Louder music under the navigation voice" disabled={e.shell.dsp.musicUnderNav >= 100} onClick={() => setSound({ ...e.shell.dsp, musicUnderNav: Math.min(100, e.shell.dsp.musicUnderNav + 10) })}><span className="icon i-plus" aria-hidden="true" /></button>
+        </span>
+      </Row>
+    </Group>
     <Group footer="Two short notes when the car goes over the speed limit. The limit sign and the red dial stay either way.">
       <Row label="Speed Limit Chime"><Switch label="Speed Limit Chime" on={e.shell.speedChime} onChange={(on) => shellAction({ type: "SetSpeedChime", on })} /></Row>
     </Group>
