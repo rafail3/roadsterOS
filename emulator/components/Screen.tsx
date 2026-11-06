@@ -21,6 +21,7 @@ import { MapOffer } from "./MapOffer";
 import { DevicesSheet } from "./DevicesSheet";
 import { NetworksSheet } from "./NetworksSheet";
 import { LocationPrompt } from "./LocationPrompt";
+import { RestartPrompt } from "./RestartPrompt";
 import { WifiBars } from "./WifiBars";
 import { Recents } from "./Recents";
 import { EdgeBack, NavBar } from "./Gestures";
@@ -224,6 +225,7 @@ export function Screen() {
       <DevicesSheet />
       <NetworksSheet />
       <LocationPrompt />
+      <RestartPrompt />
       <Recents emulator={emulator} />
       {/* always there, as on a phone, except under the drawer, a devices or networks panel (its keyboard reaches the edges), a call or the camera */}
       {/* the bottom handle stays over a call too, so it can be swiped home into its bar */}

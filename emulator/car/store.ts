@@ -90,6 +90,8 @@ export interface EmulatorState {
   locationOn: boolean;
   /** a newer version published on GitHub (simulated), or null when the unit runs the latest */
   releaseOut: string | null;
+  /** the "restart the unit?" question is on screen */
+  restartAsked: boolean;
   /** Wi-Fi was asked to turn on while location is off: the screen asks to turn location on first */
   wifiNeedsLocation: boolean;
   acc: boolean;
@@ -1120,6 +1122,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     wifi: { saved: [WIFI_NETWORKS[0].ssid], connected: WIFI_NETWORKS[0].ssid, connecting: null, wrongPassword: null, seen: [] },
     locationOn: true,
     releaseOut: null,
+    restartAsked: false,
     wifiNeedsLocation: false,
     acc: true,
     hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : null,
@@ -1228,7 +1231,14 @@ export function shiftClock(ms: number) {
 export const UNIT_IP = "192.168.43.120";
 
 /** Restart roadsterOS: the process ends and home opens again (DeveloperTools.restart); here, the page reloads. */
-export function restartShell() {
+/** The question before a restart, from About or a long press on Settings in the drawer (which closes). */
+export function askRestart(on: boolean) {
+  if (on) shellAction({ type: "CloseDrawer" });
+  set({ restartAsked: on });
+}
+
+/** The whole unit starts again (CarRuntime.restartUnit): here the page loads again, from the boot screen. */
+export function restartUnit() {
   window.location.reload();
 }
 

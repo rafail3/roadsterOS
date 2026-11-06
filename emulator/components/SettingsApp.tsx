@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { bridge, type AnimationSpeed, type Design, type AodFace, type CameraSettings, type FaceMode, type Guidelines, type ReverseDip, type ThemeMode, type TimeSource } from "../car/bridge";
-import { allTimeZones, carCommand, factoryReset, setCamera, setCastVisible, setSound, openAndroidSettings, restartShell, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
+import { allTimeZones, carCommand, factoryReset, setCamera, setCastVisible, setSound, openAndroidSettings, askRestart, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
 import { Keyboard } from "./Keyboard";
 import { PillSlider } from "./Drawer";
 import { useCloseOntoCard } from "./media";
@@ -570,7 +570,9 @@ function About({ e }: { e: EmulatorState }) {
   const [confirm, setConfirm] = useState(false);
   return (<>
     <Group>
+      <Row label="Car" value={e.shell.carName || "Not named"} />
       <Row label="roadsterOS" value={VERSION} />
+      <Row label="Screen Sharing" value={bridge.castReceiver()} />
       <Row label="Android" value={ABOUT.android} />
       <Row label="Platform" value={ABOUT.model} />
       <Row label="Screen" value={ABOUT.screen} />
@@ -587,6 +589,9 @@ function About({ e }: { e: EmulatorState }) {
     </Group>
     <Group footer="Shows the Developer section after About: adb, touches and the frame rate on screen, the animation speed.">
       <Row label="Developer Settings"><Switch label="Developer Settings" on={e.shell.developer} onChange={(on) => shellAction({ type: "SetDeveloper", on })} /></Row>
+    </Group>
+    <Group footer="Starts the whole unit again, as switching the car off and on does.">
+      <Row label="Restart the Unit…" onPress={() => askRestart(true)} />
     </Group>
     <Group footer={confirm ? "Theme, brightness, clock and sound settings go back to their defaults. Phones, networks and maps stay." : undefined}>
       {confirm
@@ -617,7 +622,6 @@ function Developer({ e }: { e: EmulatorState }) {
     <Group title="System" footer={opened
       ? "On the unit this opens Android's own developer options over roadsterOS; the emulator has no Android behind it, so it only logs the request."
       : "Android's own developer options hold every other setting of the unit."}>
-      <Row label="Restart roadsterOS" onPress={restartShell} />
       <Row label="Android Developer Options" onPress={() => { openAndroidSettings(); setOpened(true); }} />
     </Group>
     <Group footer={erasing

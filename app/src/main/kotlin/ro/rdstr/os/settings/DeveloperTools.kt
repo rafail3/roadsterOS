@@ -38,6 +38,17 @@ object DeveloperTools {
         return "${ip and 0xff}.${ip shr 8 and 0xff}.${ip shr 16 and 0xff}.${ip shr 24 and 0xff}:$ADB_PORT"
     }
 
+    /**
+     * Reboots the unit. REBOOT is a signature permission, ours with the platform key; on firmware that does not
+     * grant it, roadsterOS itself starts again instead ([restart]).
+     */
+    @android.annotation.SuppressLint("MissingPermission")
+    fun reboot(context: Context) {
+        Log.i(TAG, "reboot")
+        runCatching { context.getSystemService(android.os.PowerManager::class.java).reboot(null) }
+            .onFailure { Log.w(TAG, "reboot refused, restarting roadsterOS", it); restart(context) }
+    }
+
     /** Ends our process; an alarm opens home again half a second later, and the service starts with it. */
     fun restart(context: Context) {
         val home = Intent(context, HomeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)

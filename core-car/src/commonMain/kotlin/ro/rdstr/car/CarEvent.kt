@@ -109,8 +109,10 @@ sealed class CarEvent {
         enum class State { OFF, VISIBLE, CONNECTING, LIVE }
 
         companion object {
-            /** The name phones list the unit under. */
+            /** The name phones list the unit under until the car has its own (setup's car name). */
             const val NAME = "roadsterOS"
+            /** The receiver as Settings > About names it: our version of it and the Wi-Fi Display release it speaks. */
+            const val RECEIVER = "roadsterOS Cast 1.0, Wi-Fi Display R1"
         }
     }
 
