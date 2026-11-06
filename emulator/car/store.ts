@@ -177,10 +177,9 @@ const covers = createCoverDesk((title, art) => {
   if (state.track.title === title) set({ track: { ...state.track, art } });
 });
 
-/** Where playback is now: the last reported position, advanced while playing. */
+/** Where playback is now: the last reported position, advanced while playing (core-car PlaybackClock). */
 export function elapsedMs(s: EmulatorState, now = Date.now()) {
-  const moved = s.car.playing ? now - s.positionAt : 0;
-  return Math.min(s.track.durationMs || Infinity, s.positionMs + moved);
+  return bridge.elapsedMs(s.positionMs, s.positionAt, s.car.playing, s.track.durationMs, now);
 }
 
 let state: EmulatorState = fromUrl(new URLSearchParams(location.search));
@@ -638,9 +637,9 @@ export function removePack(code: string) {
   set({ maps: { ...state.maps, installed: state.maps.installed.filter((c) => c !== code), declined: state.maps.declined.filter((c) => c !== code) } });
 }
 
-/** Star or unstar a station in our radio app. */
+/** Star or unstar a station in our radio app (core-car Tuner.toggleFavorite). */
 export function toggleFavorite(khz: number) {
-  set({ favorites: state.favorites.includes(khz) ? state.favorites.filter((f) => f !== khz) : [...state.favorites, khz].sort((a, b) => a - b) });
+  set({ favorites: bridge.toggleFavorite(state.favorites, khz) });
 }
 
 /** The unit's side of a connect request: a phone with Bluetooth on answers, one that is off times out. */
