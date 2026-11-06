@@ -76,8 +76,8 @@ function CarName({ saved, next }: { saved: string; next: () => void }) {
   };
   return (
     <Frame step="CAR_NAME" title="Name your car" text="Phones see this name when they share their screen with the car." next={save} canNext={trimmed !== ""}>
-      <div className="sf-field" role="textbox" aria-label="Car name" aria-placeholder="Mazda 6">
-        {name ? <span className="sf-value">{name}</span> : <span className="sf-placeholder">Mazda 6</span>}
+      <div className="sf-field" role="textbox" aria-label="Car name">
+        <span className="sf-value">{name}</span>
         <span className="sf-cursor" aria-hidden="true" />
       </div>
       <Keyboard open onKey={(c) => setName((n) => (n + c).slice(0, 24))} onBackspace={() => setName((n) => n.slice(0, -1))}

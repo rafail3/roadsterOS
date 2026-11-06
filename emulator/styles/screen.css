@@ -410,10 +410,8 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .sf-button:disabled { opacity: 0.4; }
 .sf-button:focus-visible { outline: 3px solid var(--amber-caption); outline-offset: 3px; }
 .sf-field { display: flex; align-items: center; height: 76px; margin-top: 24px; padding: 0 28px; border-radius: 20px; border: 1px solid var(--hairline-strong); background: var(--glass); font-size: 34px; font-weight: 500; }
-.sf-placeholder { color: var(--ink-subtle); }
 /* the tube's block cursor, blinking at the boot screen's pace */
-.sf-cursor { width: 16px; height: 36px; margin-left: 4px; background: var(--amber); animation: sf-blink 1060ms steps(1) infinite; }
-.sf-placeholder + .sf-cursor { order: -1; margin: 0 6px 0 0; }
+.sf-cursor { width: 16px; height: 36px; margin-left: 2px; background: var(--amber); animation: sf-blink 1060ms steps(1) infinite; }
 @keyframes sf-blink { 50% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .sf-cursor { animation: none; } }
 
