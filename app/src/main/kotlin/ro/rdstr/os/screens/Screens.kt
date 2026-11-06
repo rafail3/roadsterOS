@@ -51,5 +51,6 @@ object Screens {
         Layer.VOICE to ::VoiceScreen,
         Layer.BANNER to ::MessageBannerScreen,
         Layer.CALL_BAR to ::CallBarScreen,
+        Layer.KEYBOARD to ::KeyboardScreen,
     )
 }
