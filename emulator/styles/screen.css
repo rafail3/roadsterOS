@@ -379,7 +379,13 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .app { transition: transform 220ms var(--seamless); touch-action: manipulation; }
 .apps.is-arranging .app { touch-action: none; }
 .apps.is-arranging .app .app-mark { animation: icon-jiggle 280ms ease-in-out infinite alternate; animation-delay: calc(var(--i) * -70ms); }
+.app .app-mark { transition: transform 200ms var(--seamless), box-shadow 200ms var(--seamless); }
 .app.is-dragged { position: relative; z-index: 2; transition: none; }
-.app.is-dragged .app-mark { animation: none; transform: scale(1.12); box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45); }
+/* the held icon lifts: bigger, with a shadow, and still while the others jiggle */
+.apps .app.is-dragged .app-mark { animation: none; transform: scale(1.15); box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5); }
+/* the frame of the drop: no transition, so nothing jumps while the order changes under it */
+.apps.is-settling .app { transition: none; }
 @keyframes icon-jiggle { from { transform: rotate(-2.2deg); } to { transform: rotate(2.2deg); } }
 @media (prefers-reduced-motion: reduce) { .apps.is-arranging .app .app-mark { animation: none; } }
+/* arranging: no pressed highlight behind the icons, only the icon moves */
+.apps.is-arranging .app, .apps .app.is-dragged { background: none; }

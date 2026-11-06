@@ -292,6 +292,8 @@ function Setup() {
 function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unread: number }) {
   const [arranging, setArranging] = useState(false);
   const [drag, setDrag] = useState<{ id: string; from: number; dx: number; slot: number; scale: number } | null>(null);
+  // after a drop: the icon already in its new place, drawn where the finger left it, then sliding the rest of the way
+  const [settle, setSettle] = useState<{ id: string; dx: number } | null>(null);
   const press = useRef<{ timer: ReturnType<typeof setTimeout> | null; x: number; held: boolean }>({ timer: null, x: 0, held: false });
   const row = useRef<HTMLDivElement>(null);
   const to = drag ? Math.max(0, Math.min(apps.length - 1, drag.from + Math.round(drag.dx / drag.slot))) : -1;
@@ -302,6 +304,14 @@ function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unr
     if (to <= i && i < drag.from) return drag.slot;
     return 0;
   };
+
+  useEffect(() => {
+    if (!settle) return;
+    // one frame drawn without transitions at the drop's offset, then the icon glides to its place
+    let b = 0;
+    const a = requestAnimationFrame(() => { b = requestAnimationFrame(() => setSettle(null)); });
+    return () => { cancelAnimationFrame(a); cancelAnimationFrame(b); };
+  }, [settle]);
 
   useEffect(() => {
     if (!arranging) return;
@@ -336,8 +346,15 @@ function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unr
   };
   const up = () => {
     if (press.current.timer) { clearTimeout(press.current.timer); press.current.timer = null; }
-    if (drag && to !== drag.from) shellAction({ type: "MoveHomeApp", id: drag.id, by: to - drag.from });
+    if (!drag) return;
+    if (to !== drag.from) {
+      shellAction({ type: "MoveHomeApp", id: drag.id, by: to - drag.from });
+      // the icon is in its new slot now: what is left of the finger's offset from there
+      setSettle({ id: drag.id, dx: drag.dx - (to - drag.from) * drag.slot });
+    }
     setDrag(null);
+    // the drop ends the arranging: the icons stop jiggling
+    setArranging(false);
   };
   const open = (id: string) => {
     // the hold that started the arranging, or any tap while arranging, opens nothing
@@ -351,13 +368,14 @@ function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unr
   };
 
   return (
-    <div ref={row} className={classes("apps", arranging && "is-arranging")} aria-label={arranging ? "Apps, arranging: drag an icon or use the arrow keys" : "Apps"}>
+    <div ref={row} className={classes("apps", arranging && "is-arranging", settle !== null && "is-settling")} aria-label={arranging ? "Apps, arranging: drag an icon or use the arrow keys" : "Apps"}>
       {/* the icons chosen in the settings (core-car HomeApps) */}
       {apps.map(({ id, label }, i) => {
         // the phone's icon counts its unread messages, as a phone's does
         const badge = id === "PHONE" ? unread : 0;
         return (
-          <button key={id} className={classes("app", drag?.id === id && "is-dragged")} style={{ "--i": i, transform: drag ? `translateX(${shift(i)}px)` : undefined } as CSSProperties}
+          <button key={id} className={classes("app", drag?.id === id && "is-dragged")}
+            style={{ "--i": i, transform: drag ? `translateX(${shift(i)}px)` : settle?.id === id ? `translateX(${settle.dx}px)` : undefined } as CSSProperties}
             aria-label={badge ? `${label}, ${badge} unread messages` : label}
             onPointerDown={(e) => down(e, id, i)} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onKeyDown={(e) => key(e, id)} onClick={() => open(id)}>
             <span className={`app-mark ${MARKS[id] ?? "app-mark-other"}`} style={MARKS[id] ? undefined : { "--mark-hue": hue(id) } as CSSProperties}>
