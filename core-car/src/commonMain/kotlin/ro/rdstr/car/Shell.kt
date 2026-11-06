@@ -107,6 +107,8 @@ data class ShellState(
     val phoneRegion: String = "RO",
     /** The setup screen the unit is on while setup is not done; kept across starts so a unit switched off resumes there. */
     val setupStep: Setup.Step = Setup.Step.LOGO,
+    /** The setup's steps already passed with Continue: going back to one shows it done (preparation, files) instead of running it again. */
+    val setupPassed: List<Setup.Step> = emptyList(),
     /** The car's name, given in setup: shown in About and on the boot screen, and the name phones see for casting. */
     val carName: String = "",
     /** Settings > Bluetooth > Connect to Last Phone: off by default, the driver picks the phone (Startup.phoneToReconnect). */
@@ -204,6 +206,8 @@ sealed class ShellAction {
     @Serializable @SerialName("RadioSwitched") data class RadioSwitched(val radio: Radio, val on: Boolean) : ShellAction()
     /** The setup from its first screen again, every other setting kept (the emulator's control panel). */
     @Serializable @SerialName("RestartSetup") data object RestartSetup : ShellAction()
+    /** A step's work finished (preparation, files): it counts as passed even if Back is pressed before Continue. */
+    @Serializable @SerialName("SetupStepDone") data class SetupStepDone(val step: Setup.Step) : ShellAction()
     /** A blank or spaces-only name is ignored (Setup.carName). */
     @Serializable @SerialName("SetCarName") data class SetCarName(val name: String) : ShellAction()
     /** Sent when the picture starts or stops: the app opens over everything, and leaves to home when it stops. */
@@ -366,8 +370,12 @@ object Shell {
         ShellAction.CloseCamera -> s.copy(cameraOpen = false)
         is ShellAction.SetCastVisible -> s.copy(castVisible = a.on)
         is ShellAction.SetPhoneRegion -> if (PhoneFormat.callingCode(a.region) != null) s.copy(phoneRegion = a.region) else s
-        is ShellAction.SetupNext -> Setup.next(s.setupStep, a.wifi, a.updateAvailable)?.let { s.copy(setupStep = it) } ?: s.copy(setupDone = true)
+        is ShellAction.SetupNext -> {
+            val passed = if (s.setupStep in s.setupPassed) s.setupPassed else s.setupPassed + s.setupStep
+            Setup.next(s.setupStep, a.wifi, a.updateAvailable)?.let { s.copy(setupStep = it, setupPassed = passed) } ?: s.copy(setupDone = true, setupPassed = passed)
+        }
         ShellAction.SetupBack -> s.copy(setupStep = Setup.back(s.setupStep))
+        is ShellAction.SetupStepDone -> if (a.step in s.setupPassed) s else s.copy(setupPassed = s.setupPassed + a.step)
         is ShellAction.SetBtAutoConnect -> s.copy(btAutoConnect = a.on)
         is ShellAction.OpenSettingsPage -> s.copy(settingsPage = a.page)
         is ShellAction.RadioSwitched -> when {
@@ -375,7 +383,8 @@ object Shell {
             a.radio == Radio.BLUETOOTH -> reduce(s, ShellAction.OpenDevices)
             else -> reduce(s, ShellAction.OpenNetworks)
         }
-        ShellAction.RestartSetup -> s.copy(setupDone = false, setupStep = Setup.Step.LOGO)
+        // a setup from the start names the car again: the field is empty, as on a new unit
+        ShellAction.RestartSetup -> s.copy(setupDone = false, setupStep = Setup.Step.LOGO, carName = "", setupPassed = emptyList())
         is ShellAction.SetCarName -> Setup.carName(a.name)?.let { s.copy(carName = it) } ?: s
         is ShellAction.CastChanged -> when {
             a.state == CarEvent.PhoneCast.State.LIVE -> reduce(s, ShellAction.OpenApp(App.PHONE_SCREEN))
@@ -428,7 +437,7 @@ object Shell {
         // the call level is for this drive only
         dsp = s.dsp.copy(callVolume = Sound.CALL_VOLUME_DEFAULT),
         camera = s.camera, castVisible = s.castVisible, design = s.design, phoneRegion = s.phoneRegion,
-        setupStep = s.setupStep, carName = s.carName, btAutoConnect = s.btAutoConnect,
+        setupStep = s.setupStep, setupPassed = s.setupPassed, carName = s.carName, btAutoConnect = s.btAutoConnect,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))

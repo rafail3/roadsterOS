@@ -165,6 +165,7 @@ class SetupView(context: Context, private val actions: Actions) : FrameLayout(co
         s = state
         bound = true
         if (stepChanged) {
+            // the name given in this setup (Continue keeps it), empty on a new one
             name = state.carName
             typing = false
             join(null)
@@ -198,7 +199,7 @@ class SetupView(context: Context, private val actions: Actions) : FrameLayout(co
     // --- the frame
 
     private fun frame(step: Setup.Step, title: String, text: String, next: () -> Unit, nextLabel: String = "Continue", canNext: Boolean = true,
-                      back: Boolean = true, extra: List<Pair<String, () -> Unit>> = emptyList()) {
+                      back: Boolean = true, canBack: Boolean = true, extra: List<Pair<String, () -> Unit>> = emptyList()) {
         val at = STEPS.indexOf(step)
         bar.caption.text = "Setup ${at + 1} of ${STEPS.size}"
         bar.progress.at = at
@@ -212,7 +213,8 @@ class SetupView(context: Context, private val actions: Actions) : FrameLayout(co
             b.text = label
             val primary = i == labels.size - 1
             b.primary = primary
-            b.isEnabled = !primary || canNext
+            // Back waits while the step works (preparation, files)
+            b.isEnabled = if (primary) canNext else i < extra.size || canBack
             b.setOnClickListener {
                 when {
                     primary -> next()
@@ -301,7 +303,7 @@ class SetupView(context: Context, private val actions: Actions) : FrameLayout(co
         val p = s.prepare
         // a failed task: the one button runs the failed tasks again; Continue once all are done
         frame(Setup.Step.PREPARE, "Preparing the system", "roadsterOS takes over the unit. This runs once.",
-            next = if (p.ok) actions::next else actions::retryPrepare, canNext = p.finished,
+            next = if (p.ok) actions::next else actions::retryPrepare, canNext = p.finished, canBack = p.finished,
             nextLabel = if (p.finished && !p.ok) "Try again" else "Continue")
         meter.set(p.progress)
         TASKS.forEachIndexed { i, (task, label, detail) ->
@@ -522,7 +524,8 @@ class SetupView(context: Context, private val actions: Actions) : FrameLayout(co
             add(fileRows, 22f)
         }
         frame(Setup.Step.FILES, "Installing files", "Everything the car needs offline. Other countries' maps come when you drive there.",
-            next = actions::next, canNext = s.files.isNotEmpty() && s.files.all { it.state == Setup.TaskState.DONE })
+            next = actions::next, canNext = s.files.isNotEmpty() && s.files.all { it.state == Setup.TaskState.DONE },
+            canBack = s.files.isNotEmpty() && s.files.all { it.state == Setup.TaskState.DONE })
         while (fileRows.childCount > s.files.size) fileRows.removeViewAt(fileRows.childCount - 1)
         while (fileRows.childCount < s.files.size) fileRows.addView(SfRow(context))
         s.files.forEachIndexed { i, f ->

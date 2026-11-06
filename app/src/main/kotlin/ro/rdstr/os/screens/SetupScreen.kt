@@ -59,6 +59,10 @@ class SetupScreen(private val activity: Activity) : Screen {
         CarRuntime.updates.beforeRestart = { if (CarRuntime.shell.value.setupStep == Setup.Step.UPDATE) next() }
         scope.launch {
             combine(CarRuntime.shell, CarRuntime.ui, CarRuntime.updates.state, prepare, files) { shell, ui, update, p, f ->
+                // passed in this setup (also before a restart of the app): shown done, nothing runs again
+                if (Setup.Step.PREPARE in shell.setupPassed && !p.finished) prepare.value = Setup.Prepare.COMPLETE
+                if (Setup.Step.FILES in shell.setupPassed && f.any { it.state != Setup.TaskState.DONE })
+                    files.value = f.map { it.copy(state = Setup.TaskState.DONE, fraction = 0f) }
                 if (update is Updates.State.Available) release = update.release.version
                 if (update is Updates.State.Restarting && release.isEmpty()) release = versionName()
                 val here = place?.country.orEmpty()
@@ -99,6 +103,8 @@ class SetupScreen(private val activity: Activity) : Screen {
         preparing = scope.launch {
             val ok = withContext(Dispatchers.IO) { SystemPrep(activity.applicationContext).run(task) }
             prepare.value = prepare.value.result(task, ok)
+            // finished: passed for this setup, even if Back comes before Continue
+            if (prepare.value.ok) CarRuntime.shellAction(ShellAction.SetupStepDone(Setup.Step.PREPARE))
         }
     }
 
@@ -123,6 +129,7 @@ class SetupScreen(private val activity: Activity) : Screen {
                 }
                 files.value = files.value.mapIndexed { k, file -> if (k == i) file.copy(state = Setup.TaskState.DONE, fraction = 0f) else file }
             }
+            CarRuntime.shellAction(ShellAction.SetupStepDone(Setup.Step.FILES))
         }
     }
 

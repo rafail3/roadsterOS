@@ -24,9 +24,11 @@ class KeyboardTest {
     @Test fun carNameHasNoLayerKey() {
         val keys = KeyboardLayout.keys(Layer.LETTERS, symbols = false, width = 1280f)
         assertTrue(keys.none { it.type == KeyType.LAYER })
-        // .kb-space flex 6 and .kb-submit flex 3 share the row
-        assertEquals((1264f - 10f) * 6 / 9, keys.of(KeyType.SPACE).width, eps)
-        assertEquals(8f, keys.of(KeyType.SPACE).left, eps)
+        // the layer key's slot stays empty, so space and the submit key are as wide as with the symbols layer
+        val full = KeyboardLayout.keys(Layer.LETTERS, symbols = true, width = 1280f)
+        assertEquals(full.of(KeyType.SPACE).width, keys.of(KeyType.SPACE).width, eps)
+        assertEquals(full.of(KeyType.SPACE).left, keys.of(KeyType.SPACE).left, eps)
+        assertEquals(full.of(KeyType.SUBMIT).width, keys.of(KeyType.SUBMIT).width, eps)
     }
 
     /** Boxes measured in the emulator at 1280 px (getBoundingClientRect, relative to the keyboard). */

@@ -126,11 +126,11 @@ class KeyboardView(context: Context) : View(context) {
         setFont("Inter")
     }
 
-    /** The screen's theme and design; called again whenever either changes. */
-    fun setTheme(light: Boolean, glassy: Boolean) {
-        if (light == this.light && glassy == this.glassy && boxes.isNotEmpty()) return
+    /** The screen's theme; the keyboard keeps the Solid look in both designs, as in the emulator. */
+    fun setTheme(light: Boolean, @Suppress("UNUSED_PARAMETER") glassy: Boolean) {
+        if (light == this.light && boxes.isNotEmpty()) return
         this.light = light
-        this.glassy = glassy
+        this.glassy = false
         rebuild()
     }
 

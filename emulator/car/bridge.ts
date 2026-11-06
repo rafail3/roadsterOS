@@ -124,6 +124,8 @@ export interface ShellState {
   /** the country numbers typed without + are grouped by (ISO code) */
   phoneRegion: string;
   setupStep: SetupStep;
+  /** the setup's steps already passed with Continue */
+  setupPassed: SetupStep[];
   carName: string;
   btAutoConnect: boolean;
   settingsPage: string;
@@ -220,6 +222,7 @@ export type ShellAction =
   | { type: "SetPhoneRegion"; region: string }
   | { type: "SetupNext"; wifi?: boolean; updateAvailable?: boolean }
   | { type: "SetupBack" | "RestartSetup" }
+  | { type: "SetupStepDone"; step: SetupStep }
   | { type: "SetBtAutoConnect"; on: boolean }
   | { type: "OpenSettingsPage"; page: string }
   | { type: "RadioSwitched"; radio: "BLUETOOTH" | "WIFI"; on: boolean }
@@ -268,6 +271,7 @@ interface Kotlin {
       bootFrame(t: number): string;
       bootDoneMs(): number;
       setupPrepare(): string;
+      setupPrepareDone(): string;
       setupPrepareStep(tasks: string, op: string, task: string): string;
       downloadStep(total: number, done: number, speed: number, bytes: number, ms: number): string;
       isNewer(candidate: string, current: string): boolean;
@@ -435,6 +439,7 @@ export const bridge = {
   bootDoneMs: (): number => K!.Bridge.bootDoneMs(),
   /** The system preparation's tasks, as the setup runs them (core-car Setup.Prepare). */
   setupPrepare: (): Prepare => JSON.parse(K!.Bridge.setupPrepare()),
+  setupPrepareDone: (): Prepare => JSON.parse(K!.Bridge.setupPrepareDone()),
   setupPrepareStep: (p: Prepare, op: "running" | "done" | "failed" | "retry", task: PrepareTask | "" = ""): Prepare =>
     JSON.parse(K!.Bridge.setupPrepareStep(JSON.stringify(p.tasks), op, task)),
   /** [bytes] more arrived over [ms] (both 0 for the start); the bar's figures (core-car Updater.Download). */

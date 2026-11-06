@@ -90,5 +90,10 @@ object Setup {
 
         /** Failed tasks go back to waiting. */
         fun retry() = copy(tasks = tasks.mapValues { (_, s) -> if (s == TaskState.FAILED) TaskState.WAITING else s })
+
+        companion object {
+            /** The preparation of a setup that already passed it: every task done, nothing runs again. */
+            val COMPLETE = Prepare(Task.entries.associateWith { TaskState.DONE })
+        }
     }
 }

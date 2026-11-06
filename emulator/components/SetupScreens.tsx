@@ -57,8 +57,10 @@ function DotBar({ fraction }: { fraction: number }) {
   );
 }
 
-function Frame({ step, title, text, children, next, nextLabel = "Continue", canNext = true, back = true, extra }: {
-  step: SetupStep; title: string; text: string; children?: ReactNode; next: () => void; nextLabel?: string; canNext?: boolean; back?: boolean; extra?: ReactNode;
+function Frame({ step, title, text, children, next, nextLabel = "Continue", canNext = true, back = true, canBack = true, extra }: {
+  step: SetupStep; title: string; text: string; children?: ReactNode; next: () => void; nextLabel?: string; canNext?: boolean; back?: boolean;
+  /** false while the step works (preparation, files): Back waits for it */
+  canBack?: boolean; extra?: ReactNode;
 }) {
   const at = STEPS.indexOf(step);
   return (
@@ -75,7 +77,7 @@ function Frame({ step, title, text, children, next, nextLabel = "Continue", canN
         </div>
         <div className="sf-actions">
           {extra}
-          {back && at > 0 && <button className="sf-button" onClick={() => shellAction({ type: "SetupBack" })}>Back</button>}
+          {back && at > 0 && <button className="sf-button" disabled={!canBack} onClick={() => shellAction({ type: "SetupBack" })}>Back</button>}
           <button className="sf-button is-primary" disabled={!canNext} onClick={next}>{nextLabel}</button>
         </div>
       </div>
@@ -86,6 +88,7 @@ function Frame({ step, title, text, children, next, nextLabel = "Continue", canN
 
 /** The car's name, typed on our keyboard; it is also the name phones see when they share their screen. */
 function CarName({ saved, next }: { saved: string; next: () => void }) {
+  // the name given in this setup (Continue keeps it), empty on a new one
   const [name, setName] = useState(saved);
   // the keyboard comes up when the field is touched, and goes with Done
   const [typing, setTyping] = useState(false);
@@ -127,8 +130,9 @@ const STATE_LABEL: Record<TaskState, string> = { WAITING: "Waiting", RUNNING: "W
 const TASK_MS: Record<PrepareTask, number> = { KEYS: 700, PACKAGES: 1600, PERMISSIONS: 1100, HOME: 600 };
 
 /** The system preparation: the four tasks run one after the other by themselves; a failed one can run again. */
-function PrepareScreen({ next }: { next: () => void }) {
-  const [p, setP] = useState<Prepare>(() => bridge.setupPrepare());
+function PrepareScreen({ passed, next }: { passed: boolean; next: () => void }) {
+  // passed in this setup: shown done, nothing runs again
+  const [p, setP] = useState<Prepare>(() => (passed ? bridge.setupPrepareDone() : bridge.setupPrepare()));
   const running = (Object.keys(p.tasks) as PrepareTask[]).find((t) => p.tasks[t] === "RUNNING") ?? null;
   // the next task starts as soon as none runs; a running one finishes after its time
   useEffect(() => { if (!running && p.next) setP(bridge.setupPrepareStep(p, "running", p.next)); }, [p, running]);
@@ -137,9 +141,11 @@ function PrepareScreen({ next }: { next: () => void }) {
     const timer = setTimeout(() => setP((now) => bridge.setupPrepareStep(now, "done", running)), TASK_MS[running]);
     return () => clearTimeout(timer);
   }, [running]);
+  // finished: passed for this setup, even if Back comes before Continue
+  useEffect(() => { if (p.ok && !passed) shellAction({ type: "SetupStepDone", step: "PREPARE" }); }, [p.ok, passed]);
   return (
     // a failed task: the one button runs the failed tasks again; Continue once all are done
-    <Frame step="PREPARE" title="Preparing the system" text="roadsterOS takes over the unit. This runs once." canNext={p.finished}
+    <Frame step="PREPARE" title="Preparing the system" text="roadsterOS takes over the unit. This runs once." canNext={p.finished} canBack={p.finished}
       next={p.ok ? next : () => setP(bridge.setupPrepareStep(p, "retry"))} nextLabel={p.finished && !p.ok ? "Try again" : "Continue"}>
       <div className="sf-meter">
         <DotBar fraction={p.progress} />
@@ -315,9 +321,11 @@ function LookScreen({ next }: { next: () => void }) {
 }
 
 /** The files the OS ships with, checked or installed: the map of Romania (already on the unit) and the fonts. */
-function FilesScreen({ next }: { next: () => void }) {
+function FilesScreen({ passed, next }: { passed: boolean; next: () => void }) {
   const files = [{ name: "Map of Romania", size: "363 MB", ms: 1400 }, { name: "Fonts", size: "1.8 MB", ms: 900 }];
-  const [at, setAt] = useState(0);
+  // passed in this setup: the files are there, shown done
+  const [at, setAt] = useState(passed ? files.length : 0);
+  useEffect(() => { if (at >= files.length && !passed) shellAction({ type: "SetupStepDone", step: "FILES" }); }, [at, passed]);
   const [fraction, setFraction] = useState(0);
   useEffect(() => {
     if (at >= files.length) return;
@@ -331,7 +339,7 @@ function FilesScreen({ next }: { next: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [at]);
   return (
-    <Frame step="FILES" title="Installing files" text="Everything the car needs offline. Other countries' maps come when you drive there." next={next} canNext={at >= files.length}>
+    <Frame step="FILES" title="Installing files" text="Everything the car needs offline. Other countries' maps come when you drive there." next={next} canNext={at >= files.length} canBack={at >= files.length}>
       <ul className="sf-list" aria-live="polite">
         {files.map((f, i) => (
           <li key={f.name} className={`sf-row${i < at ? " is-done" : i === at ? " is-running" : " is-waiting"}`}>
@@ -354,15 +362,16 @@ function WelcomeScreen({ carName, next }: { carName: string; next: () => void })
 
 /** The setup screen for [step]; the start screen and the boot screen are drawn by Boot. */
 export function SetupScreen({ step, carName, next }: { step: SetupStep; carName: string; next: () => void }) {
-  const { releaseOut } = useEmulator();
+  const { releaseOut, shell } = useEmulator();
+  const passed = shell.setupPassed.includes(step);
   switch (step) {
     case "CAR_NAME": return <CarName saved={carName} next={next} />;
-    case "PREPARE": return <PrepareScreen next={next} />;
+    case "PREPARE": return <PrepareScreen passed={passed} next={next} />;
     case "WIFI": return <WifiScreen next={next} />;
     case "UPDATE": return <UpdateScreen version={releaseOut ?? ""} next={next} />;
     case "LOCATION": return <LocationScreen next={next} />;
     case "LOOK": return <LookScreen next={next} />;
-    case "FILES": return <FilesScreen next={next} />;
+    case "FILES": return <FilesScreen passed={passed} next={next} />;
     default: return <WelcomeScreen carName={carName} next={next} />;
   }
 }

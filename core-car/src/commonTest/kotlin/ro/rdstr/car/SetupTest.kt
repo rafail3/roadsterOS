@@ -48,7 +48,30 @@ class SetupTest {
         val again = Shell.reduce(end, ShellAction.RestartSetup)
         assertEquals(Step.LOGO, again.setupStep)
         assertFalse(again.setupDone)
-        assertEquals("Mazda 6", again.carName)
+        // a setup from the start asks for the name again, the field empty, and runs every step again
+        assertEquals("", again.carName)
+        assertTrue(again.setupPassed.isEmpty())
+    }
+
+    @Test
+    fun `a passed step is remembered, going back keeps it, a restart forgets it`() {
+        var s = ShellState(setupDone = false, setupStep = Step.CAR_NAME)
+        s = Shell.reduce(s, ShellAction.SetCarName("Mazda 6"))
+        s = Shell.reduce(s, ShellAction.SetupNext())
+        s = Shell.reduce(s, ShellAction.SetupNext())
+        assertEquals(listOf(Step.CAR_NAME, Step.PREPARE), s.setupPassed)
+        // back from Wi-Fi skips the preparation to the name, kept; Continue then shows the preparation passed
+        s = Shell.reduce(s, ShellAction.SetupBack)
+        assertEquals(Step.CAR_NAME, s.setupStep)
+        assertEquals("Mazda 6", s.carName)
+        s = Shell.reduce(s, ShellAction.SetupNext())
+        assertEquals(Step.PREPARE, s.setupStep)
+        assertTrue(Step.PREPARE in s.setupPassed)
+        assertEquals(s.setupPassed, Shell.decodePreferences(Shell.encodePreferences(s)).setupPassed)
+        assertTrue(Setup.Prepare.COMPLETE.ok)
+        // finished, then Back before Continue: still passed
+        val fresh = Shell.reduce(ShellState(setupDone = false, setupStep = Step.PREPARE), ShellAction.SetupStepDone(Step.PREPARE))
+        assertTrue(Step.PREPARE in Shell.reduce(fresh, ShellAction.SetupBack).setupPassed)
     }
 
     @Test
