@@ -235,4 +235,11 @@ class ShellTest {
         assertEquals(listOf(App.MUSIC), Shell.reduce(s, ShellAction.Back).running)
         assertEquals(listOf(App.MUSIC), Shell.reduce(s, ShellAction.Home).running)
     }
+
+    @Test
+    fun `the design starts Solid, Glassy is kept across starts`() {
+        assertEquals(Design.SOLID, ShellState().design)
+        val glassy = Shell.reduce(ShellState(), ShellAction.SetDesign(Design.GLASSY))
+        assertEquals(Design.GLASSY, Shell.decodePreferences(Shell.encodePreferences(glassy)).design)
+    }
 }

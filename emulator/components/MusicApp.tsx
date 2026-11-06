@@ -1,4 +1,4 @@
-import { useRef, useState, type PointerEvent } from "react";
+import { useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { bridge } from "../car/bridge";
 import { carCommand, setVolume, shellAction, stepVolume, useEmulator, type EmulatorState } from "../car/store";
 import { holdToRepeat } from "./controls";
@@ -131,6 +131,7 @@ export function MusicApp({ open }: { open: boolean }) {
             }}
           >
             <div className="music-volume-bar"><div className="music-volume-fill" style={{ transform: `scaleX(${car.muted ? 0 : car.volume / max})`, ...muteFill }} /></div>
+            {emulator.shell.design === "GLASSY" && <span className="glass-bead" style={{ "--p": (car.muted ? 0 : car.volume / max).toFixed(4) } as CSSProperties} aria-hidden="true" />}
           </div>
           <button className="music-volume-step" aria-label="Volume up" {...holdToRepeat(() => stepVolume(1))}>
             <span className="icon i-speaker-high-fill" aria-hidden="true" />

@@ -152,7 +152,8 @@ export function Screen() {
 
   return (
     // any touch restarts the always-on display's wait; while it shows, its own layer takes the touch
-    <div ref={finger} onPointerDownCapture={() => { if (!shell.aod) userActivity(); }} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming", inApp && "in-app", shell.app === "MAPS" && "in-maps", waking && "waking")} style={{ ...glow, ...boost }}>
+    <div ref={finger} onPointerDownCapture={() => { if (!shell.aod) userActivity(); }} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming", inApp && "in-app", shell.app === "MAPS" && "in-maps", waking && "waking")} style={{ ...glow, ...boost }}
+      data-design={shell.design === "GLASSY" ? "glassy" : "solid"} data-theme={light ? "light" : "dark"}>
       <div className="ambient" aria-hidden="true" />
 
       <header className="bar" inert={covered} onPointerDown={onPointerDown}>
