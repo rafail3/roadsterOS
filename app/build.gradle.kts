@@ -24,8 +24,24 @@ android {
         create("device") { dimension = "target" }
     }
 
+    // The public AOSP platform key (build/make/target/product/security). Units built with test-keys, as the reference
+    // unit, grant an app signed with it the system's signature permissions; on other units it installs as a normal app.
+    signingConfigs {
+        create("platform") {
+            storeFile = rootProject.file("keys/platform.p12")
+            storeType = "pkcs12"
+            storePassword = "android"
+            keyAlias = "platform"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("platform")
+        }
         release {
+            signingConfig = signingConfigs.getByName("platform")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

@@ -11,6 +11,7 @@ Facts shared by aftermarket car head units built on the MediaTek `8227L_demo` pl
 | Storage | 16 GB eMMC | |
 | Android shown | 9 or 10 | version string set by sellers; the build is `alps-mp-o1.mp5` = Android 8.1 (API 27) |
 | Build type | `userdebug` | `adb root` usually works |
+| Signing keys | `test-keys` (AOSP public platform key, SHA-256 `c8a2e9bc…2ab8`) | apps signed with `keys/platform.p12` get signature permissions |
 | Kernel | 3.18.x | |
 | Vendor stack | AutoChips (`com.autochips.*`) | e.g. `com.autochips.bluetooth` |
 | Screen | 1024x600 at 240 dpi or 1280x720 at 160 dpi, depending on the panel | check with `wm size` and `wm density` |
