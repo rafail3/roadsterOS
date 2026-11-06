@@ -48,7 +48,8 @@ class SetupTest {
         val again = Shell.reduce(end, ShellAction.RestartSetup)
         assertEquals(Step.LOGO, again.setupStep)
         assertFalse(again.setupDone)
-        assertEquals("Mazda 6", again.carName)
+        // a setup from the start asks for the name again, the field empty
+        assertEquals("", again.carName)
     }
 
     @Test

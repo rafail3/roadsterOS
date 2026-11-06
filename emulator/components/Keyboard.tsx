@@ -74,7 +74,10 @@ export function Keyboard({ open, onKey, onBackspace, onSubmit, submitLabel, subm
         </button>
       </div>
       <div className="kb-row">
-        {symbols && <button type="button" className="kb-key kb-fn kb-layer" onClick={() => setLayer(layer === "letters" ? "symbols" : "letters")}>{layer === "letters" ? "#+=" : "ABC"}</button>}
+        {/* without symbols the layer key's slot stays empty, so space and the submit key keep their width */}
+        {symbols
+          ? <button type="button" className="kb-key kb-fn kb-layer" onClick={() => setLayer(layer === "letters" ? "symbols" : "letters")}>{layer === "letters" ? "#+=" : "ABC"}</button>
+          : <span className="kb-key kb-fn kb-layer kb-spacer" aria-hidden="true" />}
         <button type="button" className="kb-key kb-space" onClick={() => onKey(" ")}>space</button>
         <button type="button" className="kb-key kb-fn kb-submit" disabled={!submitEnabled} onClick={onSubmit}>{submitLabel}</button>
       </div>
