@@ -47,8 +47,8 @@
 }
 .tuner.is-dragging .dial-strip { transition: none; }
 .dial-label { position: absolute; top: 40px; transform: translateX(-50%); font-size: 15px; font-weight: 500; color: rgba(255, 255, 255, 0.6); font-variant-numeric: tabular-nums; pointer-events: none; }
-.dial-station { position: absolute; top: 16px; width: 8px; height: 8px; margin-left: -3px; border-radius: 50%; pointer-events: none; }
-.dial-needle { position: absolute; left: 50%; top: 12px; bottom: 0; width: 4px; margin-left: -1px; border-radius: 2px; background: #fff; pointer-events: none; }
+.dial-station { position: absolute; top: 16px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; pointer-events: none; }
+.dial-needle { position: absolute; left: 50%; top: 12px; bottom: 0; width: 4px; margin-left: -2px; border-radius: 2px; background: #fff; pointer-events: none; }
 .dial-needle::before { content: ""; position: absolute; top: -2px; left: 50%; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--genre); border: 2px solid #fff; }
 
 /* the stations: favorites first, then the rest of what the last scan found */

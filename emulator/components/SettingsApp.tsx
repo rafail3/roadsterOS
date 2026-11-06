@@ -3,7 +3,7 @@ import { bridge, type AnimationSpeed, type Design, type AodFace, type CameraSett
 import { allTimeZones, carCommand, factoryReset, setCamera, setCastVisible, setSound, openAndroidSettings, askRestart, checkForUpdate, installedAt, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
 import { UnitPicture } from "./UnitPicture";
 import { WifiNetworks } from "./NetworksSheet";
-import { downloadFigures, useUpdateInstall } from "./update";
+import { downloadFigures, releaseSize, useUpdateInstall } from "./update";
 import { Keyboard } from "./Keyboard";
 import { PillSlider } from "./Drawer";
 import { useCloseOntoCard } from "./media";
@@ -597,7 +597,7 @@ function SoftwareUpdate({ e, onDone }: { e: EmulatorState; onDone: () => void })
       </Group>
     ) : check.state === "AVAILABLE" && e.releaseOut ? (
       <Group footer="Downloads over Wi-Fi and installs while the car is parked; the unit restarts once it is in.">
-        <Row label={`roadsterOS ${e.releaseOut}`} value="2.5 MB" />
+        <Row label={`roadsterOS ${e.releaseOut}`} value={releaseSize()} />
         <Row label="Download and Install" onPress={install} />
       </Group>
     ) : (
@@ -730,7 +730,7 @@ export function SettingsApp({ open }: { open: boolean }) {
         <ul>
           {pages.map((p) => (
             <li key={p.id}>
-              <button className={`set-nav-item${page === p.id ? " is-current" : ""}`} aria-current={page === p.id ? "page" : undefined} onClick={() => setPage(p.id)}>
+              <button className={`set-nav-item${shown === p.id ? " is-current" : ""}`} aria-current={shown === p.id ? "page" : undefined} onClick={() => setPage(p.id)}>
                 <span className="set-tile" style={{ background: p.tint }} aria-hidden="true"><span className={`icon ${p.icon}`} /></span>
                 <span className="set-nav-label">{p.label}</span>
                 <span className="set-nav-value">{summary(p.id, e)}</span>

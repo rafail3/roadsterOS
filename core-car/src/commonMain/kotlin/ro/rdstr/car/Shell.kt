@@ -196,7 +196,11 @@ sealed class ShellAction {
     @Serializable @SerialName("SetupBack") data object SetupBack : ShellAction()
     @Serializable @SerialName("SetBtAutoConnect") data class SetBtAutoConnect(val on: Boolean) : ShellAction()
     @Serializable @SerialName("OpenSettingsPage") data class OpenSettingsPage(val page: String) : ShellAction()
-    /** A radio switched from the drawer: on opens its list (devices, networks) to pick from, off closes it. */
+    /**
+     * A radio switched from the drawer: on opens its list (devices, networks) to pick from, off closes it. Sent once the
+     * radio has really switched: Wi-Fi switched on while location is off waits for the location prompt, and is sent
+     * after its yes only; until then the drawer stays as it is.
+     */
     @Serializable @SerialName("RadioSwitched") data class RadioSwitched(val radio: Radio, val on: Boolean) : ShellAction()
     /** The setup from its first screen again, every other setting kept (the emulator's control panel). */
     @Serializable @SerialName("RestartSetup") data object RestartSetup : ShellAction()
