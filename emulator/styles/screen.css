@@ -102,7 +102,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 
 .apps { display: flex; gap: 16px; }
 .app { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); width: 100px; padding: var(--space-3) 0; border-radius: var(--radius-sm); color: var(--ink-muted); font-size: var(--size-label); font-weight: 500; transition: background var(--fast), color var(--fast); }
-.app:active { background: var(--glass-pressed); }
+/* a press dims the icon a little and sinks it, as a phone's home does; no box behind it */
+.app:active .app-mark { transform: scale(0.94); filter: brightness(0.85); }
 .app-mark { width: 80px; height: 80px; border-radius: 19px; border: 1px solid var(--hairline-strong); }
 /* synthetic app marks: stand-ins for the installed apps' icons */
 .app-mark-nav { background: url(/images/app-maps.webp) center / cover no-repeat; border-color: transparent; }
@@ -389,3 +390,11 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 @media (prefers-reduced-motion: reduce) { .apps.is-arranging .app .app-mark { animation: none; } }
 /* arranging: no pressed highlight behind the icons, only the icon moves */
 .apps.is-arranging .app, .apps .app.is-dragged { background: none; }
+
+/* arranging: a remove badge on each icon's corner */
+.app-remove { position: absolute; top: -9px; left: -9px; z-index: 3; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #48484a; border: 2px solid var(--canvas); color: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); animation: badge-in 180ms var(--seamless); }
+.app-remove::before { content: ""; width: 12px; height: 2.5px; border-radius: 2px; background: currentColor; }
+.app-remove:active { background: #636366; }
+.app.is-dragged .app-remove { display: none; }
+.app-mark { position: relative; }
+@keyframes badge-in { from { transform: scale(0.4); opacity: 0; } to { transform: none; opacity: 1; } }

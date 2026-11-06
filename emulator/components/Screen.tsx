@@ -353,8 +353,8 @@ function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unr
       setSettle({ id: drag.id, dx: drag.dx - (to - drag.from) * drag.slot });
     }
     setDrag(null);
-    // the drop ends the arranging: the icons stop jiggling
-    setArranging(false);
+    // a move ends the arranging; a hold without one keeps it, so an icon can be taken off with its badge
+    if (to !== drag.from) setArranging(false);
   };
   const open = (id: string) => {
     // the hold that started the arranging, or any tap while arranging, opens nothing
@@ -379,7 +379,14 @@ function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unr
             aria-label={badge ? `${label}, ${badge} unread messages` : label}
             onPointerDown={(e) => down(e, id, i)} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onKeyDown={(e) => key(e, id)} onClick={() => open(id)}>
             <span className={`app-mark ${MARKS[id] ?? "app-mark-other"}`} style={MARKS[id] ? undefined : { "--mark-hue": hue(id) } as CSSProperties}>
-              {badge > 0 && <span className="app-badge" aria-hidden="true">{badge}</span>}
+              {badge > 0 && !arranging && <span className="app-badge" aria-hidden="true">{badge}</span>}
+              {/* arranging: the badge that takes the icon off home (it stays in the settings' More Apps) */}
+              {arranging && (
+                <span className="app-remove" role="button" tabIndex={0} aria-label={`Remove ${label} from home`}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); shellAction({ type: "ToggleHomeApp", id }); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); shellAction({ type: "ToggleHomeApp", id }); } }} />
+              )}
             </span>
             <span>{label}</span>
           </button>
