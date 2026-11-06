@@ -329,6 +329,7 @@ function runAction(action: RuleAction) {
   // the frame key: the shell tells a single press from a double press by the time between them
   if (action.type === "Home") shellAction({ type: "HomePressed", atMs: Date.now() });
   if (action.type === "ShowVolume") openVolume();
+  if (action.type === "OpenApp" && action.app) shellAction({ type: "OpenApp", app: action.app });
 }
 
 // The laptop source: the emulator's server reads the media session Windows shows (a music site in the browser)

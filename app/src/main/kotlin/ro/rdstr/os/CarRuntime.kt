@@ -73,7 +73,7 @@ data class UiState(
             is Action.ShowCall -> ui.copy(call = named(a.call))
             Action.HideCall -> ui.copy(call = null, callInCar = true)
             is Action.Night -> ui.copy(night = a.on)
-            is Action.Send, Action.SaveState, Action.RestoreState, Action.ToggleScreen, Action.Home, Action.Back, Action.ShowVolume -> ui
+            is Action.Send, Action.SaveState, Action.RestoreState, Action.ToggleScreen, Action.Home, Action.Back, Action.ShowVolume, is Action.OpenApp -> ui
         }
         when (event) {
             is CarEvent.PhoneStatus -> ui = ui.copy(phoneStatus = event)
@@ -171,6 +171,7 @@ object CarRuntime {
                 bus.send(a.command)
             }
             Action.SaveState -> prefs.edit().putString(KEPT_KEY, Startup.encodeKept(next)).apply()
+            is Action.OpenApp -> shellAction(ShellAction.OpenApp(a.app))
             else -> Unit
         }
         // the car starts: a loud last level comes down to the start volume chosen in the settings
