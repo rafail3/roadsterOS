@@ -417,7 +417,7 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .sf-field:focus-visible { outline: 3px solid var(--amber-caption); outline-offset: 2px; }
 .sf-field.is-typing:focus-visible { outline: none; }
 /* the setup's one accent on our keyboard too */
-.sf .kb-submit { background: var(--amber); color: var(--amber-ink); }
+.sf .kb-submit:not(:disabled) { background: var(--amber); color: var(--amber-ink); }
 .sf .kb-submit:disabled { opacity: 0.4; }
 .sf-field:active { background: var(--glass-strong); }
 .sf-meter { display: flex; align-items: center; gap: 20px; margin-top: 26px; }
