@@ -61,5 +61,6 @@ Branches `type/slug`. Conventional Commits, lowercase subject, English. PR body 
 - `./gradlew :core-car:test --tests "ro.rdstr.car.RulesTest"` — one test class.
 - `./gradlew lint` — Android lint.
 - `./gradlew :core-car:allTests` — core-car tests on the JVM and in JavaScript; `./gradlew :core-car:jsBrowserProductionWebpack` builds the browser bundle used by `emulator/`; `npm run dev` rebuilds it when the Kotlin sources changed.
-- Browser emulator: `npm install` once, then `npm run dev` from the repo root and open `http://localhost:8787/`. `?bare` shows the 1024x600 screen alone for captures.
+- Browser emulator: `npm install` once, then `npm run dev` from the repo root and open `http://localhost:8787/`. `?bare` shows the 1024x600 screen alone for captures; `?freeze` stills it (noon, no animations), `?design=solid|glassy` picks the design.
+- Visual parity: with the emulator running, `npm run parity:capture` (`-- --base http://localhost:<port>` for another server) writes the browser scenes to `build/parity/web/`; `./gradlew :core-ui:compareParity --no-daemon` renders the core-ui views on the JVM (Paparazzi, `core-ui/src/test/.../parity/ParityCapture.kt`) into `build/parity/android/` and compares them; report in `build/reports/parity/index.md`. Views declare their element with `View.uiKey` (`core-ui` `UiKey.kt`).
 - `adb install -r app/build/outputs/apk/sim/debug/app-sim-debug.apk` then `adb shell cmd package set-home-activity ro.rdstr.os/.HomeActivity`.

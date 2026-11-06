@@ -19,6 +19,7 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.testing.Test
 import java.io.File
 
 /**
@@ -56,6 +57,28 @@ class DisplayPlugin : Plugin<Project> {
             base.set(root)
         }
         project.tasks.matching { it.name == "test" || it.name == "check" }.configureEach { dependsOn(check) }
+        // visual parity: the browser capture (npm run parity:capture) in build/parity/web, the module's unit tests
+        // write the Android one into build/parity/android, compareParity reports into build/reports/parity
+        val parity = project.rootProject.layout.buildDirectory.dir("parity")
+        project.tasks.withType(Test::class.java).configureEach {
+            systemProperty("rdstr.parity.web", parity.get().dir("web").asFile.path)
+            systemProperty("rdstr.parity.android", parity.get().dir("android").asFile.path)
+            inputs.files(project.fileTree(parity.map { it.dir("web") })).withPropertyName("parityWeb").withPathSensitivity(PathSensitivity.RELATIVE)
+            outputs.dir(parity.map { it.dir("android") }).withPropertyName("parityAndroid")
+        }
+        project.tasks.register("compareParity", CompareParity::class.java) {
+            group = "verification"
+            description = "Compares the display app's views with the browser emulator, element by element and pixel by pixel."
+            web.set(parity.map { it.dir("web") })
+            android.set(parity.map { it.dir("android") })
+            report.set(project.rootProject.layout.buildDirectory.dir("reports/parity"))
+            val limits = Parity.Limits()
+            val property = { name: String -> project.providers.gradleProperty("rdstr.parity.$name") }
+            tolerance.set(property("tolerance").map { it.toInt() }.orElse(limits.tolerance))
+            edgeTolerance.set(property("edgeTolerance").map { it.toInt() }.orElse(limits.edgeTolerance))
+            maxPercent.set(property("maxPercent").map { it.toDouble() }.orElse(limits.maxPercent))
+            dependsOn("testDebugUnitTest")
+        }
         project.extensions.getByType(AndroidComponentsExtension::class.java).onVariants { v ->
             v.sources.kotlin?.addGeneratedSourceDirectory(task, GenerateDisplayUi::kotlinOut)
             v.sources.res?.addGeneratedSourceDirectory(task, GenerateDisplayUi::resOut)
@@ -127,6 +150,31 @@ abstract class CheckDisplayLogic : DefaultTask() {
         logger.lifecycle("rdstr.display: ${result.screen.size - result.missingViews.size}/${result.screen.size} screen files mirrored, " +
             "${logic.size - result.missingLogic.map { it.key }.distinct().size}/${logic.size} logic values implemented; report ${report.get().asFile}")
         if (failures.isNotEmpty()) throw DisplayBuildException("display logic gaps:" + failures.joinToString("") { "\n  $it" })
+    }
+}
+
+abstract class CompareParity : DefaultTask() {
+    @get:Internal abstract val web: DirectoryProperty
+    @get:Internal abstract val android: DirectoryProperty
+    @get:Internal abstract val report: DirectoryProperty
+    /** [Parity.Limits], from the Gradle properties rdstr.parity.tolerance, .edgeTolerance and .maxPercent. */
+    @get:Input abstract val tolerance: Property<Int>
+    @get:Input abstract val edgeTolerance: Property<Int>
+    @get:Input abstract val maxPercent: Property<Double>
+
+    init {
+        // the captures change outside Gradle (the browser side is a Node script): always compare
+        outputs.upToDateWhen { false }
+    }
+
+    @TaskAction
+    fun compare() {
+        val dir = report.get().asFile
+        val result = Parity.run(web.get().asFile, android.get().asFile, dir, Parity.Limits(tolerance.get(), edgeTolerance.get(), maxPercent.get()))
+        logger.lifecycle("rdstr.display: ${result.scenes.count { it.failures.isEmpty() }}/${result.scenes.size} parity scenes pass, " +
+            "${result.notBuilt.size} browser scenes without an Android one; report ${File(dir, "index.md")}")
+        if (result.scenes.isEmpty()) throw DisplayBuildException("no Android parity capture in ${android.get().asFile}; run npm run parity:capture first")
+        if (result.failures.isNotEmpty()) throw DisplayBuildException("visual parity:" + result.failures.joinToString("") { "\n  $it" })
     }
 }
 
