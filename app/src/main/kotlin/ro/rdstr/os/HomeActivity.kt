@@ -55,7 +55,7 @@ class HomeActivity : Activity() {
 
     /**
      * A cold start shows the boot screen; a first start (setup at the logo) then moves on to the setup's start screen,
-     * where a touch begins the setup. The other setup screens come with the shell's views.
+     * where a touch begins the setup; each step on is SetupScreen.next() (ShellAction.SetupNext with the Wi-Fi and update state).
      */
     private fun startup() {
         val shell = CarRuntime.shell.value
