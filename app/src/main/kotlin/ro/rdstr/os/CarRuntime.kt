@@ -270,13 +270,13 @@ object CarRuntime {
         if (::cast.isInitialized) cast.surface = surface
     }
 
-    /**
-     * When no phone has connected a few seconds after a start, the saved ones are asked in turn, the last one first;
-     * it stops as soon as one connects, and with Bluetooth off.
-     */
-    @android.annotation.SuppressLint("MissingPermission") // BLUETOOTH is granted at install on API 27
     private var reconnecting = false
 
+    /**
+     * A few seconds after a start, or after Bluetooth comes on, with no phone connected: one try for the last phone,
+     * with Connect to Last Phone on (Startup.phoneToReconnect).
+     */
+    @android.annotation.SuppressLint("MissingPermission") // BLUETOOTH is granted at install on API 27
     private fun connectLastPhone() {
         connecting?.cancel()
         connecting = scope.launch {
