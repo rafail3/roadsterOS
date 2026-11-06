@@ -717,7 +717,7 @@ export function userActivity() {
 let aodTimer: ReturnType<typeof setInterval> | null = null;
 /** Checks the wait of the always-on display once a second; a call, the camera or the map keep the screen as it is. */
 export function watchIdle() {
-  if (aodTimer) return;
+  if (aodTimer || document.documentElement.classList.contains("freeze")) return;
   aodTimer = setInterval(() => {
     const busy = state.car.call !== "IDLE" || state.car.camera || state.shell.cameraOpen || state.shell.app === "MAPS";
     if (bridge.aodDue(state.shell, Date.now() - lastActivity, busy)) shellAction({ type: "EnterAod" });
@@ -1025,7 +1025,7 @@ export async function replay(name: string) {
   }
 }
 
-/** URL state for captures, e.g. ?bare&theme=light&hour=20&source=radio&call=ringing&drawer&camera&brightness=40&analog&app=music&track=1 */
+/** URL state for captures, e.g. ?bare&freeze&design=glassy&theme=light&hour=20&source=radio&call=ringing&drawer&camera&brightness=40&analog&app=music&track=1 */
 function fromUrl(q: URLSearchParams): EmulatorState {
   let shell = storedShell(q);
   let car = bridge.initial();
@@ -1033,6 +1033,10 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   const theme = q.get("theme")?.toUpperCase();
   if (theme === "AUTO" || theme === "LIGHT" || theme === "DARK") shell = bridge.shell(shell, { type: "SetTheme", mode: theme });
   if (q.has("night")) shell = bridge.shell(shell, { type: "SetTheme", mode: "DARK" });
+  const design = q.get("design")?.toUpperCase();
+  if (design === "SOLID" || design === "GLASSY") shell = bridge.shell(shell, { type: "SetDesign", design });
+  // ?freeze: a still picture for the parity captures: noon, no CSS animation or transition, no always-on display
+  if (q.has("freeze")) document.documentElement.classList.add("freeze");
   if (q.has("drawer")) shell = bridge.shell(shell, { type: "OpenDrawer" });
   if (q.has("aod")) shell = bridge.shell(shell, { type: "EnterAod" });
   if (q.has("sound")) shell = bridge.shell(shell, { type: "OpenSound" });
@@ -1129,7 +1133,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     updateCheck: { state: "IDLE", at: null },
     wifiNeedsLocation: false,
     acc: true,
-    hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : null,
+    hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : q.has("freeze") ? 12 : null,
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     clockShiftMs: 0,
     // a car's clock is rarely right: a few minutes off at start

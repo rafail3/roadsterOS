@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "npm run dev -w emulator",
     "build": "npm run build -w emulator",
-    "start": "npm run start -w emulator"
+    "start": "npm run start -w emulator",
+    "parity:capture": "npm run parity:capture -w emulator --"
   }
 }
