@@ -29,5 +29,6 @@ object Screens {
         Layer.GESTURES to ::GesturesScreen,
         Layer.NOTICE to ::NoticeScreen,
         Layer.DEV to ::DevOverlaysScreen,
+        Layer.STARTUP to ::SetupScreen,
     )
 }
