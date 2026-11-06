@@ -284,6 +284,8 @@ object Bridge {
             """"progress":${p.progress},"finished":${p.finished},"ok":${p.ok}}"""
 
     fun setupPrepare(): String = prepareJson(Setup.Prepare())
+    /** The preparation already passed in this setup (Setup.Prepare.COMPLETE). */
+    fun setupPrepareDone(): String = prepareJson(Setup.Prepare.COMPLETE)
 
     /** [op] is running, done, failed or retry; [task] is ignored for retry. */
     fun setupPrepareStep(tasks: String, op: String, task: String): String {

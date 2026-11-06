@@ -107,6 +107,8 @@ data class ShellState(
     val phoneRegion: String = "RO",
     /** The setup screen the unit is on while setup is not done; kept across starts so a unit switched off resumes there. */
     val setupStep: Setup.Step = Setup.Step.LOGO,
+    /** The setup's steps already passed with Continue: going back to one shows it done (preparation, files) instead of running it again. */
+    val setupPassed: List<Setup.Step> = emptyList(),
     /** The car's name, given in setup: shown in About and on the boot screen, and the name phones see for casting. */
     val carName: String = "",
     /** Settings > Bluetooth > Connect to Last Phone: off by default, the driver picks the phone (Startup.phoneToReconnect). */
@@ -366,7 +368,10 @@ object Shell {
         ShellAction.CloseCamera -> s.copy(cameraOpen = false)
         is ShellAction.SetCastVisible -> s.copy(castVisible = a.on)
         is ShellAction.SetPhoneRegion -> if (PhoneFormat.callingCode(a.region) != null) s.copy(phoneRegion = a.region) else s
-        is ShellAction.SetupNext -> Setup.next(s.setupStep, a.wifi, a.updateAvailable)?.let { s.copy(setupStep = it) } ?: s.copy(setupDone = true)
+        is ShellAction.SetupNext -> {
+            val passed = if (s.setupStep in s.setupPassed) s.setupPassed else s.setupPassed + s.setupStep
+            Setup.next(s.setupStep, a.wifi, a.updateAvailable)?.let { s.copy(setupStep = it, setupPassed = passed) } ?: s.copy(setupDone = true, setupPassed = passed)
+        }
         ShellAction.SetupBack -> s.copy(setupStep = Setup.back(s.setupStep))
         is ShellAction.SetBtAutoConnect -> s.copy(btAutoConnect = a.on)
         is ShellAction.OpenSettingsPage -> s.copy(settingsPage = a.page)
@@ -376,7 +381,7 @@ object Shell {
             else -> reduce(s, ShellAction.OpenNetworks)
         }
         // a setup from the start names the car again: the field is empty, as on a new unit
-        ShellAction.RestartSetup -> s.copy(setupDone = false, setupStep = Setup.Step.LOGO, carName = "")
+        ShellAction.RestartSetup -> s.copy(setupDone = false, setupStep = Setup.Step.LOGO, carName = "", setupPassed = emptyList())
         is ShellAction.SetCarName -> Setup.carName(a.name)?.let { s.copy(carName = it) } ?: s
         is ShellAction.CastChanged -> when {
             a.state == CarEvent.PhoneCast.State.LIVE -> reduce(s, ShellAction.OpenApp(App.PHONE_SCREEN))
@@ -429,7 +434,7 @@ object Shell {
         // the call level is for this drive only
         dsp = s.dsp.copy(callVolume = Sound.CALL_VOLUME_DEFAULT),
         camera = s.camera, castVisible = s.castVisible, design = s.design, phoneRegion = s.phoneRegion,
-        setupStep = s.setupStep, carName = s.carName, btAutoConnect = s.btAutoConnect,
+        setupStep = s.setupStep, setupPassed = s.setupPassed, carName = s.carName, btAutoConnect = s.btAutoConnect,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))

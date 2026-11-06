@@ -59,6 +59,10 @@ class SetupScreen(private val activity: Activity) : Screen {
         CarRuntime.updates.beforeRestart = { if (CarRuntime.shell.value.setupStep == Setup.Step.UPDATE) next() }
         scope.launch {
             combine(CarRuntime.shell, CarRuntime.ui, CarRuntime.updates.state, prepare, files) { shell, ui, update, p, f ->
+                // passed in this setup (also before a restart of the app): shown done, nothing runs again
+                if (Setup.Step.PREPARE in shell.setupPassed && !p.finished) prepare.value = Setup.Prepare.COMPLETE
+                if (Setup.Step.FILES in shell.setupPassed && f.any { it.state != Setup.TaskState.DONE })
+                    files.value = f.map { it.copy(state = Setup.TaskState.DONE, fraction = 0f) }
                 if (update is Updates.State.Available) release = update.release.version
                 if (update is Updates.State.Restarting && release.isEmpty()) release = versionName()
                 val here = place?.country.orEmpty()
