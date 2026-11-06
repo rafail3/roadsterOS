@@ -38,13 +38,14 @@ Everything tracked in this repository is written in English: code, comments, res
 - Nothing is flashed without an explicit, separate approval and a pulled backup of the original partitions.
 - Logs and dumps committed to the repo are masked first: no phone numbers, contact names, MAC addresses, serial numbers.
 
-## Repository layout (planned; update as code lands)
+## Repository layout (update as code lands)
 
 - `DEVICE.md` — hardware/software facts about the target unit.
-- `app/`, `core-ui/`, `core-car/`, `car-vendor/`, `car-sim/`, `feature-*/` — Gradle modules (see spec).
+- `app/`, `core-ui/`, `core-car/`, `core-map/`, `car-vendor/`, `car-sim/`, `companion/` — Gradle modules. `core-ui` holds the display views, one folder per screen (`shell/`, `home/`, `drawer/`, `sheets/`, `media/`, `phone/`, `overlays/`, `setup/`, `settings/`, `sound/`, `maps/`, `keyboard/`, `volume/`) on the shared kit (`kit/`); `app/.../screens/` holds one glue file per screen, registered in `Screens.kt`.
+- `build-logic/` — included build with the `rdstr.display` plugin: `generateDisplayUi` writes `ro.rdstr.ui.tokens` (Tokens, Icons, Fonts) and the vector icons and fonts into `core-ui` from `emulator/styles`, `emulator/public/icons` and `emulator/public/fonts`; `checkDisplayLogic` lists emulator logic and dispatches without an Android `@Emulates`/`@Mirrors` (`-Prdstr.display.strict=true` fails on any gap); `compareParity` compares browser and Paparazzi captures.
 - `sim/` — emulator AVD config, recorded `.jsonl` scenarios, `send.ps1`.
 - `emulator/` — browser emulator: Next.js and React app with the screens and a car control panel, driven by `core-car` compiled to JavaScript; also the live design mockup. `styles/screen.css`, `clock.css` and `tokens.css` are the product, `styles/chrome.css` is the tool around it.
-- `install/` — `install.ps1`/`.sh`, `rollback.ps1`, `debloat.txt`.
+- `install/` — `install.ps1` (APK, HOME activity, the Romania map pack copied over adb); planned: `install.sh`, `rollback.ps1`, `debloat.txt`.
 - `scripts/check-device.ps1` — memory, cold-start and package checks on the unit.
 - `unit-dumps/` — masked package lists, props and logcat captures, dated.
 - `version.txt` — current version, rewritten by release-please; `app/build.gradle.kts` derives `versionName` and `versionCode` from it.
