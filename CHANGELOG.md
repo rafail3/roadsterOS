@@ -1,5 +1,71 @@
 # Changelog
 
+## [1.18.0](https://github.com/rafail3/roadsterOS/compare/v1.17.0...v1.18.0) (2026-11-06)
+
+
+### Features
+
+* **bluetooth:** connect to last phone setting, off by default ([e5aff22](https://github.com/rafail3/roadsterOS/commit/e5aff22b9cc6301f83a9d150417f731aee25c8bd))
+* **drawer:** quick toggles on in their own colour, tinted glass on glassy ([e5aff22](https://github.com/rafail3/roadsterOS/commit/e5aff22b9cc6301f83a9d150417f731aee25c8bd))
+* **settings:** wi-fi networks to join right in settings &gt; wi-fi; drawer switches open their list ([e5aff22](https://github.com/rafail3/roadsterOS/commit/e5aff22b9cc6301f83a9d150417f731aee25c8bd))
+
+
+### Bug Fixes
+
+* **shell:** no wi-fi or devices sheet over settings, the drawer brings settings to its page ([e5aff22](https://github.com/rafail3/roadsterOS/commit/e5aff22b9cc6301f83a9d150417f731aee25c8bd))
+* **theme:** light theme on settings, phone, sound, device and wi-fi panels, alerts and buttons on both designs ([e5aff22](https://github.com/rafail3/roadsterOS/commit/e5aff22b9cc6301f83a9d150417f731aee25c8bd))
+
+## [1.17.0](https://github.com/rafail3/roadsterOS/compare/v1.16.0...v1.17.0) (2026-11-06)
+
+
+### Features
+
+* **settings:** picture of the unit with the boot screen and the symbol at the top of about ([510c171](https://github.com/rafail3/roadsterOS/commit/510c1717ef156b0edd320fae128e3c2f0bd7c718))
+* **settings:** restart the unit from about and from a long press on settings in the drawer, after a question ([510c171](https://github.com/rafail3/roadsterOS/commit/510c1717ef156b0edd320fae128e3c2f0bd7c718))
+* **settings:** software update page under about with the installed version and date, a check on wi-fi and the install with progress ([510c171](https://github.com/rafail3/roadsterOS/commit/510c1717ef156b0edd320fae128e3c2f0bd7c718))
+* **setup:** boot and start screens drawn dot by dot on the emulator and on android ([3cf6345](https://github.com/rafail3/roadsterOS/commit/3cf634580c34b9a2f365bf63f56a55c7f81fa18c))
+* **setup:** boot and start screens drawn dot by dot on the emulator and on android ([802511d](https://github.com/rafail3/roadsterOS/commit/802511d1ecf6c28c80355aff264d27db7b4410c3))
+* **setup:** boot and start screens drawn dot by dot on the emulator and on android ([5378d8f](https://github.com/rafail3/roadsterOS/commit/5378d8ff008da11da30f8169cdab4471cd5e376b))
+* **setup:** boot and start screens drawn dot by dot on the emulator and on android ([5233fda](https://github.com/rafail3/roadsterOS/commit/5233fda51ad37df4c5974427625e1f6a1365232b))
+* **setup:** boot and start screens drawn dot by dot on the emulator and on android ([2025eb4](https://github.com/rafail3/roadsterOS/commit/2025eb497354114daf30dfb5f80c8026911ba029))
+* **setup:** boot and start screens drawn dot by dot on the emulator and on android ([22ed7c0](https://github.com/rafail3/roadsterOS/commit/22ed7c07357bdc3b6e19f8e904dec7b582e46d39))
+* **setup:** boot and start screens drawn dot by dot on the emulator and on android ([cf4e994](https://github.com/rafail3/roadsterOS/commit/cf4e994bd3fa566deffdf076939eea84b9aed171))
+* **setup:** boot and start screens drawn dot by dot on the emulator and on android ([563adc7](https://github.com/rafail3/roadsterOS/commit/563adc70839ead1650a918801f157e95d4268d27))
+* **setup:** boot and start screens drawn dot by dot on the emulator and on android ([7152f06](https://github.com/rafail3/roadsterOS/commit/7152f0628e2c830fde6f534b7764b6cf69486101))
+* **setup:** boot and start screens drawn dot by dot on the emulator and on android ([0648cab](https://github.com/rafail3/roadsterOS/commit/0648cab609a7961dedec37c77792c0f3940f4720))
+* **setup:** boot and start screens drawn dot by dot on the emulator and on android ([34d9466](https://github.com/rafail3/roadsterOS/commit/34d946604c63ee6e2b3ad2127ba4d91f7e6f72bc))
+* **setup:** boot and start screens drawn dot by dot on the emulator and on android ([38afedd](https://github.com/rafail3/roadsterOS/commit/38afedd47a6508d0e1f0051e1edd2a56fe7c1d4a))
+* **setup:** boot and start screens drawn dot by dot on the emulator and on android ([46b3ccf](https://github.com/rafail3/roadsterOS/commit/46b3ccf8898d8cf4721b90389c339b3ab0e09161))
+* **setup:** boot and start screens drawn dot by dot on the emulator and on android ([948c2c8](https://github.com/rafail3/roadsterOS/commit/948c2c8f861641dc64cbe0f94c127ae0da0f465f))
+* **setup:** first-start setup with car name, system preparation, wi-fi, update, location, look, files and welcome ([3cf6345](https://github.com/rafail3/roadsterOS/commit/3cf634580c34b9a2f365bf63f56a55c7f81fa18c))
+* **setup:** first-start setup with car name, system preparation, wi-fi, update, location, look, files and welcome ([802511d](https://github.com/rafail3/roadsterOS/commit/802511d1ecf6c28c80355aff264d27db7b4410c3))
+* **setup:** first-start setup with car name, system preparation, wi-fi, update, location, look, files and welcome ([5378d8f](https://github.com/rafail3/roadsterOS/commit/5378d8ff008da11da30f8169cdab4471cd5e376b))
+* **setup:** first-start setup with car name, system preparation, wi-fi, update, location, look, files and welcome ([5233fda](https://github.com/rafail3/roadsterOS/commit/5233fda51ad37df4c5974427625e1f6a1365232b))
+* **setup:** first-start setup with car name, system preparation, wi-fi, update, location, look, files and welcome ([2025eb4](https://github.com/rafail3/roadsterOS/commit/2025eb497354114daf30dfb5f80c8026911ba029))
+* **setup:** first-start setup with car name, system preparation, wi-fi, update, location, look, files and welcome ([22ed7c0](https://github.com/rafail3/roadsterOS/commit/22ed7c07357bdc3b6e19f8e904dec7b582e46d39))
+* **setup:** first-start setup with car name, system preparation, wi-fi, update, location, look, files and welcome ([cf4e994](https://github.com/rafail3/roadsterOS/commit/cf4e994bd3fa566deffdf076939eea84b9aed171))
+* **setup:** first-start setup with car name, system preparation, wi-fi, update, location, look, files and welcome ([563adc7](https://github.com/rafail3/roadsterOS/commit/563adc70839ead1650a918801f157e95d4268d27))
+* **setup:** first-start setup with car name, system preparation, wi-fi, update, location, look, files and welcome ([7152f06](https://github.com/rafail3/roadsterOS/commit/7152f0628e2c830fde6f534b7764b6cf69486101))
+* **setup:** first-start setup with car name, system preparation, wi-fi, update, location, look, files and welcome ([0648cab](https://github.com/rafail3/roadsterOS/commit/0648cab609a7961dedec37c77792c0f3940f4720))
+* **setup:** first-start setup with car name, system preparation, wi-fi, update, location, look, files and welcome ([34d9466](https://github.com/rafail3/roadsterOS/commit/34d946604c63ee6e2b3ad2127ba4d91f7e6f72bc))
+* **setup:** first-start setup with car name, system preparation, wi-fi, update, location, look, files and welcome ([38afedd](https://github.com/rafail3/roadsterOS/commit/38afedd47a6508d0e1f0051e1edd2a56fe7c1d4a))
+* **setup:** first-start setup with car name, system preparation, wi-fi, update, location, look, files and welcome ([46b3ccf](https://github.com/rafail3/roadsterOS/commit/46b3ccf8898d8cf4721b90389c339b3ab0e09161))
+* **setup:** first-start setup with car name, system preparation, wi-fi, update, location, look, files and welcome ([948c2c8](https://github.com/rafail3/roadsterOS/commit/948c2c8f861641dc64cbe0f94c127ae0da0f465f))
+* **update:** release updates from github with a pop-up per version, download progress, install and restart ([3cf6345](https://github.com/rafail3/roadsterOS/commit/3cf634580c34b9a2f365bf63f56a55c7f81fa18c))
+* **update:** release updates from github with a pop-up per version, download progress, install and restart ([802511d](https://github.com/rafail3/roadsterOS/commit/802511d1ecf6c28c80355aff264d27db7b4410c3))
+* **update:** release updates from github with a pop-up per version, download progress, install and restart ([5378d8f](https://github.com/rafail3/roadsterOS/commit/5378d8ff008da11da30f8169cdab4471cd5e376b))
+* **update:** release updates from github with a pop-up per version, download progress, install and restart ([5233fda](https://github.com/rafail3/roadsterOS/commit/5233fda51ad37df4c5974427625e1f6a1365232b))
+* **update:** release updates from github with a pop-up per version, download progress, install and restart ([2025eb4](https://github.com/rafail3/roadsterOS/commit/2025eb497354114daf30dfb5f80c8026911ba029))
+* **update:** release updates from github with a pop-up per version, download progress, install and restart ([22ed7c0](https://github.com/rafail3/roadsterOS/commit/22ed7c07357bdc3b6e19f8e904dec7b582e46d39))
+* **update:** release updates from github with a pop-up per version, download progress, install and restart ([cf4e994](https://github.com/rafail3/roadsterOS/commit/cf4e994bd3fa566deffdf076939eea84b9aed171))
+* **update:** release updates from github with a pop-up per version, download progress, install and restart ([563adc7](https://github.com/rafail3/roadsterOS/commit/563adc70839ead1650a918801f157e95d4268d27))
+* **update:** release updates from github with a pop-up per version, download progress, install and restart ([7152f06](https://github.com/rafail3/roadsterOS/commit/7152f0628e2c830fde6f534b7764b6cf69486101))
+* **update:** release updates from github with a pop-up per version, download progress, install and restart ([0648cab](https://github.com/rafail3/roadsterOS/commit/0648cab609a7961dedec37c77792c0f3940f4720))
+* **update:** release updates from github with a pop-up per version, download progress, install and restart ([34d9466](https://github.com/rafail3/roadsterOS/commit/34d946604c63ee6e2b3ad2127ba4d91f7e6f72bc))
+* **update:** release updates from github with a pop-up per version, download progress, install and restart ([38afedd](https://github.com/rafail3/roadsterOS/commit/38afedd47a6508d0e1f0051e1edd2a56fe7c1d4a))
+* **update:** release updates from github with a pop-up per version, download progress, install and restart ([46b3ccf](https://github.com/rafail3/roadsterOS/commit/46b3ccf8898d8cf4721b90389c339b3ab0e09161))
+* **update:** release updates from github with a pop-up per version, download progress, install and restart ([948c2c8](https://github.com/rafail3/roadsterOS/commit/948c2c8f861641dc64cbe0f94c127ae0da0f465f))
+
 ## [1.16.0](https://github.com/rafail3/roadsterOS/compare/v1.15.0...v1.16.0) (2026-11-06)
 
 

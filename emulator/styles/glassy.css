@@ -76,6 +76,14 @@
   box-shadow: var(--glassy-shadow);
 }
 
+/* a quick toggle that is on: its colour as tinted glass, the sheen, rim and frost over it */
+[data-design="glassy"] .toggle.is-on {
+  background-color: color-mix(in srgb, var(--toggle-on) 86%, transparent);
+  background-image: var(--glassy-sheen);
+  -webkit-backdrop-filter: var(--glassy-frost); backdrop-filter: var(--glassy-frost);
+  box-shadow: var(--glassy-shadow);
+}
+
 /* the chosen section keeps its colour, under the same sheen and rim */
 [data-design="glassy"] :is(.set-nav-item.is-current, .radio-row.is-active, .phone-tabs button[aria-selected="true"], .radio-bands button[aria-pressed="true"]) { background-image: var(--glassy-sheen); box-shadow: var(--glassy-shadow); }
 
