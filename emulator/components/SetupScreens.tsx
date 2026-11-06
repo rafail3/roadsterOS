@@ -85,8 +85,9 @@ function Frame({ step, title, text, children, next, nextLabel = "Continue", canN
 }
 
 /** The car's name, typed on our keyboard; it is also the name phones see when they share their screen. */
-function CarName({ saved, next }: { saved: string; next: () => void }) {
-  const [name, setName] = useState(saved);
+function CarName({ next }: { next: () => void }) {
+  // the field starts empty each time the step shows; the name is kept only on Continue
+  const [name, setName] = useState("");
   // the keyboard comes up when the field is touched, and goes with Done
   const [typing, setTyping] = useState(false);
   const kept = bridge.carName(name);
@@ -356,7 +357,7 @@ function WelcomeScreen({ carName, next }: { carName: string; next: () => void })
 export function SetupScreen({ step, carName, next }: { step: SetupStep; carName: string; next: () => void }) {
   const { releaseOut } = useEmulator();
   switch (step) {
-    case "CAR_NAME": return <CarName saved={carName} next={next} />;
+    case "CAR_NAME": return <CarName next={next} />;
     case "PREPARE": return <PrepareScreen next={next} />;
     case "WIFI": return <WifiScreen next={next} />;
     case "UPDATE": return <UpdateScreen version={releaseOut ?? ""} next={next} />;
