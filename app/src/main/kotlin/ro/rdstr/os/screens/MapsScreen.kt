@@ -103,6 +103,7 @@ class MapsScreen(private val activity: Activity) : Screen, LocationListener {
     private fun status() {
         val shell = CarRuntime.shell.value
         val r = speedometer.reading
+        speed.value = r
         val w = warning.update(r, map.roadLimit, SystemClock.elapsedRealtime())
         // the chime can be switched off in the settings; the sign and the red ring stay
         if (w.chime && shell.speedChime) (chime ?: Chime().also { chime = it }).play()
@@ -116,5 +117,9 @@ class MapsScreen(private val activity: Activity) : Screen, LocationListener {
     override fun onProviderEnabled(provider: String) = Unit
     override fun onProviderDisabled(provider: String) = Unit
 
-    private companion object { const val MOVING_MPS = 1.5f }
+    companion object {
+        private const val MOVING_MPS = 1.5f
+        /** The car's speed from the GPS (core-car Speedometer), for the other screens: the phone's typing lock, Recents. */
+        val speed = kotlinx.coroutines.flow.MutableStateFlow(Speedometer.Reading(0, true))
+    }
 }

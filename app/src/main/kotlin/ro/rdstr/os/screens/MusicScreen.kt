@@ -14,6 +14,7 @@ import ro.rdstr.car.App
 import ro.rdstr.car.CarCommand
 import ro.rdstr.car.ShellAction
 import ro.rdstr.os.CarRuntime
+import ro.rdstr.os.settings.BluetoothDevices
 import ro.rdstr.ui.Mirrors
 import ro.rdstr.ui.media.MediaAppFrame
 import ro.rdstr.ui.media.MusicActions
@@ -27,14 +28,11 @@ import ro.rdstr.ui.media.SavedPhone
  */
 @Mirrors("MusicApp.tsx", "media.tsx")
 class MusicScreen(activity: Activity) : Screen {
-    /** store `tryConnect`: the phone tried, and the last one that did not answer in [CONNECT_FAIL_MS]. */
-    private val trying = MutableStateFlow<Pair<String?, String?>>(null to null)
-    private var attempt: Job? = null
-    private var scope: CoroutineScope? = null
 
     override val view = MusicAppView(activity, object : MusicActions {
         override fun carCommand(command: CarCommand) {
-            if (command is CarCommand.Bluetooth.Connect) tryConnect(command.device)
+            // store `tryConnect`: the same connecting and failed states as the devices sheet
+            if (command is CarCommand.Bluetooth.Connect) BluetoothDevices.connecting(command.device)
             CarRuntime.send(command)
         }
         override fun shellAction(action: ShellAction) = CarRuntime.shellAction(action)
@@ -44,21 +42,14 @@ class MusicScreen(activity: Activity) : Screen {
 
     init { closeOntoCard(view) }
 
-    private fun tryConnect(device: String) {
-        trying.value = device to null
-        attempt?.cancel()
-        attempt = scope?.launch {
-            delay(CONNECT_FAIL_MS)
-            if (!CarRuntime.ui.value.state.btConnected) trying.value = null to device
-        }
-    }
-
     override fun bind(scope: CoroutineScope) {
-        this.scope = scope
+        BluetoothDevices.start(view.context)
         scope.launch {
-            combine(CarRuntime.shell, CarRuntime.ui, Covers.flow, trying) { shell, ui, cover, (connecting, failed) ->
+            combine(CarRuntime.shell, CarRuntime.ui, Covers.flow, BluetoothDevices.state) { shell, ui, cover, bt ->
                 val car = ui.state
-                if (car.btConnected && connecting != null) trying.value = null to null
+                if (car.btConnected) BluetoothDevices.connected()
+                val connecting = bt.connecting
+                val failed = bt.failed
                 view.open(shell.app == App.MUSIC)
                 val track = ui.track
                 MusicState(
@@ -80,7 +71,6 @@ class MusicScreen(activity: Activity) : Screen {
             .mapNotNull { d -> d.name?.let { SavedPhone(it, d.bluetoothClass?.majorDeviceClass ?: 0) } }.sortedBy { it.name }
     }.getOrDefault(emptyList())
 
-    private companion object { const val CONNECT_FAIL_MS = 4000L }
 }
 
 /**

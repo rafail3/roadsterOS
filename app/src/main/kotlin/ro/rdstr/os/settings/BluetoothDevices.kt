@@ -30,8 +30,8 @@ object BluetoothDevices {
     )
     data class Pairing(val name: String, val code: String, val confirmed: Boolean = false)
 
-    /** A connection not up after this long is shown as failed (the emulator's phone answers or not at once). */
-    private const val CONNECT_GIVE_UP_MS = 15_000L
+    /** A connection not up after this long is shown as failed, as the emulator's store (CONNECT_FAIL_MS). */
+    private const val CONNECT_GIVE_UP_MS = 4_000L
     private const val TAG = "rdstr.bt"
 
     private val _state = MutableStateFlow(State())
@@ -98,7 +98,7 @@ object BluetoothDevices {
 
     /** The hands-free link is up (CarRuntime's state): the wait ends. */
     fun connected() {
-        if (_state.value.connecting == null) return
+        if (_state.value.connecting == null && _state.value.failed == null) return
         main.removeCallbacks(giveUp)
         _state.value = _state.value.copy(connecting = null, failed = null)
     }

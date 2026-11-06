@@ -50,14 +50,13 @@ class RecentsScreen(activity: Activity) : Screen {
 
     override fun bind(scope: CoroutineScope) {
         scope.launch {
-            combine(CarRuntime.shell, CarRuntime.ui, Covers.flow) { s, ui, cover ->
+            combine(CarRuntime.shell, CarRuntime.ui, Covers.flow, MapsScreen.speed) { s, ui, cover, speed ->
                 RecentsState(
                     open = s.recents,
                     apps = s.running,
                     track = ui.track ?: CarEvent.Track(""),
                     cover = cover?.bitmap,
-                    // ponytail: "Offline map" until the maps screen reports driving; its speed then goes here
-                    kmh = null,
+                    kmh = speed.kmh.takeUnless { speed.stopped },
                     phone = ui.phoneName.takeIf { ui.state.hfpConnected },
                     radio = ui.radio ?: CarEvent.Radio(87500, CarEvent.Radio.Band.FM),
                 )

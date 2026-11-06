@@ -11,6 +11,7 @@ import ro.rdstr.car.CarCommand
 import ro.rdstr.car.PhoneGate
 import ro.rdstr.car.ShellAction
 import ro.rdstr.os.CarRuntime
+import ro.rdstr.os.settings.BluetoothDevices
 import ro.rdstr.ui.Mirrors
 import ro.rdstr.ui.keyboard.KeyboardView
 import ro.rdstr.ui.kit.UiTheme
@@ -28,7 +29,10 @@ class PhoneScreen(activity: Activity) : Screen {
 
     override val view = PhoneAppView(activity, object : PhoneAppView.Actions {
         override fun shellAction(action: ShellAction) = CarRuntime.shellAction(action)
-        override fun carCommand(command: CarCommand) = CarRuntime.send(command)
+        override fun carCommand(command: CarCommand) {
+            if (command is CarCommand.Bluetooth.Connect) BluetoothDevices.connecting(command.device)
+            CarRuntime.send(command)
+        }
         override fun turnOnBluetooth() = CarRuntime.turnOnBluetooth()
         override fun openThread(number: String?) = CarRuntime.openThread(number)
         override fun markRead(ids: List<String>) = CarRuntime.markRead(ids)
@@ -46,7 +50,8 @@ class PhoneScreen(activity: Activity) : Screen {
 
     override fun bind(scope: CoroutineScope) {
         scope.launch {
-            combine(CarRuntime.shell, CarRuntime.ui) { s, ui ->
+            BluetoothDevices.start(view.context)
+            combine(CarRuntime.shell, CarRuntime.ui, MapsScreen.speed, BluetoothDevices.state) { s, ui, speed, bt ->
                 val btOn = CarRuntime.radios.bluetoothOn
                 val screen = PhoneGate.screen(btOn, ui.state.hfpConnected)
                 PhoneState(
@@ -63,8 +68,9 @@ class PhoneScreen(activity: Activity) : Screen {
                     read = ui.read,
                     messagesSupported = ui.messagesSupported ?: true,
                     thread = ui.thread,
-                    // ponytail: the speed is known to the maps screen only; until it is shared, the car counts as standing
-                    stopped = true,
+                    stopped = speed.stopped,
+                    connecting = bt.connecting,
+                    failed = bt.failed,
                     lockTypingWhileMoving = s.lockTypingWhileMoving,
                     region = s.phoneRegion,
                     saved = if (screen == PhoneGate.Screen.CONNECT) savedPhones() else emptyList(),
