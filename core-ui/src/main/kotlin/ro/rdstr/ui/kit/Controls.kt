@@ -184,6 +184,13 @@ class SettingsGroup(context: Context) : LinearLayout(context) {
     private val drop = CssBox().apply { radius = 18f }
 
     var title: CharSequence? = null; set(v) { field = v; titleView.text = v; titleView.visibility = if (v == null) GONE else VISIBLE }
+    /** CSS `ch`: the advance of "0" in the screen's font with its tabular figures ('tnum', as `.screen` sets). */
+    private fun ch(text: KitText, n: Float): Int {
+        val p = android.graphics.Paint(text.paint)
+        p.fontFeatureSettings = "'tnum' 1"
+        return (p.measureText("0") * n + 0.5f).toInt()
+    }
+
     var footer: CharSequence? = null; set(v) { field = v; footerView.text = v; footerView.visibility = if (v == null) GONE else VISIBLE }
 
     init {
@@ -196,7 +203,7 @@ class SettingsGroup(context: Context) : LinearLayout(context) {
         addView(footerView, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
             leftMargin = (20 * d + 0.5f).toInt(); rightMargin = leftMargin
         })
-        footerView.maxWidth = (footerView.paint.measureText("0") * 70).toInt()
+        footerView.maxWidth = ch(footerView, 70f)
         setWillNotDraw(false)
         UiTheme.link(this) { theme() }
         theme()
@@ -206,7 +213,7 @@ class SettingsGroup(context: Context) : LinearLayout(context) {
         val st = UiTheme.settings
         titleView.setTextColor(st.inkMuted)
         footerView.setTextColor(st.inkMuted)
-        footerView.maxWidth = (footerView.paint.measureText("0") * 70).toInt()
+        footerView.maxWidth = ch(footerView, 70f)
         drop.shadows = if (UiTheme.glassy) UiTheme.glass.glassyShadow.filter { !it.inset } else emptyList()
         invalidate()
     }
