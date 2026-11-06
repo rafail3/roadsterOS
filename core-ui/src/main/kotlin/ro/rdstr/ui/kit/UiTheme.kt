@@ -21,6 +21,7 @@ import ro.rdstr.ui.tokens.Fonts
 import ro.rdstr.ui.tokens.Glassy
 import ro.rdstr.ui.tokens.SettingsApp
 import ro.rdstr.ui.tokens.Stops
+import java.io.File
 import java.lang.ref.WeakReference
 
 /**
@@ -95,6 +96,39 @@ object UiTheme {
         val id = if (geist) Fonts.GEIST else Fonts.INTER
         return faces.getOrPut(id) { context.resources.getFont(id) }
     }
+
+    private val weighted = HashMap<Long, Typeface>()
+
+    /**
+     * The chosen family at [weight] on its `wght` axis, the axis set in the typeface itself (Typeface.Builder over the
+     * font file), so a TextView or a Paint draws that weight with no variation settings of its own. Made once per
+     * family and weight; null where the file cannot be read, and the caller then sets the axis on the paint.
+     */
+    fun typeface(context: Context, weight: Int): Typeface? {
+        val id = if (geist) Fonts.GEIST else Fonts.INTER
+        val key = (id.toLong() shl 16) or weight.toLong()
+        weighted[key]?.let { return it }
+        val file = fontFile(context, id) ?: return null
+        return Typeface.Builder(file).setFontVariationSettings("'wght' $weight").setWeight(weight).build()?.also { weighted[key] = it }
+    }
+
+    /**
+     * The font resource as a file, which Typeface.Builder needs on API 27 (it cannot read a font inside the APK):
+     * copied once into the cache, again when the APK changes.
+     */
+    private fun fontFile(context: Context, id: Int): File? = runCatching {
+        val name = context.resources.getResourceEntryName(id)
+        val stamp = context.applicationInfo?.sourceDir?.let { File(it).lastModified() } ?: 0L
+        val dir = File(context.cacheDir, "fonts").apply { mkdirs() }
+        val file = File(dir, "$name-$stamp.ttf")
+        if (!file.isFile) {
+            dir.listFiles()?.filter { it.name.startsWith("$name-") }?.forEach { it.delete() }
+            val part = File(dir, "${file.name}.part")
+            context.resources.openRawResource(id).use { input -> part.outputStream().use { input.copyTo(it) } }
+            part.renameTo(file)
+        }
+        file.takeIf { it.isFile }
+    }.getOrNull()
 }
 
 /** The theme cross-fade: a snapshot of the screen before the change, faded out over the changed screen. */
