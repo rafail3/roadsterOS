@@ -25,6 +25,9 @@
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CONFIGURE_WIFI_DISPLAY" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.SET_TIME_ZONE" tools:ignore="ProtectedPermissions" />
+    <!-- updates from GitHub Releases: a silent install and the restart after it (platform signature) -->
+    <uses-permission android:name="android.permission.INSTALL_PACKAGES" tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.REBOOT" tools:ignore="ProtectedPermissions" />
 
     <application
         android:name=".RdstrApp"
@@ -64,10 +67,13 @@
             </intent-filter>
         </receiver>
 
+        <receiver android:name=".setup.Updates$Installed" android:exported="false" />
+
         <receiver android:name=".ServiceReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="ro.rdstr.SERVICE" />
                 <action android:name="ro.rdstr.PREPARE" />
+                <action android:name="ro.rdstr.UPDATE" />
             </intent-filter>
         </receiver>
 

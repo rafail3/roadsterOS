@@ -30,6 +30,15 @@ object Setup {
         return at.takeIf { it.ordinal >= Step.START.ordinal } ?: step
     }
 
+    /** A Wi-Fi network in range: its name, its signal 0..4, whether it asks for a password. */
+    @kotlinx.serialization.Serializable
+    data class Network(val ssid: String, val signal: Int, val secure: Boolean)
+
+    /** The Wi-Fi screen's list: the joined network first, then the saved ones, then by signal; each name once. */
+    fun networkOrder(networks: List<Network>, connected: String?, saved: Set<String>): List<Network> =
+        networks.sortedByDescending { it.signal }.distinctBy { it.ssid }
+            .sortedBy { if (it.ssid == connected) 0 else if (it.ssid in saved) 1 else 2 }
+
     const val CAR_NAME_MIN = 3
     const val CAR_NAME_MAX = 24
 

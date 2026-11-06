@@ -174,10 +174,9 @@ function WifiScreen({ next }: { next: () => void }) {
   }, [wifiOn, locationOn]);
   useEffect(() => { setPassword(""); setTyping(false); setReveal(false); }, [joining]);
   useEffect(() => { if (joining && wifi.connected === joining) setJoining(null); }, [joining, wifi.connected]);
-  // the joined network first, then the saved ones, then the strongest
-  const rank = (n: WifiNetwork) => (wifi.connected === n.ssid ? 0 : wifi.saved.includes(n.ssid) ? 1 : 2);
-  const seen = WIFI_NETWORKS.filter((n) => wifi.seen.includes(n.ssid) || wifi.connected === n.ssid)
-    .sort((a, b) => rank(a) - rank(b) || b.signal - a.signal);
+  // the joined network first, then the saved ones, then the strongest, as on the unit
+  const inRange = WIFI_NETWORKS.filter((n) => wifi.seen.includes(n.ssid) || wifi.connected === n.ssid);
+  const seen = bridge.networkOrder(inRange, wifi.connected, wifi.saved).map((o) => inRange.find((n) => n.ssid === o.ssid)!);
   const pick = (n: WifiNetwork) => (n.secure && !wifi.saved.includes(n.ssid) ? setJoining(n.ssid) : wifiConnect(n.ssid));
   const status = (n: WifiNetwork) => wifi.connected === n.ssid ? "Connected" : wifi.connecting === n.ssid ? "Connecting…" : n.secure ? "Secured" : "Open";
   const connected = wifi.connected !== null;

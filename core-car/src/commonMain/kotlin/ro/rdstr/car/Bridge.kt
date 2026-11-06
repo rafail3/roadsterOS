@@ -295,6 +295,13 @@ object Bridge {
     fun carName(typed: String): String = Setup.carName(typed).orEmpty()
     fun carNameChar(c: String): Boolean = c.length == 1 && Setup.carNameChar(c[0])
     fun carNameMin(): Int = Setup.CAR_NAME_MIN
+
+    /** The Wi-Fi screen's order (Setup.networkOrder): [networks] and [saved] as JSON lists. */
+    fun networkOrder(networks: String, connected: String?, saved: String): String {
+        val list = json.decodeFromString(ListSerializer(Setup.Network.serializer()), networks)
+        val order = Setup.networkOrder(list, connected, json.decodeFromString(ListSerializer(String.serializer()), saved).toSet())
+        return json.encodeToString(ListSerializer(Setup.Network.serializer()), order)
+    }
     fun carNameMax(): Int = Setup.CAR_NAME_MAX
     fun restartInS(): Int = Updater.RESTART_IN_S
 

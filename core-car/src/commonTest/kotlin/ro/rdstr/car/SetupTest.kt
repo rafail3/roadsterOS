@@ -60,6 +60,14 @@ class SetupTest {
     }
 
     @Test
+    fun `the joined network comes first, then the saved ones, then the strongest`() {
+        val n = { s: String, signal: Int -> Setup.Network(s, signal, true) }
+        val order = Setup.networkOrder(listOf(n("Cafe", 4), n("Home", 2), n("Phone", 1), n("Office", 3), n("Cafe", 1)), connected = "Phone", saved = setOf("Home"))
+        assertEquals(listOf("Phone", "Home", "Cafe", "Office"), order.map { it.ssid })
+        assertEquals(4, order[2].signal)
+    }
+
+    @Test
     fun `a car name is letters and digits, at least three of them`() {
         assertEquals("Mazda 6", Setup.carName("Mazda 6"))
         assertEquals("GT3", Setup.carName("GT3"))

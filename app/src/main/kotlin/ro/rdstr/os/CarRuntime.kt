@@ -114,6 +114,8 @@ object CarRuntime {
 
     /** The clock's sync, the time set by hand and the time zone (Date & Time). */
     lateinit var time: ro.rdstr.os.settings.TimeKeeper
+    /** New versions from GitHub: checked on each Wi-Fi join; the pop-up and the progress bar read its state. */
+    lateinit var updates: ro.rdstr.os.setup.Updates
         private set
 
     /** The dash display following the unit's clock (Car Display). */
@@ -156,7 +158,8 @@ object CarRuntime {
         scope.launch {
             bus.events.collect(::onEvent)
         }
-        cast = ro.rdstr.os.cast.CastReceiver(app) { e -> scope.launch { onEvent(e) } }
+        updates = ro.rdstr.os.setup.Updates(app).also { it.afterStart(); it.watchWifi() }
+        cast = ro.rdstr.os.cast.CastReceiver(app, { _shell.value.carName }) { e -> scope.launch { onEvent(e) } }
         castVisibility()
     }
 

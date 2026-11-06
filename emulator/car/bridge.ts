@@ -270,6 +270,7 @@ interface Kotlin {
       carName(typed: string): string;
       carNameChar(c: string): boolean;
       carNameMin(): number;
+      networkOrder(networks: string, connected: string | null, saved: string): string;
       carNameMax(): number;
       aodDue(state: string, idleMs: number, busy: boolean): boolean;
       aodFace(state: string): "DIGITAL" | "ANALOG";
@@ -430,6 +431,9 @@ export const bridge = {
   carName: (typed: string): string => K!.Bridge.carName(typed),
   carNameChar: (c: string): boolean => K!.Bridge.carNameChar(c),
   carNameMin: (): number => K!.Bridge.carNameMin(),
+  /** The Wi-Fi screen's list: joined first, then saved, then by signal (core-car Setup.networkOrder). */
+  networkOrder: (networks: { ssid: string; signal: number; secure: boolean }[], connected: string | null, saved: string[]): { ssid: string; signal: number; secure: boolean }[] =>
+    JSON.parse(K!.Bridge.networkOrder(JSON.stringify(networks.map(({ ssid, signal, secure }) => ({ ssid, signal, secure }))), connected, JSON.stringify(saved))),
   carNameMax: (): number => K!.Bridge.carNameMax(),
   /** The always-on display: due after the wait, its face, the car events that end it (core-car Shell). */
   aodDue: (state: ShellState, idleMs: number, busy: boolean) => K!.Bridge.aodDue(JSON.stringify(state), idleMs, busy),

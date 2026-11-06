@@ -22,7 +22,7 @@ import java.net.InetAddress
  * signature), stays findable, and when a phone connects opens a [CastSession] to it. States go to [onState].
  */
 @SuppressLint("MissingPermission") // location and Wi-Fi permissions are granted at install as device owner (API 27)
-class CastReceiver(private val context: Context, private val onState: (CarEvent.PhoneCast) -> Unit) {
+class CastReceiver(private val context: Context, private val carName: () -> String, private val onState: (CarEvent.PhoneCast) -> Unit) {
     private val p2p = context.getSystemService(WifiP2pManager::class.java)
     private var channel: WifiP2pManager.Channel? = null
     @Volatile private var session: CastSession? = null
@@ -46,7 +46,8 @@ class CastReceiver(private val context: Context, private val onState: (CarEvent.
         if (running) return
         running = true
         val ch = p2p.initialize(context, Looper.getMainLooper(), null).also { channel = it }
-        hidden("setDeviceName", ch, String::class.java to CarEvent.PhoneCast.NAME)
+        // the name given in setup, as phones list the car; roadsterOS until it has one
+        hidden("setDeviceName", ch, String::class.java to carName().ifEmpty { CarEvent.PhoneCast.NAME })
         setWfd(ch, enabled = true)
         context.registerReceiver(events, IntentFilter(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION))
         p2p.discoverPeers(ch, listener("discoverPeers"))
