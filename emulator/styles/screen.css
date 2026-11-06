@@ -9,6 +9,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .screen {
   position: relative; width: var(--canvas-w); height: var(--canvas-h); overflow: hidden; background: var(--canvas); color: var(--ink);
   zoom: var(--unit-scale); font-family: var(--font);
+  /* Inter keeps its text optical size at every size, as on Android 8 (no automatic opsz there) */
+  font-optical-sizing: none;
   display: grid; grid-template-columns: var(--rail) 1fr 400px; grid-template-rows: var(--bar) 1fr; gap: 0;
   font-size: var(--size-body); font-feature-settings: "tnum" 1, "cv11" 1;
   user-select: none; -webkit-tap-highlight-color: transparent;

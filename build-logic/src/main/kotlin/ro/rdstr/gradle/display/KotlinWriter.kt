@@ -59,6 +59,28 @@ object KotlinWriter {
         appendLine("}")
     }
 
+    fun fonts(pkg: String, rPackage: String, faces: List<DisplayBuild.Face>): String = buildString {
+        appendLine(HEADER)
+        appendLine()
+        appendLine("package $pkg")
+        appendLine()
+        appendLine("import $rPackage.R")
+        appendLine()
+        appendLine("/** The screen's font families, the same files the emulator loads, variable on weight. */")
+        appendLine("object Fonts {")
+        for (f in faces) {
+            appendLine("    /** \"${f.family}\" from emulator/public/fonts/${f.file}, weights ${f.weights.first}-${f.weights.last} */")
+            appendLine("    val ${f.family.uppercase().replace(Regex("[^A-Z0-9]"), "_")} get() = R.font.${f.resource}")
+        }
+        appendLine()
+        appendLine("    /** CSS family name to font resource. */")
+        appendLine("    val byFamily: Map<String, Int> get() = mapOf(${faces.joinToString { "\"${it.family}\" to R.font.${it.resource}" }})")
+        appendLine()
+        appendLine("    /** CSS family name to the weights its file covers. */")
+        appendLine("    val weights: Map<String, IntRange> = mapOf(${faces.joinToString { "\"${it.family}\" to ${it.weights.first}..${it.weights.last}" }})")
+        appendLine("}")
+    }
+
     fun drawable(stem: String) = "rdstr_icon_" + stem.replace('-', '_')
     private fun constant(stem: String) = stem.uppercase().replace('-', '_')
 }

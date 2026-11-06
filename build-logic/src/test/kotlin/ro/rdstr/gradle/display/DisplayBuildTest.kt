@@ -133,10 +133,21 @@ class DisplayBuildTest {
         assertTrue("tokens.css" == order.first() && "chrome.css" !in order)
         val result = DisplayBuild.run(order.map { it to File(emulator, "styles/$it").readText() },
             File(emulator, "public/icons").listFiles()!!.filter { it.extension == "svg" }.associate { it.nameWithoutExtension to it.readText() },
-            "ro.rdstr.ui.tokens", "ro.rdstr.ui")
+            "ro.rdstr.ui.tokens", "ro.rdstr.ui",
+            File(emulator, "public/fonts").listFiles()!!.associate { it.name to it.readBytes() })
         assertTrue("class Base(" in result.tokens && "class SettingsApp(" in result.tokens && "class ToggleWifi(" in result.tokens)
         assertTrue("toggleOn = 0xFFFF9500.toInt()" in result.tokens)
         assertTrue(result.drawables.size == File(emulator, "public/icons").listFiles()!!.count { it.extension == "svg" })
         assertTrue("<clip-path" in result.drawables.getValue("rdstr_icon_speaker_slash_fill"))
+        assertEquals(setOf("rdstr_font_inter.ttf", "rdstr_font_geist.ttf"), result.fontFiles.keys)
+        assertTrue("\"Geist\" to 100..900" in result.fonts)
+    }
+
+    @Test
+    fun `a font split by unicode-range or in woff2 stops the build`() {
+        val split = "@font-face { font-family: \"A\"; src: url(/fonts/a.ttf); unicode-range: U+0000-00FF; }"
+        assertFailsWith<DisplayBuildException> { DisplayBuild.fontFaces(listOf("t.css" to split), mapOf("a.ttf" to ByteArray(1))) }
+        val woff = "@font-face { font-family: \"A\"; src: url(/fonts/a.woff2) format(\"woff2\"); }"
+        assertFailsWith<DisplayBuildException> { DisplayBuild.fontFaces(listOf("t.css" to woff), mapOf("a.woff2" to ByteArray(1))) }
     }
 }
