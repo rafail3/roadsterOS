@@ -35,7 +35,7 @@ Everything tracked in this repository is written in English: code, comments, res
 - Before removing packages: dump `pm list packages -f` and the current HOME to a dated folder under `unit-dumps/`. Remove with `pm uninstall -k --user 0 <pkg>`, restore with `cmd package install-existing <pkg>`. Never remove `com.autochips.*`, the MCU/CAN services, Settings, or anything the boot chain needs.
 - Set HOME with `cmd package set-home-activity <pkg>/<activity>`; re-run after every reinstall.
 - Bluetooth A2DP audio plays only while the vendor BT app is the active source. Keep `com.autochips.bluetooth` installed.
-- Flashing (root, boot image, boot logo, boot animation, system image) is done step by step, each step described in chat and run only after its own explicit approval. No backup of the vendor partitions is taken; the goal is a unit running only roadsterOS.
+- Flashing (root, boot image, boot logo, boot animation, system image) is done step by step, each step described in chat and run only after its own explicit approval. Before the first one, `scripts/unit-probe.ps1` pulls the small partitions (64 MB or less, with the preloader areas) outside the repository; the large ones are not kept. The goal is a unit running only roadsterOS.
 - Logs and dumps committed to the repo are masked first: no phone numbers, contact names, MAC addresses, serial numbers.
 
 ## Repository layout (update as code lands)
@@ -46,7 +46,7 @@ Everything tracked in this repository is written in English: code, comments, res
 - `sim/` — emulator AVD config, recorded `.jsonl` scenarios, `send.ps1`.
 - `emulator/` — browser emulator: Next.js and React app with the screens and a car control panel, driven by `core-car` compiled to JavaScript; also the live design mockup. `styles/screen.css`, `clock.css` and `tokens.css` are the product, `styles/chrome.css` is the tool around it.
 - `install/` — `install.ps1` (APK, HOME activity, the Romania map pack copied over adb); planned: `install.sh`, `rollback.ps1`, `debloat.txt`.
-- `scripts/check-device.ps1` — memory, cold-start and package checks on the unit.
+- `scripts/check-device.ps1` — memory, cold-start and package checks on the unit; `scripts/device-test.ps1` — the automatic display checks with screenshots in the four looks; `scripts/unit-probe.ps1` — build, root, partition table and the small-partition backup.
 - `unit-dumps/` — masked package lists, props and logcat captures, dated.
 - `version.txt` — current version, rewritten by release-please; `app/build.gradle.kts` derives `versionName` and `versionCode` from it.
 
