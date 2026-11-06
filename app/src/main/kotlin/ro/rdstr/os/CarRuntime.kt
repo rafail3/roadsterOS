@@ -154,34 +154,43 @@ object CarRuntime {
             desk.follow(ui.map { it.track }.distinctUntilChanged())
         }
         scope.launch {
-            bus.events.collect { event ->
-                var (next, actions) = Rules.apply(_ui.value.state, event)
-                for (a in actions) when (a) {
-                    is Action.Send -> {
-                        // the rules already counted this command; it only goes to the car, and into the journal
-                        if (_shell.value.recordEvents) journal.write(JournalRecord(0, command = a.command))
-                        bus.send(a.command)
-                    }
-                    Action.SaveState -> prefs.edit().putString(KEPT_KEY, Startup.encodeKept(next)).apply()
-                    else -> Unit
-                }
-                // the car starts: a loud last level comes down to the start volume chosen in the settings
-                if (event is CarEvent.Power && event.acc) startCallVolume()
-                if (event is CarEvent.Power) if (event.acc) connectLastPhone() else connecting?.cancel()
-                if (event is CarEvent.BtConnection && event.connected && event.device.isNotEmpty()) prefs.edit().putString(LAST_PHONE_KEY, event.device).apply()
-                if (event is CarEvent.Power && event.acc) for (c in Settings.startVolume(next, _shell.value.startVolume)) {
-                    bus.send(c)
-                    next = Rules.onCommand(next, c)
-                }
-                _ui.value = _ui.value.reduce(next, actions, event)
-                if (Shell.wakesAod(event)) userActivity()
-                if (_shell.value.recordEvents) journal.write(JournalRecord(0, event = event))
-                // a new call fills the screen, an ended one goes; Home folds it into its bar
-                if (event is CarEvent.Call) shellAction(ShellAction.CallChanged(event.state))
-                // reverse gear takes the screen from a camera opened by hand, and closes it when it comes out
-                if (event is CarEvent.ReverseGear) shellAction(ShellAction.CloseCamera)
-            }
+            bus.events.collect(::onEvent)
         }
+        cast = ro.rdstr.os.cast.CastReceiver(app) { e -> scope.launch { onEvent(e) } }
+        castVisibility()
+    }
+
+    /** Every car event, from the bus or from our own receivers, goes through the rules here. */
+    @Synchronized private fun onEvent(event: CarEvent) {
+        val wasLive = _ui.value.state.cast == CarEvent.PhoneCast.State.LIVE
+        var (next, actions) = Rules.apply(_ui.value.state, event)
+        for (a in actions) when (a) {
+            is Action.Send -> {
+                // the rules already counted this command; it only goes to the car, and into the journal
+                if (_shell.value.recordEvents) journal.write(JournalRecord(0, command = a.command))
+                bus.send(a.command)
+            }
+            Action.SaveState -> prefs.edit().putString(KEPT_KEY, Startup.encodeKept(next)).apply()
+            else -> Unit
+        }
+        // the car starts: a loud last level comes down to the start volume chosen in the settings
+        if (event is CarEvent.Power && event.acc) startCallVolume()
+        if (event is CarEvent.Power) if (event.acc) connectLastPhone() else connecting?.cancel()
+        if (event is CarEvent.Power) { accOn = event.acc; castVisibility() }
+        if (event is CarEvent.BtConnection && event.connected && event.device.isNotEmpty()) prefs.edit().putString(LAST_PHONE_KEY, event.device).apply()
+        if (event is CarEvent.Power && event.acc) for (c in Settings.startVolume(next, _shell.value.startVolume)) {
+            bus.send(c)
+            next = Rules.onCommand(next, c)
+        }
+        _ui.value = _ui.value.reduce(next, actions, event)
+        if (Shell.wakesAod(event)) userActivity()
+        if (_shell.value.recordEvents) journal.write(JournalRecord(0, event = event))
+        // a new call fills the screen, an ended one goes; Home folds it into its bar
+        if (event is CarEvent.Call) shellAction(ShellAction.CallChanged(event.state))
+        // reverse gear takes the screen from a camera opened by hand, and closes it when it comes out
+        if (event is CarEvent.ReverseGear) shellAction(ShellAction.CloseCamera)
+        // the phone's screen opens over the shell when its picture plays, and leaves when the phone stops
+        if (event is CarEvent.PhoneCast && wasLive != (event.state == CarEvent.PhoneCast.State.LIVE)) shellAction(ShellAction.CastChanged(event.state))
     }
 
     fun send(command: CarCommand) {
@@ -199,6 +208,7 @@ object CarRuntime {
         if (after.recordEvents != before.recordEvents) journal.followLogs(after.recordEvents)
         if (after.autoTime != before.autoTime || after.timeSource != before.timeSource) time.apply(after.autoTime, after.timeSource)
         if (after.dashMatched && !before.dashMatched) dash.matched()
+        if (after.castVisible != before.castVisible) castVisibility()
         if (after.adbEnabled != before.adbEnabled) ro.rdstr.os.settings.DeveloperTools.setAdb(app, after.adbEnabled)
         // a change in the sound window: only the processor's values that moved are written
         if (after.dsp != before.dsp) ro.rdstr.car.Sound.writes(before.dsp, after.dsp).forEach { send(CarCommand.Dsp(it)) }
@@ -239,6 +249,20 @@ object CarRuntime {
     }
 
     private var connecting: Job? = null
+
+    private lateinit var cast: ro.rdstr.os.cast.CastReceiver
+    private var accOn = true
+
+    /** Phones find the unit while the car is on and Visible to Phones is on. */
+    private fun castVisibility() {
+        if (!::cast.isInitialized) return
+        if (accOn && _shell.value.castVisible) cast.start() else cast.stop()
+    }
+
+    /** The phone screen view's surface while it is shown, null when it goes. */
+    fun castSurface(surface: android.view.Surface?) {
+        if (::cast.isInitialized) cast.surface = surface
+    }
 
     /**
      * When no phone has connected a few seconds after a start, the saved ones are asked in turn, the last one first;

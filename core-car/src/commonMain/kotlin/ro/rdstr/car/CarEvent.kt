@@ -100,6 +100,20 @@ sealed class CarEvent {
         enum class Band { FM, AM }
     }
 
+    /**
+     * The phone's screen shown on ours over Wi-Fi (Miracast): OFF, VISIBLE while phones can find the unit,
+     * CONNECTING once one chose it, LIVE while its picture plays; [device] is the phone's name.
+     */
+    @Serializable @SerialName("PhoneCast")
+    data class PhoneCast(val state: State, val device: String = "") : CarEvent() {
+        enum class State { OFF, VISIBLE, CONNECTING, LIVE }
+
+        companion object {
+            /** The name phones list the unit under. */
+            const val NAME = "roadsterOS"
+        }
+    }
+
     @Serializable @SerialName("CarDisplay")
     data class CarDisplay(val mode: String) : CarEvent()
 }

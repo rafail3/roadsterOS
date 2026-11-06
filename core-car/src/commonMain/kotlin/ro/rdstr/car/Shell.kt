@@ -23,7 +23,7 @@ enum class TimeSource { NETWORK, GPS }
 enum class CallView { NONE, FULL, BAR }
 
 /** What fills the screen above home. */
-enum class App { HOME, MUSIC, RADIO, MAPS, PHONE, SETTINGS }
+enum class App { HOME, MUSIC, RADIO, MAPS, PHONE, SETTINGS, PHONE_SCREEN }
 
 /** What the shell itself remembers, independent of the car. */
 @Serializable
@@ -94,6 +94,8 @@ data class ShellState(
      * lowers it on the reverse signal alone). Reverse gear takes the screen over and closes it when it comes out.
      */
     val cameraOpen: Boolean = false,
+    /** Phones find the unit in their screen-sharing list (Smart View, Miracast) while the car is on. */
+    val castVisible: Boolean = true,
     /** Every car event is written to a file on the unit, for troubleshooting. */
     val recordEvents: Boolean = false,
 )
@@ -171,6 +173,9 @@ sealed class ShellAction {
     @Serializable @SerialName("SetSound") data class SetSound(val settings: SoundSettings) : ShellAction()
     @Serializable @SerialName("SetCamera") data class SetCamera(val settings: CameraSettings) : ShellAction()
     @Serializable @SerialName("OpenCamera") data object OpenCamera : ShellAction()
+    @Serializable @SerialName("SetCastVisible") data class SetCastVisible(val on: Boolean) : ShellAction()
+    /** Sent when the picture starts or stops: the app opens over everything, and leaves to home when it stops. */
+    @Serializable @SerialName("CastChanged") data class CastChanged(val state: CarEvent.PhoneCast.State) : ShellAction()
     /** Also sent at each change of reverse gear. */
     @Serializable @SerialName("CloseCamera") data object CloseCamera : ShellAction()
     /** The screen was left alone long enough (see [Shell.aodDue]). */
@@ -322,6 +327,13 @@ object Shell {
         is ShellAction.SetCamera -> s.copy(camera = Camera.clamp(a.settings))
         ShellAction.OpenCamera -> s.copy(cameraOpen = true, drawer = false, recents = false)
         ShellAction.CloseCamera -> s.copy(cameraOpen = false)
+        is ShellAction.SetCastVisible -> s.copy(castVisible = a.on)
+        is ShellAction.CastChanged -> when {
+            a.state == CarEvent.PhoneCast.State.LIVE -> reduce(s, ShellAction.OpenApp(App.PHONE_SCREEN))
+            a.state == CarEvent.PhoneCast.State.CONNECTING -> s
+            s.app == App.PHONE_SCREEN -> goHome(s.copy(running = s.running - App.PHONE_SCREEN))
+            else -> s.copy(running = s.running - App.PHONE_SCREEN)
+        }
         ShellAction.EnterAod -> if (s.aodEnabled && s.screenOn) s.copy(aod = true, drawer = false) else s
         ShellAction.ExitAod -> s.copy(aod = false)
         is ShellAction.SetFaceMode -> s.copy(faceMode = a.mode, face = when (a.mode) {
@@ -366,7 +378,7 @@ object Shell {
         animationSpeed = s.animationSpeed, setupDone = s.setupDone,
         // the call level is for this drive only
         dsp = s.dsp.copy(callVolume = Sound.CALL_VOLUME_DEFAULT),
-        camera = s.camera,
+        camera = s.camera, castVisible = s.castVisible,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))

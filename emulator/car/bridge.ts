@@ -33,7 +33,8 @@ export interface CameraSettings { mirror: boolean; guidelines: Guidelines; lineP
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";
 export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
 export type Band = "FM" | "AM";
-export type App = "HOME" | "MUSIC" | "RADIO" | "MAPS" | "PHONE" | "SETTINGS";
+export type App = "HOME" | "MUSIC" | "RADIO" | "MAPS" | "PHONE" | "SETTINGS" | "PHONE_SCREEN";
+export type CastState = "OFF" | "VISIBLE" | "CONNECTING" | "LIVE";
 
 export interface CarState {
   source: Source;
@@ -48,6 +49,8 @@ export interface CarState {
   volume: number;
   /** the radio receives its station; false while paused */
   radioOn: boolean;
+  /** the phone's screen on ours (Miracast) */
+  cast: CastState;
 }
 
 export interface ShellState {
@@ -98,6 +101,8 @@ export interface ShellState {
   camera: CameraSettings;
   /** the camera opened from its icon, without reverse gear */
   cameraOpen: boolean;
+  /** phones find the unit in Smart View while the car is on */
+  castVisible: boolean;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -120,7 +125,8 @@ export type CarEvent =
   | { type: "CallAudio"; inCar: boolean }
   | { type: "PhoneStatus"; battery?: number; signal?: number; operator?: string; roaming?: boolean }
   | { type: "Radio"; khz: number; band: Band; rds?: string; signal?: number; pty?: number; stereo?: boolean }
-  | { type: "CarDisplay"; mode: string };
+  | { type: "CarDisplay"; mode: string }
+  | { type: "PhoneCast"; state: CastState; device?: string };
 
 export type CarCommand =
   | { type: "Media.Play" | "Media.Pause" | "Media.Next" | "Media.Prev" }
@@ -185,6 +191,8 @@ export type ShellAction =
   | { type: "FinishSetup" }
   | { type: "SetSound"; settings: SoundSettings }
   | { type: "SetCamera"; settings: CameraSettings }
+  | { type: "SetCastVisible"; on: boolean }
+  | { type: "CastChanged"; state: CastState }
   | { type: "OpenCamera" | "CloseCamera" };
 
 export interface PhoneNumber { number: string; label: string }
@@ -281,6 +289,7 @@ interface Kotlin {
       startupPhones(saved: string, last: string | null): string;
       startupConnectWaitMs(): number;
       startupConnectTryMs(): number;
+      castName(): string;
       soundPreset(s: string, preset: string): string;
       soundBand(s: string, band: number, db: number): string;
       soundResetLoudness(s: string): string;
@@ -424,6 +433,8 @@ export const bridge = {
   startupPhones: (saved: string[], last: string | null): string[] => JSON.parse(K!.Bridge.startupPhones(JSON.stringify(saved), last)),
   startupConnectWaitMs: () => K!.Bridge.startupConnectWaitMs(),
   startupConnectTryMs: () => K!.Bridge.startupConnectTryMs(),
+  /** The name phones list the unit under in Smart View. */
+  castName: () => K!.Bridge.castName(),
   cameraWrites: (a: CameraSettings, b: CameraSettings): DspWrite[] => JSON.parse(K!.Bridge.cameraWrites(JSON.stringify(a), JSON.stringify(b))),
   soundPreset: (s: SoundSettings, p: EqPreset): SoundSettings => JSON.parse(K!.Bridge.soundPreset(JSON.stringify(s), p)),
   soundBand: (s: SoundSettings, band: number, db: number): SoundSettings => JSON.parse(K!.Bridge.soundBand(JSON.stringify(s), band, db)),

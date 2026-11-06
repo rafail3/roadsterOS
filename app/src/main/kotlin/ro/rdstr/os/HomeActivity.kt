@@ -24,6 +24,29 @@ class HomeActivity : Activity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
         CarRuntime.ensureService(this)
+        addContentView(castView(), android.widget.FrameLayout.LayoutParams(-1, -1))
+    }
+
+    private lateinit var castFrame: android.widget.FrameLayout
+
+    /**
+     * The phone's screen over everything while it plays: black around a 16:9 picture (the stream is 1280x720),
+     * its surface handed to the receiver. ponytail: test screen only; the shell's phone screen view replaces it.
+     */
+    private fun castView(): View {
+        val picture = android.view.SurfaceView(this)
+        picture.holder.addCallback(object : android.view.SurfaceHolder.Callback {
+            override fun surfaceCreated(holder: android.view.SurfaceHolder) = CarRuntime.castSurface(holder.surface)
+            override fun surfaceChanged(holder: android.view.SurfaceHolder, format: Int, width: Int, height: Int) = Unit
+            override fun surfaceDestroyed(holder: android.view.SurfaceHolder) = CarRuntime.castSurface(null)
+        })
+        val width = resources.displayMetrics.widthPixels
+        castFrame = android.widget.FrameLayout(this).apply {
+            setBackgroundColor(android.graphics.Color.BLACK)
+            visibility = View.GONE
+            addView(picture, android.widget.FrameLayout.LayoutParams(width, width * 9 / 16, android.view.Gravity.CENTER))
+        }
+        return castFrame
     }
 
     override fun onResume() {
@@ -33,6 +56,7 @@ class HomeActivity : Activity() {
         val status = findViewById<TextView>(R.id.status)
         job = uiScope.launch {
             CarRuntime.ui.collect { ui ->
+                castFrame.visibility = if (ui.state.cast == ro.rdstr.car.CarEvent.PhoneCast.State.LIVE) View.VISIBLE else View.GONE
                 status.text = buildString {
                     appendLine("source: ${ui.state.source}  playing: ${ui.state.playing}  muted: ${ui.state.muted}")
                     appendLine("bt: ${ui.state.btConnected}  call: ${ui.state.call}  night: ${ui.night}")

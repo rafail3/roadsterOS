@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { bridge, type AnimationSpeed, type AodFace, type CameraSettings, type FaceMode, type Guidelines, type ReverseDip, type ThemeMode, type TimeSource } from "../car/bridge";
-import { allTimeZones, carCommand, factoryReset, setCamera, setSound, openAndroidSettings, restartShell, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
+import { allTimeZones, carCommand, factoryReset, setCamera, setCastVisible, setSound, openAndroidSettings, restartShell, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
 import { Keyboard } from "./Keyboard";
 import { PillSlider } from "./Drawer";
 import { useCloseOntoCard } from "./media";
@@ -372,11 +372,16 @@ function ReverseCamera({ e }: { e: EmulatorState }) {
 
 function Phone({ e }: { e: EmulatorState }) {
   const on = e.shell.lockTypingWhileMoving;
-  return (
+  return (<>
     <Group title="Messages" footer="With this on, a message can be typed only while the car stands. Quick replies and calls work either way.">
       <Row label="Block Typing While Driving"><Switch label="Block Typing While Driving" on={on} onChange={(v) => shellAction({ type: "SetTypingLock", on: v })} /></Row>
     </Group>
-  );
+    <Group title="Phone Screen" footer={e.shell.castVisible
+      ? `While the car is on, phones find the unit as ${bridge.castName()} in Smart View or Screen Mirroring. Sharing pauses the music and the radio; they play again after.`
+      : "Phones cannot find the unit to share their screen."}>
+      <Row label="Visible to Phones"><Switch label="Visible to Phones" on={e.shell.castVisible} onChange={setCastVisible} /></Row>
+    </Group>
+  </>);
 }
 
 function Maps({ e }: { e: EmulatorState }) {
@@ -422,7 +427,7 @@ function Maps({ e }: { e: EmulatorState }) {
 }
 
 /** Our apps' tiles by id; another app gets a tile coloured from its package, with its initial. */
-const APP_MARK: Record<string, string> = { MAPS: "app-mark-nav", MUSIC: "app-mark-music", PHONE: "app-mark-phone", RADIO: "app-mark-radio", SETTINGS: "app-mark-settings" };
+const APP_MARK: Record<string, string> = { MAPS: "app-mark-nav", MUSIC: "app-mark-music", PHONE: "app-mark-phone", RADIO: "app-mark-radio", SETTINGS: "app-mark-settings", PHONE_SCREEN: "app-mark-cast" };
 const markHue = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
 
 function AppName({ id, label }: { id: string; label: string }) {

@@ -12,7 +12,7 @@ object HomeApps {
     /** Our own apps, always there to choose from. */
     val OWN = listOf(
         LaunchableApp("MAPS", "Maps"), LaunchableApp("MUSIC", "Music"), LaunchableApp("PHONE", "Phone"),
-        LaunchableApp("RADIO", "Radio"), LaunchableApp("SETTINGS", "Settings"),
+        LaunchableApp("RADIO", "Radio"), LaunchableApp("SETTINGS", "Settings"), LaunchableApp("PHONE_SCREEN", "Phone Screen"),
     )
 
     fun toggle(chosen: List<String>, id: String): List<String> = when {
