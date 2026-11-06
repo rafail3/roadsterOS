@@ -168,6 +168,7 @@ class VolumeHudView @JvmOverloads constructor(context: Context, attrs: Attribute
     fun setFont(family: String) {
         textPaint.typeface = resources.getFont(Fonts.byFamily[family] ?: Fonts.INTER)
         textPaint.fontVariationSettings = "'wght' 600"
+        ro.rdstr.ui.kit.Type.linear(textPaint)
         val fm = textPaint.fontMetrics
         // the line box is centred in the capsule; the glyphs sit on its baseline
         baseline = cy - (fm.ascent + fm.descent) / 2

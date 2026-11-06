@@ -60,6 +60,7 @@ internal class Dial {
     fun setFont(typeface: Typeface, xHeight: Float) {
         numeral.typeface = typeface
         numeral.fontVariationSettings = "'wght' 500"
+        ro.rdstr.ui.kit.Type.linear(numeral)
         numeral.letterSpacing = -0.02f
         numeralShift = xHeight * numeral.textSize / 2
         for (i in 0 until 4) numeralX[i] = centred(numeral, NUMERALS[i], NUMERAL_X[i])

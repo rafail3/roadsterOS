@@ -470,6 +470,7 @@ class ClockView(context: Context, private val dispatch: (ShellAction) -> Unit) :
     private fun weight(p: Paint, tf: Typeface, w: Int) {
         p.typeface = tf
         p.fontVariationSettings = "'wght' $w"
+        ro.rdstr.ui.kit.Type.linear(p)
     }
 
     private companion object {

@@ -142,6 +142,7 @@ class KeyboardView(context: Context) : View(context) {
             // the weight is a variation of the typeface, so it is set again over the new one
             p.typeface = face
             p.fontVariationSettings = "'wght' ${if (p === textFn) 500 else 400}"
+            ro.rdstr.ui.kit.Type.linear(p)
             val fm = p.fontMetrics
             baselines[i] = -(fm.ascent + fm.descent) / 2f
         }
@@ -152,6 +153,7 @@ class KeyboardView(context: Context) : View(context) {
         textSize = px(size)
         textAlign = Paint.Align.CENTER
         fontVariationSettings = "'wght' $weight"
+        ro.rdstr.ui.kit.Type.linear(this)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {

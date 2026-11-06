@@ -36,3 +36,5 @@ next-env.d.ts
 emulator/public/rdstr.js
 emulator/public/recordings/
 emulator/public/maps/countries.geojson
+# written by next dev
+emulator/AGENTS.md
