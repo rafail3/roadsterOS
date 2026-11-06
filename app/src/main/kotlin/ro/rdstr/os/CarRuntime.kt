@@ -155,6 +155,7 @@ object CarRuntime {
         }
         scope.launch {
             bus.events.collect { event ->
+                val wasLive = _ui.value.state.cast == CarEvent.PhoneCast.State.LIVE
                 var (next, actions) = Rules.apply(_ui.value.state, event)
                 for (a in actions) when (a) {
                     is Action.Send -> {
@@ -180,6 +181,8 @@ object CarRuntime {
                 if (event is CarEvent.Call) shellAction(ShellAction.CallChanged(event.state))
                 // reverse gear takes the screen from a camera opened by hand, and closes it when it comes out
                 if (event is CarEvent.ReverseGear) shellAction(ShellAction.CloseCamera)
+                // the phone's screen opens over the shell when its picture plays, and leaves when the phone stops
+                if (event is CarEvent.PhoneCast && wasLive != (event.state == CarEvent.PhoneCast.State.LIVE)) shellAction(ShellAction.CastChanged(event.state))
             }
         }
     }

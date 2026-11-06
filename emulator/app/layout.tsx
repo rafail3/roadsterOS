@@ -11,6 +11,7 @@ import "../styles/phone.css";
 import "../styles/settings.css";
 import "../styles/sound.css";
 import "../styles/maps.css";
+import "../styles/cast.css";
 import "../styles/chrome.css";
 
 export const metadata: Metadata = { title: "roadsterOS emulator" };

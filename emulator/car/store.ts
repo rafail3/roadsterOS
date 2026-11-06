@@ -64,6 +64,8 @@ export interface EmulatorState {
   phoneStatus: { battery: number; signal: number; operator: string; roaming: boolean };
   /** the steering angle as the CAN box reports it, positive to the left, -1080..1080; only the camera's lines read it */
   eps: number;
+  /** the phone whose screen is shown, while one is */
+  castDevice: string;
   /** Bluetooth switching on, asked by the phone app */
   btTurningOn: boolean;
   /** the phone Bluetooth reports as connected */
@@ -723,6 +725,7 @@ function connectLastPhone() {
 
 export function carEvent(event: CarEvent) {
   if (bridge.wakesAod(event)) userActivity();
+  const wasLive = state.car.cast === "LIVE";
   if (event.type === "BtConnection" && event.connected && event.device) lastPhone = event.device;
   // the car switched off: the unit sleeps and the phone's link drops with it, as on the unit
   if (event.type === "Power" && !event.acc) {
@@ -747,6 +750,12 @@ export function carEvent(event: CarEvent) {
   if (event.type === "Call") shellAction({ type: "CallChanged", state: event.state });
   // reverse gear takes the screen from a camera opened by hand, and closes it when it comes out
   if (event.type === "ReverseGear") shellAction({ type: "CloseCamera" });
+  // the phone's screen opens over the shell when its picture plays, and leaves when the phone stops
+  if (event.type === "PhoneCast") {
+    set({ castDevice: event.state === "OFF" || event.state === "VISIBLE" ? "" : event.device ?? state.castDevice });
+    if (wasLive !== (event.state === "LIVE")) shellAction({ type: "CastChanged", state: event.state });
+  }
+  if (event.type === "Power") castAvailability();
   // the screen follows the ignition: dark with the car off, back on when it starts
   if (event.type === "Power") shellAction({ type: event.acc ? "Wake" : "Sleep" });
   // a loud last level comes down to the start volume chosen in the settings (core-car Settings.startVolume)
@@ -798,8 +807,50 @@ export function setInstalled(app: LaunchableApp, on: boolean) {
 }
 
 /** An icon on home: our apps open in the shell, another app opens full screen on the unit (only logged here). */
+/**
+ * The Miracast receiver as the unit runs it: phones can find it while the car is on and the setting allows; here a
+ * window of the laptop stands for the phone (CarRuntime and the receiver on the unit).
+ */
+let castStream: MediaStream | null = null;
+export const castPicture = () => castStream;
+
+function castAvailability() {
+  const visible = state.acc && state.shell.castVisible;
+  if (!visible && castStream) return stopLaptopWindow();
+  const next = visible ? "VISIBLE" : "OFF";
+  if (state.car.cast !== next && state.car.cast !== "LIVE" && state.car.cast !== "CONNECTING") carEvent({ type: "PhoneCast", state: next });
+}
+setTimeout(castAvailability, 0);
+
+export function setCastVisible(on: boolean) {
+  shellAction({ type: "SetCastVisible", on });
+  castAvailability();
+}
+
+/** The laptop shares a window, as the phone would from Smart View: connecting while it is picked, then live. */
+export async function shareLaptopWindow() {
+  if (state.car.cast !== "VISIBLE") return;
+  const device = "Laptop window";
+  carEvent({ type: "PhoneCast", state: "CONNECTING", device });
+  try {
+    castStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
+  } catch {
+    return carEvent({ type: "PhoneCast", state: state.acc && state.shell.castVisible ? "VISIBLE" : "OFF" });
+  }
+  castStream.getVideoTracks()[0].addEventListener("ended", stopLaptopWindow);
+  carEvent({ type: "PhoneCast", state: "LIVE", device });
+}
+
+/** The phone stops sharing; the unit stays visible for the next time. */
+export function stopLaptopWindow() {
+  castStream?.getTracks().forEach((t) => t.stop());
+  castStream = null;
+  if (state.car.cast === "LIVE" || state.car.cast === "CONNECTING") carEvent({ type: "PhoneCast", state: state.acc && state.shell.castVisible ? "VISIBLE" : "OFF" });
+}
+
 export function launchApp(id: string) {
   if (id === "PHONE") return openPhone();
+  if (id === "PHONE_SCREEN") return shellAction({ type: "OpenApp", app: "PHONE_SCREEN" });
   if (id === "MAPS" || id === "MUSIC" || id === "RADIO" || id === "SETTINGS") return shellAction({ type: "OpenApp", app: id });
   set({ log: addLog("out", { type: "LaunchApp", package: id }) });
 }
@@ -1018,6 +1069,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     calls: sampleCalls(Date.now()),
     phoneStatus: { battery: 4, signal: 3, operator: "Vela Mobile", roaming: false },
     eps: 0,
+    castDevice: "",
     btTurningOn: false,
     voiceAssistant: false,
     messages: [

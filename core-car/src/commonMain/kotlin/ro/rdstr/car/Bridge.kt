@@ -248,6 +248,7 @@ object Bridge {
         json.encodeToString(ListSerializer(String.serializer()), Startup.phonesToTry(json.decodeFromString(ListSerializer(String.serializer()), saved), last))
     fun startupConnectWaitMs(): Int = Startup.CONNECT_WAIT_MS
     fun startupConnectTryMs(): Int = Startup.CONNECT_TRY_MS
+    fun castName(): String = CarEvent.PhoneCast.NAME
     fun cameraGuides(guidelines: String, eps: Int): String = json.encodeToString(Guides.serializer(), Camera.guides(Guidelines.valueOf(guidelines), eps))
     fun cameraWrites(a: String, b: String): String = json.encodeToString(
         ListSerializer(DspWrite.serializer()),

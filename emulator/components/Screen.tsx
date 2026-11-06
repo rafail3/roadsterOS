@@ -15,6 +15,7 @@ import { RadioApp } from "./RadioApp";
 import { MapsApp } from "./MapsApp";
 import { PhoneApp, PhoneNetwork, useUnread } from "./PhoneApp";
 import { SettingsApp } from "./SettingsApp";
+import { PhoneScreenApp } from "./PhoneScreenApp";
 import { SoundApp } from "./SoundApp";
 import { MapOffer } from "./MapOffer";
 import { DevicesSheet } from "./DevicesSheet";
@@ -37,7 +38,7 @@ const RAIL = [
   { id: "camera", label: "Camera", mark: "app-mark-camera" },
 ];
 /** The tile colour of each of our apps on home; other apps get one from their name. */
-const MARKS: Record<string, string> = { MAPS: "app-mark-nav", MUSIC: "app-mark-music", PHONE: "app-mark-phone", RADIO: "app-mark-radio", SETTINGS: "app-mark-settings" };
+const MARKS: Record<string, string> = { MAPS: "app-mark-nav", MUSIC: "app-mark-music", PHONE: "app-mark-phone", RADIO: "app-mark-radio", SETTINGS: "app-mark-settings", PHONE_SCREEN: "app-mark-cast" };
 const hue = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
 // ponytail: centres of the volume keys on this frame model, in screen pixels; another frame needs its own
 // centres of the frame's volume keys, in canvas units (the screen is drawn at 0.8)
@@ -212,6 +213,7 @@ export function Screen() {
       <MusicApp open={shell.app === "MUSIC"} />
       <PhoneApp open={shell.app === "PHONE"} />
       <SettingsApp open={shell.app === "SETTINGS"} />
+      <PhoneScreenApp open={shell.app === "PHONE_SCREEN"} />
       <SoundApp open={shell.sound} />
       <RadioApp open={shell.app === "RADIO"} />
       <MapsApp open={shell.app === "MAPS"} inCard={!inApp && card.shown === "NAVIGATION" && shell.screenOn} light={light} />

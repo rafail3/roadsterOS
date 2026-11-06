@@ -11,6 +11,7 @@ const APP_META: Record<Exclude<App, "HOME">, { label: string; icon: string }> = 
   MAPS: { label: "Maps", icon: "i-navigation-arrow" },
   PHONE: { label: "Phone", icon: "i-phone" },
   SETTINGS: { label: "Settings", icon: "i-gear-six" },
+  PHONE_SCREEN: { label: "Phone Screen", icon: "i-device-mobile" },
 };
 /** A card pushed up past this many pixels, or flicked up, is closed. */
 const CLOSE_DISTANCE = 120;

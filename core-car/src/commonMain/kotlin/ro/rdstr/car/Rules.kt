@@ -23,6 +23,9 @@ data class RulesState(
     val radioOn: Boolean = true,
     /** The phone's music was playing when its link dropped: it plays again when the phone comes back. */
     val playOnConnect: Boolean = false,
+    val cast: CarEvent.PhoneCast.State = CarEvent.PhoneCast.State.OFF,
+    /** The source was playing when the phone's screen came on: it plays again when the screen goes, after any call. */
+    val resumeAfterCast: Boolean = false,
 )
 
 @Serializable
@@ -53,6 +56,7 @@ object Rules {
             s.copy(camera = e.on) to listOf(if (e.on) Action.ShowCamera else Action.HideCamera)
 
         is CarEvent.Call -> call(s, e)
+        is CarEvent.PhoneCast -> cast(s, e.state)
         is CarEvent.SteeringKey -> key(s, e.key)
         is CarEvent.PanelKey -> when (e.key) {
             // the frame's power key switches the screen off and on; mute stays on the wheel and the volume bar
@@ -135,9 +139,33 @@ object Rules {
             paused.copy(call = e.state, resumeAfterCall = s.resumeAfterCall || pause != null) to show + listOfNotNull(pause?.let { Action.Send(it) })
         }
         State.IDLE -> {
-            val resume = if (s.resumeAfterCall) resumeCommand(s) else null
+            // with the phone's screen on, the source waits for it to go too
+            val casting = s.cast == CarEvent.PhoneCast.State.LIVE
+            val resume = if (s.resumeAfterCall && !casting) resumeCommand(s) else null
             val back = resume?.let { onCommand(s, it) } ?: s
-            back.copy(call = State.IDLE, resumeAfterCall = false) to listOfNotNull(Action.HideCall, resume?.let { Action.Send(it) })
+            back.copy(call = State.IDLE, resumeAfterCall = false, resumeAfterCast = s.resumeAfterCast || (s.resumeAfterCall && casting)) to listOfNotNull(Action.HideCall, resume?.let { Action.Send(it) })
+        }
+    }
+
+    /**
+     * The phone's screen coming on stops everything that plays on the unit, so only its own sound is heard; when it
+     * goes, the source plays again, only if it was playing before and no call is on (the call's end resumes it then).
+     */
+    private fun cast(s: RulesState, state: CarEvent.PhoneCast.State): Pair<RulesState, List<Action>> {
+        val live = CarEvent.PhoneCast.State.LIVE
+        return when {
+            state == live && s.cast != live -> {
+                val pause = pauseCommand(s)
+                val paused = pause?.let { onCommand(s, it) } ?: s
+                paused.copy(cast = state, resumeAfterCast = pause != null) to listOfNotNull(pause?.let { Action.Send(it) })
+            }
+            state != live && s.cast == live -> {
+                val resume = if (s.resumeAfterCast && s.call == State.IDLE) resumeCommand(s) else null
+                val back = resume?.let { onCommand(s, it) } ?: s
+                back.copy(cast = state, resumeAfterCast = false, resumeAfterCall = s.resumeAfterCall || (s.resumeAfterCast && s.call != State.IDLE)) to
+                    listOfNotNull(resume?.let { Action.Send(it) })
+            }
+            else -> s.copy(cast = state) to emptyList()
         }
     }
 

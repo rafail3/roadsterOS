@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { Face, SteeringKey, ThemeMode } from "../car/bridge";
 import { SAMPLE_CALLERS, SAMPLE_PHONE } from "../car/phone";
-import { carEvent, dashMinutes, resetDash, setInstalled, UNIT_APPS, GPS_PLACES, incomingCall, incomingMessage, remoteHangUp, removePack, setPhoneStatus, setSteering, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
+import { carEvent, dashMinutes, resetDash, setInstalled, UNIT_APPS, GPS_PLACES, incomingCall, incomingMessage, remoteHangUp, removePack, setPhoneStatus, setSteering, shareLaptopWindow, stopLaptopWindow, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Field, holdToRepeat, Section, Segmented, Switch } from "./controls";
 
 const DEFAULT_TRACK_MS = 228000;
@@ -254,6 +254,20 @@ function DashDisplay() {
 }
 
 /** Other apps on the unit: the ones Settings can put on home. */
+/** A window of this laptop shared as the phone's screen, as Smart View shares the phone's on the unit. */
+function PhoneScreen() {
+  const { car } = useEmulator();
+  const sharing = car.cast === "LIVE" || car.cast === "CONNECTING";
+  return (
+    <Section title="Phone screen">
+      <p className="note">{car.cast === "OFF" ? "The unit is hidden from phones (car off or the setting is off)." : "Pick a window or a tab; it plays on the unit as the phone's screen."}</p>
+      {sharing
+        ? <button className="button" onClick={stopLaptopWindow}>Stop sharing</button>
+        : <button className="button" disabled={car.cast !== "VISIBLE"} onClick={shareLaptopWindow}>Share a laptop window</button>}
+    </Section>
+  );
+}
+
 function UnitApps() {
   const { installed } = useEmulator();
   return (
@@ -278,6 +292,7 @@ export function ControlPanel() {
       <Phone />
       <Radio />
       <Gps />
+      <PhoneScreen />
       <DashDisplay />
       <UnitApps />
       <p className="note">Names, tracks and numbers are synthetic.</p>
