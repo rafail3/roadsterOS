@@ -148,6 +148,7 @@ class SettingsView(context: Context, private val slots: SettingsSlots? = null) :
 
         UiTheme.link(this) { setBackgroundColor(UiTheme.settings.sheet) }
         setBackgroundColor(UiTheme.settings.sheet)
+        visibility = INVISIBLE
     }
 
     fun bind(shell: ShellState, rules: RulesState, state: SettingsState) {
@@ -165,7 +166,7 @@ class SettingsView(context: Context, private val slots: SettingsSlots? = null) :
     private val clip = Path()
     private val clipRect = RectF()
 
-    var open = true
+    var open = false
         set(v) {
             if (field == v) return
             field = v
@@ -850,8 +851,8 @@ class SettingsView(context: Context, private val slots: SettingsSlots? = null) :
                 add(r)
             }
             u.check == Update.Check.AVAILABLE && u.releaseOut != null -> group("available", footer = "Downloads over Wi-Fi and installs while the car is parked; the unit restarts once it is in.") {
-                // the release's own size, from its APK on GitHub
-                row("release", "roadsterOS ${u.releaseOut}", Settings.size(u.releaseBytes))
+                // the release APK's size, as the download bar writes it
+                row("release", "roadsterOS ${u.releaseOut}", ro.rdstr.car.Updater.sizeText(u.releaseBytes))
                 row("install", "Download and Install", onPress = { actions?.installUpdate() })
             }
             else -> group("check", footer = SettingsLogic.checkFooter(wifi, u, s.timeZone)) {

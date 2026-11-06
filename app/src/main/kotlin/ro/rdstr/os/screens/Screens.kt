@@ -25,8 +25,10 @@ interface Screen {
 object Screens {
     val ALL: List<Pair<Layer, (Activity) -> Screen>> = listOf(
         Layer.PANEL to ::HomeCardScreen,
+        Layer.SETTINGS to ::SettingsScreen,
         Layer.RECENTS to ::RecentsScreen,
         Layer.GESTURES to ::GesturesScreen,
+        Layer.RESTART_PROMPT to ::RestartPromptScreen,
         Layer.NOTICE to ::NoticeScreen,
         Layer.DEV to ::DevOverlaysScreen,
     )

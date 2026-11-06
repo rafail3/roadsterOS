@@ -1,11 +1,13 @@
 package ro.rdstr.os.screens
 
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.os.StatFs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import ro.rdstr.car.App
 import ro.rdstr.car.CameraSettings
 import ro.rdstr.car.CarCommand
 import ro.rdstr.car.CarEvent
@@ -26,18 +28,34 @@ import ro.rdstr.ui.settings.SettingsView
 import ro.rdstr.ui.settings.Update
 
 /**
- * The settings app and its restart question on the runtime: [CarRuntime.ui], its shell, the unit's clock and the
- * updater's state go to [SettingsView.bind]; what the views ask goes to CarRuntime and its parts.
+ * SettingsApp.tsx on the unit: [CarRuntime.ui], its shell, the unit's clock and the updater's state go to
+ * [SettingsView.bind]; it is open while the shell's app is Settings. [SettingsScreen.slots] makes the Wi-Fi list and the unit's
+ * picture (NetworksSheet.tsx, UnitPicture.tsx); without them those places stay empty.
  */
-@Mirrors("SettingsApp.tsx", "RestartPrompt.tsx")
-object SettingsScreen {
-    /** The settings app, with the Wi-Fi list and the unit's picture from [slots]. */
-    fun create(context: Context, slots: SettingsSlots?): SettingsView = SettingsView(context, slots).apply { actions = Actions(context) }
+@Mirrors("SettingsApp.tsx")
+class SettingsScreen(activity: Activity) : Screen {
+    override val view = SettingsView(activity, slots).apply { actions = SettingsGlue.Actions(activity) }
 
-    fun restartPrompt(context: Context): RestartPromptView = RestartPromptView(context).apply { actions = Actions(context) }
+    override fun bind(scope: CoroutineScope) = SettingsGlue.follow(view, scope)
 
-    /** Keeps [view] and [prompt] following the runtime while [scope] lives (the activity's main scope). */
-    fun follow(view: SettingsView, prompt: RestartPromptView, scope: CoroutineScope) {
+    companion object {
+        /** The makers of the Wi-Fi list and the unit's picture, set before the activity makes its screens. */
+        var slots: SettingsSlots? = null
+    }
+}
+
+/** RestartPrompt.tsx on the unit: open while the runtime asks (`UiState.restartAsked`). */
+@Mirrors("RestartPrompt.tsx")
+class RestartPromptScreen(activity: Activity) : Screen {
+    override val view = RestartPromptView(activity).apply { actions = SettingsGlue.Actions(activity) }
+
+    override fun bind(scope: CoroutineScope) {
+        scope.launch { CarRuntime.ui.collect { view.open = it.restartAsked } }
+    }
+}
+
+internal object SettingsGlue {
+    fun follow(view: SettingsView, scope: CoroutineScope) {
         val context = view.context
         val installed = CarRuntime.installedApps()
         var about = About()
@@ -46,7 +64,7 @@ object SettingsScreen {
         scope.launch {
             combine(CarRuntime.ui, CarRuntime.shell, CarRuntime.time.now(), CarRuntime.updates.state) { ui, shell, now, update -> Quad(ui, shell, now, update) }
                 .collect { (ui, shell, now, update) ->
-                    prompt.open = ui.restartAsked
+                    view.open = shell.app == App.SETTINGS
                     // About is read when it opens, as the page reads SystemInfo once
                     if (shell.settingsPage != aboutFor) {
                         aboutFor = shell.settingsPage
@@ -99,7 +117,7 @@ object SettingsScreen {
         }
     }
 
-    private class Actions(private val context: Context) : SettingsActions {
+    class Actions(private val context: Context) : SettingsActions {
         override fun shell(action: ShellAction) = CarRuntime.shellAction(action)
         override fun car(command: CarCommand) = CarRuntime.send(command)
         override fun setWifi(on: Boolean) = CarRuntime.setWifi(on)
