@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.library)
+    id("rdstr.display")
 }
 
 android {
@@ -11,3 +12,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 }
+
+// the generator's own tests run with this module's
+tasks.matching { it.name == "test" }.configureEach { dependsOn(gradle.includedBuild("build-logic").task(":test")) }
