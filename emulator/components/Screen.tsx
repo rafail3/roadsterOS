@@ -327,6 +327,8 @@ function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unr
     const next = (el.nextElementSibling ?? el.previousElementSibling) as HTMLElement | null;
     const slot = next ? Math.abs(next.getBoundingClientRect().left - r.left) / scale : el.offsetWidth;
     press.current.x = x;
+    // a press that picked an icon up never opens it, whatever the arranging does by the time its click comes
+    press.current.held = true;
     setDrag({ id, from, dx: 0, slot, scale });
   };
   const down = (e: React.PointerEvent<HTMLButtonElement>, id: string, i: number) => {
@@ -357,7 +359,7 @@ function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unr
     if (to !== drag.from) setArranging(false);
   };
   const open = (id: string) => {
-    // the hold that started the arranging, or any tap while arranging, opens nothing
+    // a press that picked the icon up (the hold, or a grab while arranging), or a tap while arranging, opens nothing
     if (press.current.held || arranging) { press.current.held = false; return; }
     launchApp(id);
   };
