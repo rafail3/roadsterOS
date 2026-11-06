@@ -66,7 +66,7 @@ object Type {
  * lower). Colour is the caller's (`setTextColor`).
  */
 @SuppressLint("ViewConstructor")
-class KitText(context: Context, style: TextStyle) : TextView(context) {
+open class KitText(context: Context, style: TextStyle) : TextView(context) {
     var style: TextStyle = style; set(v) { field = v; applyStyle() }
     private var halfLeading = 0f
 

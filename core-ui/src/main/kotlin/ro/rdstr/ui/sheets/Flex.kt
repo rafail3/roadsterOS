@@ -101,6 +101,10 @@ open class Flex(context: Context, key: String?, val column: Boolean = false) : V
         var alignSelf: Align? = null,
         /** `min-width`/`min-height` along the main axis, canvas px. */
         var minMain: Float = 0f,
+        /** `margin-left: auto` (`margin-top` in a column): the free space goes before this item. */
+        var pushEnd: Boolean = false,
+        /** Out of the flow (`position: absolute`): the subclass measures and places it. */
+        var absolute: Boolean = false,
     ) : LayoutParams(WRAP_CONTENT, WRAP_CONTENT) {
         internal var x = 0f; internal var y = 0f; internal var fw = 0f; internal var fh = 0f; internal var px = 0; internal var py = 0
     }
@@ -111,7 +115,7 @@ open class Flex(context: Context, key: String?, val column: Boolean = false) : V
     override fun checkLayoutParams(p: LayoutParams?) = p is Item
     override fun generateLayoutParams(p: LayoutParams?) = Item()
 
-    private fun kids() = (0 until childCount).map(::getChildAt).filter { it.visibility != GONE }
+    private fun kids() = (0 until childCount).map(::getChildAt).filter { it.visibility != GONE && (it.layoutParams as? Item)?.absolute != true }
 
     /** The size [v] takes by its content, canvas px, with [maxW] (NaN: unbounded) for wrapping text. */
     private fun natural(v: View, maxW: Float): FloatArray {
@@ -196,7 +200,8 @@ open class Flex(context: Context, key: String?, val column: Boolean = false) : V
         val innerCross = if (column) myW - padL - padR else myH - padT - padB
         // place along the main axis
         val free = innerMain - mainTotal
-        var at = (if (column) padT else padL) + when (justify) {
+        val pushed = items.indexOfFirst { it.pushEnd }
+        var at = (if (column) padT else padL) + if (pushed >= 0) 0f else when (justify) {
             Justify.CENTER -> free / 2f; Justify.END -> free; else -> 0f
         }
         val between = if (justify == Justify.BETWEEN && n > 1) gap + free / (n - 1) else gap
@@ -212,6 +217,7 @@ open class Flex(context: Context, key: String?, val column: Boolean = false) : V
             val cAt = (if (column) padL else padT) + cStart + when (a) {
                 Align.CENTER -> (innerCross - cStart - cEnd - c) / 2f; Align.END -> innerCross - cStart - cEnd - c; else -> 0f
             }
+            if (i == pushed && free > 0f) at += free
             val mAt = at + mStart
             if (column) { it.x = cAt; it.y = mAt; it.fw = c; it.fh = main[i] } else { it.x = mAt; it.y = cAt; it.fw = main[i]; it.fh = c }
             at = mAt + main[i] + mEnd + between
