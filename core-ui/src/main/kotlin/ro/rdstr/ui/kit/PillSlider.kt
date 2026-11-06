@@ -46,6 +46,9 @@ class KitPillSlider(context: Context, private val scope: Scope = Scope.SETTINGS)
     var readout: String? = null; set(v) { if (field != v) { field = v; requestLayout(); invalidate() } }
     /** A fill colour of the caller's in place of `color-mix(in srgb, var(--ink) 76%, transparent)` (`fillStyle`). */
     var fillColor: Int? = null; set(v) { field = v; invalidate() }
+    /** The fill's width transition (`fillStyle`, the volume's slower refill around a mute change): 120 ms linear by default. */
+    var fillMs = 120L
+    var fillEase: Easing = Easing.LINEAR
     var onValue: ((Int) -> Unit)? = null
     var onHeld: ((Boolean) -> Unit)? = null
     var onIconClick: (() -> Unit)? = null
@@ -129,7 +132,7 @@ class KitPillSlider(context: Context, private val scope: Scope = Scope.SETTINGS)
     }
 
     private fun changed() {
-        fillW.to(targetFill(), Motion.now(), UiTheme.duration(120), Easing.LINEAR)
+        fillW.to(targetFill(), Motion.now(), UiTheme.duration(fillMs), fillEase)
         colours(animate = true)
     }
 

@@ -54,6 +54,8 @@ object Type {
         paint.textSize = style.size * context.resources.displayMetrics.density
         paint.letterSpacing = style.tracking
         paint.fontFeatureSettings = FEATURES
+        // a new typeface drops the axis, but the paint keeps the settings string and skips the same one again
+        paint.fontVariationSettings = null
         paint.fontVariationSettings = "'wght' ${style.weight}"
     }
 }
@@ -79,6 +81,8 @@ class KitText(context: Context, style: TextStyle) : TextView(context) {
         setTextSize(TypedValue.COMPLEX_UNIT_PX, style.size * resources.displayMetrics.density)
         letterSpacing = style.tracking
         fontFeatureSettings = Type.FEATURES
+        // see Type.apply: the same settings after a new typeface would be skipped
+        fontVariationSettings = null
         fontVariationSettings = "'wght' ${style.weight}"
         if (style.lineHeight > 0f) {
             val m = paint.fontMetrics

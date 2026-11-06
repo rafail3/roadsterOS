@@ -1084,7 +1084,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     stations: { FM: STATIONS.filter((s) => s.band === "FM").map((s) => s.khz), AM: STATIONS.filter((s) => s.band === "AM").map((s) => s.khz) },
     favorites: [89200, 91400, 101900],
     radioScan: null,
-    gps: GPS_PLACES[0],
+    // ?place=<index into GPS_PLACES> starts the car there (captures of the map offer abroad)
+    gps: GPS_PLACES[Number(q.get("place") ?? 0)] ?? GPS_PLACES[0],
     driving: false,
     sweep: false,
     speed: { kmh: 0, stopped: true },

@@ -45,6 +45,25 @@ const SCENES = [
   ...looks.map(([theme, design]) => ({ name: `settings-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=settings` })),
   // the status bar's Wi-Fi bars, connected to the strongest network (level 3)
   ...looks.map(([theme, design]) => ({ name: `wifibars-${theme}-${design}`, query: `theme=${theme}&design=${design}`, root: "bar/bar-group:1/span/wifi-bars.bar-wifi" })),
+  // --- drawer, sheets, prompts, map offer (core-ui DrawerParity) ---
+  ...looks.flatMap(([theme, design]) => {
+    const q = `theme=${theme}&design=${design}`;
+    const look = `${theme}-${design}`;
+    const click = (...selectors) => async (page) => { for (const s of selectors) await page.click(s); };
+    const wifiSheet = async (page) => { await click(".toggle-wifi", ".toggle-wifi")(page); await page.waitForTimeout(2600); };
+    return [
+      { name: `drawerpanel-${look}`, query: `${q}&drawer`, root: "drawer" },
+      { name: `drawerpanel-off-${look}`, query: `${q}&drawer`, root: "drawer", act: click(".toggle-bt", ".toggle-wifi", ".toggle-location", ".toggle-mute") },
+      { name: `devices-${look}`, query: `${q}&devices`, root: "devices" },
+      { name: `devices-off-${look}`, query: `${q}&devices&btoff`, root: "devices" },
+      { name: `networks-${look}`, query: `${q}&drawer`, root: "devices.networks", act: wifiSheet },
+      { name: `networks-join-${look}`, query: `${q}&drawer`, root: "devices.networks", act: async (page) => { await wifiSheet(page); await page.click(".networks .saved-device.is-found .device-main"); } },
+      { name: `prompt-location-${look}`, query: `${q}&drawer`, root: "alert:0", act: click(".toggle-location", ".toggle-wifi", ".toggle-wifi") },
+      { name: `prompt-restart-${look}`, query: `${q}&drawer`, root: "alert:1", act: async (page) => { await page.hover(".toggle-settings"); await page.mouse.down(); await page.waitForTimeout(650); await page.mouse.up(); } },
+      { name: `mapoffer-${look}`, query: `${q}&place=4`, root: "map-offer", act: (page) => page.waitForSelector(".map-offer.is-shown") },
+    ];
+  }),
+  // --- end drawer, sheets ---
 ];
 
 /** Runs in the page: the visible elements under .screen with their keys, boxes and computed styles. */
@@ -157,6 +176,12 @@ for (const scene of SCENES.filter((s) => !wanted || wanted.includes(s.name))) {
   await page.evaluate(() => document.fonts.ready);
   // two frames for layout effects that measure and set state once
   await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+  // a scene may click its way to the state it shows
+  if (scene.act) {
+    await scene.act(page);
+    await page.mouse.move(0, 0);
+    await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+  }
   const layout = await page.evaluate(collect, scene.root ?? null);
   if (scene.root) {
     if (!layout.elements.some((e) => e.key === scene.root)) {
