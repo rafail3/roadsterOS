@@ -58,7 +58,9 @@
 .map-credit .glass-button { width: 44px; height: 44px; }
 .map-credit .glass-button .icon { width: 22px; height: 22px; }
 .map-credit-text { margin: 0; padding: 8px 14px; border-radius: 16px; font-size: 13px; color: rgba(255, 255, 255, 0.9); background: rgba(20, 22, 26, 0.82); border: 1px solid rgba(255, 255, 255, 0.12); animation: media-fade 200ms var(--ease-out); }
-.screen.light .map-credit-text { color: var(--ink); background: rgba(255, 255, 255, 0.92); border-color: rgba(0, 0, 0, 0.08); }
+/* the white fills and drops of the credit, the dots and the strip are Solid's: Glassy keeps its glass with the day tokens */
+.screen.light .map-credit-text { color: var(--ink); border-color: rgba(0, 0, 0, 0.08); }
+.screen.light[data-design="solid"] .map-credit-text { background: rgba(255, 255, 255, 0.92); }
 
 /* ----- the offer of a country's map, over any screen ----- */
 .map-offer { position: absolute; left: 50%; bottom: 44px; z-index: 8; display: flex; align-items: center; gap: var(--space-4); width: 640px; min-height: 84px; padding: 12px 14px 12px 14px; border-radius: 28px; background: var(--sheet-raised); border: 1px solid var(--hairline-strong); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); color: var(--ink); opacity: 0; pointer-events: none; transform: translate(-50%, 140%); transition: transform 240ms cubic-bezier(0.4, 0, 1, 1), opacity 200ms cubic-bezier(0.4, 0, 1, 1); }
@@ -121,7 +123,7 @@
 .card-dots { position: absolute; left: 50%; bottom: 10px; z-index: 4; display: flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 10px; transform: translateX(-50%); background: rgba(0, 0, 0, 0.32); }
 .card-dots button { width: 7px; height: 7px; padding: 0; border-radius: 4px; background: rgba(255, 255, 255, 0.42); transition: width 360ms var(--spring-swap), background-color 200ms var(--ease-out); }
 .card-dots button.is-on { width: 18px; background: #fff; }
-.screen.light .card-dots { background: rgba(255, 255, 255, 0.7); }
+.screen.light[data-design="solid"] .card-dots { background: rgba(255, 255, 255, 0.7); }
 .screen.light .card-dots button { background: rgba(0, 0, 0, 0.25); }
 .screen.light .card-dots button.is-on { background: var(--ink); }
 
@@ -145,7 +147,8 @@
 .card-strip .transport { flex: none; gap: 0; }
 .np .card-strip .tx { --tx-size: 46px; --tx-glyph: 22px; --tx-color: #fff; --tx-bloom: rgba(255, 255, 255, 0.16); }
 .np .card-strip .tx-play { --tx-size: 52px; --tx-glyph: 28px; }
-.screen.light .card-strip { background: rgba(255, 255, 255, 0.94); border-color: rgba(0, 0, 0, 0.08); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14); }
+.screen.light .card-strip { border-color: rgba(0, 0, 0, 0.08); }
+.screen.light[data-design="solid"] .card-strip { background: rgba(255, 255, 255, 0.94); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14); }
 .screen.light .card-strip .np-title, .screen.light .card-strip-cover { color: var(--ink); }
 .screen.light .card-strip .np-artist { color: var(--ink-muted); }
 .screen.light .np .card-strip .tx { --tx-color: var(--ink); --tx-bloom: rgba(0, 0, 0, 0.08); }
