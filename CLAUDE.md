@@ -35,7 +35,7 @@ Everything tracked in this repository is written in English: code, comments, res
 - Before removing packages: dump `pm list packages -f` and the current HOME to a dated folder under `unit-dumps/`. Remove with `pm uninstall -k --user 0 <pkg>`, restore with `cmd package install-existing <pkg>`. Never remove `com.autochips.*`, the MCU/CAN services, Settings, or anything the boot chain needs.
 - Set HOME with `cmd package set-home-activity <pkg>/<activity>`; re-run after every reinstall.
 - Bluetooth A2DP audio plays only while the vendor BT app is the active source. Keep `com.autochips.bluetooth` installed.
-- Nothing is flashed without an explicit, separate approval and a pulled backup of the original partitions.
+- Flashing (root, boot image, boot logo, boot animation, system image) is done step by step, each step described in chat and run only after its own explicit approval. No backup of the vendor partitions is taken; the goal is a unit running only roadsterOS.
 - Logs and dumps committed to the repo are masked first: no phone numbers, contact names, MAC addresses, serial numbers.
 
 ## Repository layout (update as code lands)
