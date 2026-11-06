@@ -27,6 +27,7 @@ import { EdgeBack, NavBar } from "./Gestures";
 import { useCoverColors } from "./media";
 import { useFingerMouse } from "./controls";
 import { BootScreen, StartScreen } from "./Boot";
+import { SetupScreen } from "./SetupScreens";
 
 const THEME_FADE_MS = 750;
 
@@ -251,7 +252,7 @@ export function Screen() {
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.dark.toFixed(3) }} />
       {/* always there: it fades in to switch the screen off and lifts to switch it on; a tap on it wakes the screen */}
       <DevOverlays touches={shell.showTouches} fps={shell.showFrameRate} speed={shell.animationSpeed} />
-      <Startup setupDone={shell.setupDone} step={shell.setupStep} wifi={emulator.wifi.connected !== null} />
+      <Startup setupDone={shell.setupDone} step={shell.setupStep} carName={shell.carName} wifi={emulator.wifi.connected !== null} />
       <AlwaysOn on={shell.aod} now={now} face={bridge.aodFace(shell)} h24={shell.clock24h} />
       <button className={classes("screen-off", !shell.screenOn && "is-on", waking && "is-lifting")} aria-label="Screen off, tap to wake" tabIndex={shell.screenOn ? -1 : 0} aria-hidden={shell.screenOn} onClick={() => shellAction({ type: "Wake" })} />
     </div>
@@ -279,22 +280,14 @@ const BOOTS = typeof window === "undefined" || !new URLSearchParams(window.locat
  * A cold start: the boot screen, then the setup until it is finished. A first start (setup at the logo) moves on to the
  * start screen once the boot picture is complete; a unit switched off halfway through setup boots, then resumes there.
  */
-function Startup({ setupDone, step, wifi }: { setupDone: boolean; step: SetupStep; wifi: boolean }) {
+function Startup({ setupDone, step, carName, wifi }: { setupDone: boolean; step: SetupStep; carName: string; wifi: boolean }) {
   const [booting, setBooting] = useState(BOOTS);
   const next = () => shellAction({ type: "SetupNext", wifi, updateAvailable: false });
   if (booting) return <BootScreen onDone={() => { setBooting(false); if (!setupDone && step === "LOGO") next(); }} />;
   if (setupDone) return null;
   if (step === "LOGO") return <BootScreen onDone={next} />;
   if (step === "START") return <StartScreen version={process.env.RDSTR_VERSION ?? ""} onStart={next} />;
-  return (
-    <section className="setup" aria-label="Setup">
-      <h1 className="setup-title">{step}</h1>
-      <div className="setup-row">
-        <button className="setup-start" onClick={() => shellAction({ type: "SetupBack" })}>Back</button>
-        <button className="setup-start" onClick={next}>Continue</button>
-      </div>
-    </section>
-  );
+  return <SetupScreen step={step} carName={carName} next={next} />;
 }
 
 /**

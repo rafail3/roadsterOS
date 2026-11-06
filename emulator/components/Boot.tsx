@@ -188,3 +188,20 @@ export function StartScreen({ version, onStart }: { version: string; onStart: ()
 
 // frame captures: the boot and start pictures at any moment, compared against the approved design's frames
 if (typeof window !== "undefined") Object.assign(window, { rdstrBoot: { drawBoot, drawStart } });
+
+/** The boot screen's 5x7 pixel font, for captions elsewhere in the setup. */
+export const pixelFont = () => boot().tiny;
+
+/** The symbol, small: the cube's dots at whatever size, drawn once. [size] in canvas pixels (the screen draws at 0.8). */
+export function CubeMark({ size }: { size: number }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const px = Math.round(size * 0.8);
+  useEffect(() => {
+    const c = ref.current?.getContext("2d");
+    if (!c) return;
+    c.clearRect(0, 0, px, px);
+    // the cube spans about 76 dots each way
+    drawCube(c, px / 2, px / 2, px / 80);
+  }, [px]);
+  return <canvas ref={ref} className="cube-mark" width={px} height={px} style={{ width: size, height: size }} aria-hidden="true" />;
+}
