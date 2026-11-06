@@ -7,7 +7,7 @@ data class LaunchableApp(val id: String, val label: String)
 /** The row of app icons on home: which apps, in which order, chosen in the settings. */
 object HomeApps {
     /** The row fits this many icons beside the card. */
-    const val MAX = 6
+    const val MAX = 5
     val DEFAULT = listOf("MAPS", "MUSIC", "PHONE")
     /** Our own apps, always there to choose from. */
     val OWN = listOf(

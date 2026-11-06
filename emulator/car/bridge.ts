@@ -281,6 +281,20 @@ function load(): Kotlin | null {
 const K = load();
 export const bridgeLoaded = K !== null;
 
+// In development the core-car bundle is loaded once, as a script, and a hot reload of the TypeScript keeps the old one:
+// when a rebuild replaces public/rdstr.js the page reloads whole, so the two never disagree.
+if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
+  let seen: string | null = null;
+  const stamp = (r: Response) => r.headers.get("etag") ?? r.headers.get("last-modified") ?? r.headers.get("content-length");
+  setInterval(() => {
+    fetch("/rdstr.js", { method: "HEAD", cache: "no-store" }).then((r) => {
+      const now = stamp(r);
+      if (seen !== null && now !== null && now !== seen) window.location.reload();
+      seen = now ?? seen;
+    }).catch(() => {});
+  }, 2000);
+}
+
 export const bridge = {
   initial: (): CarState => JSON.parse(K!.Bridge.initial()),
   shellInitial: (): ShellState => JSON.parse(K!.Bridge.shellInitial()),

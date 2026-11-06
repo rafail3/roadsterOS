@@ -14,11 +14,11 @@ class HomeAppsTest {
         assertEquals(listOf("MAPS", "MUSIC", "PHONE"), s.homeApps)
         s = Shell.reduce(s, ShellAction.ToggleHomeApp("com.waze"))
         assertEquals(listOf("MAPS", "MUSIC", "PHONE", "com.waze"), s.homeApps)
-        s = Shell.reduce(Shell.reduce(s, ShellAction.ToggleHomeApp("RADIO")), ShellAction.ToggleHomeApp("SETTINGS"))
-        assertEquals(6, s.homeApps.size)
-        // the row is full: a seventh does not go on
-        assertEquals(s.homeApps, Shell.reduce(s, ShellAction.ToggleHomeApp("org.videolan.vlc")).homeApps)
-        assertEquals(listOf("MAPS", "PHONE", "com.waze", "RADIO", "SETTINGS"), Shell.reduce(s, ShellAction.ToggleHomeApp("MUSIC")).homeApps)
+        s = Shell.reduce(s, ShellAction.ToggleHomeApp("RADIO"))
+        assertEquals(5, s.homeApps.size)
+        // the row is full: a sixth does not go on
+        assertEquals(s.homeApps, Shell.reduce(s, ShellAction.ToggleHomeApp("SETTINGS")).homeApps)
+        assertEquals(listOf("MAPS", "PHONE", "com.waze", "RADIO"), Shell.reduce(s, ShellAction.ToggleHomeApp("MUSIC")).homeApps)
     }
 
     @Test
