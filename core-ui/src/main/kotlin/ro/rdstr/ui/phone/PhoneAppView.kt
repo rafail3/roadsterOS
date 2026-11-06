@@ -538,10 +538,22 @@ class TabButton(context: Context, iconCls: String, label: String, private val im
         onTheme = { restyle(false) }
     }
 
+    private var inkAnim: android.animation.ValueAnimator? = null
+
     private fun restyle(animate: Boolean) {
         val ink = Ink(immersive)
         val c = if (chosen) ink.ink else ink.ink2
-        glyph.color = c; text.color = c
+        inkAnim?.cancel()
+        val ms = ro.rdstr.ui.kit.UiTheme.duration(220L)
+        // `transition: color 220ms var(--seamless)`
+        if (animate && ms > 0L && text.color != c) {
+            inkAnim = android.animation.ValueAnimator.ofArgb(text.color, c).apply {
+                duration = ms
+                interpolator = ro.rdstr.ui.kit.Motion.interpolator(ro.rdstr.ui.tokens.Base.DARK.seamless)
+                addUpdateListener { val v = it.animatedValue as Int; glyph.color = v; text.color = v }
+                start()
+            }
+        } else { glyph.color = c; text.color = c }
         val fill = if (chosen) ink.on(0.18f) else 0
         css.gradient = if (chosen && ink.glassy) ink.sheen else null
         css.shadows = if (chosen && ink.glassy) ink.glassShadow else emptyList()

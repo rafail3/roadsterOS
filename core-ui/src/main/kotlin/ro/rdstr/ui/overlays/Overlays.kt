@@ -168,7 +168,11 @@ class CallOverlayView(context: Context, private val actions: OverlayActions) : B
         dir = Dir.COLUMN; align = Align.CENTER; gap = 12f
         contentDescription = label
         tappable(onTap)
-        add(CallKey(context, accept, 96f, immersive = true).also { it.isClickable = false; it.isDuplicateParentStateEnabled = true })
+        add(CallKey(context, accept, 96f, immersive = true).also {
+            it.isClickable = false; it.isDuplicateParentStateEnabled = true
+            // `.call-key.is-ringing`: call-ring, 1.6 s on --seamless, scale 1.06 at its middle, while the call rings
+            if (accept) pulse(it, 1600L) { v, f -> val k = 1f + 0.06f * f; v.scaleX = k; v.scaleY = k }
+        })
         val t = add(txt(context, 17f, 600, null, label))
         onTheme = { t.color = -1 }
     }
@@ -386,6 +390,21 @@ class VoiceView(context: Context, actions: OverlayActions) : Layer(context) {
         pill.contentDescription = "Listening on your phone…"
         val mic = pill.add(Box(context, "voice-mic")) { w = 56f; h = 56f }.apply { dir = Dir.STACK; align = Align.CENTER; justify = Align.CENTER; css.radius = 999f }
         val glyph = mic.add(icon(context, "i-microphone-fill", 28f)) { w = 28f; h = 28f }
+        // `.voice-mic`: voice-pulse, 1.4 s on --seamless, a 10 px ring of the blue at 25 % at its middle
+        val ring = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply { color = 0x400A84FF }
+        var ringAt = 0f
+        mic.overlay.add(object : android.graphics.drawable.Drawable() {
+            override fun draw(c: android.graphics.Canvas) {
+                if (ringAt <= 0f) return
+                val d = mic.resources.displayMetrics.density
+                c.drawCircle(mic.width / 2f, mic.height / 2f, mic.width / 2f + 10f * d * ringAt, ring)
+            }
+            override fun setAlpha(alpha: Int) = Unit
+            override fun setColorFilter(cf: android.graphics.ColorFilter?) = Unit
+            @Suppress("OVERRIDE_DEPRECATION") override fun getOpacity() = android.graphics.PixelFormat.TRANSLUCENT
+        }.also { it.setBounds(-200, -200, 400, 400) })
+        mic.clipChildren = false
+        pulse(mic, 1400L) { v, f -> ringAt = f; v.invalidate() }
         val text = pill.add(txt(context, 19f, 600, "voice-text", "Listening on your phone…"))
         pill.add(Pill(context, "Stop", Pill.Kind.PLAIN, { Ink(false).panelRaised }, immersive = false) { actions.carCommand(CarCommand.Phone.VoiceAssistant(false)) })
         pill.onTheme = {
@@ -565,3 +584,28 @@ class GuideLines(context: Context) : View(context) {
     }
 }
 
+/**
+ * A CSS infinite keyframe pulse with its peak at 50 % (`call-ring`, `voice-pulse`): [apply] gets 0..1..0 over
+ * [periodMs] on `--seamless`, scaled by the animation speed; none when animations are off. Runs while [view] is attached.
+ */
+internal fun pulse(view: android.view.View, periodMs: Long, apply: (android.view.View, Float) -> Unit) {
+    val ms = ro.rdstr.ui.kit.UiTheme.duration(periodMs)
+    if (ms <= 0L) return
+    val ease = ro.rdstr.ui.kit.Motion.interpolator(ro.rdstr.ui.tokens.Base.DARK.seamless)
+    val anim = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+        duration = ms
+        repeatCount = android.animation.ValueAnimator.INFINITE
+        interpolator = android.view.animation.LinearInterpolator()
+        addUpdateListener { a ->
+            val t = a.animatedValue as Float
+            // 0 -> 50 % -> 100 %: each half eased on its own, as CSS applies the timing function per keyframe segment
+            val f = if (t < 0.5f) ease.getInterpolation(t * 2f) else 1f - ease.getInterpolation((t - 0.5f) * 2f)
+            apply(view, f)
+        }
+    }
+    view.addOnAttachStateChangeListener(object : android.view.View.OnAttachStateChangeListener {
+        override fun onViewAttachedToWindow(v: android.view.View) = anim.start()
+        override fun onViewDetachedFromWindow(v: android.view.View) { anim.cancel(); apply(view, 0f) }
+    })
+    if (view.isAttachedToWindow) anim.start()
+}
