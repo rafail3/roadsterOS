@@ -91,6 +91,9 @@ export function MapsApp({ open, inCard, light }: { open: boolean; inCard: boolea
   const streetAtMs = useRef(0);
   const latest = useRef({ gps, speed, speedChime: shell.speedChime });
   latest.current = { gps, speed, speedChime: shell.speedChime };
+  // the zoom the buttons or the locate button asked for, until the map is there: each follow ease carries it, so a new
+  // position does not cut the zoom short; a finger on the map drops it
+  const zoomTarget = useRef<number | null>(null);
 
   useEffect(() => { loadBorders().then(setBorders).catch(() => {}); }, []);
   // the packs built on this laptop: with one, the map draws from it and needs no network, as on the unit
@@ -118,7 +121,8 @@ export function MapsApp({ open, inCard, light }: { open: boolean; inCard: boolea
       fadeDuration: 0,
     });
     // a finger on the map stops following the car until the recentre button
-    m.on("dragstart", (e) => { if (e.originalEvent) setFollow(false); });
+    m.on("dragstart", (e) => { if (e.originalEvent) { setFollow(false); zoomTarget.current = null; } });
+    m.on("zoomstart", (e) => { if (e.originalEvent) zoomTarget.current = null; });
     m.on("rotate", () => {
       setBearing(m.getBearing());
       turnPuck(el, latest.current.gps.heading - m.getBearing());
@@ -173,7 +177,7 @@ export function MapsApp({ open, inCard, light }: { open: boolean; inCard: boolea
     if (!m || !seen) return;
     puck.current?.setLngLat([gps.lon, gps.lat]);
     if (puck.current) turnPuck(puck.current.getElement(), gps.heading - m.getBearing());
-    if (follow) m.easeTo({ center: [gps.lon, gps.lat], bearing: headingUp ? gps.heading : 0, duration: driving ? 260 : 600, easing: (t) => t });
+    if (follow) followCar(m);
     const now = performance.now();
     const heading = speed.stopped ? null : gps.heading;
     if (now - streetAtMs.current > STREET_EVERY_MS && m.isStyleLoaded()) {
@@ -191,8 +195,27 @@ export function MapsApp({ open, inCard, light }: { open: boolean; inCard: boolea
     setWarning((old) => (old.limit === w.limit && old.over === w.over && old.lit === w.lit && old.tone === w.tone ? old : w));
   }, [gps, speed, follow, headingUp, seen, driving]);
 
-  const zoom = (by: number) => map.current?.easeTo({ zoom: map.current.getZoom() + by, duration: 250 });
-  const recentre = () => { setFollow(true); map.current?.easeTo({ zoom: DRIVE_ZOOM, duration: 500 }); };
+  /** One ease onto the car: centre, heading and the zoom asked for while it is not reached yet. */
+  function followCar(m: maplibregl.Map) {
+    const { gps: at } = latest.current;
+    if (zoomTarget.current !== null && Math.abs(m.getZoom() - zoomTarget.current) < 1e-6) zoomTarget.current = null;
+    const zoomTo = zoomTarget.current === null ? {} : { zoom: zoomTarget.current };
+    m.easeTo({ center: [at.lon, at.lat], bearing: headingUp ? at.heading : 0, ...zoomTo, duration: driving ? 260 : 600, easing: (t) => t });
+  }
+  // a step goes on from the step under way, so quick presses add up to whole steps
+  const zoom = (by: number) => {
+    const m = map.current;
+    if (!m) return;
+    const from = m.isEasing() && zoomTarget.current !== null ? zoomTarget.current : m.getZoom();
+    zoomTarget.current = Math.min(ZOOM_RANGE.max, Math.max(ZOOM_RANGE.min, from + by));
+    m.easeTo({ zoom: zoomTarget.current, duration: 250 });
+  };
+  // back onto the car at the driving zoom in the follow ease itself, so nothing cancels the zoom
+  const recentre = () => {
+    zoomTarget.current = DRIVE_ZOOM;
+    if (follow && map.current) followCar(map.current);
+    else setFollow(true);
+  };
 
   return (
     <section ref={section} className={`music-app maps-app${open ? " is-open" : ""}`} aria-label="Maps" aria-hidden={!open} inert={!open}>
