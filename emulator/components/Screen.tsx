@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { bridge, type Source } from "../car/bridge";
 import { userActivity, watchIdle } from "../car/store";
 import { Dial } from "./Clock";
@@ -292,6 +292,31 @@ function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unr
   const [settle, setSettle] = useState<{ id: string; dx: number } | null>(null);
   const press = useRef<{ timer: ReturnType<typeof setTimeout> | null; x: number; held: boolean }>({ timer: null, x: 0, held: false });
   const row = useRef<HTMLDivElement>(null);
+  // an icon taken off shrinks away first; then the row re-centres
+  const [leaving, setLeaving] = useState<string | null>(null);
+  const placed = useRef(new Map<string, number>());
+  const ids = apps.map((a) => a.id).join();
+
+  // when icons come or go the row re-centres: each one glides from where it was to its new place, a new one grows in
+  useLayoutEffect(() => {
+    const els = row.current ? ([...row.current.children] as HTMLElement[]) : [];
+    const now = new Map(els.map((el, i) => [apps[i]?.id ?? "", el.offsetLeft]));
+    const had = placed.current;
+    // a drop places the icons itself (settle); only additions and removals glide here
+    if (had.size && !settle && !drag) els.forEach((el, i) => {
+      const before = had.get(apps[i].id);
+      const after = now.get(apps[i].id)!;
+      if (before === undefined) el.animate([{ opacity: 0, transform: "scale(0.6)" }, { opacity: 1, transform: "none" }], { duration: 240, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+      else if (before !== after) el.animate([{ transform: `translateX(${before - after}px)` }, { transform: "none" }], { duration: 320, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+    });
+    placed.current = now;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ids]);
+
+  const remove = (id: string) => {
+    setLeaving(id);
+    setTimeout(() => { shellAction({ type: "ToggleHomeApp", id }); setLeaving(null); }, 180);
+  };
   // where the held icon would drop, never past the row's ends, and where each icon is drawn meanwhile (core-car HomeArrange)
   const count = apps.length;
   const to = drag ? bridge.arrange.dropIndex(drag.from, drag.dx, drag.slot, count) : -1;
@@ -369,7 +394,7 @@ function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unr
         // the phone's icon counts its unread messages, as a phone's does
         const badge = id === "PHONE" ? unread : 0;
         return (
-          <button key={id} className={classes("app", drag?.id === id && "is-dragged")}
+          <button key={id} className={classes("app", drag?.id === id && "is-dragged", leaving === id && "is-leaving")}
             style={{ "--i": i, transform: drag ? `translateX(${shift(i)}px)` : settle?.id === id ? `translateX(${settle.dx}px)` : undefined } as CSSProperties}
             aria-label={badge ? `${label}, ${badge} unread messages` : label}
             onPointerDown={(e) => down(e, id, i)} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onKeyDown={(e) => key(e, id)} onClick={() => open(id)}>
@@ -379,8 +404,8 @@ function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unr
               {arranging && (
                 <span className="app-remove" role="button" tabIndex={0} aria-label={`Remove ${label} from home`}
                   onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => { e.stopPropagation(); shellAction({ type: "ToggleHomeApp", id }); }}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); shellAction({ type: "ToggleHomeApp", id }); } }} />
+                  onClick={(e) => { e.stopPropagation(); remove(id); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); remove(id); } }} />
               )}
             </span>
             <span>{label}</span>
