@@ -206,6 +206,8 @@ sealed class ShellAction {
     @Serializable @SerialName("RadioSwitched") data class RadioSwitched(val radio: Radio, val on: Boolean) : ShellAction()
     /** The setup from its first screen again, every other setting kept (the emulator's control panel). */
     @Serializable @SerialName("RestartSetup") data object RestartSetup : ShellAction()
+    /** A step's work finished (preparation, files): it counts as passed even if Back is pressed before Continue. */
+    @Serializable @SerialName("SetupStepDone") data class SetupStepDone(val step: Setup.Step) : ShellAction()
     /** A blank or spaces-only name is ignored (Setup.carName). */
     @Serializable @SerialName("SetCarName") data class SetCarName(val name: String) : ShellAction()
     /** Sent when the picture starts or stops: the app opens over everything, and leaves to home when it stops. */
@@ -373,6 +375,7 @@ object Shell {
             Setup.next(s.setupStep, a.wifi, a.updateAvailable)?.let { s.copy(setupStep = it, setupPassed = passed) } ?: s.copy(setupDone = true, setupPassed = passed)
         }
         ShellAction.SetupBack -> s.copy(setupStep = Setup.back(s.setupStep))
+        is ShellAction.SetupStepDone -> if (a.step in s.setupPassed) s else s.copy(setupPassed = s.setupPassed + a.step)
         is ShellAction.SetBtAutoConnect -> s.copy(btAutoConnect = a.on)
         is ShellAction.OpenSettingsPage -> s.copy(settingsPage = a.page)
         is ShellAction.RadioSwitched -> when {

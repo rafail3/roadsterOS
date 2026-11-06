@@ -141,6 +141,8 @@ function PrepareScreen({ passed, next }: { passed: boolean; next: () => void }) 
     const timer = setTimeout(() => setP((now) => bridge.setupPrepareStep(now, "done", running)), TASK_MS[running]);
     return () => clearTimeout(timer);
   }, [running]);
+  // finished: passed for this setup, even if Back comes before Continue
+  useEffect(() => { if (p.ok && !passed) shellAction({ type: "SetupStepDone", step: "PREPARE" }); }, [p.ok, passed]);
   return (
     // a failed task: the one button runs the failed tasks again; Continue once all are done
     <Frame step="PREPARE" title="Preparing the system" text="roadsterOS takes over the unit. This runs once." canNext={p.finished} canBack={p.finished}
@@ -323,6 +325,7 @@ function FilesScreen({ passed, next }: { passed: boolean; next: () => void }) {
   const files = [{ name: "Map of Romania", size: "363 MB", ms: 1400 }, { name: "Fonts", size: "1.8 MB", ms: 900 }];
   // passed in this setup: the files are there, shown done
   const [at, setAt] = useState(passed ? files.length : 0);
+  useEffect(() => { if (at >= files.length && !passed) shellAction({ type: "SetupStepDone", step: "FILES" }); }, [at, passed]);
   const [fraction, setFraction] = useState(0);
   useEffect(() => {
     if (at >= files.length) return;

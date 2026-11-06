@@ -69,6 +69,9 @@ class SetupTest {
         assertTrue(Step.PREPARE in s.setupPassed)
         assertEquals(s.setupPassed, Shell.decodePreferences(Shell.encodePreferences(s)).setupPassed)
         assertTrue(Setup.Prepare.COMPLETE.ok)
+        // finished, then Back before Continue: still passed
+        val fresh = Shell.reduce(ShellState(setupDone = false, setupStep = Step.PREPARE), ShellAction.SetupStepDone(Step.PREPARE))
+        assertTrue(Step.PREPARE in Shell.reduce(fresh, ShellAction.SetupBack).setupPassed)
     }
 
     @Test
