@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.20.0](https://github.com/rafail3/roadsterOS/compare/v1.19.0...v1.20.0) (2026-11-06)
+
+
+### Features
+
+* **setup:** passed setup steps remembered, preparation and files not run again, back waits while a step works ([bc580c9](https://github.com/rafail3/roadsterOS/commit/bc580c9890dc45561d2f2501657e1fd14e45685c))
+
+
+### Bug Fixes
+
+* **setup:** car name field and keyboard in the solid look with space at its width ([bc580c9](https://github.com/rafail3/roadsterOS/commit/bc580c9890dc45561d2f2501657e1fd14e45685c))
+
 ## [1.19.0](https://github.com/rafail3/roadsterOS/compare/v1.18.0...v1.19.0) (2026-11-06)
 
 
