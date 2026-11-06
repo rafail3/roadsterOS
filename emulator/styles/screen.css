@@ -383,7 +383,7 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 /* the boot and start screens: a 1024x600 canvas, drawn 1:1 on the unit's pixels (the screen is zoomed by --unit-scale) */
 .boot { position: absolute; inset: 0; z-index: 8; display: block; padding: 0; border: 0; background: #07080a; cursor: pointer; }
 /* About's picture of the unit: the frame as the unit's own (piano-black, bevelled edge, one diagonal reflection), scaled down */
-.about-hero { display: flex; align-items: center; justify-content: flex-end; gap: 28px; margin: 0 0 20px; }
+.about-hero { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin: -8px 4px 10px 0; }
 .unit-mini { position: relative; flex: none; }
 .unit-mini-bezel {
   position: absolute; left: 0; top: 0; isolation: isolate; width: 1154px; height: 676px; padding: 36px 30px 40px 100px; border-radius: 22px; transform-origin: 0 0;

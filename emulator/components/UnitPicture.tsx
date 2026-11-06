@@ -11,7 +11,7 @@ const KEYS: { icon: string; sign?: string }[] = [
  * About's picture of the unit: the piano-black frame with its pinholes, touch keys and reflection, the boot picture
  * on its screen, and the symbol beside it. [width] in canvas pixels.
  */
-export function UnitPicture({ width = 360 }: { width?: number }) {
+export function UnitPicture({ width = 210 }: { width?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const scale = width / FRAME.width;
   useEffect(() => {
@@ -33,7 +33,7 @@ export function UnitPicture({ width = 360 }: { width?: number }) {
           <canvas ref={ref} className="unit-mini-screen" width={1024} height={600} />
         </div>
       </div>
-      <CubeMark size={Math.round(FRAME.height * scale * 0.82)} />
+      <CubeMark size={Math.round(FRAME.height * scale * 0.7)} />
     </div>
   );
 }
