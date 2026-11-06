@@ -37,7 +37,7 @@ import kotlin.math.roundToInt
  * parent's layout, which is not built yet; its size, drawing and inner layout are the component's own. Scenes are
  * skipped until the browser capture exists (`npm run parity:capture`).
  */
-class ParityCapture {
+open class ParityCapture {
     @get:Rule
     val paparazzi = Paparazzi(
         deviceConfig = DeviceConfig.NEXUS_5.copy(
@@ -63,13 +63,13 @@ class ParityCapture {
         }
     }
 
-    private fun looks(block: (name: String, light: Boolean, glassy: Boolean) -> Unit) {
+    protected fun looks(block: (name: String, light: Boolean, glassy: Boolean) -> Unit) {
         for (glassy in listOf(false, true)) for (light in listOf(false, true)) {
             block("${if (light) "light" else "dark"}-${if (glassy) "glassy" else "solid"}", light, glassy)
         }
     }
 
-    private fun component(scene: String, build: () -> View) {
+    protected fun component(scene: String, build: () -> View) {
         val web = File(WEB, "$scene.json")
         assumeTrue("no browser capture $web; run npm run parity:capture", web.isFile)
         val json = web.readText()
@@ -123,7 +123,8 @@ class ParityCapture {
                 append("""{"key":${q(key)},"tag":${q(view.javaClass.simpleName)},""")
                 append(""""box":{"x":${x / density},"y":${y / density},"w":${view.width / density},"h":${view.height / density}},""")
                 append(""""style":{"background":${hex(background)},"color":${hex(color)},""")
-                if (view is TextView) append(""""fontSize":${view.textSize / density},"fontWeight":${view.typeface?.weight ?: 400},""")
+                // a KitText draws its weight on the font's wght axis, which the typeface it reports does not carry
+                if (view is TextView) append(""""fontSize":${view.textSize / density},"fontWeight":${(view as? ro.rdstr.ui.kit.KitText)?.style?.weight ?: view.typeface?.weight ?: 400},""")
                 append(""""opacity":${view.alpha}},"text":${text?.let(::q) ?: "null"}}""")
             }
         }
