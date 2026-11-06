@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The unit build runs as the system user (uid 1000), as the vendor's MainUI does: the platform signature
+     (keys/platform.p12) lets a /data app share it. The sim build installs on stock emulator images, without it. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    android:sharedUserId="android.uid.system" />
