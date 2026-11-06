@@ -90,6 +90,8 @@ export interface ShellState {
   setupDone: boolean;
   dsp: SoundSettings;
   camera: CameraSettings;
+  /** the camera opened from its icon, without reverse gear */
+  cameraOpen: boolean;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -176,7 +178,8 @@ export type ShellAction =
   | { type: "SetAnimationSpeed"; speed: AnimationSpeed }
   | { type: "FinishSetup" }
   | { type: "SetSound"; settings: SoundSettings }
-  | { type: "SetCamera"; settings: CameraSettings };
+  | { type: "SetCamera"; settings: CameraSettings }
+  | { type: "OpenCamera" | "CloseCamera" };
 
 export interface PhoneNumber { number: string; label: string }
 export interface Contact { name: string; numbers: PhoneNumber[] }

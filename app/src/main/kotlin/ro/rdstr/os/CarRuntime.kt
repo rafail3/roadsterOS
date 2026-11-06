@@ -173,6 +173,8 @@ object CarRuntime {
                 if (_shell.value.recordEvents) journal.write(JournalRecord(0, event = event))
                 // a new call fills the screen, an ended one goes; Home folds it into its bar
                 if (event is CarEvent.Call) shellAction(ShellAction.CallChanged(event.state))
+                // reverse gear takes the screen from a camera opened by hand, and closes it when it comes out
+                if (event is CarEvent.ReverseGear) shellAction(ShellAction.CloseCamera)
             }
         }
     }
@@ -215,7 +217,7 @@ object CarRuntime {
         while (true) {
             delay(IDLE_CHECK_MS)
             val ui = _ui.value
-            val busy = ui.camera || ui.state.call != CarEvent.Call.State.IDLE || _shell.value.app == ro.rdstr.car.App.MAPS
+            val busy = ui.camera || _shell.value.cameraOpen || ui.state.call != CarEvent.Call.State.IDLE || _shell.value.app == ro.rdstr.car.App.MAPS
             if (Shell.aodDue(_shell.value, android.os.SystemClock.elapsedRealtime() - lastActivity, busy)) shellAction(ShellAction.EnterAod)
         }
     }

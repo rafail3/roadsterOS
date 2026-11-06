@@ -29,6 +29,16 @@ class CameraTest {
     }
 
     @Test
+    fun `the camera opens from its icon, Back or Home close it, it is not kept across starts`() {
+        val open = Shell.reduce(ShellState(drawer = true), ShellAction.OpenCamera)
+        assertEquals(true, open.cameraOpen)
+        assertEquals(false, open.drawer)
+        assertEquals(false, Shell.reduce(open, ShellAction.Back).cameraOpen)
+        assertEquals(false, Shell.reduce(open, ShellAction.Home).cameraOpen)
+        assertEquals(false, Shell.decodePreferences(Shell.encodePreferences(open)).cameraOpen)
+    }
+
+    @Test
     fun `the lines stay within the vendor's range and are kept across starts`() {
         val high = Shell.reduce(ShellState(), ShellAction.SetCamera(CameraSettings(linePos = -500, mirror = true)))
         assertEquals(Camera.LINE_POS_MIN, high.camera.linePos)

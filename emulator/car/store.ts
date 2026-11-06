@@ -697,7 +697,7 @@ let aodTimer: ReturnType<typeof setInterval> | null = null;
 export function watchIdle() {
   if (aodTimer) return;
   aodTimer = setInterval(() => {
-    const busy = state.car.call !== "IDLE" || state.car.camera || state.shell.app === "MAPS";
+    const busy = state.car.call !== "IDLE" || state.car.camera || state.shell.cameraOpen || state.shell.app === "MAPS";
     if (bridge.aodDue(state.shell, Date.now() - lastActivity, busy)) shellAction({ type: "EnterAod" });
   }, 1000);
 }
@@ -717,6 +717,8 @@ export function carEvent(event: CarEvent) {
   }
   // a new call fills the screen, an ended one goes; Home folds it into its bar (core-car Shell)
   if (event.type === "Call") shellAction({ type: "CallChanged", state: event.state });
+  // reverse gear takes the screen from a camera opened by hand, and closes it when it comes out
+  if (event.type === "ReverseGear") shellAction({ type: "CloseCamera" });
   // the screen follows the ignition: dark with the car off, back on when it starts
   if (event.type === "Power") shellAction({ type: event.acc ? "Wake" : "Sleep" });
   // a loud last level comes down to the start volume chosen in the settings (core-car Settings.startVolume)

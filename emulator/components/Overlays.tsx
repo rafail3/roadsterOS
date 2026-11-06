@@ -240,15 +240,16 @@ export function GuideLines({ camera, steering }: { camera: CameraSettings; steer
 }
 
 export function CameraOverlay() {
-  const { shell, steering } = useEmulator();
+  const { car, shell, steering } = useEmulator();
   return (
     <section className="overlay camera" role="dialog" aria-modal="true" aria-label="Reverse camera">
       <div className="camera-feed" role="img" aria-label={`Reverse camera, synthetic frame${shell.camera.mirror ? ", mirrored" : ""}`}>
         <div className={`camera-scene${shell.camera.mirror ? " is-mirrored" : ""}`} aria-hidden="true" />
         <GuideLines camera={shell.camera} steering={steering} />
       </div>
-      <button className="camera-close" aria-label="Close camera" onClick={() => carEvent({ type: "ReverseGear", on: false })}><span className="icon i-x" /></button>
-      <p className="camera-label">Reverse camera</p>
+      {/* in reverse the gear closes it; opened from its icon, this does */}
+      {!car.camera && <button className="camera-close" aria-label="Close camera" onClick={() => shellAction({ type: "CloseCamera" })}><span className="icon i-x" /></button>}
+      <p className="camera-label">{car.camera ? "Reverse gear" : "Camera"}</p>
     </section>
   );
 }

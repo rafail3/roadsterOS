@@ -86,7 +86,7 @@ function useWaking(on: boolean) {
   return waking && on;
 }
 
-function pressRail(id: string, cameraOn: boolean) {
+function pressRail(id: string) {
   if (id === "music") {
     setBluetooth(true);
     carCommand({ type: "Audio.Source", source: "BT" });
@@ -98,7 +98,8 @@ function pressRail(id: string, cameraOn: boolean) {
   }
   if (id === "maps") shellAction({ type: "OpenApp", app: "MAPS" });
   if (id === "phone") openPhone();
-  if (id === "camera") carEvent({ type: "ReverseGear", on: !cameraOn });
+  // the picture without reverse gear: the music keeps its level
+  if (id === "camera") shellAction({ type: "OpenCamera" });
 }
 
 export function Screen() {
@@ -121,7 +122,9 @@ export function Screen() {
     : undefined;
   // the call covers the screen only while it is shown whole; folded into its bar, the shell under it works
   const callFull = car.call !== "IDLE" && shell.callView === "FULL";
-  const covered = shell.drawer || shell.recents || callFull || car.camera;
+  // reverse gear shows the camera; its icon opens it too
+  const camera = car.camera || shell.cameraOpen;
+  const covered = shell.drawer || shell.recents || callFull || camera;
   const veil = bridge.veil(shell);
   const card = bridge.homeCard(car, emulator.btOn, shell.card);
   // a new source brings its page forward on the card
@@ -140,11 +143,11 @@ export function Screen() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       shellAction({ type: "CloseDrawer" });
-      if (car.camera) carEvent({ type: "ReverseGear", on: false });
+      shellAction({ type: "CloseCamera" });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [car.camera]);
+  }, []);
 
   return (
     // any touch restarts the always-on display's wait; while it shows, its own layer takes the touch
@@ -193,7 +196,7 @@ export function Screen() {
             // the source that plays carries a dot beside its icon
             const active = (car.source === "BT" && id === "music") || (car.source === "RADIO" && id === "radio");
             return (
-              <button key={id} className={classes("dock-item", active && "is-active")} aria-label={active ? `${label}, playing` : label} aria-current={active ? "page" : undefined} onClick={() => pressRail(id, car.camera)}>
+              <button key={id} className={classes("dock-item", active && "is-active")} aria-label={active ? `${label}, playing` : label} aria-current={active ? "page" : undefined} onClick={() => pressRail(id)}>
                 <span className={`app-mark ${mark}`} aria-hidden="true" />
               </button>
             );
@@ -223,7 +226,7 @@ export function Screen() {
       <Recents emulator={emulator} />
       {/* always there, as on a phone, except under the drawer, a devices or networks panel (its keyboard reaches the edges), a call or the camera */}
       {/* the bottom handle stays over a call too, so it can be swiped home into its bar */}
-      {!shell.drawer && !shell.devices && !shell.networks && !car.camera && (
+      {!shell.drawer && !shell.devices && !shell.networks && !camera && (
         <>
           <NavBar />
           <EdgeBack side="left" />
@@ -233,17 +236,17 @@ export function Screen() {
       <div className={classes("scrim", shell.drawer && "is-open")} onClick={() => shellAction({ type: "CloseDrawer" })} />
       <Drawer emulator={emulator} panel={drawer} dragging={dragging} />
       {callFull && <CallOverlay emulator={emulator} />}
-      {car.call !== "IDLE" && shell.callView === "BAR" && !car.camera && <CallBar emulator={emulator} />}
+      {car.call !== "IDLE" && shell.callView === "BAR" && !camera && <CallBar emulator={emulator} />}
       {emulator.voiceAssistant && <VoiceOverlay />}
-      {!callFull && !car.camera && <MessageBanner emulator={emulator} />}
-      {car.camera && <CameraOverlay />}
+      {!callFull && !camera && <MessageBanner emulator={emulator} />}
+      {camera && <CameraOverlay />}
       {(Object.keys(KEY_CENTER) as (keyof typeof KEY_CENTER)[]).map((key) => (
         <svg key={key} className={classes("edge-bulge", emulator.pressedKey === key && "is-pressed")} style={{ top: KEY_CENTER[key] }} viewBox="0 0 12 136" preserveAspectRatio="none" aria-hidden="true">
           <path d={BULGE_PATH} />
         </svg>
       ))}
-      <ConnectionNotice notice={emulator.notice} hidden={callFull || car.camera} />
-      <MapOffer hidden={callFull || car.camera || shell.drawer} />
+      <ConnectionNotice notice={emulator.notice} hidden={callFull || camera} />
+      <MapOffer hidden={callFull || camera || shell.drawer} />
       <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC" || shell.drawer} />
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.dark.toFixed(3) }} />
       {/* always there: it fades in to switch the screen off and lifts to switch it on; a tap on it wakes the screen */}

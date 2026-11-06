@@ -89,6 +89,11 @@ data class ShellState(
     val dsp: SoundSettings = SoundSettings(),
     /** The reverse camera's picture, its lines and the music while reversing (Camera). */
     val camera: CameraSettings = CameraSettings(),
+    /**
+     * The camera opened from its icon, without reverse gear: the picture only, the music keeps its level (the vendor
+     * lowers it on the reverse signal alone). Reverse gear takes the screen over and closes it when it comes out.
+     */
+    val cameraOpen: Boolean = false,
     /** Every car event is written to a file on the unit, for troubleshooting. */
     val recordEvents: Boolean = false,
 )
@@ -165,6 +170,9 @@ sealed class ShellAction {
     @Serializable @SerialName("FinishSetup") data object FinishSetup : ShellAction()
     @Serializable @SerialName("SetSound") data class SetSound(val settings: SoundSettings) : ShellAction()
     @Serializable @SerialName("SetCamera") data class SetCamera(val settings: CameraSettings) : ShellAction()
+    @Serializable @SerialName("OpenCamera") data object OpenCamera : ShellAction()
+    /** Also sent at each change of reverse gear. */
+    @Serializable @SerialName("CloseCamera") data object CloseCamera : ShellAction()
     /** The screen was left alone long enough (see [Shell.aodDue]). */
     @Serializable @SerialName("EnterAod") data object EnterAod : ShellAction()
     /** A touch, a key, a call or reverse gear. */
@@ -312,6 +320,8 @@ object Shell {
         ShellAction.FinishSetup -> s.copy(setupDone = true)
         is ShellAction.SetSound -> s.copy(dsp = Sound.clamp(a.settings))
         is ShellAction.SetCamera -> s.copy(camera = Camera.clamp(a.settings))
+        ShellAction.OpenCamera -> s.copy(cameraOpen = true, drawer = false, recents = false)
+        ShellAction.CloseCamera -> s.copy(cameraOpen = false)
         ShellAction.EnterAod -> if (s.aodEnabled && s.screenOn) s.copy(aod = true, drawer = false) else s
         ShellAction.ExitAod -> s.copy(aod = false)
         is ShellAction.SetFaceMode -> s.copy(faceMode = a.mode, face = when (a.mode) {
@@ -324,6 +334,7 @@ object Shell {
         ShellAction.Back -> when {
             // the call over everything is the top layer: Back folds it into its bar, the app under it stays
             s.callView == CallView.FULL -> s.copy(callView = CallView.BAR)
+            s.cameraOpen -> s.copy(cameraOpen = false)
             s.drawer -> s.copy(drawer = false)
             s.recents -> s.copy(recents = false)
             s.devices -> s.copy(devices = false)
@@ -335,7 +346,7 @@ object Shell {
 
     /** Home goes home in a call too: the call folds into its bar. */
     private fun goHome(s: ShellState) = s.copy(
-        app = App.HOME, recents = false, drawer = false, devices = false, networks = false, sound = false, card = cardAfter(s),
+        app = App.HOME, recents = false, drawer = false, devices = false, networks = false, sound = false, cameraOpen = false, card = cardAfter(s),
         callView = if (s.callView == CallView.FULL) CallView.BAR else s.callView,
     )
 
