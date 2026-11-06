@@ -1,5 +1,5 @@
-/* Phone: the app (history, phone book, keypad) and the call over everything. Always on its own dark ground, as the
-   other full-screen apps; sizes are for a 1280x750 canvas read at arm's length. */
+/* Phone: the app (history, phone book, keypad) and the call over everything. The app follows the theme, light by day
+   and dark by night; the call stays dark in both (tokens.css). Sizes are for a 1280x750 canvas read at arm's length. */
 :root {
   --call-green: #17d847;
   --call-red: #f62b31;
@@ -8,12 +8,14 @@
   --phone-key: rgb(var(--on) / 0.14);
   --phone-key-down: rgb(var(--on) / 0.32);
   --phone-avatar: linear-gradient(180deg, #8e8e93, #5d5d62);
+  --phone-chat: linear-gradient(180deg, #171b22, #12151a);
 }
 .screen.light {
   --phone-ground: var(--sheet);
   --phone-ink-2: rgba(60, 60, 67, 0.62);
   --phone-key: rgb(20 28 38 / 0.07);
   --phone-key-down: rgb(20 28 38 / 0.16);
+  --phone-chat: linear-gradient(180deg, #ffffff, #f7f8fa);
 }
 
 .i-phone-fill { --m: url(/icons/phone-fill.svg); }
@@ -218,7 +220,6 @@
 /* adding a call from the phone book: the list fills the call screen's right side */
 .call-add-tabs { align-self: center; }
 .call-add-contacts { width: 100%; height: 400px; min-height: 0; }
-.call-add-contacts .phone-letter { background: #111419; }
 
 /* the call folded away: a green pill under the status bar, or the ringing call as a banner */
 /* a call in progress: the green clock beside the name tells it from a ringing one */
@@ -243,7 +244,7 @@
 
 /* an open thread: the messages on their own panel, the answers and the field to write at its foot */
 .i-arrow-up-bold { --m: url(/icons/arrow-up-bold.svg); }
-.phone-chat { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 22px; background: linear-gradient(180deg, #171b22, #12151a); border: 1px solid rgb(var(--on) / 0.07); }
+.phone-chat { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 22px; background: var(--phone-chat); border: 1px solid rgb(var(--on) / 0.07); }
 .phone-chat .phone-bubbles { padding: 4px 4px 8px; }
 .phone-compose { display: flex; align-items: center; gap: 10px; }
 .phone-compose-field { flex: 1; min-width: 0; height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 18px; border-radius: 26px; background: rgb(var(--on) / 0.08); border: 1px solid rgb(var(--on) / 0.12); color: var(--ink); text-align: left; font-size: 18px; transition: box-shadow var(--fast); }

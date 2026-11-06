@@ -57,10 +57,23 @@ const TICKS = Array.from({ length: 60 }, (_, i) => {
   return <line key={i} x1={from.x} y1={from.y} x2={to.x} y2={to.y} className={major ? "major" : undefined} />;
 });
 
+/**
+ * [degrees] as a rotation that keeps on from the last one by the short way, so a hand that animates goes on forward
+ * past 12 (359.9 to 0 is +0.1, not a turn back); a jump of the clock goes the short way round.
+ */
+function useTurning(degrees: number) {
+  const last = useRef(degrees);
+  const delta = ((((degrees - last.current) % 360) + 540) % 360) - 180;
+  last.current += delta;
+  return last.current;
+}
+
 export function Dial({ now }: { now: Date }) {
   const seconds = now.getSeconds();
   const minutes = now.getMinutes() + seconds / 60;
   const hours = (now.getHours() % 12) + minutes / 60;
+  const hourAngle = useTurning(hours * 30);
+  const minuteAngle = useTurning(minutes * 6);
   return (
     <svg className="dial" viewBox="0 0 480 480" aria-hidden="true">
       <defs>
@@ -79,8 +92,8 @@ export function Dial({ now }: { now: Date }) {
         <text x="240" y="428">6</text>
         <text x="74" y="252">9</text>
       </g>
-      <g className="hand hand-hour" style={{ transform: `rotate(${hours * 30}deg)` }}><rect x="235" y="120" width="10" height="150" rx="5" /></g>
-      <g className="hand hand-minute" style={{ transform: `rotate(${minutes * 6}deg)` }}><rect x="236" y="60" width="8" height="212" rx="4" /></g>
+      <g className="hand hand-hour" style={{ transform: `rotate(${hourAngle}deg)` }}><rect x="235" y="120" width="10" height="150" rx="5" /></g>
+      <g className="hand hand-minute" style={{ transform: `rotate(${minuteAngle}deg)` }}><rect x="236" y="60" width="8" height="212" rx="4" /></g>
       <g className="hand hand-second" style={{ transform: `rotate(${seconds * 6}deg)` }}><rect x="238.75" y="44" width="2.5" height="246" rx="1.25" /></g>
       <circle className="cap" cx="240" cy="240" r="9" />
       <circle className="cap-dot" cx="240" cy="240" r="3.5" />

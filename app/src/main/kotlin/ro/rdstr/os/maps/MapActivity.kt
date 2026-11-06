@@ -25,10 +25,11 @@ import kotlin.math.cos
  *
  *   adb push RO.mbtiles /sdcard/Android/data/ro.rdstr.os/files/maps/RO.mbtiles
  *   adb shell pm grant ro.rdstr.os android.permission.ACCESS_FINE_LOCATION
- *   adb shell am start -n ro.rdstr.os/.maps.MapActivity [--ez demo true] [--ez day true] [--ef zoom 15.5]
+ *   adb shell am start -n ro.rdstr.os/.maps.MapActivity [--ez demo true] [--ef zoom 15.5]
  *
  * `demo` drives the car along its heading at 50 km/h, turning slowly, to measure the map without driving;
  * the frame and picture times go to logcat under the tag `rdstr.map`, with the speed and the street the car is on.
+ * The colours follow the shell's theme (MapHost).
  */
 class MapActivity : Activity(), LocationListener {
     private var map: MapView? = null
@@ -52,7 +53,6 @@ class MapActivity : Activity(), LocationListener {
             return
         }
         // the one map, moved into this screen; the borders tell the country under the car and cover the ones without a pack
-        MapHost.style(light = intent.getBooleanExtra("day", false))
         val view = MapHost.view(this).apply { zoom = intent.getFloatExtra("zoom", 15.5f).toDouble() }
         map = view
         offer = PackOffer(this, MapHost.borders)
@@ -95,7 +95,7 @@ class MapActivity : Activity(), LocationListener {
         val view = map ?: return
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return
         val lm = getSystemService(LOCATION_SERVICE) as LocationManager
-        lm.getLastKnownLocation(LocationManager.GPS_PROVIDER)?.let { view.setCar(it.longitude, it.latitude, null) }
+        lm.getLastKnownLocation(LocationManager.GPS_PROVIDER)?.let { view.setCar(it.longitude, it.latitude, null, driving = false) }
         lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, GPS_EVERY_MS, 0f, this)
     }
 
@@ -104,7 +104,7 @@ class MapActivity : Activity(), LocationListener {
         val moving = l.hasSpeed() && l.speed > MOVING_MPS
         // the chip's Doppler speed when the fix has it, else the distance over the last seconds
         speedometer.update(l.longitude, l.latitude, l.time, if (l.hasSpeed()) l.speed * 3.6 else null)
-        map?.setCar(l.longitude, l.latitude, if (l.hasBearing() && moving) l.bearing.toDouble() else null)
+        map?.setCar(l.longitude, l.latitude, if (l.hasBearing() && moving) l.bearing.toDouble() else null, driving = moving)
         logOffer(l.longitude, l.latitude)
     }
 
@@ -150,7 +150,7 @@ class MapActivity : Activity(), LocationListener {
                 lon += km * kotlin.math.sin(r) / (111.32 * cos(Math.toRadians(lat)))
                 heading = (heading + 0.4) % 360
                 speedometer.update(lon, lat, SystemClock.elapsedRealtime(), DEMO_KMH)
-                view.setCar(lon, lat, heading)
+                view.setCar(lon, lat, heading, driving = true)
                 logOffer(lon, lat)
                 main.postDelayed(this, DEMO_TICK_MS)
             }

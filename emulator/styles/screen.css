@@ -106,7 +106,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .apps { display: flex; justify-content: center; gap: 16px; }
 /* the larger icons reach up into the clock's margin, so the clock keeps its height on the screen */
 .apps { margin-top: -24px; }
-.app { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); width: 100px; padding: var(--space-3) 0; border-radius: var(--radius-sm); color: var(--ink-muted); font-size: var(--size-label); font-weight: 500; transition: background var(--fast), color var(--fast); }
+.app { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); width: 100px; padding: var(--space-3) 0; border-radius: var(--radius-sm); color: var(--ink-muted); font-size: var(--size-label); font-weight: 500; transition: background var(--fast), color var(--fast), transform 220ms var(--seamless); }
 /* a press dims the icon a little and sinks it, as a phone's home does; no box behind it */
 .app:active .app-mark { transform: scale(0.94); filter: brightness(0.85); }
 .app-mark { width: 80px; height: 80px; border-radius: 19px; border: 1px solid var(--hairline-strong); }
@@ -214,8 +214,11 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
    The browser blurs live; the unit has no live blur, so it blurs one small snapshot of the screen when the list opens */
 .recents { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-7); background: color-mix(in srgb, var(--sheet) 55%, transparent); -webkit-backdrop-filter: blur(28px) saturate(1.2); backdrop-filter: blur(28px) saturate(1.2); opacity: 0; pointer-events: none; transition: opacity var(--base) var(--ease-out); }
 .recents.is-open { opacity: 1; pointer-events: auto; }
-.recents-list { display: flex; justify-content: center; gap: var(--space-6); margin: 0; padding: 0; list-style: none; }
-.recents-card { width: 280px; display: flex; flex-direction: column; gap: var(--space-2); transition: transform var(--base) var(--ease-out), opacity var(--base) var(--ease-out); }
+/* five or six cards are wider than the screen: the row scrolls sideways, a sideways drag on a card scrolls it too
+   (Recents.tsx); "safe" keeps the first card reachable once it overflows. A scroll box clips both ways, so its top and
+   bottom padding, given back by the margin, leave room for a card pushed up to leave the screen unclipped */
+.recents-list { align-self: stretch; display: flex; justify-content: safe center; gap: var(--space-6); margin: -400px 0; padding: 400px var(--space-6); list-style: none; overflow-x: auto; scrollbar-width: none; }
+.recents-card { flex: none; width: 280px; display: flex; flex-direction: column; gap: var(--space-2); transition: transform var(--base) var(--ease-out), opacity var(--base) var(--ease-out); }
 .recents.is-open .recents-card { animation: recents-in 260ms var(--ease-out) backwards; }
 .recents-card.is-dragging { transition: none; }
 .recents-card.is-leaving { transform: translateY(-120%); opacity: 0; transition-duration: 220ms; }
@@ -340,8 +343,11 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 }
 
 /* connection notice: rises from the bottom edge on a spring, sinks back quicker; the icon pops in after it */
-.notice { --disc: var(--on-blue); --spring-rise: linear(0, 0.2 6%, 0.55 14%, 0.85 24%, 1.03 34%, 1.055 42%, 1.035 52%, 1.008 66%, 0.998 80%, 1); position: absolute; left: 50%; bottom: 44px; z-index: 8; min-width: 300px; max-width: 520px; height: 68px; padding: 0 var(--space-6) 0 12px; border-radius: 34px; background: var(--sheet-raised); border: 1px solid var(--hairline-strong); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28); color: var(--ink); pointer-events: none; opacity: 0; transform: translate(-50%, 160%) scale(0.9); transition: transform 240ms cubic-bezier(0.4, 0, 1, 1), opacity 200ms cubic-bezier(0.4, 0, 1, 1); }
-.notice.is-shown { opacity: 1; transform: translate(-50%, 0) scale(1); transition: transform 640ms var(--spring-rise), opacity 220ms var(--ease-out); }
+.notice { --disc: var(--on-blue); position: absolute; left: 50%; bottom: 44px; z-index: 8; min-width: 300px; max-width: 520px; height: 68px; padding: 0 var(--space-6) 0 12px; border-radius: 34px; background: var(--sheet-raised); border: 1px solid var(--hairline-strong); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28); color: var(--ink); pointer-events: none; opacity: 0; transform: translate(-50%, 160%) scale(0.9); transition: transform 240ms cubic-bezier(0.4, 0, 1, 1), opacity 200ms cubic-bezier(0.4, 0, 1, 1); }
+.notice.is-shown { opacity: 1; transform: translate(-50%, 0) scale(1); transition: transform 640ms var(--spring-rise), opacity 220ms var(--ease-out), bottom var(--base) var(--ease-out); }
+/* with a map offer on screen the notice stands over it, 12 px above its 84 px: the offer stays until it is answered
+   while a notice lasts 3 s, so the notice is the later one and the offer never moves */
+.screen:has(.map-offer.is-shown) .notice { bottom: calc(44px + 84px + var(--space-3)); }
 .notice.is-off { --disc: color-mix(in srgb, var(--ink) 16%, var(--sheet-raised)); }
 .notice-body { display: flex; align-items: center; gap: var(--space-4); height: 100%; }
 .notice-disc { position: relative; flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--disc); color: #fff; animation: notice-pop 560ms 80ms var(--spring-rise) backwards; }
@@ -383,12 +389,6 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .dev-touch { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); border: 2px solid rgba(255, 255, 255, 0.8); }
 .dev-fps { position: absolute; right: 12px; bottom: 34px; padding: 4px 10px; border-radius: 8px; background: rgba(0, 0, 0, 0.7); color: #30d158; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
-/* setup after a factory reset: over the whole shell, under the screen-off layer */
-.setup { position: absolute; inset: 0; z-index: 8; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); background: var(--sheet); color: var(--ink); }
-.setup-title { margin: 0; font-size: 48px; font-weight: 700; letter-spacing: -0.02em; }
-.setup-text { margin: 0; font-size: 22px; color: var(--ink-muted); }
-.setup-start { margin-top: var(--space-6); min-width: 240px; height: 64px; padding: 0 var(--space-7); border-radius: 32px; background: #0a84ff; color: #fff; font-size: 20px; font-weight: 600; }
-.setup-start:active { background: #0060df; }
 /* the boot and start screens: a 1024x600 canvas, drawn 1:1 on the unit's pixels (the screen is zoomed by --unit-scale) */
 .boot { position: absolute; inset: 0; z-index: 8; display: block; padding: 0; border: 0; background: #07080a; cursor: pointer; }
 /* About's picture of the unit: the frame as the unit's own (piano-black, bevelled edge, one diagonal reflection), scaled down */
@@ -432,7 +432,8 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .sf-block { display: grid; grid-template-columns: repeat(6, 4px); grid-auto-rows: 4px; gap: 1.6px; }
 .sf-block i { background: var(--amber-line); opacity: 0.18; }
 .sf-block.is-done i { opacity: 1; }
-.sf-block.is-now i:nth-child(odd) { opacity: 1; }
+/* the current block dithered as a checkerboard: in rows of 6, dots 1 3 5, then 8 10 12, then 13 15 17 */
+.sf-block.is-now i:is(:nth-child(12n+1), :nth-child(12n+3), :nth-child(12n+5), :nth-child(12n+8), :nth-child(12n+10), :nth-child(12n)) { opacity: 1; }
 .sf-head { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 28px; margin-top: 28px; }
 .sf .sf-title { margin: 0; font-size: 44px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
 .sf-text { margin: 8px 0 0; max-width: 34em; font-size: 20px; line-height: 1.4; color: var(--ink-muted); }
@@ -463,7 +464,7 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .sf-field:focus-visible { outline: 3px solid var(--amber-caption); outline-offset: 2px; }
 .sf-field.is-typing:focus-visible { outline: none; }
 /* the setup's one accent on our keyboard too */
-.sf .kb-submit:not(:disabled) { background: var(--amber); color: var(--amber-ink); }
+.sf .kb-submit:not(:disabled), .screen.light .sf .kb-submit:not(:disabled) { background: var(--amber); color: var(--amber-ink); }
 .sf .kb-submit:disabled { opacity: 0.4; }
 .sf-field:active { background: var(--glass-strong); }
 .sf-meter { display: flex; align-items: center; gap: 20px; margin-top: 26px; }
@@ -482,7 +483,6 @@ button.sf-row:active { background: var(--glass-pressed); }
 .sf-row.is-running, .sf-row.is-done { border-color: rgba(255, 138, 26, 0.35); }
 .sf-row.is-failed .sf-state { color: var(--danger); }
 .sf-row.is-skipped { opacity: 0.6; }
-.sf-retry { align-self: flex-start; margin-top: 16px; }
 .sf-networks { overflow-y: auto; max-height: 470px; padding-bottom: 24px; }
 .sf-signal { display: flex; align-items: center; gap: 10px; color: var(--ink-muted); }
 .sf-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; margin-top: 32px; font-size: 22px; color: var(--ink-muted); }
@@ -502,7 +502,7 @@ button.sf-row:active { background: var(--glass-pressed); }
 .app-mark-camera { background: url(/images/app-camera.webp) center / cover no-repeat; border-color: transparent; }
 
 /* arranging the home icons: they jiggle, the held one follows the finger, the others slide aside */
-.app { transition: transform 220ms var(--seamless); touch-action: manipulation; }
+.app { touch-action: manipulation; }
 .apps.is-arranging .app { touch-action: none; }
 .apps.is-arranging .app .app-mark { animation: icon-jiggle 280ms ease-in-out infinite alternate; animation-delay: calc(var(--i) * -70ms); }
 .app .app-mark { transition: transform 200ms var(--seamless), box-shadow 200ms var(--seamless); }
