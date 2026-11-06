@@ -13,5 +13,10 @@ android {
     }
 }
 
+dependencies {
+    api(project(":core-car"))
+    testImplementation(libs.junit)
+}
+
 // the generator's own tests run with this module's
 tasks.matching { it.name == "test" }.configureEach { dependsOn(gradle.includedBuild("build-logic").task(":test")) }
