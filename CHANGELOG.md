@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.16.0](https://github.com/rafail3/roadsterOS/compare/v1.15.0...v1.16.0) (2026-11-06)
+
+
+### Features
+
+* **phone:** number country setting, formatted numbers on the keypad, recents, contacts, threads and call screens ([46302ba](https://github.com/rafail3/roadsterOS/commit/46302ba13e73c006d3985e982dec342c19cb8afe))
+* **phone:** phone number formats for every country from libphonenumber's metadata, grouped as typed, in core-car ([acba1d3](https://github.com/rafail3/roadsterOS/commit/acba1d33197bbe81e25b2482b54ddab486fe9d56))
+* **phone:** phone numbers formatted for every country ([e526c05](https://github.com/rafail3/roadsterOS/commit/e526c0572e1fc2391d0715d5f94ed7a58893d3f3))
+
 ## [1.15.0](https://github.com/rafail3/roadsterOS/compare/v1.14.0...v1.15.0) (2026-11-06)
 
 
