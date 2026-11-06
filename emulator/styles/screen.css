@@ -102,6 +102,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 
 /* the icons centred in the space between the dock and the card, again with each one added or taken off */
 .apps { display: flex; justify-content: center; gap: 16px; }
+/* the larger icons reach up into the clock's margin, so the clock keeps its height on the screen */
+.apps { margin-top: -24px; }
 .app { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); width: 100px; padding: var(--space-3) 0; border-radius: var(--radius-sm); color: var(--ink-muted); font-size: var(--size-label); font-weight: 500; transition: background var(--fast), color var(--fast); }
 /* a press dims the icon a little and sinks it, as a phone's home does; no box behind it */
 .app:active .app-mark { transform: scale(0.94); filter: brightness(0.85); }
