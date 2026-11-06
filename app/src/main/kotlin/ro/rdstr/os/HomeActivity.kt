@@ -47,13 +47,15 @@ class HomeActivity : Activity() {
         shell = root.view
         setContentView(shell)
         UiTheme.fadeRoot = shell
+        ro.rdstr.os.screens.SettingsScreen.slots = ro.rdstr.os.screens.HostSlots
         for ((layer, make) in Screens.ALL) make(this).also { screens += it; shell.put(layer, it.view) }
+        (screens.firstOrNull { it is ro.rdstr.os.screens.DrawerScreen }?.view as? ro.rdstr.ui.drawer.DrawerView)?.onClearing = shell::clearScrim
         startup()
     }
 
     /**
      * A cold start shows the boot screen; a first start (setup at the logo) then moves on to the setup's start screen,
-     * where a touch begins the setup. The other setup screens come with the shell's views.
+     * where a touch begins the setup; each step on is SetupScreen.next() (ShellAction.SetupNext with the Wi-Fi and update state).
      */
     private fun startup() {
         val shell = CarRuntime.shell.value
@@ -61,11 +63,11 @@ class HomeActivity : Activity() {
             !booted || (!shell.setupDone && shell.setupStep == Setup.Step.LOGO) -> overlay(BootView(this, BootView.Mode.BOOT) {
                 booted = true
                 val now = CarRuntime.shell.value
-                if (!now.setupDone && now.setupStep == Setup.Step.LOGO) CarRuntime.shellAction(ShellAction.SetupNext())
+                if (!now.setupDone && now.setupStep == Setup.Step.LOGO) ro.rdstr.os.screens.SetupScreen.next()
                 startup()
             })
             !shell.setupDone && shell.setupStep == Setup.Step.START -> overlay(BootView(this, BootView.Mode.START, versionName()) {
-                CarRuntime.shellAction(ShellAction.SetupNext())
+                ro.rdstr.os.screens.SetupScreen.next()
                 startup()
             })
             else -> overlay(null)

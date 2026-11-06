@@ -133,6 +133,9 @@ class ShellView(context: Context, private val actions: ShellActions) : FrameLayo
         addView(view, at, view.layoutParams as? LayoutParams ?: LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     }
 
+    /** The drawer clears the screen while its brightness slider is held (DrawerView.onClearing): no scrim then. */
+    fun clearScrim(on: Boolean) = scrim.clear(on)
+
     /** Takes [view] out of the shell. */
     fun remove(view: View) = (view.parent as? ViewGroup)?.removeView(view)
 

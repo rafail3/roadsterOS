@@ -218,16 +218,24 @@ class Dimmer(context: Context) : View(context) {
 @SuppressLint("ViewConstructor")
 class Scrim(context: Context, private val onClose: () -> Unit) : View(context) {
     private var open = false
+    private var cleared = false
+    private var shown = false
 
     init { uiKey = "scrim"; alpha = 0f; visibility = GONE; setOnClickListener { onClose() }; UiTheme.link(this) { setBackgroundColor(UiTheme.base.scrim) } }
 
-    fun bind(open: Boolean) {
-        if (open == this.open) return
-        this.open = open
-        if (open) visibility = VISIBLE
+    fun bind(open: Boolean) { this.open = open; show() }
+
+    /** The drawer's brightness slider is held: the scrim goes while it is (`.screen:has(.slider-light.is-held) .scrim`). */
+    fun clear(on: Boolean) { cleared = on; show() }
+
+    private fun show() {
+        val on = open && !cleared
         isClickable = open
+        if (open) visibility = VISIBLE
+        if (on == shown) return
+        shown = on
         animate().cancel()
-        animate().alpha(if (open) 1f else 0f).setDuration(UiTheme.duration(UiTheme.base.base)).setInterpolator(Motion.interpolator(Motion.easeOut))
+        animate().alpha(if (on) 1f else 0f).setDuration(UiTheme.duration(UiTheme.base.base)).setInterpolator(Motion.interpolator(Motion.easeOut))
             .withEndAction { if (!this.open) visibility = GONE }.start()
     }
 }
