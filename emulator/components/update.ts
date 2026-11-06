@@ -43,5 +43,8 @@ export function useUpdateInstall(beforeRestart?: () => void) {
   return { download, done, restartIn: restartIn ?? bridge.restartInS(), install };
 }
 
+/** The release's size as the download writes it (core-car Updater.sizeText): "2.4 MB". */
+export const releaseSize = () => bridge.downloadStep({ total: APK_BYTES, done: 0, bytesPerSecond: 0 }, 0, 0).totalText;
+
 /** "1.1 MB of 2.4 MB · 480 KB/s · 2 s left" */
 export const downloadFigures = (d: Download) => `${d.doneText} of ${d.totalText} · ${d.speed}${d.left ? ` · ${d.left}` : ""}`;

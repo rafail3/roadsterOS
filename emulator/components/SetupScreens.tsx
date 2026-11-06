@@ -42,11 +42,11 @@ function Progress({ step }: { step: SetupStep }) {
 }
 
 /** A bar of dots that fills left to right, the boot screen's dither at its leading edge. */
-function DotBar({ fraction, busy }: { fraction: number; busy?: boolean }) {
+function DotBar({ fraction }: { fraction: number }) {
   const cols = 64;
   const full = Math.round(fraction * cols);
   return (
-    <span className={`sf-dots${busy ? " is-busy" : ""}`} aria-hidden="true">
+    <span className="sf-dots" aria-hidden="true">
       {Array.from({ length: cols * 3 }, (_, i) => {
         const c = Math.floor(i / 3);
         // two columns of dither ahead of the filled part, as the boot screen's bars end
@@ -138,10 +138,11 @@ function PrepareScreen({ next }: { next: () => void }) {
     return () => clearTimeout(timer);
   }, [running]);
   return (
-    <Frame step="PREPARE" title="Preparing the system" text="roadsterOS takes over the unit. This runs once." next={next} canNext={p.ok}
-      nextLabel={p.finished && !p.ok ? "Try again" : "Continue"}>
+    // a failed task: the one button runs the failed tasks again; Continue once all are done
+    <Frame step="PREPARE" title="Preparing the system" text="roadsterOS takes over the unit. This runs once." canNext={p.finished}
+      next={p.ok ? next : () => setP(bridge.setupPrepareStep(p, "retry"))} nextLabel={p.finished && !p.ok ? "Try again" : "Continue"}>
       <div className="sf-meter">
-        <DotBar fraction={p.progress} busy={!p.finished} />
+        <DotBar fraction={p.progress} />
         <PixelText text={`${Math.round(p.progress * 100)}%`} className="sf-caption" />
       </div>
       <ul className="sf-list" aria-live="polite">
@@ -155,7 +156,6 @@ function PrepareScreen({ next }: { next: () => void }) {
           );
         })}
       </ul>
-      {p.finished && !p.ok && <button className="sf-button sf-retry" onClick={() => setP(bridge.setupPrepareStep(p, "retry"))}>Run again</button>}
     </Frame>
   );
 }
@@ -241,7 +241,7 @@ function UpdateScreen({ version, next }: { version: string; next: () => void }) 
       {d && (
         <div className="sf-download" aria-live="polite">
           <div className="sf-meter">
-            <DotBar fraction={d.fraction} busy={!done} />
+            <DotBar fraction={d.fraction} />
             <PixelText text={`${d.percent}%`} className="sf-caption" />
           </div>
           <p className="sf-figures">
@@ -336,7 +336,7 @@ function FilesScreen({ next }: { next: () => void }) {
         {files.map((f, i) => (
           <li key={f.name} className={`sf-row${i < at ? " is-done" : i === at ? " is-running" : " is-waiting"}`}>
             <span className="sf-row-text"><span className="sf-row-name">{f.name}</span><span className="sf-row-detail">{f.size}</span></span>
-            {i === at ? <DotBar fraction={fraction} busy /> : <PixelText text={i < at ? "Done" : "Waiting"} className="sf-state" />}
+            {i === at ? <DotBar fraction={fraction} /> : <PixelText text={i < at ? "Done" : "Waiting"} className="sf-state" />}
           </li>
         ))}
       </ul>
