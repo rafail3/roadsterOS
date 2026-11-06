@@ -20,6 +20,7 @@ import android.widget.LinearLayout
 import ro.rdstr.ui.Mirrors
 import ro.rdstr.ui.tokens.Shadow
 import ro.rdstr.ui.tokens.Icons
+import ro.rdstr.ui.uiKey
 
 /**
  * controls.tsx `holdToRepeat`: a press sends once at once, again after 270 ms and then every 210 ms while the finger
@@ -186,6 +187,10 @@ class SettingsGroup(context: Context) : LinearLayout(context) {
     var footer: CharSequence? = null; set(v) { field = v; footerView.text = v; footerView.visibility = if (v == null) GONE else VISIBLE }
 
     init {
+        uiKey = "set-group"
+        titleView.uiKey = "set-group-title"
+        footerView.uiKey = "set-footer"
+        rows.uiKey = "set-rows"
         orientation = VERTICAL
         dividerDrawable = Gap((8 * d + 0.5f).toInt())
         showDividers = SHOW_DIVIDER_MIDDLE
@@ -268,6 +273,10 @@ class SettingsRow(context: Context, label: CharSequence = "", slider: Boolean = 
     var onPress: (() -> Unit)? = null; set(v) { field = v; isClickable = v != null; refreshChevron() }
 
     init {
+        uiKey = "set-row"
+        this.label.uiKey = "set-row-label"
+        valueView.uiKey = "set-row-value"
+        chevron.uiKey = "icon.i-caret-right.set-chevron"
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         minimumHeight = ((if (slider) 80 else 68) * d + 0.5f).toInt()
