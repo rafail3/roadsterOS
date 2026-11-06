@@ -142,6 +142,7 @@ object CarRuntime {
             it.followLogs(_shell.value.recordEvents)
         }
         watchPhoneBook(app)
+        watchIdle()
         covers = CoverDesk.create(context.applicationContext, scope).also { desk ->
             desk.follow(ui.map { it.track }.distinctUntilChanged())
         }
@@ -163,6 +164,7 @@ object CarRuntime {
                     next = Rules.onCommand(next, c)
                 }
                 _ui.value = _ui.value.reduce(next, actions, event)
+                if (Shell.wakesAod(event)) userActivity()
                 if (_shell.value.recordEvents) journal.write(JournalRecord(0, event = event))
                 // a new call fills the screen, an ended one goes; Home folds it into its bar
                 if (event is CarEvent.Call) shellAction(ShellAction.CallChanged(event.state))
@@ -188,6 +190,24 @@ object CarRuntime {
         if (Shell.preferences(after) != Shell.preferences(before)) {
             prefs.edit().putString(SHELL_KEY, Shell.encodePreferences(after)).apply()
             Log.i(Radios.TAG, "saved ${Shell.encodePreferences(after)}")
+        }
+    }
+
+    private var lastActivity = android.os.SystemClock.elapsedRealtime()
+
+    /** A touch on any of our screens, or a key: the always-on display ends and its wait starts again. */
+    fun userActivity() {
+        lastActivity = android.os.SystemClock.elapsedRealtime()
+        if (_shell.value.aod) shellAction(ShellAction.ExitAod)
+    }
+
+    /** Checks the wait of the always-on display; a call, the reverse camera or the map keep the screen as it is. */
+    private fun watchIdle() = scope.launch {
+        while (true) {
+            delay(IDLE_CHECK_MS)
+            val ui = _ui.value
+            val busy = ui.camera || ui.state.call != CarEvent.Call.State.IDLE || _shell.value.app == ro.rdstr.car.App.MAPS
+            if (Shell.aodDue(_shell.value, android.os.SystemClock.elapsedRealtime() - lastActivity, busy)) shellAction(ShellAction.EnterAod)
         }
     }
 
@@ -240,6 +260,7 @@ object CarRuntime {
     }
 
     private const val PHONE_TAG = "rdstr.phone"
+    private const val IDLE_CHECK_MS = 5_000L
     /** The phone book sync writes in bursts; read once it has been quiet this long. */
     private const val PHONE_BOOK_SETTLE_MS = 1500L
 

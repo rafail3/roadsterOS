@@ -352,3 +352,12 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .bar { background: linear-gradient(to bottom, color-mix(in srgb, var(--sheet) 58%, transparent) 0%, color-mix(in srgb, var(--sheet) 40%, transparent) 55%, transparent 100%); }
 .bar-clock { font-size: var(--size-label); font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
 .bar-meridiem { margin-left: 4px; font-size: 0.8em; font-weight: 500; }
+
+/* the always-on display: black over everything but the screen-off layer, the clock and the date in a dimmed white */
+.aod { position: absolute; inset: 0; z-index: 9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-5); background: #000; color: rgba(255, 255, 255, 0.5); opacity: 0; pointer-events: none; transition: opacity 600ms var(--ease-out); }
+.aod.is-on { opacity: 1; pointer-events: auto; cursor: default; }
+.aod-time { font-size: 168px; font-weight: 600; line-height: 1; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.aod-meridiem { margin-left: 12px; font-size: 40px; font-weight: 400; }
+.aod-dial { width: 320px; height: 320px; opacity: 0.55; filter: grayscale(1); }
+.aod-date { margin: 0; font-size: 26px; font-weight: 400; color: rgba(255, 255, 255, 0.38); }
+@media (prefers-reduced-motion: reduce) { .aod { transition-duration: 0.01ms; } }

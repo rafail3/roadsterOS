@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
-import { bridge, type FaceMode, type ThemeMode, type TimeSource } from "../car/bridge";
+import { bridge, type AodFace, type FaceMode, type ThemeMode, type TimeSource } from "../car/bridge";
 import { allTimeZones, carCommand, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
 import { Keyboard } from "./Keyboard";
 import { PillSlider } from "./Drawer";
@@ -106,6 +106,19 @@ function Display({ e }: { e: EmulatorState }) {
       <Row label="Face">
         <Segmented<FaceMode> label="Clock face" options={[["BOTH", "Both"], ["DIGITAL", "Digital"], ["ANALOG", "Analog"]]} value={shell.faceMode} onChange={(mode) => shellAction({ type: "SetFaceMode", mode })} />
       </Row>
+    </Group>
+    <Group title="Always On Display" footer={shell.aodEnabled
+      ? `Left alone ${shell.aodAfterMin} min, the screen goes black with only the clock and the date. A touch, a key, a call or reverse gear brings it back; it waits during a call, the camera and the map.`
+      : "The screen stays as it is when left alone."}>
+      <Row label="Always On Display"><Switch label="Always On Display" on={shell.aodEnabled} onChange={(on) => shellAction({ type: "SetAod", on })} /></Row>
+      {shell.aodEnabled && (<>
+        <Row label="After">
+          <Segmented<string> label="Always on display after" options={bridge.aodMinutes().map((m) => [String(m), `${m} min`] as [string, string])} value={String(shell.aodAfterMin)} onChange={(v) => shellAction({ type: "SetAodAfter", minutes: Number(v) })} />
+        </Row>
+        <Row label="Clock">
+          <Segmented<AodFace> label="Always on display clock" options={[["HOME", "As Home"], ["DIGITAL", "Digital"], ["ANALOG", "Analog"]]} value={shell.aodFace} onChange={(face) => shellAction({ type: "SetAodFace", face })} />
+        </Row>
+      </>)}
     </Group>
   </>);
 }

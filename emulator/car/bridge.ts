@@ -7,6 +7,7 @@ export type Face = "DIGITAL" | "ANALOG";
 export type FaceMode = "BOTH" | "DIGITAL" | "ANALOG";
 export type TimeSource = "NETWORK" | "GPS";
 export type DashKey = "HOUR" | "MINUTE" | "CLOCK";
+export type AodFace = "HOME" | "DIGITAL" | "ANALOG";
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";
 export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
 export type Band = "FM" | "AM";
@@ -60,6 +61,10 @@ export interface ShellState {
   autoTime: boolean;
   timeSource: TimeSource;
   dashMatched: boolean;
+  aodEnabled: boolean;
+  aodAfterMin: number;
+  aodFace: AodFace;
+  aod: boolean;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -134,7 +139,11 @@ export type ShellAction =
   | { type: "SetSpeedLimitSign"; on: boolean }
   | { type: "SetFaceMode"; mode: FaceMode }
   | { type: "SetTimeSync"; auto: boolean; source: TimeSource }
-  | { type: "SetDashMatched"; on: boolean };
+  | { type: "SetDashMatched"; on: boolean }
+  | { type: "SetAod"; on: boolean }
+  | { type: "SetAodAfter"; minutes: number }
+  | { type: "SetAodFace"; face: AodFace }
+  | { type: "EnterAod" | "ExitAod" };
 
 export interface PhoneNumber { number: string; label: string }
 export interface Contact { name: string; numbers: PhoneNumber[] }
@@ -169,6 +178,10 @@ interface Kotlin {
       coverColors(pixels: string, width: number): string;
       effectiveTheme(state: string, hour: number): "LIGHT" | "DARK";
       minBrightness(): number;
+      aodDue(state: string, idleMs: number, busy: boolean): boolean;
+      aodFace(state: string): "DIGITAL" | "ANALOG";
+      wakesAod(event: string): boolean;
+      aodMinutes(): string;
       maxBrightness(): number;
       veil(state: string): string;
       coverFileName(title: string, artist: string): string;
@@ -262,6 +275,11 @@ export const bridge = {
   setVolume: (state: CarState, level: number): CarCommand[] => JSON.parse(K!.Bridge.setVolume(JSON.stringify(state), level)),
   effectiveTheme: (state: ShellState, hour: number) => K!.Bridge.effectiveTheme(JSON.stringify(state), hour),
   minBrightness: () => K!.Bridge.minBrightness(),
+  /** The always-on display: due after the wait, its face, the car events that end it (core-car Shell). */
+  aodDue: (state: ShellState, idleMs: number, busy: boolean) => K!.Bridge.aodDue(JSON.stringify(state), idleMs, busy),
+  aodFace: (state: ShellState) => K!.Bridge.aodFace(JSON.stringify(state)),
+  wakesAod: (event: CarEvent) => K!.Bridge.wakesAod(JSON.stringify(event)),
+  aodMinutes: (): number[] => JSON.parse(K!.Bridge.aodMinutes()),
   maxBrightness: () => K!.Bridge.maxBrightness(),
   veil: (state: ShellState): { dark: number; brightness: number; saturation: number } => JSON.parse(K!.Bridge.veil(JSON.stringify(state))),
   coverFileName: (title: string, artist: string) => K!.Bridge.coverFileName(title, artist),

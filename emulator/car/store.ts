@@ -681,7 +681,26 @@ function phoneSkips(forward: boolean) {
   carEvent({ type: "Playback", playing: state.car.playing, positionMs: 0 });
 }
 
+let lastActivity = Date.now();
+
+/** A touch on the screen or a key: the always-on display ends and its wait starts again. */
+export function userActivity() {
+  lastActivity = Date.now();
+  if (state.shell.aod) shellAction({ type: "ExitAod" });
+}
+
+let aodTimer: ReturnType<typeof setInterval> | null = null;
+/** Checks the wait of the always-on display once a second; a call, the camera or the map keep the screen as it is. */
+export function watchIdle() {
+  if (aodTimer) return;
+  aodTimer = setInterval(() => {
+    const busy = state.car.call !== "IDLE" || state.car.camera || state.shell.app === "MAPS";
+    if (bridge.aodDue(state.shell, Date.now() - lastActivity, busy)) shellAction({ type: "EnterAod" });
+  }, 1000);
+}
+
 export function carEvent(event: CarEvent) {
+  if (bridge.wakesAod(event)) userActivity();
   const step = bridge.apply(state.car, event);
   set({ ...displayData(event), car: step.state, log: addLog("in", event), recorded: counted() });
   step.actions.forEach(runAction);
@@ -852,6 +871,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   if (theme === "AUTO" || theme === "LIGHT" || theme === "DARK") shell = bridge.shell(shell, { type: "SetTheme", mode: theme });
   if (q.has("night")) shell = bridge.shell(shell, { type: "SetTheme", mode: "DARK" });
   if (q.has("drawer")) shell = bridge.shell(shell, { type: "OpenDrawer" });
+  if (q.has("aod")) shell = bridge.shell(shell, { type: "EnterAod" });
   if (q.has("analog")) shell = bridge.shell(shell, { type: "SetFace", face: "ANALOG" });
   if (q.get("app") === "music") shell = bridge.shell(shell, { type: "OpenApp", app: "MUSIC" });
   if (q.get("app") === "radio") shell = bridge.shell(shell, { type: "OpenApp", app: "RADIO" });

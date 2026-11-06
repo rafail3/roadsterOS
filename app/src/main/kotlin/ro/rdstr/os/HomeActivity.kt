@@ -41,6 +41,11 @@ class HomeActivity : Activity() {
         }
     }
 
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        CarRuntime.userActivity()
+    }
+
     override fun onPause() {
         job?.cancel()
         super.onPause()

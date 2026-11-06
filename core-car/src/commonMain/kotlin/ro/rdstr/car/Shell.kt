@@ -10,6 +10,9 @@ enum class Face { DIGITAL, ANALOG }
 /** Which clock home shows: both, switched with a tap on the clock, or always the one chosen. */
 enum class FaceMode { BOTH, DIGITAL, ANALOG }
 
+/** The clock on the always-on display: the one home shows, or a fixed face. */
+enum class AodFace { HOME, DIGITAL, ANALOG }
+
 /** Where the automatic clock comes from: Android's internet time, or the GPS fixes. */
 enum class TimeSource { NETWORK, GPS }
 
@@ -61,6 +64,12 @@ data class ShellState(
     val timeSource: TimeSource = TimeSource.NETWORK,
     /** The dash display was matched to the unit's clock once and follows it since. */
     val dashMatched: Boolean = false,
+    /** Left alone [aodAfterMin] minutes, the screen goes black with only the clock and the date. */
+    val aodEnabled: Boolean = true,
+    val aodAfterMin: Int = 5,
+    val aodFace: AodFace = AodFace.HOME,
+    /** The always-on display shows now. */
+    val aod: Boolean = false,
     /** Every car event is written to a file on the unit, for troubleshooting. */
     val recordEvents: Boolean = false,
 )
@@ -123,6 +132,13 @@ sealed class ShellAction {
     @Serializable @SerialName("SetFaceMode") data class SetFaceMode(val mode: FaceMode) : ShellAction()
     @Serializable @SerialName("SetTimeSync") data class SetTimeSync(val auto: Boolean, val source: TimeSource) : ShellAction()
     @Serializable @SerialName("SetDashMatched") data class SetDashMatched(val on: Boolean) : ShellAction()
+    @Serializable @SerialName("SetAod") data class SetAod(val on: Boolean) : ShellAction()
+    @Serializable @SerialName("SetAodAfter") data class SetAodAfter(val minutes: Int) : ShellAction()
+    @Serializable @SerialName("SetAodFace") data class SetAodFace(val face: AodFace) : ShellAction()
+    /** The screen was left alone long enough (see [Shell.aodDue]). */
+    @Serializable @SerialName("EnterAod") data object EnterAod : ShellAction()
+    /** A touch, a key, a call or reverse gear. */
+    @Serializable @SerialName("ExitAod") data object ExitAod : ShellAction()
 }
 
 /**
@@ -150,6 +166,32 @@ object Shell {
     /** Two Home presses this close together open the open-apps screen. */
     const val DOUBLE_PRESS_MS = 500L
 
+    /** The waits the always-on display offers, in minutes. */
+    val AOD_MINUTES = listOf(1, 2, 5, 10, 15)
+
+    /**
+     * The always-on display is due: on, not showing yet, the screen lit and left alone long enough, and nothing that
+     * needs the screen ([busy]: a call, the reverse camera, the map).
+     */
+    fun aodDue(s: ShellState, idleMs: Long, busy: Boolean): Boolean =
+        s.aodEnabled && !s.aod && s.screenOn && !busy && idleMs >= s.aodAfterMin * 60_000L
+
+    /** The face the always-on display draws. */
+    fun aodFace(s: ShellState): Face = when (s.aodFace) {
+        AodFace.HOME -> s.face
+        AodFace.DIGITAL -> Face.DIGITAL
+        AodFace.ANALOG -> Face.ANALOG
+    }
+
+    /** The car events that end the always-on display, as a touch does: a key, reverse gear, a call, the car starting. */
+    fun wakesAod(e: CarEvent): Boolean = when (e) {
+        is CarEvent.SteeringKey, is CarEvent.PanelKey -> true
+        is CarEvent.ReverseGear -> e.on
+        is CarEvent.Call -> e.state != CarEvent.Call.State.IDLE
+        is CarEvent.Power -> e.acc
+        else -> false
+    }
+
     fun reduce(s: ShellState, a: ShellAction): ShellState = when (a) {
         ShellAction.CycleTheme -> s.copy(theme = ThemeMode.entries[(s.theme.ordinal + 1) % ThemeMode.entries.size])
         is ShellAction.SetTheme -> s.copy(theme = a.mode)
@@ -164,7 +206,7 @@ object Shell {
         is ShellAction.Headlights -> s.copy(headlights = a.on)
         ShellAction.ToggleScreen -> s.copy(screenOn = !s.screenOn)
         ShellAction.Wake -> s.copy(screenOn = true)
-        ShellAction.Sleep -> s.copy(screenOn = false, drawer = false)
+        ShellAction.Sleep -> s.copy(screenOn = false, drawer = false, aod = false)
         is ShellAction.OpenApp -> s.copy(
             app = a.app,
             running = if (a.app == App.HOME) s.running else listOf(a.app) + (s.running - a.app),
@@ -216,6 +258,11 @@ object Shell {
         is ShellAction.SetSpeedLimitSign -> s.copy(speedLimitSign = a.on)
         is ShellAction.SetTimeSync -> s.copy(autoTime = a.auto, timeSource = a.source)
         is ShellAction.SetDashMatched -> s.copy(dashMatched = a.on)
+        is ShellAction.SetAod -> s.copy(aodEnabled = a.on, aod = s.aod && a.on)
+        is ShellAction.SetAodAfter -> s.copy(aodAfterMin = a.minutes.coerceIn(AOD_MINUTES.first(), AOD_MINUTES.last()))
+        is ShellAction.SetAodFace -> s.copy(aodFace = a.face)
+        ShellAction.EnterAod -> if (s.aodEnabled && s.screenOn) s.copy(aod = true, drawer = false) else s
+        ShellAction.ExitAod -> s.copy(aod = false)
         is ShellAction.SetFaceMode -> s.copy(faceMode = a.mode, face = when (a.mode) {
             FaceMode.DIGITAL -> Face.DIGITAL
             FaceMode.ANALOG -> Face.ANALOG
@@ -251,6 +298,7 @@ object Shell {
         clock24h = s.clock24h, speedChime = s.speedChime, startVolume = s.startVolume,
         lockTypingWhileMoving = s.lockTypingWhileMoving, homeApps = s.homeApps, recordEvents = s.recordEvents, speedLimitSign = s.speedLimitSign, faceMode = s.faceMode,
         autoTime = s.autoTime, timeSource = s.timeSource, dashMatched = s.dashMatched,
+        aodEnabled = s.aodEnabled, aodAfterMin = s.aodAfterMin, aodFace = s.aodFace,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))

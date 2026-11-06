@@ -57,7 +57,7 @@ const TICKS = Array.from({ length: 60 }, (_, i) => {
   return <line key={i} x1={from.x} y1={from.y} x2={to.x} y2={to.y} className={major ? "major" : undefined} />;
 });
 
-function Dial({ now }: { now: Date }) {
+export function Dial({ now }: { now: Date }) {
   const seconds = now.getSeconds();
   const minutes = now.getMinutes() + seconds / 60;
   const hours = (now.getHours() % 12) + minutes / 60;

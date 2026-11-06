@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { bridge, type Source } from "../car/bridge";
+import { userActivity, watchIdle } from "../car/store";
+import { Dial } from "./Clock";
 import { carCommand, carEvent, launchApp, openPhone, openVolume, setBluetooth, shellAction, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Clock } from "./Clock";
 import { Drawer, useDrawerDrag } from "./Drawer";
@@ -129,6 +131,8 @@ export function Screen() {
   // above neutral the whole screen goes through one colour filter; none at all otherwise
   const boost = veil.brightness > 1 ? { filter: `brightness(${veil.brightness.toFixed(3)}) saturate(${veil.saturation.toFixed(3)})` } : undefined;
 
+  useEffect(watchIdle, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
@@ -140,7 +144,8 @@ export function Screen() {
   }, [car.camera]);
 
   return (
-    <div ref={finger} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming", inApp && "in-app", shell.app === "MAPS" && "in-maps", waking && "waking")} style={{ ...glow, ...boost }}>
+    // any touch restarts the always-on display's wait; while it shows, its own layer takes the touch
+    <div ref={finger} onPointerDownCapture={() => { if (!shell.aod) userActivity(); }} className={classes("screen", light && "light", shell.font === "geist" && "font-geist", fading && "theming", inApp && "in-app", shell.app === "MAPS" && "in-maps", waking && "waking")} style={{ ...glow, ...boost }}>
       <div className="ambient" aria-hidden="true" />
 
       <header className="bar" inert={covered} onPointerDown={onPointerDown}>
@@ -249,7 +254,22 @@ export function Screen() {
       <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC" || shell.drawer} />
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.dark.toFixed(3) }} />
       {/* always there: it fades in to switch the screen off and lifts to switch it on; a tap on it wakes the screen */}
+      <AlwaysOn on={shell.aod} now={now} face={bridge.aodFace(shell)} h24={shell.clock24h} />
       <button className={classes("screen-off", !shell.screenOn && "is-on", waking && "is-lifting")} aria-label="Screen off, tap to wake" tabIndex={shell.screenOn ? -1 : 0} aria-hidden={shell.screenOn} onClick={() => shellAction({ type: "Wake" })} />
+    </div>
+  );
+}
+
+/** The always-on display: black, the clock and the date in a soft white; a touch brings the screen back and does nothing else. */
+function AlwaysOn({ on, now, face, h24 }: { on: boolean; now: Date; face: "DIGITAL" | "ANALOG"; h24: boolean }) {
+  const date = now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  return (
+    <div className={classes("aod", on && "is-on")} aria-hidden={!on} role={on ? "button" : undefined} aria-label={on ? "Always on display, tap to wake" : undefined}
+      onPointerDown={(e) => { if (!on) return; e.stopPropagation(); userActivity(); }}>
+      {face === "ANALOG"
+        ? <div className="aod-dial"><Dial now={now} /></div>
+        : <time className="aod-time" dateTime={now.toISOString()}>{bridge.clockText(now.getHours(), now.getMinutes(), h24)}{!h24 && <span className="aod-meridiem">{bridge.meridiem(now.getHours())}</span>}</time>}
+      <p className="aod-date">{date}</p>
     </div>
   );
 }

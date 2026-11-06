@@ -242,6 +242,15 @@ object Bridge {
 
     fun minBrightness(): Int = Shell.MIN_BRIGHTNESS
 
+    fun aodDue(state: String, idleMs: Double, busy: Boolean): Boolean =
+        Shell.aodDue(json.decodeFromString(ShellState.serializer(), state), idleMs.toLong(), busy)
+
+    fun aodFace(state: String): String = Shell.aodFace(json.decodeFromString(ShellState.serializer(), state)).name
+
+    fun wakesAod(event: String): Boolean = Shell.wakesAod(json.decodeFromString(CarEvent.serializer(), event))
+
+    fun aodMinutes(): String = json.encodeToString(ListSerializer(Int.serializer()), Shell.AOD_MINUTES)
+
     fun maxBrightness(): Int = Shell.MAX_BRIGHTNESS
 
     /** Answers {"dark":0..1,"brightness":factor,"saturation":factor}. */
