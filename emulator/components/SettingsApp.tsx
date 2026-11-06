@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { bridge, type AnimationSpeed, type AodFace, type FaceMode, type ThemeMode, type TimeSource } from "../car/bridge";
 import { allTimeZones, carCommand, factoryReset, setSound, openAndroidSettings, restartShell, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
 import { Keyboard } from "./Keyboard";
@@ -374,6 +374,20 @@ function Maps({ e }: { e: EmulatorState }) {
   </>);
 }
 
+/** Our apps' tiles by id; another app gets a tile coloured from its package, with its initial. */
+const APP_MARK: Record<string, string> = { MAPS: "app-mark-nav", MUSIC: "app-mark-music", PHONE: "app-mark-phone", RADIO: "app-mark-radio", SETTINGS: "app-mark-settings" };
+const markHue = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+
+function AppName({ id, label }: { id: string; label: string }) {
+  const own = APP_MARK[id];
+  return (
+    <span className="set-app-name">
+      <span className={`set-app-icon ${own ?? "app-mark-other"}`} style={own ? undefined : { "--mark-hue": markHue(id) } as CSSProperties} aria-hidden="true">{own ? null : label.charAt(0)}</span>
+      {label}
+    </span>
+  );
+}
+
 /** Which apps sit on home and in which order: ours and the other apps installed on the unit (core-car HomeApps). */
 function HomeScreen({ e }: { e: EmulatorState }) {
   const chosen = bridge.homeApps(e.shell.homeApps, e.installed);
@@ -412,7 +426,7 @@ function HomeScreen({ e }: { e: EmulatorState }) {
     <Group title="On Home" footer={`Up to ${max} apps, in this order beside the card. Drag to reorder.`}>
       {chosen.map((a, i) => (
         <div key={a.id} className={`set-row set-reorder${drag?.id === a.id ? " is-dragged" : ""}`} style={drag ? { transform: `translateY(${shift(i)}px)` } : undefined}>
-          <span className="set-row-label">{a.label}</span>
+          <span className="set-row-label"><AppName id={a.id} label={a.label} /></span>
           <button className="set-inline is-remove" onClick={() => act({ type: "ToggleHomeApp", id: a.id })}>Remove</button>
           <button className="set-grip" aria-label={`Reorder ${a.label}, place ${i + 1} of ${chosen.length}`}
             onPointerDown={(ev) => down(ev, a.id, i)} onPointerMove={moveTo} onPointerUp={drop} onPointerCancel={() => setDrag(null)}
@@ -425,7 +439,7 @@ function HomeScreen({ e }: { e: EmulatorState }) {
     </Group>
     <Group title="More Apps" footer={full ? "Home is full: remove an app to add another." : "roadsterOS's own apps and the apps installed on the unit."}>
       {others.map((a) => (
-        <Row key={a.id} label={a.label}>
+        <Row key={a.id} label={<AppName id={a.id} label={a.label} />}>
           <button className="set-inline" disabled={full} onClick={() => act({ type: "ToggleHomeApp", id: a.id })}>Add</button>
         </Row>
       ))}

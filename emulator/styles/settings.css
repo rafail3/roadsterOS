@@ -81,7 +81,7 @@
 .set-inline:disabled { color: rgba(235, 235, 245, 0.3); }
 .set-inline.is-remove { color: #ff453a; }
 /* tiles on home: our apps' own colours, other apps one from their name */
-.app-mark-radio { background: linear-gradient(145deg, #4a3a1f, #24190f); }
+.app-mark-radio { background: url(/images/app-radio.webp) center / cover no-repeat; border-color: transparent; }
 /* the settings app's own icon, on home and in the drawer */
 .app-mark-settings { background: url(/images/settings-icon.webp) center / cover no-repeat; border-color: transparent; }
 /* in the drawer the gear alone, the size of the other toggles' icons */
@@ -118,3 +118,8 @@
 .i-car-fill { --m: url(/icons/car-fill.svg); }
 .i-code { --m: url(/icons/code.svg); }
 .set-stepper output.set-mix { min-width: 64px; }
+
+/* the Home Screen list: each app's icon before its name */
+.set-app-icon { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; font-size: 18px; font-weight: 700; color: #fff; }
+.set-app-icon.app-mark-other { background: linear-gradient(145deg, hsl(var(--mark-hue) 45% 34%), hsl(var(--mark-hue) 45% 16%)); }
+.set-app-name { display: inline-flex; align-items: center; gap: 14px; }

@@ -106,8 +106,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .app:active { background: var(--glass-pressed); }
 .app-mark { width: 56px; height: 56px; border-radius: 14px; border: 1px solid var(--hairline-strong); }
 /* synthetic app marks: stand-ins for the installed apps' icons */
-.app-mark-nav { background: linear-gradient(145deg, #1f3b5a, #0f1c2c); }
-.app-mark-music { background: linear-gradient(145deg, #3a1f4a, #1a0f24); }
+.app-mark-nav { background: url(/images/app-maps.webp) center / cover no-repeat; border-color: transparent; }
+.app-mark-music { background: url(/images/app-music.webp) center / cover no-repeat; border-color: transparent; }
 .app-mark-pod { background: linear-gradient(145deg, #4a2a1f, #24130f); }
 
 /* glass panel */
