@@ -16,6 +16,8 @@ import ro.rdstr.car.Setup
 import ro.rdstr.car.ShellAction
 import ro.rdstr.os.boot.BootView
 import ro.rdstr.os.screens.Screen
+import ro.rdstr.os.screens.ShellScreen
+import ro.rdstr.ui.Mirrors
 import ro.rdstr.os.screens.Screens
 import ro.rdstr.ui.kit.UiDensity
 import ro.rdstr.ui.kit.UiTheme
@@ -23,6 +25,8 @@ import ro.rdstr.ui.shell.Layer
 import ro.rdstr.ui.shell.ShellView
 import java.util.Calendar
 
+/** The only HOME screen: the shell (Screen.tsx's root, its layers and its startup screens). */
+@Mirrors("Screen.tsx")
 class HomeActivity : Activity() {
 
     private val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -38,7 +42,9 @@ class HomeActivity : Activity() {
         // the screens read the runtime as they are made; the service starts it too, later, on this same thread
         CarRuntime.start(applicationContext)
         CarRuntime.ensureService(this)
-        shell = ShellView(this)
+        val root = ShellScreen(this)
+        screens += root
+        shell = root.view
         setContentView(shell)
         UiTheme.fadeRoot = shell
         for ((layer, make) in Screens.ALL) make(this).also { screens += it; shell.put(layer, it.view) }
@@ -114,6 +120,16 @@ class HomeActivity : Activity() {
             }
             for (s in screens) s.bind(this)
         }
+    }
+
+    // a keyboard's Escape closes the drawer and the camera, as on the emulator's screen
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        if (event.keyCode == android.view.KeyEvent.KEYCODE_ESCAPE && event.action == android.view.KeyEvent.ACTION_UP) {
+            CarRuntime.shellAction(ShellAction.CloseDrawer)
+            CarRuntime.shellAction(ShellAction.CloseCamera)
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onUserInteraction() {

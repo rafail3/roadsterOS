@@ -17,8 +17,17 @@ interface Screen {
     fun bind(scope: CoroutineScope)
 }
 
-/** Every screen the shell stacks, one line each: the layer its view goes in and the glue that makes it. */
+/**
+ * Every screen the shell stacks, one line each: the layer its view goes in and the glue that makes it. The shell's
+ * own root (Screen.tsx, [ShellScreen]) is made by HomeActivity; [Layer.PANEL] goes in the panel's grid cell,
+ * [Layer.CLOCK] in the field above the icons, [Layer.AOD_DIAL] in the always-on display.
+ */
 object Screens {
     val ALL: List<Pair<Layer, (Activity) -> Screen>> = listOf(
+        Layer.PANEL to ::HomeCardScreen,
+        Layer.RECENTS to ::RecentsScreen,
+        Layer.GESTURES to ::GesturesScreen,
+        Layer.NOTICE to ::NoticeScreen,
+        Layer.DEV to ::DevOverlaysScreen,
     )
 }

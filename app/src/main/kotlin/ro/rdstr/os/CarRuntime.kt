@@ -73,6 +73,8 @@ data class UiState(
     val positionAt: Long = 0,
     /** The tuner's report for each frequency heard, by [stationKey]: its RDS name, programme type and signal. */
     val heard: Map<String, CarEvent.Radio> = emptyMap(),
+    /** The station tuned now, with the name heard for it; null until the tuner reports one. */
+    val radio: CarEvent.Radio? = null,
     /** Frequencies starred in our radio app, in order. */
     val favorites: List<Int> = emptyList(),
     /** Bumped whenever the volume bar should come up, even with nothing changed. */
@@ -108,6 +110,7 @@ data class UiState(
             // a station's name arrives a moment after its frequency: a report without one keeps the name heard before
             is CarEvent.Radio -> stationKey(event.band, event.khz).let { key ->
                 if (event.rds.isNotEmpty() || key !in ui.heard) ui = ui.copy(heard = ui.heard + (key to event))
+                ui = ui.copy(radio = ui.heard[key] ?: event)
             }
             is CarEvent.Message -> ui = ui.copy(
                 messages = ui.messages + event,
