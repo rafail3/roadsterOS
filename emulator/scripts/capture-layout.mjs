@@ -45,6 +45,13 @@ const SCENES = [
   ...looks.map(([theme, design]) => ({ name: `settings-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=settings` })),
   // the status bar's Wi-Fi bars, connected to the strongest network (level 3)
   ...looks.map(([theme, design]) => ({ name: `wifibars-${theme}-${design}`, query: `theme=${theme}&design=${design}`, root: "bar/bar-group:1/span/wifi-bars.bar-wifi" })),
+  // --- shell (Screen.tsx and its home): the open apps, the connection notice, the status bar, the dock, the card
+  ...looks.map(([theme, design]) => ({ name: `recents-${theme}-${design}`, query: `theme=${theme}&design=${design}&recents=maps,radio,settings`, root: "recents" })),
+  ...looks.map(([theme, design]) => ({ name: `notice-${theme}-${design}`, query: `theme=${theme}&design=${design}&notice=bt`, root: "notice" })),
+  ...looks.map(([theme, design]) => ({ name: `bar-${theme}-${design}`, query: `theme=${theme}&design=${design}`, root: "bar" })),
+  ...looks.map(([theme, design]) => ({ name: `rail-${theme}-${design}`, query: `theme=${theme}&design=${design}`, root: "rail" })),
+  ...looks.map(([theme, design]) => ({ name: `card-nophone-${theme}-${design}`, query: `theme=${theme}&design=${design}&nophone`, root: "panel" })),
+  // --- end shell
   // --- setup (SetupScreens.tsx, UnitPicture.tsx): each step once its timers are done; `wait` ms after load, `click` a selector
   ...[["carname", "car_name"], ["prepare", "prepare", 5000], ["wifi", "wifi", 2500], ["update", "update&release=1.19.0"], ["location", "location"],
     ["look", "look"], ["files", "files", 3000], ["welcome", "welcome"]].flatMap(([step, setup, wait]) =>
