@@ -61,11 +61,11 @@ class HomeActivity : Activity() {
             !booted || (!shell.setupDone && shell.setupStep == Setup.Step.LOGO) -> overlay(BootView(this, BootView.Mode.BOOT) {
                 booted = true
                 val now = CarRuntime.shell.value
-                if (!now.setupDone && now.setupStep == Setup.Step.LOGO) CarRuntime.shellAction(ShellAction.SetupNext())
+                if (!now.setupDone && now.setupStep == Setup.Step.LOGO) ro.rdstr.os.screens.SetupScreen.next()
                 startup()
             })
             !shell.setupDone && shell.setupStep == Setup.Step.START -> overlay(BootView(this, BootView.Mode.START, versionName()) {
-                CarRuntime.shellAction(ShellAction.SetupNext())
+                ro.rdstr.os.screens.SetupScreen.next()
                 startup()
             })
             else -> overlay(null)
