@@ -120,6 +120,21 @@ object Bridge {
         HomeCard.press(CardPage.valueOf(page), HomeCard.Press.valueOf(press), json.decodeFromString(RulesState.serializer(), state)),
     )
 
+    /** The tuner's bands: {"FM":{"min":kHz,"max":kHz,"step":kHz},"AM":{...}}. */
+    fun bands(): String = Tuner.BANDS.entries.joinToString(",", "{", "}") { (band, r) ->
+        "\"$band\":{\"min\":${r.min},\"max\":${r.max},\"step\":${r.step}}"
+    }
+
+    /** [favorites]: a JSON array of kHz; answers it with [khz] starred or unstarred. */
+    fun toggleFavorite(favorites: String, khz: Int): String {
+        val ints = ListSerializer(Int.serializer())
+        return json.encodeToString(ints, Tuner.toggleFavorite(json.decodeFromString(ints, favorites), khz))
+    }
+
+    /** Where playback is now (core-car PlaybackClock); times in ms, [durationMs] 0 when unknown. */
+    fun elapsedMs(positionMs: Double, positionAt: Double, playing: Boolean, durationMs: Double, now: Double): Double =
+        PlaybackClock.elapsedMs(positionMs.toLong(), positionAt.toLong(), playing, durationMs.toLong(), now.toLong()).toDouble()
+
     /** A frequency as the screen writes it; [band] is FM or AM. */
     fun freqFormat(band: String, khz: Int): String = FreqDisplay.format(CarEvent.Radio.Band.valueOf(band), khz)
 

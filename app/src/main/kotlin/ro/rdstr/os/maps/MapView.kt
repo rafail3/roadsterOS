@@ -34,6 +34,7 @@ import kotlin.math.hypot
 import kotlin.math.ln
 import kotlin.math.sin
 import ro.rdstr.map.View as MapViewState
+import ro.rdstr.ui.Emulates
 
 /**
  * The map on the unit. Each picture of the map grid is drawn once, off the main thread, into a small bitmap kept in a
@@ -152,8 +153,8 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
                 val key = "$tz/$x/$y"
                 (streetTiles.get(key) ?: (packs.tile(tz, x, y)?.let { Mvt.decode(it) } ?: NO_TILE).also { streetTiles.put(key, it) }) as? VectorTile
             }
-            val name = Street.at(lon, lat, z, tiles, heading)
-            val limit = SpeedLimit.at(lon, lat, heading, tiles)
+            val name = streetAt(tiles, lon, lat, z, heading)
+            val limit = limitAt(tiles, lon, lat, heading)
             main.post {
                 if (name == street && limit == roadLimit) return@post
                 if (name != street) Log.i(TAG, "street: $name")
@@ -163,6 +164,19 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
             }
         }
     }
+
+    /**
+     * The name of the street the car is on at [zoom] (core-map Street): the nearest named road of the pack's tiles,
+     * along [heading] while the car moves. The emulator runs the same rule over the tiles MapLibre has loaded.
+     */
+    @Emulates("roads.streetAt")
+    private fun streetAt(tiles: TileRenderer.Tiles, lon: Double, lat: Double, zoom: Double, heading: Double?): String =
+        Street.at(lon, lat, zoom, tiles, heading)
+
+    /** The posted limit of the car's road for its direction, in km/h, from the pack's maxspeed layer (core-map SpeedLimit). */
+    @Emulates("roads.limitAt")
+    private fun limitAt(tiles: TileRenderer.Tiles, lon: Double, lat: Double, heading: Double?): Int? =
+        SpeedLimit.at(lon, lat, heading, tiles)
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         scale = w / 1280f
@@ -396,11 +410,11 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         return true
     }
 
-    override fun onDetachedFromWindow() {
-        super.onDetachedFromWindow()
-        worker.quitSafely()
-        pictures.evictAll()
-    }
+    /**
+     * The one map moves between the Maps screen and the card on home (MapHost), so leaving a parent keeps its worker
+     * and its pictures; the host drops the pictures when the map is shown nowhere.
+     */
+    fun dropPictures() = pictures.evictAll()
 
     companion object {
         const val TAG = "rdstr.map"

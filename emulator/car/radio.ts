@@ -5,11 +5,8 @@ import { bridge, type Band } from "./bridge";
 /** A station on air: `ps` is its RDS name (8 characters at most), `pty` its programme type code. */
 export interface Station { khz: number; band: Band; ps: string; pty: number; signal: 1 | 2 | 3 }
 
-/** The tuner's ranges and steps, European region of the vendor tuner table: FM in 50 kHz steps, AM in 9 kHz. */
-export const BANDS: Record<Band, { min: number; max: number; step: number }> = {
-  FM: { min: 87500, max: 108000, step: 50 },
-  AM: { min: 522, max: 1620, step: 9 },
-};
+/** The tuner's ranges and steps, European region of the vendor tuner table: FM in 50 kHz steps, AM in 9 kHz (core-car Tuner). */
+export const BANDS = bridge.bands();
 
 export const STATIONS: Station[] = [
   { khz: 88600, band: "FM", ps: "CITYWAVE", pty: 10, signal: 3 },
