@@ -106,13 +106,11 @@ object KeyboardLayout {
         chars(rows[1], left + inset, inner - 2 * inset, top, KEY_HEIGHT, false)
         top += KEY_HEIGHT + ROW_GAP
 
-        // Shift (or its empty slot on the symbols layer), the third row's keys, backspace; the symbols' third row has
-        // wide keys (`is-wide`): the side keys stay, the keys take the margins too, the whole width between them
+        // Shift (or its empty slot on the symbols layer), the third row's keys, backspace; 7 keys in both layers
         val m = inner * ROW_KEYS_MARGIN
         val third = flex(left, inner, floatArrayOf(GROW_FN, GROW_ROW_KEYS, GROW_FN), margins = floatArrayOf(0f, 0f, m, m, 0f, 0f))
         out += Key(if (layer == Layer.LETTERS) KeyType.SHIFT else KeyType.SPACER, "", "", false, third[0], top, third[1], KEY_HEIGHT)
-        val wide = if (layer == Layer.LETTERS) 0f else m
-        chars(rows[2], third[2] - wide, third[3] + 2 * wide, top, KEY_HEIGHT, false)
+        chars(rows[2], third[2], third[3], top, KEY_HEIGHT, false)
         out += Key(KeyType.BACKSPACE, "", "", false, third[4], top, third[5], KEY_HEIGHT)
         top += KEY_HEIGHT + ROW_GAP
 
