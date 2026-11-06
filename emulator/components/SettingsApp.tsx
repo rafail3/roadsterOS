@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type
 import { bridge, type AnimationSpeed, type Design, type AodFace, type CameraSettings, type FaceMode, type Guidelines, type ReverseDip, type ThemeMode, type TimeSource } from "../car/bridge";
 import { allTimeZones, carCommand, factoryReset, setCamera, setCastVisible, setSound, openAndroidSettings, askRestart, checkForUpdate, installedAt, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
 import { UnitPicture } from "./UnitPicture";
+import { WifiNetworks } from "./NetworksSheet";
 import { downloadFigures, useUpdateInstall } from "./update";
 import { Keyboard } from "./Keyboard";
 import { PillSlider } from "./Drawer";
@@ -79,13 +80,14 @@ export function Row({ label, value, onPress, danger, children }: { label: ReactN
     : <div className="set-row">{body}</div>;
 }
 
+/** Settings > Wi-Fi: the switch, then the networks to join right here, as in the Wi-Fi sheet. */
 function Wifi({ e }: { e: EmulatorState }) {
-  return (
+  return (<>
     <Group footer={!e.locationOn && e.wifiOn ? "Finding networks needs Location on." : undefined}>
       <Row label="Wi-Fi"><Switch label="Wi-Fi" on={e.wifiOn} onChange={setWifi} /></Row>
-      {e.wifiOn && <Row label="Network" value={e.wifi.connected ?? "Not connected"} onPress={() => shellAction({ type: "OpenNetworks" })} />}
     </Group>
-  );
+    {e.wifiOn && <div className="set-networks"><WifiNetworks shown /></div>}
+  </>);
 }
 
 function Bluetooth({ e }: { e: EmulatorState }) {

@@ -218,6 +218,7 @@ export type ShellAction =
   | { type: "SetPhoneRegion"; region: string }
   | { type: "SetupNext"; wifi?: boolean; updateAvailable?: boolean }
   | { type: "SetupBack" | "RestartSetup" }
+  | { type: "RadioSwitched"; radio: "BLUETOOTH" | "WIFI"; on: boolean }
   | { type: "SetCarName"; name: string }
   | { type: "CastChanged"; state: CastState }
   | { type: "OpenCamera" | "CloseCamera" };

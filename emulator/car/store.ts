@@ -358,7 +358,7 @@ function fromLaptop(line: string) {
 
 /**
  * Bluetooth off drops the connected phone, as on the unit, and a Bluetooth source with it: home then offers the sources.
- * On again, nothing switches by itself; a saved phone reconnects on its own later.
+ * On again, nothing connects by itself: the devices list opens and the driver picks the phone.
  */
 export function setBluetooth(on: boolean) {
   if (!on && state.car.btConnected) carEvent({ type: "BtConnection", connected: false, device: state.device });

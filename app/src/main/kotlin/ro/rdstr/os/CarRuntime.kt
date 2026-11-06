@@ -365,6 +365,20 @@ object CarRuntime {
         return PhoneGate.screen(on, _ui.value.state.hfpConnected).also { Log.i(PHONE_TAG, "phone app $it") }
     }
 
+    /**
+     * The drawer's Bluetooth and Wi-Fi switches: on opens the radio's list (Shell RadioSwitched). Bluetooth then waits
+     * for the driver to pick a phone; Wi-Fi joins a saved network in range by itself (Android's own), the list showing it.
+     */
+    fun switchBluetooth(on: Boolean) {
+        radios.bluetooth(on)
+        shellAction(ro.rdstr.car.ShellAction.RadioSwitched(ro.rdstr.car.Radio.BLUETOOTH, on))
+    }
+
+    fun switchWifi(on: Boolean) {
+        radios.wifi(on)
+        shellAction(ro.rdstr.car.ShellAction.RadioSwitched(ro.rdstr.car.Radio.WIFI, on))
+    }
+
     private const val PHONE_TAG = "rdstr.phone"
     private const val IDLE_CHECK_MS = 5_000L
     /** The phone book sync writes in bursts; read once it has been quiet this long. */
