@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { setLocation, setWifi, shellAction, useEmulator, WIFI_NETWORKS, wifiConnect, wifiForget, wifiScan, type WifiNetwork } from "../car/store";
 import { SavedRow, type Status } from "./DevicesSheet";
 import { Keyboard } from "./Keyboard";
+import { Switch } from "./SettingsApp";
 import { WifiBars } from "./WifiBars";
 
 /** While the panel is open the unit keeps looking, as a phone does. */
@@ -63,9 +64,7 @@ export function NetworksSheet() {
             : <h2 id="networks-title">Wi-Fi</h2>}
           <div className="devices-head-end">
             {!joining && (
-              <button className={`switch${wifiOn ? " is-on" : ""}`} role="switch" aria-checked={wifiOn} aria-label="Wi-Fi" onClick={() => setWifi(!wifiOn)}>
-                <span className="switch-knob" aria-hidden="true" />
-              </button>
+              <Switch label="Wi-Fi" on={wifiOn} onChange={setWifi} />
             )}
             <button className="glass-button" aria-label="Close Wi-Fi" onClick={close}><span className="icon i-x" aria-hidden="true" /></button>
           </div>

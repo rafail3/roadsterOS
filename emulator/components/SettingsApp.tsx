@@ -1,10 +1,11 @@
 import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
-import { bridge, type AnimationSpeed, type AodFace, type CameraSettings, type FaceMode, type Guidelines, type ReverseDip, type ThemeMode, type TimeSource } from "../car/bridge";
+import { bridge, type AnimationSpeed, type Design, type AodFace, type CameraSettings, type FaceMode, type Guidelines, type ReverseDip, type ThemeMode, type TimeSource } from "../car/bridge";
 import { allTimeZones, carCommand, factoryReset, setCamera, setCastVisible, setSound, openAndroidSettings, restartShell, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
 import { Keyboard } from "./Keyboard";
 import { PillSlider } from "./Drawer";
 import { useCloseOntoCard } from "./media";
 import { GuideLines } from "./Overlays";
+import { useGlisse } from "./glassy";
 
 type Page = "wifi" | "bluetooth" | "location" | "display" | "datetime" | "dash" | "camera" | "sound" | "phone" | "home" | "maps" | "about" | "developer";
 
@@ -26,6 +27,8 @@ const ABOUT = { android: "8.1.0", model: "8227L_demo", screen: "1024 × 600", ap
 const VERSION = process.env.RDSTR_VERSION ?? "dev";
 
 export function Switch({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
+  const glisse = useGlisse();
+  if (glisse) return <glisse.Switch className="set-switch-glass" aria-label={label} checked={on} onCheckedChange={onChange} />;
   return (
     <button className={`switch${on ? " is-on" : ""}`} role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)}>
       <span className="switch-knob" aria-hidden="true" />
@@ -33,7 +36,15 @@ export function Switch({ label, on, onChange }: { label: string; on: boolean; on
   );
 }
 
+/** Glassy segments are all as wide as the longest label needs, as the liquid thumb slides between equal cells. */
+const segmentWidth = (options: [string, string][]) => Math.max(96, 36 + 10 * Math.max(...options.map(([, text]) => text.length)));
+
 export function Segmented<T extends string>({ label, options, value, onChange }: { label: string; options: [T, string][]; value: T; onChange: (v: T) => void }) {
+  const glisse = useGlisse();
+  if (glisse) return (
+    <glisse.SegmentedControl className="set-seg-glass" aria-label={label} items={options.map(([v, text]) => ({ value: v, label: text }))}
+      value={value} onValueChange={(v) => onChange(v as T)} style={{ "--lg-tab-width": `${segmentWidth(options)}px` } as CSSProperties} />
+  );
   return (
     <div className="set-seg" role="radiogroup" aria-label={label}>
       {options.map(([v, text]) => (
@@ -100,6 +111,13 @@ function Display({ e }: { e: EmulatorState }) {
     <Group title="Theme" footer="Auto is light from 05:00 to 19:00 and dark otherwise; with the headlights on, the screen dims a little.">
       <Row label="Appearance">
         <Segmented<ThemeMode> label="Appearance" options={[["AUTO", "Auto"], ["LIGHT", "Day"], ["DARK", "Night"]]} value={shell.theme} onChange={(mode) => shellAction({ type: "SetTheme", mode })} />
+      </Row>
+    </Group>
+    <Group title="Design" footer={shell.design === "GLASSY"
+      ? "Frosted glass panels and liquid controls. The layout, the icons and the colours stay as they are."
+      : "Flat, solid panels. Glassy gives every panel and control a glass look."}>
+      <Row label="Design">
+        <Segmented<Design> label="Design" options={[["SOLID", "Solid"], ["GLASSY", "Glassy"]]} value={shell.design} onChange={(design) => shellAction({ type: "SetDesign", design })} />
       </Row>
     </Group>
     <Group title="Brightness">

@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.15.0](https://github.com/rafail3/roadsterOS/compare/v1.14.0...v1.15.0) (2026-11-06)
+
+
+### Features
+
+* **design:** glassy design next to solid ([43bee68](https://github.com/rafail3/roadsterOS/commit/43bee6846b4b20579f662d691fba844b539ac8da))
+* **design:** Glassy design next to Solid: glisse switches, segmented controls and sliders, a glass material on panels and keys, set in Display ([ce4ad6f](https://github.com/rafail3/roadsterOS/commit/ce4ad6f9fb844f9bc97c04d65ef36dd0aeef0ba9))
+* **design:** Glassy on every surface and key, tinted glass on coloured keys, transport discs inside their touch area, shared switch in the device and Wi-Fi sheets ([c3a04d2](https://github.com/rafail3/roadsterOS/commit/c3a04d26de38b106e71d577dbe845fe973da9b49))
+
 ## [1.14.0](https://github.com/rafail3/roadsterOS/compare/v1.13.0...v1.14.0) (2026-11-06)
 
 

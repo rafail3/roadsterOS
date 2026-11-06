@@ -1,4 +1,5 @@
 import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from "react";
+import { useGlisse } from "./glassy";
 import { bridge } from "../car/bridge";
 import { carCommand, setBluetooth, setLocation, setVolume, setWifi, shellAction, type EmulatorState } from "../car/store";
 import { useMuteFill } from "./VolumeHud";
@@ -85,13 +86,31 @@ export function PillSlider({ className, label, min, max, step, value, valueText,
   onValue: (value: number) => void; icon: ReactNode; readout: ReactNode; fillStyle?: CSSProperties;
 }) {
   const [held, setHeld] = useState(false);
+  const glisse = useGlisse();
   const fraction = (value - min) / (max - min);
+  const release = () => setHeld(false);
+  // Glassy: the liquid slider in the same row, the icon before it and the readout after it as on Solid
+  // held and filled as on Solid, so what follows a held slider (the drawer clearing for brightness) works the same;
+  // dragging lands on every whole value as on Solid, the keys keep their own step
+  if (glisse) return (
+    <div className={`pill-slider is-glass${held ? " is-held" : ""}${fraction > 0 ? " is-filled" : ""}${className ? ` ${className}` : ""}`}
+      onPointerDown={() => setHeld(true)} onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release}>
+      {icon}
+      <glisse.Slider aria-label={label} aria-valuetext={valueText} min={min} max={max} step={1} value={value} onValueChange={(v) => onValue(Math.round(v))}
+        onKeyDown={(e) => {
+          const direction = KEY_DIRECTION[e.key];
+          if (!direction) return;
+          e.preventDefault();
+          onValue(Math.min(max, Math.max(min, value + direction * step)));
+        }} />
+      {readout}
+    </div>
+  );
   // the strip right of the icon maps the range, the same strip the fill grows along
   const valueAt = (e: ReactPointerEvent<HTMLDivElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
     onValue(Math.round(min + Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * (max - min)));
   };
-  const release = () => setHeld(false);
   return (
     <div className={`pill-slider${held ? " is-held" : ""}${fraction > 0 ? " is-filled" : ""}${className ? ` ${className}` : ""}`}>
       <div className="pill">

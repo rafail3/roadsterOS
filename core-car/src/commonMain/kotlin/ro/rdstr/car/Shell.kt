@@ -6,6 +6,8 @@ import kotlinx.serialization.json.Json
 
 enum class ThemeMode { AUTO, LIGHT, DARK }
 enum class Theme { LIGHT, DARK }
+/** The look of every surface and control: the flat Solid one, or Glassy (frosted glass, liquid controls). Layout and icons are the same in both. */
+enum class Design { SOLID, GLASSY }
 enum class Face { DIGITAL, ANALOG }
 /** Which clock home shows: both, switched with a tap on the clock, or always the one chosen. */
 enum class FaceMode { BOTH, DIGITAL, ANALOG }
@@ -96,6 +98,7 @@ data class ShellState(
     val cameraOpen: Boolean = false,
     /** Phones find the unit in their screen-sharing list (Smart View, Miracast) while the car is on. */
     val castVisible: Boolean = true,
+    val design: Design = Design.SOLID,
     /** The country whose grouping numbers typed without + follow on screen (PhoneFormat); dialling is unchanged. */
     val phoneRegion: String = "RO",
     /** Every car event is written to a file on the unit, for troubleshooting. */
@@ -113,6 +116,7 @@ sealed class ShellAction {
     @Serializable @SerialName("ToggleFace") data object ToggleFace : ShellAction()
     @Serializable @SerialName("SetFace") data class SetFace(val face: Face) : ShellAction()
     @Serializable @SerialName("SetFont") data class SetFont(val name: String) : ShellAction()
+    @Serializable @SerialName("SetDesign") data class SetDesign(val design: Design) : ShellAction()
     @Serializable @SerialName("SetBrightness") data class SetBrightness(val value: Int) : ShellAction()
     @Serializable @SerialName("Headlights") data class Headlights(val on: Boolean) : ShellAction()
     @Serializable @SerialName("ToggleScreen") data object ToggleScreen : ShellAction()
@@ -258,6 +262,7 @@ object Shell {
         ShellAction.ToggleFace -> if (s.faceMode != FaceMode.BOTH) s else s.copy(face = if (s.face == Face.DIGITAL) Face.ANALOG else Face.DIGITAL)
         is ShellAction.SetFace -> s.copy(face = a.face)
         is ShellAction.SetFont -> s.copy(font = a.name)
+        is ShellAction.SetDesign -> s.copy(design = a.design)
         is ShellAction.SetBrightness -> s.copy(brightness = a.value.coerceIn(MIN_BRIGHTNESS, MAX_BRIGHTNESS))
         is ShellAction.Headlights -> s.copy(headlights = a.on)
         ShellAction.ToggleScreen -> s.copy(screenOn = !s.screenOn)
@@ -382,7 +387,7 @@ object Shell {
         animationSpeed = s.animationSpeed, setupDone = s.setupDone,
         // the call level is for this drive only
         dsp = s.dsp.copy(callVolume = Sound.CALL_VOLUME_DEFAULT),
-        camera = s.camera, castVisible = s.castVisible, phoneRegion = s.phoneRegion,
+        camera = s.camera, castVisible = s.castVisible, design = s.design, phoneRegion = s.phoneRegion,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))
