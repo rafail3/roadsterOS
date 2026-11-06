@@ -198,6 +198,8 @@ object CarRuntime {
     }
 
     fun send(command: CarCommand) {
+        // a phone picked by hand ends the wait for the last one
+        if (command is CarCommand.Bluetooth.Connect && !reconnecting) connecting?.cancel()
         _ui.value = _ui.value.copy(state = Rules.onCommand(_ui.value.state, command))
         if (_shell.value.recordEvents) journal.write(JournalRecord(0, command = command))
         bus.send(command)
@@ -273,6 +275,8 @@ object CarRuntime {
      * it stops as soon as one connects, and with Bluetooth off.
      */
     @android.annotation.SuppressLint("MissingPermission") // BLUETOOTH is granted at install on API 27
+    private var reconnecting = false
+
     private fun connectLastPhone() {
         connecting?.cancel()
         connecting = scope.launch {
@@ -280,7 +284,8 @@ object CarRuntime {
             val adapter = android.bluetooth.BluetoothAdapter.getDefaultAdapter()?.takeIf { it.isEnabled } ?: return@launch
             val saved = adapter.bondedDevices.mapNotNull { it.name }
             val phone = Startup.phoneToReconnect(_shell.value.btAutoConnect, saved, prefs.getString(LAST_PHONE_KEY, null)) ?: return@launch
-            if (!_ui.value.state.btConnected) send(CarCommand.Bluetooth.Connect(phone))
+            // one try: a phone out of reach just fails, and the list stays free for any phone picked by hand
+            if (!_ui.value.state.btConnected) { reconnecting = true; send(CarCommand.Bluetooth.Connect(phone)); reconnecting = false }
         }
     }
 

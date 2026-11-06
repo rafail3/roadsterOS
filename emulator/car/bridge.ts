@@ -126,6 +126,7 @@ export interface ShellState {
   setupStep: SetupStep;
   carName: string;
   btAutoConnect: boolean;
+  settingsPage: string;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -220,6 +221,7 @@ export type ShellAction =
   | { type: "SetupNext"; wifi?: boolean; updateAvailable?: boolean }
   | { type: "SetupBack" | "RestartSetup" }
   | { type: "SetBtAutoConnect"; on: boolean }
+  | { type: "OpenSettingsPage"; page: string }
   | { type: "RadioSwitched"; radio: "BLUETOOTH" | "WIFI"; on: boolean }
   | { type: "SetCarName"; name: string }
   | { type: "CastChanged"; state: CastState }

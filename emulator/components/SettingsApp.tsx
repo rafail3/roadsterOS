@@ -712,7 +712,9 @@ function summary(id: Page, e: EmulatorState): string {
 /** Settings: the sections on the left, the chosen one on the right, as a tablet's settings in landscape. */
 export function SettingsApp({ open }: { open: boolean }) {
   const e = useEmulator();
-  const [page, setPage] = useState<Page>("wifi");
+  // the section lives in the shell, so the drawer can bring Settings to it (OpenDevices, OpenNetworks)
+  const page = e.shell.settingsPage as Page;
+  const setPage = (id: Page) => shellAction({ type: "OpenSettingsPage", page: id });
   const section = useCloseOntoCard(open);
   // the Developer section shows only while it is switched on in About
   const pages = PAGES.filter((p) => p.id !== "developer" || e.shell.developer);

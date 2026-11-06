@@ -462,7 +462,7 @@ function sendToCar(command: CarCommand) {
   if (command.type === "Radio.Scan") scanBand();
   if (command.type === "Radio.Band") tune(command.band, state.stations[command.band][0] ?? BANDS[command.band].min);
   if (command.type === "Audio.Source" && command.source === "RADIO") tune(state.radio.band, state.radio.khz);
-  if (command.type === "Bt.Connect") tryConnect(command.device);
+  if (command.type === "Bt.Connect") { if (connecting) clearTimeout(connecting); connecting = null; tryConnect(command.device); }
   if (command.type === "Bt.Scan") scan();
   if (command.type === "Bt.Forget") forget(command.device);
   if (command.type === "Bt.Pair") set({ pairing: { name: command.device, code: String(100000 + Math.floor(Math.random() * 900000)) } });
@@ -738,7 +738,8 @@ function connectLastPhone() {
   connecting = setTimeout(() => {
     connecting = null;
     const phone = bridge.reconnectPhone(state.shell.btAutoConnect, state.saved.map((d) => d.name), lastPhone);
-    if (phone && state.btOn && state.acc && !state.car.btConnected) tryConnect(phone);
+    // a phone the driver is connecting by hand meanwhile wins: the last phone is asked only when nothing is going on
+    if (phone && state.btOn && state.acc && !state.car.btConnected && !state.connecting) tryConnect(phone);
   }, bridge.startupConnectWaitMs());
 }
 
