@@ -849,6 +849,11 @@ export function stopLaptopWindow() {
   if (state.car.cast === "LIVE" || state.car.cast === "CONNECTING") carEvent({ type: "PhoneCast", state: state.acc && state.shell.castVisible ? "VISIBLE" : "OFF" });
 }
 
+/** A number as the screen shows it: grouped for its country, numbers without + by the Number Country setting. */
+export function formatNumber(number: string) {
+  return bridge.phoneFormat(number, state.shell.phoneRegion);
+}
+
 export function launchApp(id: string) {
   if (id === "PHONE") return openPhone();
   if (id === "PHONE_SCREEN") return shellAction({ type: "OpenApp", app: "PHONE_SCREEN" });

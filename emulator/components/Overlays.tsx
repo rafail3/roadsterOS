@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { bridge, type CameraSettings } from "../car/bridge";
-import { carCommand, carEvent, dismissMessage, openThread, shellAction, useEmulator, useNow, type EmulatorState } from "../car/store";
+import { carCommand, carEvent, dismissMessage, formatNumber, openThread, shellAction, useEmulator, useNow, type EmulatorState } from "../car/store";
 import { Contacts, PadKey } from "./PhoneApp";
 
 const TONE_KEYS: [string, string][] = [
@@ -22,7 +22,7 @@ function CallToggle({ icon, label, on, onPress }: { icon: string; label: string;
 function Waiting({ name, number }: { name: string; number: string }) {
   return (
     <div className="call-waiting" role="group" aria-label={`Second call, ${name || number}`}>
-      <span className="call-waiting-text"><strong>{name || number}</strong> is calling</span>
+      <span className="call-waiting-text"><strong>{name || formatNumber(number)}</strong> is calling</span>
       <div className="call-waiting-actions">
         <button className="call-pill is-decline" onClick={() => carCommand({ type: "Phone.DeclineWaiting" })}>Decline</button>
         <button className="call-pill" onClick={() => carCommand({ type: "Phone.AnswerWaiting", keepCurrent: false })}>End &amp; Accept</button>
@@ -48,7 +48,7 @@ export function CallOverlay({ emulator }: { emulator: EmulatorState }) {
   const ringing = car.call === "RINGING";
   const timer = call.since !== null ? bridge.callDuration(now.getTime() - call.since) : "";
   const status = ringing ? "Incoming call" : car.call === "OUTGOING" ? "Calling…" : call.held ? "On Hold" : timer;
-  const title = call.conference ? "Conference" : call.name || call.number;
+  const title = call.conference ? "Conference" : call.name || formatNumber(call.number);
   const initials = call.conference ? "" : bridge.initials(call.name);
   const onHold = call.other && !call.other.waiting ? call.other : null;
   const press = (digit: string) => { carCommand({ type: "Phone.Dtmf", digit }); setTones((t) => (t ?? "") + digit); };
@@ -58,9 +58,9 @@ export function CallOverlay({ emulator }: { emulator: EmulatorState }) {
       <div className="call-who">
         <span className="call-avatar" aria-hidden="true">{initials || <span className={`icon ${call.conference ? "i-users-fill" : "i-user"}`} />}</span>
         <h2 className="call-name" id="call-name">{title}</h2>
-        <p className="call-sub">{call.conference ? "Calls merged" : call.name ? [call.label, call.number].filter(Boolean).join(" · ") : "Not in contacts"}</p>
+        <p className="call-sub">{call.conference ? "Calls merged" : call.name ? [call.label, formatNumber(call.number)].filter(Boolean).join(" · ") : "Not in contacts"}</p>
         <p className="call-status" id="call-status" aria-live="polite">{[status, call.micMuted && "Muted", !call.inCar && "On the phone"].filter(Boolean).join(" · ")}</p>
-        {onHold && <p className="call-held"><span className="icon i-pause-fill" aria-hidden="true" />{onHold.name || onHold.number} on hold</p>}
+        {onHold && <p className="call-held"><span className="icon i-pause-fill" aria-hidden="true" />{onHold.name || formatNumber(onHold.number)} on hold</p>}
       </div>
 
       <div className="call-side">
@@ -88,7 +88,7 @@ export function CallOverlay({ emulator }: { emulator: EmulatorState }) {
             </div>
           ) : adding !== null ? (
             <div className="call-tones">
-              <output className="call-tones-typed" aria-label="Number to add">{adding}</output>
+              <output className="call-tones-typed" aria-label="Number to add">{formatNumber(adding)}</output>
               <span className="phone-typed-match">{suggestion ? `${suggestion.name}${suggestion.label ? ` · ${suggestion.label}` : ""}` : "Add a call, then merge"}</span>
               <div className="pad-grid is-compact">{TONE_KEYS.map(([d, l]) => <PadKey key={d} digit={d} letters={l} onPress={(k) => setAdding((t) => (t ?? "") + k)} />)}</div>
             </div>
@@ -141,7 +141,7 @@ export function CallOverlay({ emulator }: { emulator: EmulatorState }) {
 export function CallBar({ emulator }: { emulator: EmulatorState }) {
   const { car, call } = emulator;
   const now = useNow(null);
-  const name = call.conference ? "Conference" : call.name || call.number;
+  const name = call.conference ? "Conference" : call.name || formatNumber(call.number);
   const expand = () => shellAction({ type: "ExpandCall" });
   if (car.call === "RINGING") {
     return (
@@ -197,7 +197,7 @@ export function MessageBanner({ emulator }: { emulator: EmulatorState }) {
     return () => clearTimeout(timer);
   }, [message]);
   if (!message) return null;
-  const name = message.name || bridge.phoneFind(emulator.contacts, message.number)?.name || message.number;
+  const name = message.name || bridge.phoneFind(emulator.contacts, message.number)?.name || formatNumber(message.number);
   return (
     <button className="message-banner" key={message.id} onClick={() => openThread(message.number)} aria-label={`Message from ${name}, open`}>
       <span className="message-banner-icon" aria-hidden="true"><span className="icon i-chat-circle-text-fill" /></span>

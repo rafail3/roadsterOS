@@ -105,6 +105,8 @@ export interface ShellState {
   /** phones find the unit in Smart View while the car is on */
   castVisible: boolean;
   design: Design;
+  /** the country numbers typed without + are grouped by (ISO code) */
+  phoneRegion: string;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -195,6 +197,7 @@ export type ShellAction =
   | { type: "SetSound"; settings: SoundSettings }
   | { type: "SetCamera"; settings: CameraSettings }
   | { type: "SetCastVisible"; on: boolean }
+  | { type: "SetPhoneRegion"; region: string }
   | { type: "CastChanged"; state: CastState }
   | { type: "OpenCamera" | "CloseCamera" };
 
@@ -294,6 +297,9 @@ interface Kotlin {
       startupConnectWaitMs(): number;
       startupConnectTryMs(): number;
       castName(): string;
+      phoneFormat(typed: string, region: string): string;
+      phoneRegions(): string;
+      phoneCallingCode(region: string): number;
       soundPreset(s: string, preset: string): string;
       soundBand(s: string, band: number, db: number): string;
       soundResetLoudness(s: string): string;
@@ -439,6 +445,10 @@ export const bridge = {
   startupConnectTryMs: () => K!.Bridge.startupConnectTryMs(),
   /** The name phones list the unit under in Smart View. */
   castName: () => K!.Bridge.castName(),
+  /** A phone number grouped as its country writes it, also while typed (core-car PhoneFormat). */
+  phoneFormat: (typed: string, region: string) => K!.Bridge.phoneFormat(typed, region),
+  phoneRegions: (): string[] => JSON.parse(K!.Bridge.phoneRegions()),
+  phoneCallingCode: (region: string) => K!.Bridge.phoneCallingCode(region),
   cameraWrites: (a: CameraSettings, b: CameraSettings): DspWrite[] => JSON.parse(K!.Bridge.cameraWrites(JSON.stringify(a), JSON.stringify(b))),
   soundPreset: (s: SoundSettings, p: EqPreset): SoundSettings => JSON.parse(K!.Bridge.soundPreset(JSON.stringify(s), p)),
   soundBand: (s: SoundSettings, band: number, db: number): SoundSettings => JSON.parse(K!.Bridge.soundBand(JSON.stringify(s), band, db)),
