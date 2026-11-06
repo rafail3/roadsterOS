@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.18.0](https://github.com/rafail3/roadsterOS/compare/v1.17.0...v1.18.0) (2026-11-06)
+
+
+### Features
+
+* **bluetooth:** connect to last phone setting, off by default ([e5aff22](https://github.com/rafail3/roadsterOS/commit/e5aff22b9cc6301f83a9d150417f731aee25c8bd))
+* **drawer:** quick toggles on in their own colour, tinted glass on glassy ([e5aff22](https://github.com/rafail3/roadsterOS/commit/e5aff22b9cc6301f83a9d150417f731aee25c8bd))
+* **settings:** wi-fi networks to join right in settings &gt; wi-fi; drawer switches open their list ([e5aff22](https://github.com/rafail3/roadsterOS/commit/e5aff22b9cc6301f83a9d150417f731aee25c8bd))
+
+
+### Bug Fixes
+
+* **shell:** no wi-fi or devices sheet over settings, the drawer brings settings to its page ([e5aff22](https://github.com/rafail3/roadsterOS/commit/e5aff22b9cc6301f83a9d150417f731aee25c8bd))
+* **theme:** light theme on settings, phone, sound, device and wi-fi panels, alerts and buttons on both designs ([e5aff22](https://github.com/rafail3/roadsterOS/commit/e5aff22b9cc6301f83a9d150417f731aee25c8bd))
+
 ## [1.17.0](https://github.com/rafail3/roadsterOS/compare/v1.16.0...v1.17.0) (2026-11-06)
 
 
