@@ -37,6 +37,26 @@ const { values: args } = parseArgs({
 /** A fixed moment for the page clock: Saturday 31 October 2026, 12:00 local time. */
 const FROZEN = new Date(2026, 9, 31, 12, 0, 0);
 
+// ----- maps scenes
+const MAPS = "music-app.maps-app";
+/** The street and the limit of the car's road found in the pack's tiles. */
+const mapsLoaded = (page) => page.waitForSelector(".map-street-slot.is-shown ~ .map-speed .map-limit.is-shown", { timeout: 20000 });
+/** As opened, then the map hidden. */
+async function mapsStill(page) {
+  await mapsLoaded(page);
+  await page.addStyleTag({ content: ".maps-app .map-gl { display: none !important; }" });
+}
+/** Moved by a drag (no longer following), the credits open, then the map hidden. */
+async function mapsPanned(page) {
+  await mapsLoaded(page);
+  await page.mouse.move(600, 300);
+  await page.mouse.down();
+  await page.mouse.move(560, 280, { steps: 8 });
+  await page.mouse.up();
+  await page.click(".map-credit .glass-button");
+  await page.addStyleTag({ content: ".maps-app .map-gl { display: none !important; }" });
+}
+
 const looks = [["dark", "solid"], ["light", "solid"], ["dark", "glassy"], ["light", "glassy"]];
 /** Every scene: a name and the emulator's URL parameters; `root` makes it a component scene. */
 const SCENES = [
@@ -52,6 +72,11 @@ const SCENES = [
   ...looks.map(([theme, design]) => ({ name: `rail-${theme}-${design}`, query: `theme=${theme}&design=${design}`, root: "rail" })),
   ...looks.map(([theme, design]) => ({ name: `card-nophone-${theme}-${design}`, query: `theme=${theme}&design=${design}&nophone`, root: "panel" })),
   // --- end shell
+  // ----- maps (MapsApp.tsx): the screen's controls and status over the map; the map itself is hidden, its tiles are
+  // drawn by MapLibre here and by our renderer on the unit. follow: as opened, with the street pill and the limit sign
+  // of the car's road from the laptop's pack (MAP_PACKS); panned: moved by a drag, the credits open
+  ...looks.map(([theme, design]) => ({ name: `maps-follow-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=maps`, root: MAPS, prepare: mapsStill })),
+  ...looks.map(([theme, design]) => ({ name: `maps-panned-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=maps`, root: MAPS, prepare: mapsPanned })),
 ];
 
 /** Runs in the page: the visible elements under .screen with their keys, boxes and computed styles. */
@@ -162,6 +187,7 @@ for (const scene of SCENES.filter((s) => !wanted || wanted.includes(s.name))) {
   // the dev server's own badge sits over the page, outside the screen
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   await page.evaluate(() => document.fonts.ready);
+  if (scene.prepare) await scene.prepare(page);
   // two frames for layout effects that measure and set state once
   await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
   const layout = await page.evaluate(collect, scene.root ?? null);
