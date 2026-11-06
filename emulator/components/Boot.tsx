@@ -195,7 +195,8 @@ export const pixelFont = () => boot().tiny;
 /** The symbol, small: the cube's dots at whatever size, drawn once. [size] in canvas pixels (the screen draws at 0.8). */
 export function CubeMark({ size }: { size: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const px = Math.round(size * 0.8);
+  // one canvas pixel per screen pixel (the screen draws at 0.8, a laptop screen may have two pixels per pixel)
+  const px = Math.round(size * 0.8 * (typeof window === "undefined" ? 1 : window.devicePixelRatio || 1));
   useEffect(() => {
     const c = ref.current?.getContext("2d");
     if (!c) return;

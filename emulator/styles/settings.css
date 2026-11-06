@@ -37,7 +37,8 @@
 .set-detail::-webkit-scrollbar-button { display: none; }
 .set-detail::-webkit-scrollbar-track { background: transparent; }
 .set-detail::-webkit-scrollbar-thumb { border-radius: 2px; background: rgba(255, 255, 255, 0.24); }
-.set-page-title { margin: 4px 0 -8px; font-size: 28px; font-weight: 700; letter-spacing: -0.01em; }
+/* the page's name on a pill, so it reads as the head of the page above its groups */
+.set-page-title { align-self: flex-start; width: fit-content; margin: 4px 0 -8px; padding: 8px 22px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--glass-strong); font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
 .set-group { display: flex; flex-direction: column; gap: 8px; }
 .set-group-title { margin: 0 0 0 20px; font-size: 15px; font-weight: 600; color: var(--ink-muted); }
 .set-rows { border-radius: 18px; background: var(--set-group); overflow: hidden; }
