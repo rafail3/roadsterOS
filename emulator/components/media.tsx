@@ -101,9 +101,12 @@ export function Marquee({ text, className }: { text: string; className: string }
 
 export function Progress({ elapsed, duration, className = "" }: { elapsed: number; duration: number; className?: string }) {
   const fraction = duration ? Math.min(1, elapsed / duration) : 0;
+  const glassy = useEmulator().shell.design === "GLASSY";
   return (
     <div className={`progress-line ${className}`} role="progressbar" aria-label="Track position" aria-valuemin={0} aria-valuemax={Math.round(duration / 1000)} aria-valuenow={Math.round(elapsed / 1000)} aria-valuetext={`${time(elapsed)} of ${time(duration)}`}>
       <div className="progress-line-fill" style={{ transform: `scaleX(${fraction})` }} />
+      {/* Glassy: a glass bead rides the position */}
+      {glassy && <span className="glass-bead" style={{ "--p": fraction.toFixed(4) } as React.CSSProperties} aria-hidden="true" />}
     </div>
   );
 }

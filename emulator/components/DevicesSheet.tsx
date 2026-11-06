@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 import { carCommand, setBluetooth, shellAction, useEmulator } from "../car/store";
+import { Switch } from "./SettingsApp";
 
 const groupCode = (code: string) => `${code.slice(0, 3)} ${code.slice(3)}`;
 
@@ -159,9 +160,7 @@ export function DevicesSheet() {
         <header className="devices-head">
           <h2 id="devices-title">Devices</h2>
           <div className="devices-head-end">
-            <button className={`switch${btOn ? " is-on" : ""}`} role="switch" aria-checked={btOn} aria-label="Bluetooth" onClick={() => setBluetooth(!btOn)}>
-              <span className="switch-knob" aria-hidden="true" />
-            </button>
+            <Switch label="Bluetooth" on={btOn} onChange={setBluetooth} />
             <button className="glass-button" aria-label="Close devices" onClick={close}><span className="icon i-x" aria-hidden="true" /></button>
           </div>
         </header>

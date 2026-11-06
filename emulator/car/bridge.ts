@@ -8,6 +8,7 @@ export type FaceMode = "BOTH" | "DIGITAL" | "ANALOG";
 export type TimeSource = "NETWORK" | "GPS";
 export type DashKey = "HOUR" | "MINUTE" | "CLOCK";
 export type AodFace = "HOME" | "DIGITAL" | "ANALOG";
+export type Design = "SOLID" | "GLASSY";
 export type AnimationSpeed = "NORMAL" | "FAST" | "OFF";
 export type EqPreset = "USER" | "FLAT" | "POP" | "ROCK" | "JAZZ" | "CLASSIC";
 export type ListeningSeat = "CUSTOM" | "FRONT_LEFT" | "FRONT_RIGHT" | "REAR_LEFT" | "REAR_RIGHT" | "ALL" | "FRONT" | "REAR";
@@ -103,6 +104,7 @@ export interface ShellState {
   cameraOpen: boolean;
   /** phones find the unit in Smart View while the car is on */
   castVisible: boolean;
+  design: Design;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -166,6 +168,7 @@ export type ShellAction =
   | { type: "DrawerReleased"; fraction: number }
   | { type: "SetFace"; face: Face }
   | { type: "SetFont"; name: string }
+  | { type: "SetDesign"; design: Design }
   | { type: "SetBrightness"; value: number }
   | { type: "Headlights"; on: boolean }
   | { type: "OpenApp"; app: App }
