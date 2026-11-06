@@ -26,6 +26,7 @@ import ro.rdstr.car.CallRecord
 import ro.rdstr.car.CarEvent
 import ro.rdstr.car.Contact
 import ro.rdstr.car.PhoneBook
+import ro.rdstr.car.PlaybackClock
 import ro.rdstr.car.Startup
 import ro.rdstr.car.PhoneGate
 import ro.rdstr.car.JournalRecord
@@ -40,6 +41,7 @@ import ro.rdstr.os.cover.CoverDesk
 import ro.rdstr.os.phone.PhoneBookReader
 import ro.rdstr.os.settings.Radios
 import ro.rdstr.os.settings.SystemInfo
+import ro.rdstr.ui.Emulates
 
 data class UiState(
     val state: RulesState = RulesState(),
@@ -50,6 +52,8 @@ data class UiState(
     val lastEvent: String = "",
     /** The phone's battery, signal and network over the hands-free link; null until the phone sends them. */
     val phoneStatus: CarEvent.PhoneStatus? = null,
+    /** The phone sharing its screen, as the last screen-casting event names it. */
+    val castDevice: String = "",
     /** Where the call is heard; back to the car for every new call. */
     val callInCar: Boolean = true,
     val contacts: List<Contact> = emptyList(),
@@ -63,9 +67,33 @@ data class UiState(
     val read: Set<String> = emptySet(),
     /** This unit can carry text messages; null until its Bluetooth stack has answered. */
     val messagesSupported: Boolean? = null,
+    /** The thread the phone app opens on, from the banner; and the last message received, for the banner. */
+    val thread: String? = null,
+    val newMessage: CarEvent.Message? = null,
+    /** The phone's last reported position and when it came (ms since 1970); [elapsedMs] moves it on. */
+    val positionMs: Long = 0,
+    val positionAt: Long = 0,
+    /** The tuner's report for each frequency heard, by [stationKey]: its RDS name, programme type and signal. */
+    val heard: Map<String, CarEvent.Radio> = emptyMap(),
+    /** The station tuned now, with the name heard for it; null until the tuner reports one. */
+    val radio: CarEvent.Radio? = null,
+    /** Frequencies starred in our radio app, in order. */
+    val favorites: List<Int> = emptyList(),
+    /** Bumped whenever the volume bar should come up, even with nothing changed. */
+    val volumeOpened: Int = 0,
+    /** Bluetooth switching on, asked by the phone app. */
+    val btTurningOn: Boolean = false,
+    /** The "restart the unit?" question is on screen. */
+    val restartAsked: Boolean = false,
+    /** Wi-Fi was asked to turn on with location off: the screen asks to turn location on first. */
+    val wifiNeedsLocation: Boolean = false,
+    val wifi: ro.rdstr.os.settings.WifiState = ro.rdstr.os.settings.WifiState(),
+    /** The country map packs on the unit, and the one downloading. */
+    val maps: MapsState = MapsState(),
 ) {
-    fun reduce(state: RulesState, actions: List<Action>, event: CarEvent): UiState {
-        var ui = copy(state = state, lastEvent = event.toString(), track = event as? CarEvent.Track ?: track)
+    fun reduce(state: RulesState, actions: List<Action>, event: CarEvent, now: Long = System.currentTimeMillis()): UiState {
+        var ui = copy(state = state, lastEvent = event.toString(), track = event as? CarEvent.Track ?: track,
+            castDevice = (event as? CarEvent.PhoneCast)?.device ?: castDevice)
         for (a in actions) ui = when (a) {
             Action.ShowCamera -> ui.copy(camera = true)
             Action.HideCamera -> ui.copy(camera = false)
@@ -73,14 +101,25 @@ data class UiState(
             is Action.ShowCall -> ui.copy(call = named(a.call))
             Action.HideCall -> ui.copy(call = null, callInCar = true)
             is Action.Night -> ui.copy(night = a.on)
-            is Action.Send, Action.SaveState, Action.RestoreState, Action.ToggleScreen, Action.Home, Action.Back, Action.ShowVolume, is Action.OpenApp -> ui
+            Action.ShowVolume -> ui.copy(volumeOpened = ui.volumeOpened + 1)
+            is Action.Send, Action.SaveState, Action.RestoreState, Action.ToggleScreen, Action.Home, Action.Back, is Action.OpenApp -> ui
         }
         when (event) {
             is CarEvent.PhoneStatus -> ui = ui.copy(phoneStatus = event)
             is CarEvent.CallAudio -> ui = ui.copy(callInCar = event.inCar)
             is CarEvent.VoiceAssistant -> ui = ui.copy(voiceAssistant = event.active)
             is CarEvent.MessageSupport -> ui = ui.copy(messagesSupported = event.available)
-            is CarEvent.Message -> ui = ui.copy(messages = ui.messages + event, read = if (event.sent) ui.read + event.id else ui.read)
+            is CarEvent.Playback -> ui = ui.copy(positionMs = event.positionMs, positionAt = now)
+            // a station's name arrives a moment after its frequency: a report without one keeps the name heard before
+            is CarEvent.Radio -> stationKey(event.band, event.khz).let { key ->
+                if (event.rds.isNotEmpty() || key !in ui.heard) ui = ui.copy(heard = ui.heard + (key to event))
+                ui = ui.copy(radio = ui.heard[key] ?: event)
+            }
+            is CarEvent.Message -> ui = ui.copy(
+                messages = ui.messages + event,
+                read = if (event.sent) ui.read + event.id else ui.read,
+                newMessage = if (event.sent) ui.newMessage else event,
+            )
             // a dropped phone takes its name and its network with it
             is CarEvent.HfpConnection -> ui = if (event.connected) ui.copy(phoneName = event.device) else ui.copy(phoneName = "", phoneStatus = null)
             else -> Unit
@@ -94,13 +133,34 @@ data class UiState(
         val other = c.other?.let { o -> o.copy(name = o.name.ifEmpty { PhoneBook.find(contacts, o.number)?.name.orEmpty() }) }
         return c.copy(name = name, other = other)
     }
+
+    /** Where playback is now: the last reported position, advanced while playing (core-car PlaybackClock). */
+    @Emulates("store.elapsedMs")
+    fun elapsedMs(now: Long = System.currentTimeMillis()): Long =
+        PlaybackClock.elapsedMs(positionMs, positionAt, state.playing, track?.durationMs ?: 0, now)
+
+    /**
+     * What the tuner reported at a frequency: its RDS name and programme type once heard there, null for a frequency
+     * not heard yet. The emulator answers from its simulated stations; the unit only knows what its tuner sent.
+     */
+    @Emulates("radio.stationAt")
+    fun stationAt(band: CarEvent.Radio.Band, khz: Int): CarEvent.Radio? = heard[stationKey(band, khz)]
+
+    companion object {
+        fun stationKey(band: CarEvent.Radio.Band, khz: Int) = "$band:$khz"
+    }
 }
+
+/** The country packs on the unit by ISO code, and the one downloading with its share done, 0 to 1. */
+data class MapsState(val installed: List<String> = emptyList(), val downloading: PackProgress? = null)
+data class PackProgress(val code: String, val progress: Float)
 
 /** Process-wide runtime: one bus, one rules state, one UI state. Owned by CarService. */
 object CarRuntime {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var bus: CarBus
     private val _ui = MutableStateFlow(UiState())
+    @Emulates("store.useEmulator")
     val ui: StateFlow<UiState> = _ui
     private var started = false
     private var covers: CoverDesk? = null
@@ -125,6 +185,10 @@ object CarRuntime {
     lateinit var radios: Radios
         private set
 
+    /** Scans, joins and forgets Wi-Fi networks; its state is [UiState.wifi]. */
+    lateinit var wifi: ro.rdstr.os.settings.Wifi
+        private set
+
     /** The cover of the playing Bluetooth track, ready before any screen asks for it. */
     val cover: StateFlow<Cover?> get() = covers?.cover ?: noCover
 
@@ -134,8 +198,13 @@ object CarRuntime {
         app = context.applicationContext
         bus = CarBusFactory.create(context)
         radios = Radios(app)
+        wifi = ro.rdstr.os.settings.Wifi(app, radios, { _ui.value.wifi }) { change -> patch { it.copy(wifi = change(it.wifi)) } }
+            .also { it.start() }
         prefs = context.getSharedPreferences("rdstr", Context.MODE_PRIVATE)
         _shell.value = Shell.decodePreferences(prefs.getString(SHELL_KEY, null))
+        val favorites = prefs.getString(FAVORITES_KEY, null).orEmpty().split(',').mapNotNull { it.toIntOrNull() }
+        val packs = ro.rdstr.os.maps.MapPacks.codes(ro.rdstr.os.maps.MapPacks.dir(app))
+        patch { it.copy(favorites = favorites, maps = it.maps.copy(installed = packs)) }
         // first, so that every command sent at start can go into it
         val header = "roadsterOS ${runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull()} " +
             "Android ${android.os.Build.VERSION.RELEASE} ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
@@ -162,6 +231,9 @@ object CarRuntime {
         cast = ro.rdstr.os.cast.CastReceiver(app, { _shell.value.carName }) { e -> scope.launch { onEvent(e) } }
         castVisibility()
     }
+
+    /** A car event from the adb test commands (ServiceReceiver), through the same rules as the bus's. */
+    fun injectEvent(event: CarEvent) { scope.launch { onEvent(event) } }
 
     /** Every car event, from the bus or from our own receivers, goes through the rules here. */
     @Synchronized private fun onEvent(event: CarEvent) {
@@ -197,15 +269,17 @@ object CarRuntime {
         if (event is CarEvent.PhoneCast && wasLive != (event.state == CarEvent.PhoneCast.State.LIVE)) shellAction(ShellAction.CastChanged(event.state))
     }
 
+    @Emulates("store.carCommand")
     fun send(command: CarCommand) {
         // a phone picked by hand ends the wait for the last one
         if (command is CarCommand.Bluetooth.Connect && !reconnecting) connecting?.cancel()
-        _ui.value = _ui.value.copy(state = Rules.onCommand(_ui.value.state, command))
+        patch { it.copy(state = Rules.onCommand(it.state, command)) }
         if (_shell.value.recordEvents) journal.write(JournalRecord(0, command = command))
         bus.send(command)
     }
 
     /** A shell action from the screen; a changed preference is written at once, so a power cut does not lose it. */
+    @Emulates("store.shellAction")
     fun shellAction(action: ShellAction) {
         val before = _shell.value
         val after = Shell.reduce(before, action)
@@ -225,15 +299,135 @@ object CarRuntime {
         }
     }
 
+    /** Every change of the UI state outside [onEvent] goes through here, on the same lock, so none is lost. */
+    @Synchronized private fun patch(change: (UiState) -> UiState) { _ui.value = change(_ui.value) }
+
+    /** A level picked on screen; the shared rules turn it into steps and mute at zero (core-car Rules.setVolume). */
+    @Emulates("store.setVolume")
+    fun setVolume(level: Int) = Rules.setVolume(_ui.value.state, level).forEach(::send)
+
+    /** One level up or down from wherever the volume is now; safe to call again from a held key. */
+    @Emulates("store.stepVolume")
+    fun stepVolume(delta: Int) = setVolume(_ui.value.state.volume + delta)
+
+    /** The volume bar comes up, even with nothing changed. */
+    @Emulates("store.openVolume")
+    fun openVolume() = patch { it.copy(volumeOpened = it.volumeOpened + 1) }
+
+    /** A transport button on a sound page, its app or the map's strip (core-car HomeCard.press). */
+    @Emulates("store.pressSound")
+    fun pressSound(page: ro.rdstr.car.CardPage, press: ro.rdstr.car.HomeCard.Press) =
+        ro.rdstr.car.HomeCard.press(page, press, _ui.value.state).forEach(::send)
+
+    /** A change from the sound window: kept with the shell's settings; [shellAction] writes only the values that moved. */
+    @Emulates("store.setSound")
+    fun setSound(next: ro.rdstr.car.SoundSettings) = shellAction(ShellAction.SetSound(next))
+
+    /** The camera settings: kept with the shell's; [shellAction] writes only the vendor values that moved. */
+    @Emulates("store.setCamera")
+    fun setCamera(next: ro.rdstr.car.CameraSettings) = shellAction(ShellAction.SetCamera(next))
+
+    /** Visible to Phones: the screen-sharing receiver runs while the car is on and this is on. */
+    @Emulates("store.setCastVisible")
+    fun setCastVisible(on: Boolean) = shellAction(ShellAction.SetCastVisible(on))
+
+    /** Star or unstar a station in our radio app; the stars are kept across starts (core-car Tuner.toggleFavorite). */
+    @Emulates("store.toggleFavorite")
+    fun toggleFavorite(khz: Int) {
+        patch { it.copy(favorites = ro.rdstr.car.Tuner.toggleFavorite(it.favorites, khz)) }
+        prefs.edit().putString(FAVORITES_KEY, _ui.value.favorites.joinToString(",")).apply()
+    }
+
+    /** A number as the screen shows it: grouped for its country, numbers without + by the Number Country setting. */
+    @Emulates("store.formatNumber")
+    fun formatNumber(number: String): String = ro.rdstr.car.PhoneFormat.format(number, _shell.value.phoneRegion)
+
+    /** The phone app opens on a thread, from the banner; null back to the list. */
+    @Emulates("store.openThread")
+    fun openThread(number: String?) {
+        patch { it.copy(thread = number, newMessage = null) }
+        if (number != null) shellAction(ShellAction.OpenApp(ro.rdstr.car.App.PHONE))
+    }
+
+    @Emulates("store.markRead")
+    fun markRead(ids: List<String>) = patch { it.copy(read = it.read + ids) }
+
+    /** The message banner goes. */
+    @Emulates("store.dismissMessage")
+    fun dismissMessage() = patch { if (it.newMessage == null) it else it.copy(newMessage = null) }
+
+    /** The question before a restart, from About or a long press on Settings in the drawer (which closes). */
+    @Emulates("store.askRestart")
+    fun askRestart(on: Boolean) {
+        if (on) shellAction(ShellAction.CloseDrawer)
+        patch { it.copy(restartAsked = on) }
+    }
+
+    /** Bluetooth on, for the phone app: [UiState.btTurningOn] until the adapter is on, then the last phone is asked for. */
+    @Emulates("store.turnOnBluetooth")
+    fun turnOnBluetooth() {
+        if (_ui.value.btTurningOn) return
+        patch { it.copy(btTurningOn = true) }
+        scope.launch {
+            if (radios.bluetooth(true)) kotlinx.coroutines.withTimeoutOrNull(BT_ON_WAIT_MS) { while (!radios.bluetoothOn) delay(BT_ON_POLL_MS) }
+            patch { it.copy(btTurningOn = false) }
+            if (radios.bluetoothOn) connectLastPhone()
+        }
+    }
+
+    private var packDownload: Job? = null
+
+    /**
+     * A country's pack from the `maps` release, checked against its digest (SetupSteps.downloadPack), one at a time.
+     * It downloads only over Wi-Fi: it waits while the unit is off Wi-Fi and goes on from where it stopped when it
+     * joins again.
+     */
+    @Emulates("store.downloadPack")
+    fun downloadPack(code: String) {
+        packDownload?.cancel()
+        patch { it.copy(maps = it.maps.copy(downloading = PackProgress(code, 0f))) }
+        packDownload = scope.launch(Dispatchers.IO) {
+            val steps = ro.rdstr.os.setup.SetupSteps(app)
+            val job = coroutineContext[Job]!!
+            while (true) {
+                if (!ro.rdstr.os.maps.PackOffer.onWifi(app)) { delay(WIFI_WAIT_MS); continue }
+                val done = steps.downloadPack(code) { d ->
+                    // another pack asked for: this one stops, its partial file kept for later
+                    if (!job.isActive) throw kotlinx.coroutines.CancellationException()
+                    patch { it.copy(maps = it.maps.copy(downloading = PackProgress(code, d.fraction))) }
+                }
+                if (done) break
+                delay(PACK_RETRY_MS)
+            }
+            Log.i(MAPS_TAG, "pack $code downloaded")
+            kotlinx.coroutines.withContext(Dispatchers.Main) { ro.rdstr.os.maps.MapHost.packsChanged() }
+            patch { it.copy(maps = MapsState(installed = (it.maps.installed + code).distinct(), downloading = null)) }
+        }
+    }
+
+    /** Removes a pack from the unit, as from the maps settings; Romania can go too, and the country is offered again. */
+    @Emulates("store.removePack")
+    fun removePack(code: String) {
+        ro.rdstr.os.maps.MapHost.packs(app).remove(code)
+        ro.rdstr.os.maps.MapHost.packsChanged()
+        ro.rdstr.os.maps.PackOffer.forget(app, code)
+        patch { it.copy(maps = it.maps.copy(installed = it.maps.installed - code)) }
+    }
+
     private var lastActivity = android.os.SystemClock.elapsedRealtime()
 
     /** A touch on any of our screens, or a key: the always-on display ends and its wait starts again. */
+    @Emulates("store.userActivity")
     fun userActivity() {
         lastActivity = android.os.SystemClock.elapsedRealtime()
         if (_shell.value.aod) shellAction(ShellAction.ExitAod)
     }
 
-    /** Checks the wait of the always-on display; a call, the reverse camera or the map keep the screen as it is. */
+    /**
+     * Checks the wait of the always-on display, every [IDLE_CHECK_MS] (the emulator: every second); a call, the reverse
+     * camera or the map keep the screen as it is. Started once, with the runtime.
+     */
+    @Emulates("store.watchIdle")
     private fun watchIdle() = scope.launch {
         while (true) {
             delay(IDLE_CHECK_MS)
@@ -265,7 +459,11 @@ object CarRuntime {
         if (accOn && _shell.value.castVisible) cast.start() else cast.stop()
     }
 
-    /** The phone screen view's surface while it is shown, null when it goes. */
+    /**
+     * The phone screen view's surface while it is shown, null when it goes: the receiver decodes the phone's picture
+     * straight into it. Replaces the emulator's castPicture, which hands the view a stream of a laptop window instead.
+     */
+    @Emulates("store.castPicture")
     fun castSurface(surface: android.view.Surface?) {
         if (::cast.isInitialized) cast.surface = surface
     }
@@ -304,18 +502,22 @@ object CarRuntime {
         shellAction(ShellAction.AppsInstalled(apps.map { it.id }))
     }
 
+    @Emulates("store.launchApp")
     fun launch(pkg: String) = ro.rdstr.os.settings.InstalledApps.launch(app, pkg)
 
     /** The Developer section: adb's address on Wi-Fi, Android's developer options. */
+    @Emulates("store.UNIT_IP")
     fun adbAddress() = ro.rdstr.os.settings.DeveloperTools.adbAddress(app)
 
     /** Settings > About > Restart the Unit, after the question: the whole unit reboots (DeveloperTools.reboot). */
+    @Emulates("store.restartUnit")
     fun restartUnit() = ro.rdstr.os.settings.DeveloperTools.reboot(app)
 
     /**
      * Factory reset: every preference file cleared, our files, paired phones and saved networks erased, then a restart
      * into setup (Shell.factoryState).
      */
+    @Emulates("store.factoryReset")
     fun factoryReset() {
         java.io.File(app.applicationInfo.dataDir, "shared_prefs").listFiles()?.forEach { file ->
             app.getSharedPreferences(file.nameWithoutExtension, Context.MODE_PRIVATE).edit().clear().commit()
@@ -325,6 +527,7 @@ object CarRuntime {
         ro.rdstr.os.settings.DeveloperTools.restart(app)
     }
 
+    @Emulates("store.openAndroidSettings")
     fun openAndroidSettings() = ro.rdstr.os.settings.DeveloperTools.openAndroidSettings(app)
 
     /** The About page, read when it opens. */
@@ -361,9 +564,10 @@ object CarRuntime {
      * Opening the phone app: calls need a phone connected for calls, so Bluetooth is switched on when it is off,
      * and the screen asks for a phone until one is connected.
      */
+    @Emulates("store.openPhone")
     fun openPhone(): PhoneGate.Screen {
         val on = radios.bluetoothOn
-        if (!on && radios.bluetooth(true)) connectLastPhone()
+        if (!on) turnOnBluetooth()
         return PhoneGate.screen(on, _ui.value.state.hfpConnected).also { Log.i(PHONE_TAG, "phone app $it") }
     }
 
@@ -371,17 +575,54 @@ object CarRuntime {
      * The drawer's Bluetooth and Wi-Fi switches: on opens the radio's list (Shell RadioSwitched). Bluetooth then asks for
      * the last phone with Connect to Last Phone on; Wi-Fi joins a saved network in range by itself (Android's own).
      */
+    @Emulates("store.setBluetooth")
     fun switchBluetooth(on: Boolean) {
         if (radios.bluetooth(on) && on) connectLastPhone()
         shellAction(ro.rdstr.car.ShellAction.RadioSwitched(ro.rdstr.car.Radio.BLUETOOTH, on))
     }
 
+    /**
+     * The drawer's Wi-Fi switch: RadioSwitched(WIFI) is sent only once Wi-Fi really switched. With location off the
+     * location prompt shows over the open drawer; its yes opens the networks, its no opens nothing.
+     */
+    @Emulates("store.switchWifi")
     fun switchWifi(on: Boolean) {
+        setWifi(on)
+        if (_ui.value.wifiNeedsLocation) networksAfterLocation = true
+        else shellAction(ro.rdstr.car.ShellAction.RadioSwitched(ro.rdstr.car.Radio.WIFI, on))
+    }
+
+    /** The location prompt was raised by the drawer's switch, so its yes opens the networks. */
+    private var networksAfterLocation = false
+
+    /** Wi-Fi on or off; on this Android a Wi-Fi scan needs location, so with it off the screen asks for it first. */
+    @Emulates("store.setWifi")
+    fun setWifi(on: Boolean) {
+        if (on && !radios.locationOn) return patch { it.copy(wifiNeedsLocation = true) }
         radios.wifi(on)
-        shellAction(ro.rdstr.car.ShellAction.RadioSwitched(ro.rdstr.car.Radio.WIFI, on))
+    }
+
+    /** The answer to "Wi-Fi needs location": yes turns location on, then Wi-Fi; no leaves both as they were. */
+    @Emulates("store.answerWifiNeedsLocation")
+    fun answerWifiNeedsLocation(turnOn: Boolean) {
+        val fromDrawer = networksAfterLocation
+        networksAfterLocation = false
+        patch { it.copy(wifiNeedsLocation = false) }
+        if (!turnOn) return
+        radios.location(true)
+        setWifi(true)
+        if (fromDrawer) shellAction(ro.rdstr.car.ShellAction.RadioSwitched(ro.rdstr.car.Radio.WIFI, true))
     }
 
     private const val PHONE_TAG = "rdstr.phone"
+    private const val FAVORITES_KEY = "favorites"
+    private const val MAPS_TAG = "rdstr.map"
+    /** Off Wi-Fi, a pack download looks for Wi-Fi again this often; after a broken one, the next try comes later. */
+    private const val WIFI_WAIT_MS = 5_000L
+    private const val PACK_RETRY_MS = 30_000L
+    /** Switching Bluetooth on takes the unit about a second; past this it is given up. */
+    private const val BT_ON_WAIT_MS = 5_000L
+    private const val BT_ON_POLL_MS = 100L
     private const val IDLE_CHECK_MS = 5_000L
     /** The phone book sync writes in bursts; read once it has been quiet this long. */
     private const val PHONE_BOOK_SETTLE_MS = 1500L

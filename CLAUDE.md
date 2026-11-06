@@ -35,17 +35,18 @@ Everything tracked in this repository is written in English: code, comments, res
 - Before removing packages: dump `pm list packages -f` and the current HOME to a dated folder under `unit-dumps/`. Remove with `pm uninstall -k --user 0 <pkg>`, restore with `cmd package install-existing <pkg>`. Never remove `com.autochips.*`, the MCU/CAN services, Settings, or anything the boot chain needs.
 - Set HOME with `cmd package set-home-activity <pkg>/<activity>`; re-run after every reinstall.
 - Bluetooth A2DP audio plays only while the vendor BT app is the active source. Keep `com.autochips.bluetooth` installed.
-- Nothing is flashed without an explicit, separate approval and a pulled backup of the original partitions.
+- Flashing (root, boot image, boot logo, boot animation, system image) is done step by step, each step described in chat and run only after its own explicit approval. Before the first one, `scripts/unit-probe.ps1` pulls the small partitions (64 MB or less, with the preloader areas) outside the repository; the large ones are not kept. The goal is a unit running only roadsterOS.
 - Logs and dumps committed to the repo are masked first: no phone numbers, contact names, MAC addresses, serial numbers.
 
-## Repository layout (planned; update as code lands)
+## Repository layout (update as code lands)
 
 - `DEVICE.md` — hardware/software facts about the target unit.
-- `app/`, `core-ui/`, `core-car/`, `car-vendor/`, `car-sim/`, `feature-*/` — Gradle modules (see spec).
+- `app/`, `core-ui/`, `core-car/`, `core-map/`, `car-vendor/`, `car-sim/`, `companion/` — Gradle modules. `core-ui` holds the display views, one folder per screen (`shell/`, `home/`, `drawer/`, `sheets/`, `media/`, `phone/`, `overlays/`, `setup/`, `settings/`, `sound/`, `maps/`, `keyboard/`, `volume/`) on the shared kit (`kit/`); `app/.../screens/` holds one glue file per screen, registered in `Screens.kt`.
+- `build-logic/` — included build with the `rdstr.display` plugin: `generateDisplayUi` writes `ro.rdstr.ui.tokens` (Tokens, Icons, Fonts) and the vector icons and fonts into `core-ui` from `emulator/styles`, `emulator/public/icons` and `emulator/public/fonts`; `checkDisplayLogic` lists emulator logic and dispatches without an Android `@Emulates`/`@Mirrors` (`-Prdstr.display.strict=true` fails on any gap); `compareParity` compares browser and Paparazzi captures.
 - `sim/` — emulator AVD config, recorded `.jsonl` scenarios, `send.ps1`.
 - `emulator/` — browser emulator: Next.js and React app with the screens and a car control panel, driven by `core-car` compiled to JavaScript; also the live design mockup. `styles/screen.css`, `clock.css` and `tokens.css` are the product, `styles/chrome.css` is the tool around it.
-- `install/` — `install.ps1`/`.sh`, `rollback.ps1`, `debloat.txt`.
-- `scripts/check-device.ps1` — memory, cold-start and package checks on the unit.
+- `install/` — `install.ps1` (APK, HOME activity, the Romania map pack copied over adb); planned: `install.sh`, `rollback.ps1`, `debloat.txt`.
+- `scripts/check-device.ps1` — memory, cold-start and package checks on the unit; `scripts/device-test.ps1` — the automatic display checks with screenshots in the four looks; `scripts/unit-probe.ps1` — build, root, partition table and the small-partition backup.
 - `unit-dumps/` — masked package lists, props and logcat captures, dated.
 - `version.txt` — current version, rewritten by release-please; `app/build.gradle.kts` derives `versionName` and `versionCode` from it.
 
@@ -61,5 +62,6 @@ Branches `type/slug`. Conventional Commits, lowercase subject, English. PR body 
 - `./gradlew :core-car:test --tests "ro.rdstr.car.RulesTest"` — one test class.
 - `./gradlew lint` — Android lint.
 - `./gradlew :core-car:allTests` — core-car tests on the JVM and in JavaScript; `./gradlew :core-car:jsBrowserProductionWebpack` builds the browser bundle used by `emulator/`; `npm run dev` rebuilds it when the Kotlin sources changed.
-- Browser emulator: `npm install` once, then `npm run dev` from the repo root and open `http://localhost:8787/`. `?bare` shows the 1024x600 screen alone for captures.
+- Browser emulator: `npm install` once, then `npm run dev` from the repo root and open `http://localhost:8787/`. `?bare` shows the 1024x600 screen alone for captures; `?freeze` stills it (noon, no animations), `?design=solid|glassy` picks the design.
+- Visual parity: with the emulator running, `npm run parity:capture` (`-- --base http://localhost:<port>` for another server) writes the browser scenes to `build/parity/web/`; `./gradlew :core-ui:compareParity --no-daemon` renders the core-ui views on the JVM (Paparazzi, `core-ui/src/test/.../parity/ParityCapture.kt`) into `build/parity/android/` and compares them; report in `build/reports/parity/index.md`. Views declare their element with `View.uiKey` (`core-ui` `UiKey.kt`).
 - `adb install -r app/build/outputs/apk/sim/debug/app-sim-debug.apk` then `adb shell cmd package set-home-activity ro.rdstr.os/.HomeActivity`.

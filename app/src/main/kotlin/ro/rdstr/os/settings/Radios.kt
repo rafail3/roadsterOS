@@ -9,6 +9,7 @@ import android.net.wifi.WifiManager
 import android.provider.Settings
 import android.util.Log
 import ro.rdstr.os.AdminReceiver
+import ro.rdstr.ui.Emulates
 
 /**
  * The unit's radios as the settings and the drawer switch them: Bluetooth, Wi-Fi, location.
@@ -30,6 +31,7 @@ class Radios(private val context: Context) {
 
     fun wifi(on: Boolean) = report("wifi", on) { wifi?.setWifiEnabled(on) == true }
 
+    @Emulates("store.setLocation")
     fun location(on: Boolean) = report("location", on) {
         val dpm = context.getSystemService(DevicePolicyManager::class.java)
         if (!dpm.isDeviceOwnerApp(context.packageName)) return@report false

@@ -177,10 +177,9 @@ const covers = createCoverDesk((title, art) => {
   if (state.track.title === title) set({ track: { ...state.track, art } });
 });
 
-/** Where playback is now: the last reported position, advanced while playing. */
+/** Where playback is now: the last reported position, advanced while playing (core-car PlaybackClock). */
 export function elapsedMs(s: EmulatorState, now = Date.now()) {
-  const moved = s.car.playing ? now - s.positionAt : 0;
-  return Math.min(s.track.durationMs || Infinity, s.positionMs + moved);
+  return bridge.elapsedMs(s.positionMs, s.positionAt, s.car.playing, s.track.durationMs, now);
 }
 
 let state: EmulatorState = fromUrl(new URLSearchParams(location.search));
@@ -397,12 +396,28 @@ export function setLocation(on: boolean) {
   }
 }
 
+/** The drawer's switch asked for location: its networks list waits for the answer. */
+let networksAfterLocation = false;
+
+/**
+ * The drawer's Wi-Fi switch: Shell RadioSwitched once Wi-Fi has really switched, which opens the networks list when
+ * on; with location off the list waits for the prompt's yes and does not open after a no.
+ */
+export function switchWifi(on: boolean) {
+  setWifi(on);
+  if (state.wifiNeedsLocation) networksAfterLocation = true;
+  else shellAction({ type: "RadioSwitched", radio: "WIFI", on });
+}
+
 /** The answer to "Wi-Fi needs location": yes turns location on, then Wi-Fi; no leaves both as they were. */
 export function answerWifiNeedsLocation(turnOn: boolean) {
+  const fromDrawer = networksAfterLocation;
+  networksAfterLocation = false;
   set({ wifiNeedsLocation: false });
   if (!turnOn) return;
   setLocation(true);
   setWifi(true);
+  if (fromDrawer) shellAction({ type: "RadioSwitched", radio: "WIFI", on: true });
 }
 
 export function wifiScan() {
@@ -638,9 +653,9 @@ export function removePack(code: string) {
   set({ maps: { ...state.maps, installed: state.maps.installed.filter((c) => c !== code), declined: state.maps.declined.filter((c) => c !== code) } });
 }
 
-/** Star or unstar a station in our radio app. */
+/** Star or unstar a station in our radio app (core-car Tuner.toggleFavorite). */
 export function toggleFavorite(khz: number) {
-  set({ favorites: state.favorites.includes(khz) ? state.favorites.filter((f) => f !== khz) : [...state.favorites, khz].sort((a, b) => a - b) });
+  set({ favorites: bridge.toggleFavorite(state.favorites, khz) });
 }
 
 /** The unit's side of a connect request: a phone with Bluetooth on answers, one that is off times out. */
@@ -718,7 +733,7 @@ export function userActivity() {
 let aodTimer: ReturnType<typeof setInterval> | null = null;
 /** Checks the wait of the always-on display once a second; a call, the camera or the map keep the screen as it is. */
 export function watchIdle() {
-  if (aodTimer) return;
+  if (aodTimer || document.documentElement.classList.contains("freeze")) return;
   aodTimer = setInterval(() => {
     const busy = state.car.call !== "IDLE" || state.car.camera || state.shell.cameraOpen || state.shell.app === "MAPS";
     if (bridge.aodDue(state.shell, Date.now() - lastActivity, busy)) shellAction({ type: "EnterAod" });
@@ -1026,7 +1041,7 @@ export async function replay(name: string) {
   }
 }
 
-/** URL state for captures, e.g. ?bare&theme=light&hour=20&source=radio&call=ringing&drawer&camera&brightness=40&analog&app=music&track=1 */
+/** URL state for captures, e.g. ?bare&freeze&design=glassy&theme=light&hour=20&source=radio&call=ringing&drawer&camera&brightness=40&analog&app=music&track=1&paused&band=am */
 function fromUrl(q: URLSearchParams): EmulatorState {
   let shell = storedShell(q);
   let car = bridge.initial();
@@ -1034,6 +1049,10 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   const theme = q.get("theme")?.toUpperCase();
   if (theme === "AUTO" || theme === "LIGHT" || theme === "DARK") shell = bridge.shell(shell, { type: "SetTheme", mode: theme });
   if (q.has("night")) shell = bridge.shell(shell, { type: "SetTheme", mode: "DARK" });
+  const design = q.get("design")?.toUpperCase();
+  if (design === "SOLID" || design === "GLASSY") shell = bridge.shell(shell, { type: "SetDesign", design });
+  // ?freeze: a still picture for the parity captures: noon, no CSS animation or transition, no always-on display
+  if (q.has("freeze")) document.documentElement.classList.add("freeze");
   if (q.has("drawer")) shell = bridge.shell(shell, { type: "OpenDrawer" });
   if (q.has("aod")) shell = bridge.shell(shell, { type: "EnterAod" });
   if (q.has("sound")) shell = bridge.shell(shell, { type: "OpenSound" });
@@ -1044,6 +1063,18 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   if (q.get("app") === "phone") shell = bridge.shell(shell, { type: "OpenApp", app: "PHONE" });
   if (q.get("app") === "settings") shell = bridge.shell(shell, { type: "OpenApp", app: "SETTINGS" });
   if (q.has("devices")) shell = bridge.shell(shell, { type: "OpenDevices" });
+  // ?setup=wifi: the setup from the start, moved on to that screen (every screen reachable: Wi-Fi and a release assumed)
+  const setup = q.get("setup")?.toUpperCase();
+  if (setup) {
+    shell = bridge.shell(shell, { type: "RestartSetup" });
+    while (!shell.setupDone && shell.setupStep !== setup) shell = bridge.shell(shell, { type: "SetupNext", wifi: true, updateAvailable: true });
+  }
+  // ?recents=maps,radio: those apps opened in that order, then the open apps over them
+  const recents = q.get("recents");
+  if (recents !== null) {
+    for (const app of recents.split(",").filter(Boolean)) shell = bridge.shell(shell, { type: "OpenApp", app: app.toUpperCase() as ShellState["app"] });
+    shell = bridge.shell(shell, { type: "OpenRecents" });
+  }
   const font = q.get("font");
   if (font) shell = bridge.shell(shell, { type: "SetFont", name: font });
   const brightness = q.get("brightness");
@@ -1054,7 +1085,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   if (source === "BT") {
     applyEvent({ type: "BtConnection", connected: true, device: SAMPLE_PHONE });
     applyEvent({ type: "HfpConnection", connected: true, device: SAMPLE_PHONE });
-    applyEvent({ type: "Playback", playing: true, positionMs: 72000 });
+    // ?paused: the phone connected with its music paused
+    applyEvent({ type: "Playback", playing: !q.has("paused"), positionMs: 72000 });
   }
   if (source === "RADIO") {
     car = bridge.command(car, { type: "Audio.Source", source: "RADIO" });
@@ -1077,11 +1109,13 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     track: { ...(SAMPLE_TRACKS[Number(q.get("track"))] ?? SAMPLE_TRACKS[0]) },
     positionMs: 72000,
     positionAt: Date.now(),
-    radio: { khz: 101900, band: "FM", rds: "NORD FM", pty: 9, stereo: true },
+    // ?band=am: the tuner on AM, with a station of its own starred
+    radio: q.get("band") === "am" ? { khz: 1404, band: "AM", rds: "", pty: 0, stereo: false } : { khz: 101900, band: "FM", rds: "NORD FM", pty: 9, stereo: true },
     stations: { FM: STATIONS.filter((s) => s.band === "FM").map((s) => s.khz), AM: STATIONS.filter((s) => s.band === "AM").map((s) => s.khz) },
-    favorites: [89200, 91400, 101900],
+    favorites: q.get("band") === "am" ? [558, 89200, 91400, 101900] : [89200, 91400, 101900],
     radioScan: null,
-    gps: GPS_PLACES[0],
+    // ?place=<index into GPS_PLACES> starts the car there (captures of the map offer abroad)
+    gps: GPS_PLACES[Number(q.get("place") ?? 0)] ?? GPS_PLACES[0],
     driving: false,
     sweep: false,
     speed: { kmh: 0, stopped: true },
@@ -1125,12 +1159,13 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     wifiOn: true,
     wifi: { saved: [WIFI_NETWORKS[0].ssid], connected: WIFI_NETWORKS[0].ssid, connecting: null, wrongPassword: null, seen: [] },
     locationOn: true,
-    releaseOut: null,
+    // ?release=1.19.0: a newer version out
+    releaseOut: q.get("release"),
     restartAsked: false,
     updateCheck: { state: "IDLE", at: null },
     wifiNeedsLocation: false,
     acc: true,
-    hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : null,
+    hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : q.has("freeze") ? 12 : null,
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     clockShiftMs: 0,
     // a car's clock is rarely right: a few minutes off at start
@@ -1140,7 +1175,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     replayError: null,
     volumeOpened: 0,
     pressedKey: null,
-    notice: null,
+    // ?notice=bt|wifi, ?notice=bt-off|wifi-off: a connection notice on screen
+    notice: q.get("notice") ? { id: 1, kind: q.get("notice")!.startsWith("wifi") ? "wifi" : "bt", connected: !q.get("notice")!.endsWith("-off"), name: q.get("notice")!.startsWith("wifi") ? WIFI_NETWORKS[0].ssid : SAMPLE_PHONE } : null,
   };
 }
 

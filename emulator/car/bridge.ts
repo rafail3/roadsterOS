@@ -294,6 +294,9 @@ interface Kotlin {
       mapOffer(country: string, installed: string, wifi: boolean, declined: string, downloading: string): string;
       packMb(code: string): number;
       homeCard(state: string, btOn: boolean, chosen: string): string;
+      bands(): string;
+      toggleFavorite(favorites: string, khz: number): string;
+      elapsedMs(positionMs: number, positionAt: number, playing: boolean, durationMs: number, now: number): number;
       freqFormat(band: string, khz: number): string;
       freqGlide(shown: number, target: number): number;
       freqCounter(band: string, khz: number, target: number): string;
@@ -396,6 +399,13 @@ export const bridge = {
   /** The card on home: its pages, the one shown, the sound strip under the map, and the page a source brings forward. */
   homeCard: (state: CarState, btOn: boolean, chosen: CardPage | null): { pages: CardPage[]; shown: CardPage; strip: "NONE" | "BT" | "RADIO"; forSource: CardPage | "" } =>
     JSON.parse(K!.Bridge.homeCard(JSON.stringify(state), btOn, chosen ?? "")),
+  /** The tuner's ranges and steps in kHz (core-car Tuner.BANDS). */
+  bands: (): Record<Band, { min: number; max: number; step: number }> => JSON.parse(K!.Bridge.bands()),
+  /** The starred frequencies with [khz] starred or unstarred, in frequency order (core-car Tuner). */
+  toggleFavorite: (favorites: number[], khz: number): number[] => JSON.parse(K!.Bridge.toggleFavorite(JSON.stringify(favorites), khz)),
+  /** Where playback is now: the reported position, advanced while playing (core-car PlaybackClock); [durationMs] 0 when unknown. */
+  elapsedMs: (positionMs: number, positionAt: number, playing: boolean, durationMs: number, now: number): number =>
+    K!.Bridge.elapsedMs(positionMs, positionAt, playing, durationMs, now),
   freqFormat: (band: Band, khz: number): string => K!.Bridge.freqFormat(band, khz),
   freqGlide: (shown: number, target: number): number => K!.Bridge.freqGlide(shown, target),
   freqCounter: (band: Band, khz: number, target: number): { exact: string | null; label: string; decimalAt: number; columns: [number, number][] } =>

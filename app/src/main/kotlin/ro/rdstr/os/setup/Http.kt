@@ -28,21 +28,31 @@ object Http {
 
     /**
      * Downloads [url] to [to] (a partial file first, renamed when whole), reporting the bar's figures as they change.
+     * With [resume], a partial file left by a broken download is continued with an HTTP range request.
      * Returns the file's SHA-256 in lower-case hex, to compare with the digest GitHub publishes.
      */
-    fun download(url: String, to: File, total: Long, onProgress: (Updater.Download) -> Unit): String {
+    fun download(url: String, to: File, total: Long, resume: Boolean = false, onProgress: (Updater.Download) -> Unit): String {
         val part = File(to.path + ".part")
         val digest = MessageDigest.getInstance("SHA-256")
+        val have = if (resume && part.exists()) part.length() else 0L
         val c = open(url)
+        if (have > 0) c.setRequestProperty("Range", "bytes=$have-")
         try {
-            check(c.responseCode == 200) { "HTTP ${c.responseCode}" }
-            val size = if (c.contentLengthLong > 0) c.contentLengthLong else total
-            var d = Updater.Download(size)
+            // a range past the end: the partial file is not of this download
+            if (c.responseCode == 416) part.delete()
+            check(c.responseCode == 200 || c.responseCode == 206) { "HTTP ${c.responseCode}" }
+            val from = if (c.responseCode == 206) have else 0L
+            if (from > 0) part.inputStream().use { input ->
+                val buffer = ByteArray(64 * 1024)
+                while (true) { val n = input.read(buffer); if (n < 0) break; digest.update(buffer, 0, n) }
+            }
+            val size = if (c.contentLengthLong > 0) from + c.contentLengthLong else total
+            var d = Updater.Download(size, done = from)
             onProgress(d)
             var since = System.currentTimeMillis()
             var pending = 0L
             c.inputStream.use { input ->
-                part.outputStream().use { out ->
+                java.io.FileOutputStream(part, from > 0).use { out ->
                     val buffer = ByteArray(64 * 1024)
                     while (true) {
                         val n = input.read(buffer)

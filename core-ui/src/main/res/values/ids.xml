@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- View tag holding the element key of the visual parity check (UiKey.kt) -->
+    <item name="rdstr_ui_key" type="id" />
+    <!-- View tag holding the shell layer a view was put in (ShellView.put) -->
+    <item name="rdstr_layer" type="id" />
+    <!-- View tag set on a view that draws Glassy frost (Backdrop.draw): glass inside it frosts the glass, not the screen -->
+    <item name="rdstr_glass" type="id" />
+</resources>

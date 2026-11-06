@@ -2,38 +2,60 @@ package ro.rdstr.os
 
 import android.app.Activity
 import android.app.admin.DevicePolicyManager
+import android.content.Context
 import android.os.Bundle
 import android.view.View
-import android.widget.TextView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import ro.rdstr.car.Setup
 import ro.rdstr.car.ShellAction
 import ro.rdstr.os.boot.BootView
+import ro.rdstr.os.screens.Screen
+import ro.rdstr.os.screens.ShellScreen
+import ro.rdstr.ui.Mirrors
+import ro.rdstr.os.screens.Screens
+import ro.rdstr.ui.kit.UiDensity
+import ro.rdstr.ui.kit.UiTheme
+import ro.rdstr.ui.shell.Layer
+import ro.rdstr.ui.shell.ShellView
+import java.util.Calendar
 
+/** The only HOME screen: the shell (Screen.tsx's root, its layers and its startup screens). */
+@Mirrors("Screen.tsx")
 class HomeActivity : Activity() {
 
     private val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private var job: Job? = null
-    private var devJob: Job? = null
-    // Show Frame Rate: the main thread's frames a second, to the log while the screens are drawn by the new shell
-    private val frames = ro.rdstr.os.settings.FrameMeter { android.util.Log.i("rdstr.dev", "fps=$it") }
+    private var bound: Job? = null
+    private lateinit var shell: ShellView
+    private val screens = ArrayList<Screen>()
+
+    /** Our density: the 1280 px canvas across the panel, 1 canvas px = 1 dp. */
+    override fun attachBaseContext(base: Context) = super.attachBaseContext(UiDensity.wrap(base))
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_home)
+        // the screens read the runtime as they are made; the service starts it too, later, on this same thread
+        CarRuntime.start(applicationContext)
         CarRuntime.ensureService(this)
-        addContentView(castView(), android.widget.FrameLayout.LayoutParams(-1, -1))
+        val root = ShellScreen(this)
+        screens += root
+        shell = root.view
+        setContentView(shell)
+        UiTheme.fadeRoot = shell
+        ro.rdstr.os.screens.SettingsScreen.slots = ro.rdstr.os.screens.HostSlots
+        for ((layer, make) in Screens.ALL) make(this).also { screens += it; shell.put(layer, it.view) }
+        (screens.firstOrNull { it is ro.rdstr.os.screens.DrawerScreen }?.view as? ro.rdstr.ui.drawer.DrawerView)?.onClearing = shell::clearScrim
         startup()
     }
 
     /**
      * A cold start shows the boot screen; a first start (setup at the logo) then moves on to the setup's start screen,
-     * where a touch begins the setup. The other setup screens come with the shell's views.
+     * where a touch begins the setup; each step on is SetupScreen.next() (ShellAction.SetupNext with the Wi-Fi and update state).
      */
     private fun startup() {
         val shell = CarRuntime.shell.value
@@ -41,11 +63,11 @@ class HomeActivity : Activity() {
             !booted || (!shell.setupDone && shell.setupStep == Setup.Step.LOGO) -> overlay(BootView(this, BootView.Mode.BOOT) {
                 booted = true
                 val now = CarRuntime.shell.value
-                if (!now.setupDone && now.setupStep == Setup.Step.LOGO) CarRuntime.shellAction(ShellAction.SetupNext())
+                if (!now.setupDone && now.setupStep == Setup.Step.LOGO) ro.rdstr.os.screens.SetupScreen.next()
                 startup()
             })
             !shell.setupDone && shell.setupStep == Setup.Step.START -> overlay(BootView(this, BootView.Mode.START, versionName()) {
-                CarRuntime.shellAction(ShellAction.SetupNext())
+                ro.rdstr.os.screens.SetupScreen.next()
                 startup()
             })
             else -> overlay(null)
@@ -54,57 +76,34 @@ class HomeActivity : Activity() {
 
     private var shown: View? = null
 
-    /** One full-screen view over the home screen at a time, or none. */
+    /** One startup screen over the shell at a time, or none. */
     private fun overlay(view: View?) {
-        shown?.let { (it.parent as? android.view.ViewGroup)?.removeView(it) }
+        shown?.let(shell::remove)
         shown = view
-        if (view != null) addContentView(view, android.widget.FrameLayout.LayoutParams(-1, -1))
+        if (view != null) shell.put(Layer.STARTUP, view)
     }
 
     private fun versionName() = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull().orEmpty()
-
-    private lateinit var castFrame: android.widget.FrameLayout
-
-    /**
-     * The phone's screen over everything while it plays: black around a 16:9 picture (the stream is 1280x720),
-     * its surface handed to the receiver. ponytail: test screen only; the shell's phone screen view replaces it.
-     */
-    private fun castView(): View {
-        val picture = android.view.SurfaceView(this)
-        picture.holder.addCallback(object : android.view.SurfaceHolder.Callback {
-            override fun surfaceCreated(holder: android.view.SurfaceHolder) = CarRuntime.castSurface(holder.surface)
-            override fun surfaceChanged(holder: android.view.SurfaceHolder, format: Int, width: Int, height: Int) = Unit
-            override fun surfaceDestroyed(holder: android.view.SurfaceHolder) = CarRuntime.castSurface(null)
-        })
-        val width = resources.displayMetrics.widthPixels
-        castFrame = android.widget.FrameLayout(this).apply {
-            setBackgroundColor(android.graphics.Color.BLACK)
-            visibility = View.GONE
-            addView(picture, android.widget.FrameLayout.LayoutParams(width, width * 9 / 16, android.view.Gravity.CENTER))
-        }
-        return castFrame
-    }
 
     override fun onResume() {
         super.onResume()
         hideSystemUi()
         lockIfOwner()
-        val status = findViewById<TextView>(R.id.status)
-        job = uiScope.launch {
-            CarRuntime.ui.collect { ui ->
-                castFrame.visibility = if (ui.state.cast == ro.rdstr.car.CarEvent.PhoneCast.State.LIVE) View.VISIBLE else View.GONE
-                status.text = buildString {
-                    appendLine("source: ${ui.state.source}  playing: ${ui.state.playing}  muted: ${ui.state.muted}")
-                    appendLine("bt: ${ui.state.btConnected}  call: ${ui.state.call}  night: ${ui.night}")
-                    appendLine("camera: ${ui.camera}  overlay call: ${ui.call?.number ?: "-"}")
-                    appendLine("track: ${ui.track?.title ?: "-"}  cover: ${CarRuntime.cover.value?.from ?: "-"}")
-                    append("last: ${ui.lastEvent}")
-                }
-            }
+        bound = uiScope.launch {
+            // the look every view draws with: the shell's theme (the auto one decided at the hour), design, font, speed
+            launch { combine(CarRuntime.shell, CarRuntime.time.now()) { s, t -> s to hourOf(t) }.collect { (s, h) -> UiTheme.follow(s, h) } }
+            for (s in screens) s.bind(this)
         }
-        devJob = uiScope.launch {
-            CarRuntime.shell.collect { if (it.showFrameRate) frames.start() else frames.stop() }
+    }
+
+    // a keyboard's Escape closes the drawer and the camera, as on the emulator's screen
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        if (event.keyCode == android.view.KeyEvent.KEYCODE_ESCAPE && event.action == android.view.KeyEvent.ACTION_UP) {
+            CarRuntime.shellAction(ShellAction.CloseDrawer)
+            CarRuntime.shellAction(ShellAction.CloseCamera)
+            return true
         }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onUserInteraction() {
@@ -113,9 +112,7 @@ class HomeActivity : Activity() {
     }
 
     override fun onPause() {
-        job?.cancel()
-        devJob?.cancel()
-        frames.stop()
+        bound?.cancel()
         super.onPause()
     }
 
@@ -127,6 +124,8 @@ class HomeActivity : Activity() {
     private companion object {
         /** The boot screen shows once per start of the app's process, as the unit starts. */
         var booted = false
+
+        fun hourOf(ms: Long) = Calendar.getInstance().apply { timeInMillis = ms }.get(Calendar.HOUR_OF_DAY)
     }
 
     @Deprecated("Back is disabled on the home screen")

@@ -1,0 +1,236 @@
+package ro.rdstr.gradle.display
+
+import com.android.build.api.variant.AndroidComponentsExtension
+import org.gradle.api.DefaultTask
+import org.gradle.api.Plugin
+import org.gradle.api.Project
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.tasks.CacheableTask
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.testing.Test
+import java.io.File
+
+/**
+ * `rdstr.display`: builds the display app's design from the browser emulator. The sheets the emulator loads (in the
+ * order `emulator/app/layout.tsx` imports them) give the token classes, its icons the VectorDrawables. Both are
+ * generated sources of the Android module that applies the plugin, rebuilt only when the CSS or the icons change.
+ */
+class DisplayPlugin : Plugin<Project> {
+    override fun apply(project: Project) {
+        val emulator = project.rootProject.layout.projectDirectory.dir("emulator")
+        val task = project.tasks.register("generateDisplayUi", GenerateDisplayUi::class.java) {
+            group = "rdstr"
+            description = "Generates the design tokens and icons of the display app from the browser emulator."
+            layout.set(emulator.file("app/layout.tsx"))
+            styles.from(emulator.dir("styles").asFileTree.matching { include("*.css") })
+            icons.from(emulator.dir("public/icons").asFileTree.matching { include("*.svg") })
+            fonts.from(emulator.dir("public/fonts").asFileTree.matching { include("*.ttf", "*.otf", "*.woff", "*.woff2") })
+            tool.set(listOf("chrome.css"))
+            tokensPackage.set("ro.rdstr.ui.tokens")
+            rPackage.set("ro.rdstr.ui")
+            kotlinOut.set(project.layout.buildDirectory.dir("generated/rdstr/kotlin"))
+            resOut.set(project.layout.buildDirectory.dir("generated/rdstr/res"))
+        }
+        val root = project.rootProject.layout.projectDirectory
+        val check = project.tasks.register("checkDisplayLogic", CheckDisplayLogic::class.java) {
+            group = "verification"
+            description = "Checks that the display app implements every piece of logic the emulator's screen uses."
+            components.from(emulator.dir("components").asFileTree.matching { include("*.tsx", "*.ts") })
+            car.from(emulator.dir("car").asFileTree.matching { include("*.ts") })
+            coreCar.from(root.dir("core-car/src/commonMain/kotlin").asFileTree.matching { include("**/*.kt") })
+            android.from(root.dir("app/src/main/kotlin").asFileTree.matching { include("**/*.kt") })
+            android.from(project.layout.projectDirectory.dir("src/main/kotlin").asFileTree.matching { include("**/*.kt") })
+            strict.set(project.providers.gradleProperty("rdstr.display.strict").map { it.toBoolean() }.orElse(false))
+            report.set(project.layout.buildDirectory.file("reports/rdstr/display-logic.md"))
+            base.set(root)
+        }
+        project.tasks.matching { it.name == "test" || it.name == "check" }.configureEach { dependsOn(check) }
+        // visual parity: the browser capture (npm run parity:capture) in build/parity/web, the module's unit tests
+        // write the Android one into build/parity/android, compareParity reports into build/reports/parity
+        val parity = project.rootProject.layout.buildDirectory.dir("parity")
+        project.tasks.withType(Test::class.java).configureEach {
+            systemProperty("rdstr.parity.web", parity.get().dir("web").asFile.path)
+            systemProperty("rdstr.parity.android", parity.get().dir("android").asFile.path)
+            inputs.files(project.fileTree(parity.map { it.dir("web") })).withPropertyName("parityWeb").withPathSensitivity(PathSensitivity.RELATIVE)
+            outputs.dir(parity.map { it.dir("android") }).withPropertyName("parityAndroid")
+        }
+        project.tasks.register("compareParity", CompareParity::class.java) {
+            group = "verification"
+            description = "Compares the display app's views with the browser emulator, element by element and pixel by pixel."
+            web.set(parity.map { it.dir("web") })
+            android.set(parity.map { it.dir("android") })
+            report.set(project.rootProject.layout.buildDirectory.dir("reports/parity"))
+            val limits = Parity.Limits()
+            val property = { name: String -> project.providers.gradleProperty("rdstr.parity.$name") }
+            tolerance.set(property("tolerance").map { it.toInt() }.orElse(limits.tolerance))
+            edgeTolerance.set(property("edgeTolerance").map { it.toInt() }.orElse(limits.edgeTolerance))
+            maxPercent.set(property("maxPercent").map { it.toDouble() }.orElse(limits.maxPercent))
+            dependsOn("testDebugUnitTest")
+        }
+        project.extensions.getByType(AndroidComponentsExtension::class.java).onVariants { v ->
+            v.sources.kotlin?.addGeneratedSourceDirectory(task, GenerateDisplayUi::kotlinOut)
+            v.sources.res?.addGeneratedSourceDirectory(task, GenerateDisplayUi::resOut)
+        }
+    }
+}
+
+@CacheableTask
+abstract class GenerateDisplayUi : DefaultTask() {
+    @get:InputFile @get:PathSensitive(PathSensitivity.RELATIVE) abstract val layout: RegularFileProperty
+    @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val styles: ConfigurableFileCollection
+    @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val icons: ConfigurableFileCollection
+    @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val fonts: ConfigurableFileCollection
+    /** Sheets of the emulator tool itself, not of the screen. */
+    @get:Input abstract val tool: ListProperty<String>
+    @get:Input abstract val tokensPackage: Property<String>
+    @get:Input abstract val rPackage: Property<String>
+    @get:OutputDirectory abstract val kotlinOut: DirectoryProperty
+    @get:OutputDirectory abstract val resOut: DirectoryProperty
+
+    @TaskAction
+    fun generate() {
+        val sheets = styles.files.associateBy { it.name }
+        val order = DisplayBuild.sheetOrder(layout.get().asFile.readText(), tool.get())
+        val missing = order.filter { it !in sheets }
+        if (missing.isNotEmpty()) throw DisplayBuildException("layout.tsx imports ${missing.joinToString()} which is not in emulator/styles")
+        val unused = sheets.keys - order.toSet() - tool.get().toSet()
+        if (unused.isNotEmpty()) throw DisplayBuildException("emulator/styles has ${unused.joinToString()} which layout.tsx does not import")
+        val result = DisplayBuild.run(order.map { it to sheets.getValue(it).readText() }, icons.files.associate { it.nameWithoutExtension to it.readText() },
+            tokensPackage.get(), rPackage.get(), fonts.files.associate { it.name to it.readBytes() })
+        val kotlin = kotlinOut.get().asFile.apply { deleteRecursively(); mkdirs() }
+        val res = resOut.get().asFile.apply { deleteRecursively(); mkdirs() }
+        val dir = File(kotlin, tokensPackage.get().replace('.', '/')).apply { mkdirs() }
+        File(dir, "Tokens.kt").writeText(result.tokens)
+        File(dir, "Icons.kt").writeText(result.icons)
+        File(dir, "Fonts.kt").writeText(result.fonts)
+        val fontDir = File(res, "font").apply { mkdirs() }
+        for ((name, bytes) in result.fontFiles) File(fontDir, name).writeBytes(bytes)
+        val drawables = File(res, "drawable").apply { mkdirs() }
+        for ((name, xml) in result.drawables) File(drawables, "$name.xml").writeText(xml)
+        logger.lifecycle("rdstr.display: ${result.classCount} token classes, ${result.drawables.size} icons, ${result.fontFiles.size} fonts")
+    }
+}
+
+@CacheableTask
+abstract class CheckDisplayLogic : DefaultTask() {
+    @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val components: ConfigurableFileCollection
+    @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val car: ConfigurableFileCollection
+    @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val coreCar: ConfigurableFileCollection
+    @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE) abstract val android: ConfigurableFileCollection
+    /** Every gap fails, not only those in components that already have a view. */
+    @get:Input abstract val strict: Property<Boolean>
+    @get:OutputFile abstract val report: RegularFileProperty
+    /** The repository, for paths in the report. */
+    @get:Internal abstract val base: DirectoryProperty
+
+    @TaskAction
+    fun check() {
+        val root = base.get().asFile
+        val result = LogicCheck.run(
+            components.files.associate { it.name to it.readText() },
+            car.files.associate { it.nameWithoutExtension to it.readText() },
+            coreCar.files.map { it.readText() },
+            android.files.associate { it.relativeTo(root).invariantSeparatorsPath to it.readText() },
+        )
+        report.get().asFile.apply { parentFile.mkdirs() }.writeText(result.markdown())
+        val failures = result.failures(strict.get())
+        val logic = result.uses.map { it.key }.distinct()
+        logger.lifecycle("rdstr.display: ${result.screen.size - result.missingViews.size}/${result.screen.size} screen files mirrored, " +
+            "${logic.size - result.missingLogic.map { it.key }.distinct().size}/${logic.size} logic values implemented; report ${report.get().asFile}")
+        if (failures.isNotEmpty()) throw DisplayBuildException("display logic gaps:" + failures.joinToString("") { "\n  $it" })
+    }
+}
+
+abstract class CompareParity : DefaultTask() {
+    @get:Internal abstract val web: DirectoryProperty
+    @get:Internal abstract val android: DirectoryProperty
+    @get:Internal abstract val report: DirectoryProperty
+    /** [Parity.Limits], from the Gradle properties rdstr.parity.tolerance, .edgeTolerance and .maxPercent. */
+    @get:Input abstract val tolerance: Property<Int>
+    @get:Input abstract val edgeTolerance: Property<Int>
+    @get:Input abstract val maxPercent: Property<Double>
+
+    init {
+        // the captures change outside Gradle (the browser side is a Node script): always compare
+        outputs.upToDateWhen { false }
+    }
+
+    @TaskAction
+    fun compare() {
+        val dir = report.get().asFile
+        val result = Parity.run(web.get().asFile, android.get().asFile, dir, Parity.Limits(tolerance.get(), edgeTolerance.get(), maxPercent.get()))
+        logger.lifecycle("rdstr.display: ${result.scenes.count { it.failures.isEmpty() }}/${result.scenes.size} parity scenes pass, " +
+            "${result.notBuilt.size} browser scenes without an Android one; report ${File(dir, "index.md")}")
+        if (result.scenes.isEmpty()) throw DisplayBuildException("no Android parity capture in ${android.get().asFile}; run npm run parity:capture first")
+        if (result.failures.isNotEmpty()) throw DisplayBuildException("visual parity:" + result.failures.joinToString("") { "\n  $it" })
+    }
+}
+
+/** The generation itself, free of Gradle so the tests run it on the real sheets. */
+object DisplayBuild {
+    class Result(
+        val tokens: String, val icons: String, val drawables: Map<String, String>, val classCount: Int,
+        val fonts: String, val fontFiles: Map<String, ByteArray>,
+    )
+
+    /** The sheets `layout.tsx` imports from `../styles/`, in order, the tool's own left out. */
+    fun sheetOrder(layoutTsx: String, tool: List<String>): List<String> =
+        Regex("""import\s+["']\.\./styles/([\w-]+\.css)["']""").findAll(layoutTsx).map { it.groupValues[1] }.filter { it !in tool }.toList()
+
+    fun run(
+        sheets: List<Pair<String, String>>, svgs: Map<String, String>, tokensPackage: String, rPackage: String,
+        fontFiles: Map<String, ByteArray>,
+    ): Result {
+        var order = 0
+        val declarations = sheets.flatMap { (name, text) -> Css.declarations(name, text, order).also { order += it.size } }
+        val tokens = Tokens(declarations)
+        val classes = tokens.classes()
+        val missingIcons = tokens.icons.map { it.file.removeSuffix(".svg") }.filter { it !in svgs }
+        if (missingIcons.isNotEmpty()) throw DisplayBuildException("icon classes point at missing files: ${missingIcons.joinToString()}")
+        val drawables = svgs.toSortedMap().map { (stem, text) -> KotlinWriter.drawable(stem) to Svg.toVector(stem, text) }.toMap()
+        val faces = fontFaces(sheets, fontFiles)
+        return Result(
+            KotlinWriter.tokens(tokensPackage, classes),
+            KotlinWriter.icons(tokensPackage, rPackage, tokens.icons, svgs.keys.toList()),
+            drawables,
+            classes.size,
+            KotlinWriter.fonts(tokensPackage, rPackage, faces),
+            faces.associate { "${it.resource}.${it.file.substringAfterLast('.')}" to fontFiles.getValue(it.file) },
+        )
+    }
+
+    /** A font family the screen loads, from one file Android reads as it is. */
+    data class Face(val family: String, val file: String, val weights: IntRange, val resource: String)
+
+    /**
+     * The `@font-face`s of the sheets: one per family (Android picks a face by family and weight, not by character
+     * range), from a TrueType or OpenType file in `emulator/public/fonts`; the same file goes into the APK.
+     */
+    fun fontFaces(sheets: List<Pair<String, String>>, files: Map<String, ByteArray>): List<Face> {
+        val faces = sheets.flatMap { (sheet, text) -> Css.fontFaces(text).map { sheet to it } }.map { (sheet, f) ->
+            val family = f["font-family"]?.trim('"', '\'') ?: throw DisplayBuildException("$sheet: @font-face without font-family")
+            if ("unicode-range" in f) throw DisplayBuildException("$sheet: $family is split by unicode-range; Android needs one file per family")
+            val src = Regex("""url\(["']?/fonts/([^"')]+)["']?\)""").find(f["src"].orEmpty())?.groupValues?.get(1)
+                ?: throw DisplayBuildException("$sheet: $family must load from /fonts/")
+            if (!src.endsWith(".ttf") && !src.endsWith(".otf")) throw DisplayBuildException("$sheet: $family loads $src; Android 8 reads TrueType or OpenType only")
+            if (src !in files) throw DisplayBuildException("$sheet: $family loads $src, missing from emulator/public/fonts")
+            val w = f["font-weight"].orEmpty().split(' ').mapNotNull { it.toIntOrNull() }
+            Face(family, src, (w.firstOrNull() ?: 400)..(w.lastOrNull() ?: 400), "rdstr_font_" + family.lowercase().replace(Regex("[^a-z0-9]"), "_"))
+        }
+        val twice = faces.groupBy { it.family }.filterValues { it.size > 1 }.keys
+        if (twice.isNotEmpty()) throw DisplayBuildException("more than one @font-face for ${twice.joinToString()}")
+        return faces
+    }
+}

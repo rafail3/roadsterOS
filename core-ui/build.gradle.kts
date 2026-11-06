@@ -1,5 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
+    id("rdstr.display")
+    alias(libs.plugins.paparazzi)
 }
 
 android {
@@ -11,3 +13,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 }
+
+dependencies {
+    api(project(":core-car"))
+    testImplementation(libs.junit)
+}
+
+// the generator's own tests run with this module's
+tasks.matching { it.name == "test" }.configureEach { dependsOn(gradle.includedBuild("build-logic").task(":test")) }

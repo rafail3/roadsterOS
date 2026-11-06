@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import ro.rdstr.car.Updater
 import java.io.File
+import ro.rdstr.ui.Emulates
+import ro.rdstr.ui.setup.UpdateInstall
 
 /**
  * New versions from GitHub Releases (core-car [Updater]): checked once in the background each time the unit joins
@@ -48,6 +50,7 @@ class Updates(private val context: Context) {
     private val current get() = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty()
 
     /** When this version went on the unit, for Settings > About > Software Update (ms since 1970). */
+    @Emulates("store.installedAt")
     val installedAt: Long get() = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime }.getOrDefault(0L)
 
     /** The last check that got an answer, or 0. */
@@ -69,6 +72,7 @@ class Updates(private val context: Context) {
     }
 
     /** Settings > About and the setup check on demand; the result lands in [state]. */
+    @Emulates("store.checkForUpdate")
     fun check() {
         if (_state.value is State.Downloading || _state.value is State.Installing) return
         if (!onWifi) { _state.value = State.NeedsWifi; return }
@@ -77,12 +81,22 @@ class Updates(private val context: Context) {
             val result = Updater.check(current, Http.text(Updater.LATEST))
             Log.i(TAG, "check $current -> $result")
             if (result != Updater.Check.Failed) prefs.edit().putLong(CHECKED, System.currentTimeMillis()).apply()
-            _state.value = when (result) {
-                is Updater.Check.Available -> State.Available(result.release, result.apk, Updater.popUp(result, prefs.getString(DISMISSED, null)))
-                Updater.Check.UpToDate -> State.UpToDate
-                Updater.Check.Failed -> State.Failed("no answer from GitHub")
-            }
+            releaseOut(result)
         }.start()
+    }
+
+    /**
+     * A newer version on GitHub, or none, as the check found it. The emulator sets this by hand (its control panel's
+     * switch, and none once an update is installed); on the unit, the version just installed is what the next check
+     * compares against.
+     */
+    @Emulates("store.setReleaseOut")
+    private fun releaseOut(result: Updater.Check) {
+        _state.value = when (result) {
+            is Updater.Check.Available -> State.Available(result.release, result.apk, Updater.popUp(result, prefs.getString(DISMISSED, null)))
+            Updater.Check.UpToDate -> State.UpToDate
+            Updater.Check.Failed -> State.Failed("no answer from GitHub")
+        }
     }
 
     /** "Later": this version is not offered in a pop-up again; About still lists it. */
@@ -129,7 +143,29 @@ class Updates(private val context: Context) {
 
     private fun countdown(seconds: Int) {
         _state.value = State.Restarting(seconds)
-        if (seconds > 0) main.postDelayed({ countdown(seconds - 1) }, 1000) else restart()
+        if (seconds > 0) main.postDelayed({ countdown(seconds - 1) }, 1000) else { beforeRestart?.invoke(); restart() }
+    }
+
+    /** Runs right before the restart (update.ts `beforeRestart`): the setup moves past its update screen. */
+    @Volatile var beforeRestart: (() -> Unit)? = null
+
+    /** The last download's figures, kept for the screens once the file is in. */
+    @Volatile private var lastDownload: Updater.Download? = null
+
+    /** [state] as update.ts `useUpdateInstall` shows it: the download, then done with the countdown. */
+    fun install(state: State): UpdateInstall = when (state) {
+        is State.Downloading -> UpdateInstall(state.download.also { lastDownload = it })
+        State.Installing -> UpdateInstall(full(), done = true)
+        is State.Restarting -> UpdateInstall(full(), done = true, restartIn = state.seconds)
+        else -> UpdateInstall()
+    }
+
+    private fun full() = (lastDownload ?: Updater.Download(1)).let { it.copy(done = it.total) }
+
+    /** Install now: the version found, once nothing holds the unit back (no call, no reverse, room for the file). */
+    fun installAvailable(inCall: Boolean, reversing: Boolean) {
+        val a = _state.value as? State.Available ?: return
+        install(a.apk, Updater.installWait(0.0, inCall, reversing, context.cacheDir.usableSpace, a.apk.bytes))
     }
 
     /** REBOOT is a signature permission: granted with the platform key; without it the update still took effect. */

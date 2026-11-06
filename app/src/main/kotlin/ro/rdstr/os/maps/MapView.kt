@@ -12,21 +12,25 @@ import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import android.util.LruCache
+import android.view.Choreographer
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
-import ro.rdstr.car.MapPacks.Country
+import ro.rdstr.map.CameraEase
+import ro.rdstr.map.Easing
 import ro.rdstr.map.GridTile
 import ro.rdstr.map.LabelCandidate
 import ro.rdstr.map.MapStyle
 import ro.rdstr.map.Mvt
+import ro.rdstr.map.PackMask
 import ro.rdstr.map.SpeedLimit
 import ro.rdstr.map.Street
 import ro.rdstr.map.TileMath
 import ro.rdstr.map.TileRenderer
 import ro.rdstr.map.VectorTile
 import ro.rdstr.map.VisibleTile
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.ceil
 import kotlin.math.cos
@@ -34,12 +38,18 @@ import kotlin.math.hypot
 import kotlin.math.ln
 import kotlin.math.sin
 import ro.rdstr.map.View as MapViewState
+import ro.rdstr.ui.Emulates
 
 /**
  * The map on the unit. Each picture of the map grid is drawn once, off the main thread, into a small bitmap kept in a
  * bounded cache; a frame only moves and turns the finished pictures and sets the names on top, so panning, zooming
  * and turning with the car stay cheap on the Mali-450. The car follows at the centre, heading up (or north up), until a
- * finger moves the map; the screen's controls read [street], [follow], [headingUp] and [bearing] on [onChange].
+ * finger moves the map; the screen's controls read [street], [roadLimit], [follow] and [headingUp] on [onChange] and
+ * the compass reads [bearing] on [onRotate].
+ *
+ * The camera eases as the emulator's MapLibre map does (`easeTo`, MapsApp.tsx): one ease at a time, stepped on the
+ * display's frames by [Choreographer]; a new ease takes over from wherever the running one got to, and a finger moving
+ * the map stops it.
  */
 class MapView(context: Context, private val packs: MapPacks) : View(context) {
     private val style = MapStyle.load()
@@ -49,18 +59,44 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     var lat = 45.6427
     var zoom = 15.5
     var bearing = 0.0
+    /** The night palette, else the day one (MapHost sets it from the shell's theme). */
     var night = true
-        set(value) { if (field != value) { field = value; pictures.evictAll(); invalidate() } }
-    /** Whether the map keeps the car in the middle. */
+        set(value) { if (field != value) { field = value; pictures.evictAll(); candidates.evictAll(); invalidate() } }
+    /**
+     * Whether the map keeps the car in the middle (MapsApp.tsx `follow`): a finger dragging the map turns it off
+     * (`dragstart` -> `setFollow(false)`); turned on, the map eases onto the car as on a new position.
+     */
     var follow = true
-        private set(value) { if (field != value) { field = value; changed() } }
-    /** While following: the map turns with the car, or keeps north up. */
+        set(value) {
+            if (field == value) return
+            field = value
+            if (value && seen) followCar()
+            changed()
+        }
+    /**
+     * The compass button (MapsApp.tsx `setHeadingUp(!headingUp)`): while following, the map turns with the car or keeps
+     * north up, eased by the follow ease right away; not following, the map keeps its bearing. The emulator has no
+     * other bearing reset.
+     */
     var headingUp = true
         set(value) {
             if (field == value) return
             field = value
-            if (follow) bearing = if (value) carHeading else 0.0
-            invalidate(); changed()
+            if (follow && seen) followCar()
+            changed()
+        }
+    /**
+     * Whether the map is on a screen (MapsApp.tsx `seen = open || inCard`; MapHost sets it). Unseen, it does no work;
+     * seen again it jumps onto the car (`jumpTo({ center })`, no long glide) and goes on as on a new position.
+     */
+    var seen = false
+        set(value) {
+            if (field == value) return
+            field = value
+            camera.stop()
+            if (!value) return
+            lon = carLon; lat = carLat
+            setCar(carLon, carLat, movingHeading, carDriving)
         }
     /** The name of the street the car is on, empty off any named road. */
     var street = ""
@@ -68,15 +104,20 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     /** The posted limit of the car's road for its direction, in km/h; null when the road has none in the pack. */
     var roadLimit: Int? = null
         private set
-    /** The countries whose pack is not on the unit: covered, as the unit has no tiles there. */
-    var missing: List<Country> = emptyList()
-        set(value) { field = value; maskBoxes = value.flatMap { c -> c.polygons.map { box(it[0]) to it } }; invalidate() }
-    private var maskBoxes: List<Pair<DoubleArray, List<DoubleArray>>> = emptyList()
-    /** On the main thread, whenever [street], [roadLimit], [follow], [headingUp] or [bearing] changed. */
+    /** The countries whose pack is not on the unit (MapHost's [PackMask]): covered, as the unit has no tiles there. */
+    var missing: List<PackMask.Polygon> = emptyList()
+        set(value) { field = value; invalidate() }
+    /** On the main thread, on every position seen and whenever [street], [roadLimit], [follow] or [headingUp] changed. */
     var onChange: (() -> Unit)? = null
+
+    /** The map's bearing changed, by an ease or by two fingers (MapLibre's `rotate` event, MapsApp.tsx `setBearing`). */
+    fun interface OnRotate { fun rotated(bearing: Double) }
+    /** The compass's listener; called on the main thread, on each frame the bearing moves. */
+    var onRotate: OnRotate? = null
     private var carLon = lon
     private var carLat = lat
     private var carHeading = 0.0
+    private var carDriving = false
     /** The car's heading while it moves; the road it is on is then looked for along it. */
     private var movingHeading: Double? = null
 
@@ -106,29 +147,84 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     private var pictureMs = 0.0
     private var lastLog = 0L
 
-    fun setCar(lon: Double, lat: Double, heading: Double?) {
+    /**
+     * A new position of the car (MapsApp.tsx, the effect on each `gps` fix): the arrow moves there, turned [heading]
+     * (null while the car stands: the last heading stays and the street is looked for in every direction); following,
+     * `easeTo({ center, bearing: headingUp ? heading : 0, duration: driving ? 260 : 600, easing: t => t })`. Unseen,
+     * the map only keeps the position.
+     */
+    fun setCar(lon: Double, lat: Double, heading: Double?, driving: Boolean) {
         carLon = lon; carLat = lat
         if (heading != null) carHeading = heading
         movingHeading = heading
-        if (follow) { this.lon = lon; this.lat = lat; bearing = if (headingUp) carHeading else 0.0 }
+        carDriving = driving
+        if (!seen) return
+        if (follow) followCar()
         invalidate()
         changed()
         if (SystemClock.elapsedRealtime() - streetAt >= Street.EVERY_MS) lookUpStreet()
     }
 
-    /** The zoom buttons: a whole step in or out. */
-    fun zoomBy(steps: Double) {
-        zoom = (zoom + steps).coerceIn(MIN_ZOOM, MAX_ZOOM)
-        invalidate()
-        lookUpStreet()
+    /**
+     * The zoom the buttons or the locate button asked for, until the map is there (MapsApp.tsx `zoomTarget`): each
+     * follow ease carries it, so a new position does not cut the zoom short; a finger on the map drops it.
+     */
+    private var zoomTarget: Double? = null
+
+    /** MapsApp.tsx `followCar`: one ease onto the car, its heading (or north) and the zoom asked for while not reached. */
+    private fun followCar() {
+        zoomTarget?.let { if (abs(zoom - it) < 1e-6) zoomTarget = null }
+        ease(carLon, carLat, zoomTarget ?: zoom, if (headingUp) carHeading else 0.0, if (carDriving) FOLLOW_DRIVING_MS else FOLLOW_MS, Easing.LINEAR)
     }
 
-    /** The location button: back on the car at the driving zoom. */
+    /**
+     * The zoom buttons (MapsApp.tsx `zoom(+-1)`): a step goes on from the step under way, so quick presses add up to
+     * whole steps; `easeTo({ zoom: target, duration: 250 })`, within 4..18.
+     */
+    fun zoomBy(steps: Double) {
+        val from = zoomTarget?.takeIf { camera.running } ?: zoom
+        val to = (from + steps).coerceIn(MIN_ZOOM, MAX_ZOOM)
+        zoomTarget = to
+        ease(lon, lat, to, bearing, ZOOM_MS, Easing.DEFAULT)
+    }
+
+    /**
+     * The locate button (MapsApp.tsx `recentre`): back onto the car at the driving zoom in the follow ease itself, so
+     * nothing cancels the zoom; centre, bearing and zoom move together, from wherever a finger left the map.
+     */
     fun recentre() {
-        follow = true
-        zoom = DRIVE_ZOOM
-        setCar(carLon, carLat, null)
-        lookUpStreet()
+        zoomTarget = DRIVE_ZOOM
+        if (!follow) follow = true else if (seen) followCar()
+    }
+
+    private val camera = CameraEase()
+    private var framePosted = false
+    // the street is looked up again once an ease that zooms has ended (MapLibre's `idle`)
+    private var lookUpAfterEase = false
+
+    private fun ease(toLon: Double, toLat: Double, toZoom: Double, toBearing: Double, ms: Double, easing: Easing) {
+        camera.start(System.nanoTime() / 1e6, lon, lat, zoom, bearing, toLon, toLat, toZoom, toBearing, ms, easing, MIN_ZOOM, MAX_ZOOM)
+        lookUpAfterEase = toZoom.coerceIn(MIN_ZOOM, MAX_ZOOM) != zoom
+        postFrame()
+    }
+
+    private fun postFrame() {
+        if (framePosted) return
+        framePosted = true
+        Choreographer.getInstance().postFrameCallback(frame)
+    }
+
+    private val frame = object : Choreographer.FrameCallback {
+        override fun doFrame(frameTimeNanos: Long) {
+            framePosted = false
+            if (!camera.running) return
+            val more = camera.step(frameTimeNanos / 1e6)
+            val turned = camera.bearing != bearing
+            lon = camera.lon; lat = camera.lat; zoom = camera.zoom; bearing = camera.bearing
+            invalidate()
+            if (turned) onRotate?.rotated(bearing)
+            if (more) postFrame() else if (lookUpAfterEase) lookUpStreet()
+        }
     }
 
     private fun changed() = onChange?.invoke()
@@ -152,8 +248,8 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
                 val key = "$tz/$x/$y"
                 (streetTiles.get(key) ?: (packs.tile(tz, x, y)?.let { Mvt.decode(it) } ?: NO_TILE).also { streetTiles.put(key, it) }) as? VectorTile
             }
-            val name = Street.at(lon, lat, z, tiles, heading)
-            val limit = SpeedLimit.at(lon, lat, heading, tiles)
+            val name = streetAt(tiles, lon, lat, z, heading)
+            val limit = limitAt(tiles, lon, lat, heading)
             main.post {
                 if (name == street && limit == roadLimit) return@post
                 if (name != street) Log.i(TAG, "street: $name")
@@ -163,6 +259,19 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
             }
         }
     }
+
+    /**
+     * The name of the street the car is on at [zoom] (core-map Street): the nearest named road of the pack's tiles,
+     * along [heading] while the car moves. The emulator runs the same rule over the tiles MapLibre has loaded.
+     */
+    @Emulates("roads.streetAt")
+    private fun streetAt(tiles: TileRenderer.Tiles, lon: Double, lat: Double, zoom: Double, heading: Double?): String =
+        Street.at(lon, lat, zoom, tiles, heading)
+
+    /** The posted limit of the car's road for its direction, in km/h, from the pack's maxspeed layer (core-map SpeedLimit). */
+    @Emulates("roads.limitAt")
+    private fun limitAt(tiles: TileRenderer.Tiles, lon: Double, lat: Double, heading: Double?): Int? =
+        SpeedLimit.at(lon, lat, heading, tiles)
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         scale = w / 1280f
@@ -209,6 +318,7 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         if (!pending.add(g.key)) return
         val px = ceil(TileRenderer.TILE_PX * scale).toInt()
         val drawNight = night
+        val drawnWith = packsDrawn
         val picScale = scale
         workerHandler.post {
             val started = SystemClock.elapsedRealtimeNanos()
@@ -227,7 +337,7 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
             val ms = (SystemClock.elapsedRealtimeNanos() - started) / 1e6
             main.post {
                 pending.remove(g.key)
-                if (drawNight != night) { bitmap.recycle(); return@post }
+                if (drawNight != night || drawnWith != packsDrawn) { bitmap.recycle(); return@post }
                 pictures.put(g.key, bitmap)
                 if (candidates.get(g.srcKey) == null) candidates.put(g.srcKey, names)
                 pictureCount++
@@ -240,29 +350,19 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     private val maskPath = Path().apply { fillType = Path.FillType.EVEN_ODD }
     private val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
-    /** The outer ring's bounds: west, south, east, north. */
-    private fun box(ring: DoubleArray): DoubleArray {
-        val b = doubleArrayOf(180.0, 90.0, -180.0, -90.0)
-        for (i in ring.indices step 2) {
-            b[0] = minOf(b[0], ring[i]); b[1] = minOf(b[1], ring[i + 1]); b[2] = maxOf(b[2], ring[i]); b[3] = maxOf(b[3], ring[i + 1])
-        }
-        return b
-    }
-
     /**
      * The missing countries in the style's mask colour at 0.92, over the names as in the emulator, where the mask is the
      * last layer. Only the polygons that reach the screen are drawn.
      */
     private fun drawMissing(canvas: Canvas, v: MapViewState) {
-        if (maskBoxes.isEmpty()) return
+        if (missing.isEmpty()) return
         val cx = TileMath.worldX(v.lon, v.zoom)
         val cy = TileMath.worldY(v.lat, v.zoom)
         val reach = hypot(logicalW.toDouble(), logicalH.toDouble()) / 2
         maskPath.rewind()
-        for ((b, rings) in maskBoxes) {
-            if (TileMath.worldX(b[2], v.zoom) < cx - reach || TileMath.worldX(b[0], v.zoom) > cx + reach ||
-                TileMath.worldY(b[1], v.zoom) < cy - reach || TileMath.worldY(b[3], v.zoom) > cy + reach) continue
-            for (ring in rings) {
+        for (p in missing) {
+            if (!p.reaches(cx, cy, v.zoom, reach)) continue
+            for (ring in p.rings) {
                 for (i in ring.indices step 2) {
                     val x = (TileMath.worldX(ring[i], v.zoom) - cx + logicalW / 2).toFloat()
                     val y = (TileMath.worldY(ring[i + 1], v.zoom) - cy + logicalH / 2).toFloat()
@@ -348,6 +448,8 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
     private val gestures = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDown(e: MotionEvent) = true
         override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
+            camera.stop()
+            zoomTarget = null
             follow = false
             // the finger moves the turned map: undo the turn, then move the centre in world pixels
             val r = Math.toRadians(bearing)
@@ -360,15 +462,26 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
             invalidate()
             return true
         }
+        /** MapLibre's tap zoom: `easeTo({ duration: 300, zoom: getZoom() + 1, around })`, the tapped point staying put. */
         override fun onDoubleTap(e: MotionEvent): Boolean {
-            zoom = (zoom + 1).coerceAtMost(MAX_ZOOM)
-            invalidate()
+            val r = Math.toRadians(bearing)
+            val sx = e.x / scale - logicalW / 2.0
+            val sy = e.y / scale - logicalH / 2.0
+            val wx = TileMath.worldX(lon, zoom) + sx * cos(r) - sy * sin(r)
+            val wy = TileMath.worldY(lat, zoom) + sx * sin(r) + sy * cos(r)
+            camera.startAround(System.nanoTime() / 1e6, lon, lat, zoom, bearing, zoom + 1, TileMath.lon(wx, zoom), TileMath.lat(wy, zoom),
+                TAP_ZOOM_MS, Easing.DEFAULT, MIN_ZOOM, MAX_ZOOM)
+            zoomTarget = null
+            lookUpAfterEase = true
+            postFrame()
             return true
         }
     })
 
     private val pinch = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScale(d: ScaleGestureDetector): Boolean {
+            camera.stop()
+            zoomTarget = null
             zoom = (zoom + ln(d.scaleFactor.toDouble()) / ln(2.0)).coerceIn(MIN_ZOOM, MAX_ZOOM)
             invalidate()
             return true
@@ -386,8 +499,10 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         if (event.pointerCount == 2 && event.actionMasked == MotionEvent.ACTION_MOVE) {
             val a = angle(event)
             if (!twoFingerAngle.isNaN()) {
-                bearing = ((bearing - (a - twoFingerAngle)) % 360 + 360) % 360
-                invalidate(); changed()
+                camera.stop()
+                bearing = CameraEase.wrap(bearing - (a - twoFingerAngle))
+                invalidate()
+                onRotate?.rotated(bearing)
             }
             twoFingerAngle = a
         } else if (event.pointerCount != 2 || event.actionMasked == MotionEvent.ACTION_POINTER_UP) twoFingerAngle = Double.NaN
@@ -396,10 +511,23 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         return true
     }
 
-    override fun onDetachedFromWindow() {
-        super.onDetachedFromWindow()
-        worker.quitSafely()
+    /**
+     * The one map moves between the Maps screen and the card on home (MapHost), so leaving a parent keeps its worker
+     * and its pictures; the host drops the pictures when the map is shown nowhere.
+     */
+    fun dropPictures() = pictures.evictAll()
+
+    // bumped on each pack change: pictures drawn before it are thrown away when they arrive
+    private var packsDrawn = 0
+
+    /** A pack was downloaded or removed: what was drawn and looked up without it, or from it, is done again. */
+    fun packsChanged() {
+        packsDrawn++
         pictures.evictAll()
+        candidates.evictAll()
+        workerHandler.post { streetTiles.evictAll() }
+        invalidate()
+        lookUpStreet()
     }
 
     companion object {
@@ -408,6 +536,18 @@ class MapView(context: Context, private val packs: MapPacks) : View(context) {
         const val MAX_ZOOM = 18.0
         /** Where the location button brings the map back to, as in the emulator. */
         const val DRIVE_ZOOM = 15.5
+        /** The unit's GPS gives a position this often while the car drives (the Maps screen). */
+        const val GPS_EVERY_MS = 500L
+        /**
+         * MapsApp.tsx follow ease: `duration: driving ? 260 : 600`, linear. The emulator's 260 ms is its 250 ms drive tick
+         * and a little more; on the unit it is the GPS interval and the same little more, so each ease is still running
+         * when the next position takes it over and the map moves on without a stop.
+         */
+        const val FOLLOW_DRIVING_MS = GPS_EVERY_MS + 10.0
+        const val FOLLOW_MS = 600.0
+        /** MapsApp.tsx `zoom(+-1)`: 250 ms; MapLibre's tap zoom: 300 ms. Both on MapLibre's default curve. */
+        const val ZOOM_MS = 250.0
+        const val TAP_ZOOM_MS = 300.0
         /** Decoded tiles kept for the street and limit lookups: the car's tiles and their neighbours, at two zooms. */
         const val STREET_TILES = 6
         private val NO_TILE = Any()

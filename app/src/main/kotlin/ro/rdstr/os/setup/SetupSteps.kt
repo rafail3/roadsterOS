@@ -61,11 +61,14 @@ class SetupSteps(private val context: Context) {
 
     fun hasPack(code: String) = File(maps, code + MapPacks.EXTENSION).length() > 0
 
-    /** Downloads a country's pack from the `maps` release, checked against its digest. Call off the main thread. */
+    /**
+     * Downloads a country's pack from the `maps` release, checked against its digest; a download broken off before
+     * goes on from where it stopped. Call off the main thread.
+     */
     fun downloadPack(code: String, onProgress: (Updater.Download) -> Unit): Boolean = runCatching {
         val release = Updater.parseRelease(Http.text(Updater.MAPS) ?: error("no maps release")) ?: error("bad maps release")
         val asset = release.assets.first { it.name == code + MapPacks.EXTENSION }
-        val sha = Http.download(asset.url, File(maps, asset.name), asset.bytes, onProgress)
+        val sha = Http.download(asset.url, File(maps, asset.name), asset.bytes, resume = true, onProgress = onProgress)
         if (asset.sha256 != null && sha != asset.sha256) { File(maps, asset.name).delete(); error("SHA-256 does not match") }
         true
     }.onFailure { Log.w(TAG, "pack $code", it) }.getOrDefault(false)
