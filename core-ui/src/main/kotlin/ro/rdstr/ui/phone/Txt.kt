@@ -35,7 +35,7 @@ class Txt(context: Context, style: TextStyle, key: String? = null, text: CharSeq
     /** The part of a pixel the browser's unrounded position is right of the rounded one, set by the layout. */
     internal var subX = 0f
 
-    val paint = TextPaint(TextPaint.ANTI_ALIAS_FLAG or TextPaint.SUBPIXEL_TEXT_FLAG)
+    val paint = TextPaint(TextPaint.ANTI_ALIAS_FLAG or TextPaint.SUBPIXEL_TEXT_FLAG or TextPaint.LINEAR_TEXT_FLAG)
     private var ascent = 0f
     private var linePx = 0f
     private var baseline = 0f

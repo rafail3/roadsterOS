@@ -216,7 +216,7 @@ open class Box(context: Context, key: String? = null) : ViewGroup(context) {
             if (alignOf(c) == Align.STRETCH && c.h.isNaN()) size(k, c.cw, lineH - c.mt - c.mb, maxInner)
         }
         var x = start(free, kids.size)
-        val between = if (justify == Align.BETWEEN && kids.size > 1) free / (kids.size - 1) else 0f
+        val between = if (justify == Align.BETWEEN && kids.size > 1) max(0f, free) / (kids.size - 1) else 0f
         for (k in kids) {
             val c = k.lp
             c.x = x + c.ml
@@ -242,6 +242,8 @@ open class Box(context: Context, key: String? = null) : ViewGroup(context) {
             val c = k.lp
             if (alignOf(c) == Align.STRETCH && c.w.isNaN() && c.cw != colW - c.ml - c.mr) size(k, colW - c.ml - c.mr, Float.NaN, colW)
         }
+        // an indefinite height: `flex: 1; min-height: 0` items count from their basis of 0
+        if (innerH.isNaN()) for (k in kids) if (k.lp.grow > 0f && k.lp.shrink) size(k, k.lp.cw, 0f, colW)
         val gaps = gap * max(0, kids.size - 1)
         var content = gaps
         for (k in kids) content += outerH(k.lp)
@@ -260,7 +262,7 @@ open class Box(context: Context, key: String? = null) : ViewGroup(context) {
         }
         if (free < 0f) free = shrink(kids, -free, horizontal = false, colW)
         var y = start(free, kids.size)
-        val between = if (justify == Align.BETWEEN && kids.size > 1) free / (kids.size - 1) else 0f
+        val between = if (justify == Align.BETWEEN && kids.size > 1) max(0f, free) / (kids.size - 1) else 0f
         for (k in kids) {
             val c = k.lp
             c.y = y + c.mt
@@ -317,6 +319,8 @@ open class Box(context: Context, key: String? = null) : ViewGroup(context) {
         if (!innerH.isNaN() && rows > 0) {
             val extra = innerH - heights.sum() - gap2 * (rows - 1)
             if (extra > 0f) for (r in 0 until rows) heights[r] += extra / rows
+            // one row in a box of set height: its items are that tall (their `height: 100%`), however long their content
+            if (rows == 1) heights[0] = innerH
         }
         var y = 0f
         kids.forEachIndexed { i, k ->

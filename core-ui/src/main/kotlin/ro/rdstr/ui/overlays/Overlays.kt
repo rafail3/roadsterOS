@@ -88,7 +88,8 @@ class CallOverlayView(context: Context, private val actions: OverlayActions) : B
 
     init {
         lp.w = 1280f; lp.h = 750f
-        dir = Dir.GRID; tracks = floatArrayOf(-1f, -1f); align = Align.CENTER
+        // .overlay { place-items: center }
+        dir = Dir.GRID; tracks = floatArrayOf(-1f, -1f); align = Align.CENTER; justifyItems = Align.CENTER
         padL = 96f; padT = 64f; padR = 96f; padB = 40f
         isClickable = true
         contentDescription = "Call"
@@ -467,7 +468,7 @@ class CameraView(context: Context, private val actions: OverlayActions, feed: Vi
         dir = Dir.COLUMN
         isClickable = true
         contentDescription = "Reverse camera"
-        feedBox.dir = Dir.STACK
+        feedBox.dir = Dir.STACK; feedBox.justify = Align.STRETCH
         feed?.let { feedBox.add(it) { self = Align.STRETCH } }
         feedBox.add(guides) { self = Align.STRETCH }
         close.dir = Dir.STACK; close.align = Align.CENTER; close.justify = Align.CENTER; close.css.radius = 999f; close.css.border = 1f

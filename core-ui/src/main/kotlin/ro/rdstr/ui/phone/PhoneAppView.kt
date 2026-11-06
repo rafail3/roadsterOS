@@ -146,7 +146,7 @@ class PhoneAppView(context: Context, private val actions: Actions, private val k
         chip.add(bars); chip.add(chipName) { maxW = 180f; shrink = true }; chip.add(battery)
         chip.tappable { actions.shellAction(ShellAction.OpenDevices) }
         side.add(panel) { grow = 1f; shrink = true }
-        panel.dir = Dir.STACK
+        panel.dir = Dir.STACK; panel.justify = Align.STRETCH
     }
 
     private fun buildPad() {
