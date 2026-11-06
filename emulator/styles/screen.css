@@ -95,7 +95,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .dock-item .app-mark { width: 68px; height: 68px; border-radius: 16px; }
 .dock-item:active { transform: scale(0.92); }
 .dock-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.dock-item.is-active::before { content: ""; position: absolute; left: -11px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--accent); }
 
 /* centre field */
 .field { grid-row: 2; display: flex; flex-direction: column; justify-content: space-between; padding: var(--space-6) var(--space-6) var(--space-5) var(--space-5); position: relative; z-index: 1; }

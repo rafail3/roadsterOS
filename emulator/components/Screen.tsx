@@ -192,15 +192,11 @@ export function Screen() {
 
       <nav className="rail" aria-label="Functions" inert={covered || inApp}>
         <div className="dock">
-          {RAIL.map(({ id, label, mark }) => {
-            // the source that plays carries a dot beside its icon
-            const active = (car.source === "BT" && id === "music") || (car.source === "RADIO" && id === "radio");
-            return (
-              <button key={id} className={classes("dock-item", active && "is-active")} aria-label={active ? `${label}, playing` : label} aria-current={active ? "page" : undefined} onClick={() => pressRail(id)}>
-                <span className={`app-mark ${mark}`} aria-hidden="true" />
-              </button>
-            );
-          })}
+          {RAIL.map(({ id, label, mark }) => (
+            <button key={id} className="dock-item" aria-label={label} onClick={() => pressRail(id)}>
+              <span className={`app-mark ${mark}`} aria-hidden="true" />
+            </button>
+          ))}
         </div>
       </nav>
 
