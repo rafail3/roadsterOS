@@ -101,8 +101,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .field { grid-row: 2; display: flex; flex-direction: column; justify-content: space-between; padding: var(--space-6) var(--space-6) var(--space-5) var(--space-5); position: relative; z-index: 1; }
 /* clock faces live in clock.css */
 
-.apps { display: flex; gap: var(--space-4); }
-.app { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); width: 112px; padding: var(--space-3) 0; border-radius: var(--radius-sm); color: var(--ink-muted); font-size: var(--size-label); font-weight: 500; transition: background var(--fast), color var(--fast); }
+.apps { display: flex; gap: var(--space-2); }
+.app { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); width: 100px; padding: var(--space-3) 0; border-radius: var(--radius-sm); color: var(--ink-muted); font-size: var(--size-label); font-weight: 500; transition: background var(--fast), color var(--fast); }
 .app:active { background: var(--glass-pressed); }
 .app-mark { width: 80px; height: 80px; border-radius: 19px; border: 1px solid var(--hairline-strong); }
 /* synthetic app marks: stand-ins for the installed apps' icons */
