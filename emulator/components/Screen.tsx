@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { bridge, type Source } from "../car/bridge";
 import { userActivity, watchIdle } from "../car/store";
 import { Dial } from "./Clock";
+import { DevOverlays } from "./DevOverlays";
 import { carCommand, carEvent, launchApp, openPhone, openVolume, setBluetooth, shellAction, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Clock } from "./Clock";
 import { Drawer, useDrawerDrag } from "./Drawer";
@@ -254,6 +255,7 @@ export function Screen() {
       <VolumeHud volume={car.volume} muted={car.muted} opened={emulator.volumeOpened} quiet={shell.app === "MUSIC" || shell.drawer} />
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.dark.toFixed(3) }} />
       {/* always there: it fades in to switch the screen off and lifts to switch it on; a tap on it wakes the screen */}
+      <DevOverlays touches={shell.showTouches} fps={shell.showFrameRate} speed={shell.animationSpeed} />
       <AlwaysOn on={shell.aod} now={now} face={bridge.aodFace(shell)} h24={shell.clock24h} />
       <button className={classes("screen-off", !shell.screenOn && "is-on", waking && "is-lifting")} aria-label="Screen off, tap to wake" tabIndex={shell.screenOn ? -1 : 0} aria-hidden={shell.screenOn} onClick={() => shellAction({ type: "Wake" })} />
     </div>

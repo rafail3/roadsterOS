@@ -113,3 +113,4 @@
 .set-check.is-hidden { visibility: hidden; }
 .set-stepper + .set-stepper { margin-left: 8px; }
 .i-car-fill { --m: url(/icons/car-fill.svg); }
+.i-code { --m: url(/icons/code.svg); }

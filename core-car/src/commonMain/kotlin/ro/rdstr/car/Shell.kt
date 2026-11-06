@@ -10,6 +10,9 @@ enum class Face { DIGITAL, ANALOG }
 /** Which clock home shows: both, switched with a tap on the clock, or always the one chosen. */
 enum class FaceMode { BOTH, DIGITAL, ANALOG }
 
+/** How fast the shell's own animations run: as designed, twice as fast, or not at all. */
+enum class AnimationSpeed { NORMAL, FAST, OFF }
+
 /** The clock on the always-on display: the one home shows, or a fixed face. */
 enum class AodFace { HOME, DIGITAL, ANALOG }
 
@@ -70,6 +73,14 @@ data class ShellState(
     val aodFace: AodFace = AodFace.HOME,
     /** The always-on display shows now. */
     val aod: Boolean = false,
+    /** The Developer section shows after About. */
+    val developer: Boolean = false,
+    /** adb reaches the unit (Settings.Global.ADB_ENABLED, set as device owner). */
+    val adbEnabled: Boolean = true,
+    /** Developer tools on our own screens: a dot under each finger, the frame rate in a corner, the animation speed. */
+    val showTouches: Boolean = false,
+    val showFrameRate: Boolean = false,
+    val animationSpeed: AnimationSpeed = AnimationSpeed.NORMAL,
     /** Every car event is written to a file on the unit, for troubleshooting. */
     val recordEvents: Boolean = false,
 )
@@ -135,6 +146,12 @@ sealed class ShellAction {
     @Serializable @SerialName("SetAod") data class SetAod(val on: Boolean) : ShellAction()
     @Serializable @SerialName("SetAodAfter") data class SetAodAfter(val minutes: Int) : ShellAction()
     @Serializable @SerialName("SetAodFace") data class SetAodFace(val face: AodFace) : ShellAction()
+    /** Off hides the section and takes the screen tools off with it; adb stays as it was. */
+    @Serializable @SerialName("SetDeveloper") data class SetDeveloper(val on: Boolean) : ShellAction()
+    @Serializable @SerialName("SetAdb") data class SetAdb(val on: Boolean) : ShellAction()
+    @Serializable @SerialName("SetShowTouches") data class SetShowTouches(val on: Boolean) : ShellAction()
+    @Serializable @SerialName("SetShowFrameRate") data class SetShowFrameRate(val on: Boolean) : ShellAction()
+    @Serializable @SerialName("SetAnimationSpeed") data class SetAnimationSpeed(val speed: AnimationSpeed) : ShellAction()
     /** The screen was left alone long enough (see [Shell.aodDue]). */
     @Serializable @SerialName("EnterAod") data object EnterAod : ShellAction()
     /** A touch, a key, a call or reverse gear. */
@@ -165,6 +182,13 @@ object Shell {
     const val DRAWER_OPEN_FRACTION = 1.0 / 3
     /** Two Home presses this close together open the open-apps screen. */
     const val DOUBLE_PRESS_MS = 500L
+
+    /** What every animation duration of the shell is multiplied by. */
+    fun animationScale(s: ShellState): Float = when (s.animationSpeed) {
+        AnimationSpeed.NORMAL -> 1f
+        AnimationSpeed.FAST -> 0.5f
+        AnimationSpeed.OFF -> 0f
+    }
 
     /** The waits the always-on display offers, in minutes. */
     val AOD_MINUTES = listOf(1, 2, 5, 10, 15)
@@ -261,6 +285,12 @@ object Shell {
         is ShellAction.SetAod -> s.copy(aodEnabled = a.on, aod = s.aod && a.on)
         is ShellAction.SetAodAfter -> s.copy(aodAfterMin = a.minutes.coerceIn(AOD_MINUTES.first(), AOD_MINUTES.last()))
         is ShellAction.SetAodFace -> s.copy(aodFace = a.face)
+        is ShellAction.SetDeveloper -> if (a.on) s.copy(developer = true)
+            else s.copy(developer = false, showTouches = false, showFrameRate = false, animationSpeed = AnimationSpeed.NORMAL)
+        is ShellAction.SetAdb -> s.copy(adbEnabled = a.on)
+        is ShellAction.SetShowTouches -> s.copy(showTouches = a.on)
+        is ShellAction.SetShowFrameRate -> s.copy(showFrameRate = a.on)
+        is ShellAction.SetAnimationSpeed -> s.copy(animationSpeed = a.speed)
         ShellAction.EnterAod -> if (s.aodEnabled && s.screenOn) s.copy(aod = true, drawer = false) else s
         ShellAction.ExitAod -> s.copy(aod = false)
         is ShellAction.SetFaceMode -> s.copy(faceMode = a.mode, face = when (a.mode) {
@@ -299,6 +329,8 @@ object Shell {
         lockTypingWhileMoving = s.lockTypingWhileMoving, homeApps = s.homeApps, recordEvents = s.recordEvents, speedLimitSign = s.speedLimitSign, faceMode = s.faceMode,
         autoTime = s.autoTime, timeSource = s.timeSource, dashMatched = s.dashMatched,
         aodEnabled = s.aodEnabled, aodAfterMin = s.aodAfterMin, aodFace = s.aodFace,
+        developer = s.developer, adbEnabled = s.adbEnabled, showTouches = s.showTouches, showFrameRate = s.showFrameRate,
+        animationSpeed = s.animationSpeed,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))

@@ -9,7 +9,6 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Intent
 import android.os.IBinder
-import android.provider.Settings
 
 class CarService : Service() {
 
@@ -31,8 +30,9 @@ class CarService : Service() {
         val dpm = getSystemService(DevicePolicyManager::class.java)
         if (!dpm.isDeviceOwnerApp(packageName)) return
         val admin = ComponentName(this, AdminReceiver::class.java)
-        dpm.setLockTaskPackages(admin, arrayOf(packageName))
-        dpm.setGlobalSetting(admin, Settings.Global.ADB_ENABLED, "1")
+        // Android's Settings may open over the lock task, from the Developer section
+        dpm.setLockTaskPackages(admin, arrayOf(packageName, "com.android.settings"))
+        // adb follows the Developer section (DeveloperTools, applied as CarRuntime starts)
         // the phone app reads the phone book and call history the Bluetooth sync copies to the unit
         // and the phone's messages (the MAP client's broadcast needs RECEIVE_SMS, a reply SEND_SMS)
         for (permission in arrayOf(Manifest.permission.READ_CONTACTS, Manifest.permission.READ_CALL_LOG, Manifest.permission.RECEIVE_SMS, Manifest.permission.SEND_SMS,

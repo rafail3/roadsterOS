@@ -1,11 +1,11 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
-import { bridge, type AodFace, type FaceMode, type ThemeMode, type TimeSource } from "../car/bridge";
-import { allTimeZones, carCommand, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
+import { bridge, type AnimationSpeed, type AodFace, type FaceMode, type ThemeMode, type TimeSource } from "../car/bridge";
+import { allTimeZones, carCommand, openAndroidSettings, restartShell, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
 import { Keyboard } from "./Keyboard";
 import { PillSlider } from "./Drawer";
 import { useCloseOntoCard } from "./media";
 
-type Page = "wifi" | "bluetooth" | "location" | "display" | "datetime" | "dash" | "sound" | "phone" | "home" | "maps" | "about";
+type Page = "wifi" | "bluetooth" | "location" | "display" | "datetime" | "dash" | "sound" | "phone" | "home" | "maps" | "about" | "developer";
 
 /** The level a start is capped at when the limit is first switched on. */
 const START_VOLUME_DEFAULT = 12;
@@ -420,10 +420,36 @@ function About({ e }: { e: EmulatorState }) {
     <Group title="Troubleshooting" footer={e.shell.recordEvents ? `Recording: ${e.recorded} lines so far. Read the journal with adb.` : "Writes car events, commands, screen actions and errors to the unit, one file a day; older days are compressed and the journal never passes 10 MB."}>
       <Row label="Record Car Events"><Switch label="Record Car Events" on={e.shell.recordEvents} onChange={(on) => shellAction({ type: "SetRecording", on })} /></Row>
     </Group>
+    <Group footer="Shows the Developer section after About: adb, touches and the frame rate on screen, the animation speed.">
+      <Row label="Developer Settings"><Switch label="Developer Settings" on={e.shell.developer} onChange={(on) => shellAction({ type: "SetDeveloper", on })} /></Row>
+    </Group>
     <Group footer={confirm ? "Theme, brightness, clock and sound settings go back to their defaults. Phones, networks and maps stay." : undefined}>
       {confirm
         ? <Row label="Reset All Settings" danger onPress={() => { shellAction({ type: "ResetSettings" }); setConfirm(false); }} />
         : <Row label="Reset Settings…" onPress={() => setConfirm(true)} />}
+    </Group>
+  </>);
+}
+
+/** The developer options that work from roadsterOS on this unit; every other one is in Android's own settings. */
+function Developer({ e }: { e: EmulatorState }) {
+  const { shell } = e;
+  const address = e.wifi.connected ? `${UNIT_IP}:5555` : null;
+  return (<>
+    <Group title="Debugging" footer={!shell.adbEnabled ? "adb cannot reach the unit until this is on again." : address ? `From a laptop on the same Wi-Fi: adb connect ${address}` : "Connect the unit to Wi-Fi to reach it with adb."}>
+      <Row label="USB Debugging"><Switch label="USB Debugging" on={shell.adbEnabled} onChange={(on) => shellAction({ type: "SetAdb", on })} /></Row>
+      {shell.adbEnabled && <Row label="Address" value={address ?? "Not on Wi-Fi"} />}
+    </Group>
+    <Group title="Screen" footer="On roadsterOS's own screens: a dot under each finger and the frames drawn each second. Fast runs every animation twice as fast, Off skips them.">
+      <Row label="Show Touches"><Switch label="Show Touches" on={shell.showTouches} onChange={(on) => shellAction({ type: "SetShowTouches", on })} /></Row>
+      <Row label="Show Frame Rate"><Switch label="Show Frame Rate" on={shell.showFrameRate} onChange={(on) => shellAction({ type: "SetShowFrameRate", on })} /></Row>
+      <Row label="Animations">
+        <Segmented<AnimationSpeed> label="Animation speed" options={[["NORMAL", "Normal"], ["FAST", "Fast"], ["OFF", "Off"]]} value={shell.animationSpeed} onChange={(speed) => shellAction({ type: "SetAnimationSpeed", speed })} />
+      </Row>
+    </Group>
+    <Group title="System" footer="Android's own developer options hold every other setting of the unit.">
+      <Row label="Restart roadsterOS" onPress={restartShell} />
+      <Row label="Android Developer Options" onPress={openAndroidSettings} />
     </Group>
   </>);
 }
@@ -440,6 +466,7 @@ const PAGES: { id: Page; label: string; icon: string; tint: string }[] = [
   { id: "home", label: "Home Screen", icon: "i-house-fill", tint: "#5e5ce6" },
   { id: "maps", label: "Maps", icon: "i-map-trifold-fill", tint: "#30d158" },
   { id: "about", label: "About", icon: "i-info-fill", tint: "#8e8e93" },
+  { id: "developer", label: "Developer", icon: "i-code", tint: "#636366" },
 ];
 
 /** What the list shows beside a section, so most states read without opening it. */
@@ -456,7 +483,10 @@ export function SettingsApp({ open }: { open: boolean }) {
   const e = useEmulator();
   const [page, setPage] = useState<Page>("wifi");
   const section = useCloseOntoCard(open);
-  const current = PAGES.find((p) => p.id === page)!;
+  // the Developer section shows only while it is switched on in About
+  const pages = PAGES.filter((p) => p.id !== "developer" || e.shell.developer);
+  const shown = pages.some((p) => p.id === page) ? page : "about";
+  const current = PAGES.find((p) => p.id === shown)!;
   return (
     <section ref={section} className={`music-app settings-app${open ? " is-open" : ""}`} aria-label="Settings" aria-hidden={!open} inert={!open}>
       <button className="glass-button music-close" aria-label="Close settings" onClick={() => shellAction({ type: "Home" })}>
@@ -465,7 +495,7 @@ export function SettingsApp({ open }: { open: boolean }) {
       <nav className="set-nav" aria-label="Settings sections">
         <h2 className="set-title">Settings</h2>
         <ul>
-          {PAGES.map((p) => (
+          {pages.map((p) => (
             <li key={p.id}>
               <button className={`set-nav-item${page === p.id ? " is-current" : ""}`} aria-current={page === p.id ? "page" : undefined} onClick={() => setPage(p.id)}>
                 <span className="set-tile" style={{ background: p.tint }} aria-hidden="true"><span className={`icon ${p.icon}`} /></span>
@@ -488,7 +518,8 @@ export function SettingsApp({ open }: { open: boolean }) {
         {page === "maps" && <Maps e={e} />}
         {page === "home" && <HomeScreen e={e} />}
         {page === "dash" && <CarDisplay e={e} />}
-        {page === "about" && <About e={e} />}
+        {shown === "about" && <About e={e} />}
+        {shown === "developer" && <Developer e={e} />}
       </div>
     </section>
   );

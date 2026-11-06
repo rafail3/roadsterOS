@@ -1062,6 +1062,19 @@ export function shiftClock(ms: number) {
   followDash(() => set({ clockShiftMs: state.clockShiftMs + ms }));
 }
 
+/** The unit's address on the hotspot, as WifiManager reports it; fixed in the emulator. */
+export const UNIT_IP = "192.168.43.120";
+
+/** Restart roadsterOS: the process ends and home opens again (DeveloperTools.restart); here, the page reloads. */
+export function restartShell() {
+  window.location.reload();
+}
+
+/** Android's developer options open over the shell on the unit (DeveloperTools.openAndroidSettings); only logged here. */
+export function openAndroidSettings() {
+  set({ log: addLog("out", { type: "OpenAndroidSettings", action: "android.settings.APPLICATION_DEVELOPMENT_SETTINGS" }) });
+}
+
 export function setTimeZone(timeZone: string) {
   followDash(() => set({ timeZone }));
 }

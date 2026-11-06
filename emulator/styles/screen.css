@@ -361,3 +361,8 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .aod-dial { width: 320px; height: 320px; opacity: 0.55; filter: grayscale(1); }
 .aod-date { margin: 0; font-size: 26px; font-weight: 400; color: rgba(255, 255, 255, 0.38); }
 @media (prefers-reduced-motion: reduce) { .aod { transition-duration: 0.01ms; } }
+
+/* Developer section tools: a dot under each finger, the frame rate in the corner; above everything, never in the way */
+.dev-overlays { position: absolute; inset: 0; z-index: 11; pointer-events: none; }
+.dev-touch { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); border: 2px solid rgba(255, 255, 255, 0.8); }
+.dev-fps { position: absolute; right: 12px; bottom: 34px; padding: 4px 10px; border-radius: 8px; background: rgba(0, 0, 0, 0.7); color: #30d158; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }

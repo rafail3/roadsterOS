@@ -16,6 +16,9 @@ class HomeActivity : Activity() {
 
     private val uiScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var job: Job? = null
+    private var devJob: Job? = null
+    // Show Frame Rate: the main thread's frames a second, to the log while the screens are drawn by the new shell
+    private val frames = ro.rdstr.os.settings.FrameMeter { android.util.Log.i("rdstr.dev", "fps=$it") }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +42,9 @@ class HomeActivity : Activity() {
                 }
             }
         }
+        devJob = uiScope.launch {
+            CarRuntime.shell.collect { if (it.showFrameRate) frames.start() else frames.stop() }
+        }
     }
 
     override fun onUserInteraction() {
@@ -48,6 +54,8 @@ class HomeActivity : Activity() {
 
     override fun onPause() {
         job?.cancel()
+        devJob?.cancel()
+        frames.stop()
         super.onPause()
     }
 

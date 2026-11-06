@@ -133,6 +133,7 @@ object CarRuntime {
         radios = Radios(app)
         prefs = context.getSharedPreferences("rdstr", Context.MODE_PRIVATE)
         _shell.value = Shell.decodePreferences(prefs.getString(SHELL_KEY, null))
+        ro.rdstr.os.settings.DeveloperTools.setAdb(app, _shell.value.adbEnabled)
         time = ro.rdstr.os.settings.TimeKeeper(app).also { it.apply(_shell.value.autoTime, _shell.value.timeSource) }
         dash = ro.rdstr.os.settings.DashFollower(app, prefs) { send(CarCommand.DashKey(it)) }.also { it.start { _shell.value.dashMatched } }
         val header = "roadsterOS ${runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull()} " +
@@ -187,6 +188,7 @@ object CarRuntime {
         if (after.recordEvents != before.recordEvents) journal.followLogs(after.recordEvents)
         if (after.autoTime != before.autoTime || after.timeSource != before.timeSource) time.apply(after.autoTime, after.timeSource)
         if (after.dashMatched && !before.dashMatched) dash.matched()
+        if (after.adbEnabled != before.adbEnabled) ro.rdstr.os.settings.DeveloperTools.setAdb(app, after.adbEnabled)
         if (Shell.preferences(after) != Shell.preferences(before)) {
             prefs.edit().putString(SHELL_KEY, Shell.encodePreferences(after)).apply()
             Log.i(Radios.TAG, "saved ${Shell.encodePreferences(after)}")
@@ -220,6 +222,13 @@ object CarRuntime {
     }
 
     fun launch(pkg: String) = ro.rdstr.os.settings.InstalledApps.launch(app, pkg)
+
+    /** The Developer section: adb's address on Wi-Fi, restarting roadsterOS, Android's developer options. */
+    fun adbAddress() = ro.rdstr.os.settings.DeveloperTools.adbAddress(app)
+
+    fun restart() = ro.rdstr.os.settings.DeveloperTools.restart(app)
+
+    fun openAndroidSettings() = ro.rdstr.os.settings.DeveloperTools.openAndroidSettings(app)
 
     /** The About page, read when it opens. */
     fun systemInfo(): SystemInfo = SystemInfo.read(app)

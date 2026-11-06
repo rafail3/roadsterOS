@@ -8,6 +8,7 @@ export type FaceMode = "BOTH" | "DIGITAL" | "ANALOG";
 export type TimeSource = "NETWORK" | "GPS";
 export type DashKey = "HOUR" | "MINUTE" | "CLOCK";
 export type AodFace = "HOME" | "DIGITAL" | "ANALOG";
+export type AnimationSpeed = "NORMAL" | "FAST" | "OFF";
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";
 export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
 export type Band = "FM" | "AM";
@@ -65,6 +66,11 @@ export interface ShellState {
   aodAfterMin: number;
   aodFace: AodFace;
   aod: boolean;
+  developer: boolean;
+  adbEnabled: boolean;
+  showTouches: boolean;
+  showFrameRate: boolean;
+  animationSpeed: AnimationSpeed;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -143,7 +149,9 @@ export type ShellAction =
   | { type: "SetAod"; on: boolean }
   | { type: "SetAodAfter"; minutes: number }
   | { type: "SetAodFace"; face: AodFace }
-  | { type: "EnterAod" | "ExitAod" };
+  | { type: "EnterAod" | "ExitAod" }
+  | { type: "SetDeveloper" | "SetAdb" | "SetShowTouches" | "SetShowFrameRate"; on: boolean }
+  | { type: "SetAnimationSpeed"; speed: AnimationSpeed };
 
 export interface PhoneNumber { number: string; label: string }
 export interface Contact { name: string; numbers: PhoneNumber[] }
