@@ -126,3 +126,8 @@
   [data-design="glassy"] .tx::after { background-color: var(--sheet-raised, var(--sheet)); background-image: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 @media (prefers-reduced-motion: reduce) { .glass-bead { transition: none; } }
+
+/* a saved device's card slides over its red remove key: its glass sits on the panel's own colour, so the key stays
+   hidden until the card moves */
+[data-design="glassy"] .device-swipe { background-color: var(--panel-row); }
+[data-design="glassy"] .saved-device.is-connected .device-swipe { background-color: var(--panel-row-on); }
