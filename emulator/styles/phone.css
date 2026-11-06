@@ -58,7 +58,7 @@
 .phone-bars i { width: 4px; border-radius: 1px; background: rgb(var(--on) / 0.26); }
 .phone-bars i:nth-child(1) { height: 5px; } .phone-bars i:nth-child(2) { height: 8px; } .phone-bars i:nth-child(3) { height: 11px; }
 .phone-bars i:nth-child(4) { height: 14px; } .phone-bars i:nth-child(5) { height: 16px; }
-.phone-bars i.is-on { background: #fff; }
+.phone-bars i.is-on { background: var(--ink); }
 /* in the status bar the bars take the bar's ink, so they read in the day theme too */
 /* the phone's network leads the left group; a gap and a hairline keep it apart from the sound source */
 .bar-network { display: flex; align-items: center; gap: 10px; padding-right: var(--space-4); margin-right: var(--space-1); box-shadow: inset -1px 0 0 var(--hairline-strong); }
@@ -71,7 +71,7 @@
 .bar-roaming { padding: 2px 8px; border-radius: 6px; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; color: var(--ink); background: color-mix(in srgb, var(--ink) 14%, transparent); }
 .phone-battery { position: relative; width: 28px; height: 14px; padding: 2px; border-radius: 4px; border: 1.5px solid rgb(var(--on) / 0.55); }
 .phone-battery::after { content: ""; position: absolute; top: 3px; right: -4px; width: 2px; height: 5px; border-radius: 0 1px 1px 0; background: rgb(var(--on) / 0.55); }
-.phone-battery i { display: block; height: 100%; border-radius: 1.5px; background: #fff; transform-origin: left; }
+.phone-battery i { display: block; height: 100%; border-radius: 1.5px; background: var(--ink); transform-origin: left; }
 .phone-battery.is-low i { background: var(--call-red); }
 
 .phone-panel { position: relative; flex: 1; min-height: 0; animation: media-fade 200ms var(--seamless); }

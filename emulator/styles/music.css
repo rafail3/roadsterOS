@@ -167,6 +167,8 @@
 .devices-answer { height: 64px; border-radius: 32px; font-size: 18px; font-weight: 600; color: var(--ink); background: rgb(var(--on) / 0.1); border: 1px solid rgb(var(--on) / 0.12); transition: background var(--fast); }
 .devices-answer:active { background: rgb(var(--on) / 0.18); }
 .devices-answer.is-primary { background: #fff; color: #111; border-color: transparent; }
+/* by day the white key would vanish on the pale panel: the ink takes its place, as the play key does */
+.screen.light .devices-answer.is-primary { background: var(--ink); color: var(--canvas); }
 .devices-answer.is-primary:active { background: rgb(var(--on) / 0.86); }
 /* while searching, the glass sweeps gently so the wait reads as work in progress */
 .devices-search.is-scanning .icon { animation: device-search 1400ms var(--seamless) infinite; }
@@ -222,7 +224,7 @@
 .music-nophone h2 { margin: 16px 0 0; font-size: 32px; font-weight: 600; letter-spacing: -0.01em; }
 .music-nophone p { margin: 0; font-size: 18px; color: rgb(var(--on) / 0.62); }
 .music-nophone-list { display: flex; flex-direction: column; gap: 12px; width: 100%; margin: 24px 0 0; padding: 0; list-style: none; }
-.music-nophone-phone { width: 100%; height: 72px; display: flex; align-items: center; gap: 16px; padding: 0 28px; border-radius: 999px; background: rgb(var(--on) / 0.14); box-shadow: inset 0 1px 0 rgb(var(--on) / 0.14); color: #fff; font-size: 20px; font-weight: 600; text-align: left; transition: background var(--fast), transform 420ms var(--spring-glyph); }
+.music-nophone-phone { width: 100%; height: 72px; display: flex; align-items: center; gap: 16px; padding: 0 28px; border-radius: 999px; background: rgb(var(--on) / 0.14); box-shadow: inset 0 1px 0 rgb(var(--on) / 0.14); color: var(--ink); font-size: 20px; font-weight: 600; text-align: left; transition: background var(--fast), transform 420ms var(--spring-glyph); }
 .music-nophone-phone .icon { width: 26px; height: 26px; color: #0a84ff; }
 .music-nophone-phone:active:not(:disabled) { transform: scale(0.97); background: rgb(var(--on) / 0.22); transition-duration: var(--fast), 120ms; }
 .music-nophone-phone:disabled { opacity: 0.55; }
