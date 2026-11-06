@@ -23,7 +23,7 @@
 .snd-band-value { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
 .snd-band-track { position: relative; width: 56px; height: 168px; touch-action: none; cursor: grab; }
 .snd-band-track::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 6px; margin-left: -3px; border-radius: 3px; background: rgba(118, 118, 128, 0.32); }
-.snd-band-track::after { content: ""; position: absolute; left: 50%; top: 50%; width: 20px; height: 2px; margin: -1px 0 0 -10px; background: rgba(235, 235, 245, 0.3); }
+.snd-band-track::after { content: ""; position: absolute; left: 50%; top: 50%; width: 20px; height: 2px; margin: -1px 0 0 -10px; background: rgb(var(--on) / 0.3); }
 .snd-band-fill { position: absolute; left: 50%; width: 6px; margin-left: -3px; border-radius: 3px; background: var(--set-blue); }
 .snd-band-knob { position: absolute; left: 50%; width: 40px; height: 24px; margin: 0 0 -12px -20px; border-radius: 12px; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); transition: transform 160ms var(--spring-glyph, ease-out); }
 .snd-band-track.is-dragging { cursor: grabbing; }

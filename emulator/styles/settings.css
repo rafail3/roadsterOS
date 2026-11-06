@@ -58,7 +58,7 @@
 .set-row.is-slider .pill-slider { flex: 1; }
 .set-row-label { flex: 1; min-width: 0; font-size: 19px; font-weight: 500; }
 .set-row-value { max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
-.set-chevron { width: 20px; height: 20px; color: rgba(235, 235, 245, 0.42); }
+.set-chevron { width: 20px; height: 20px; color: rgb(var(--on) / 0.42); }
 .set-row.is-danger .set-row-label { color: #ff453a; font-weight: 600; }
 
 .set-seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 12px; background: rgba(118, 118, 128, 0.24); }
@@ -68,7 +68,7 @@
 .set-stepper { display: inline-flex; align-items: center; gap: 4px; padding: 3px; border-radius: 12px; background: rgba(118, 118, 128, 0.24); }
 .set-stepper button { display: grid; place-items: center; width: 56px; height: 48px; border-radius: 10px; color: var(--ink); transition: background var(--fast); }
 .set-stepper button:active:not(:disabled) { background: rgb(var(--on) / 0.16); }
-.set-stepper button:disabled { color: rgba(235, 235, 245, 0.3); }
+.set-stepper button:disabled { color: rgb(var(--on) / 0.3); }
 .set-stepper .icon { width: 22px; height: 22px; }
 .set-stepper output { min-width: 44px; text-align: center; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
@@ -85,7 +85,7 @@
 }
 
 .i-house-fill { --m: url(/icons/house-fill.svg); }
-.set-inline:disabled { color: rgba(235, 235, 245, 0.3); }
+.set-inline:disabled { color: rgb(var(--on) / 0.3); }
 .set-inline.is-remove { color: #ff453a; }
 /* tiles on home: our apps' own colours, other apps one from their name */
 .app-mark-radio { background: url(/images/app-radio.webp) center / cover no-repeat; border-color: transparent; }
@@ -99,7 +99,7 @@
 .i-list { --m: url(/icons/list.svg); }
 .set-reorder { position: relative; transition: transform 220ms var(--seamless); }
 .set-reorder.is-dragged { z-index: 1; transition: none; background: var(--panel-row); border-radius: 12px; box-shadow: 0 6px 16px rgb(0 0 0 / 0.18); }
-.set-grip { display: grid; place-items: center; width: 56px; height: 56px; margin-right: -12px; color: rgba(235, 235, 245, 0.42); touch-action: none; cursor: grab; }
+.set-grip { display: grid; place-items: center; width: 56px; height: 56px; margin-right: -12px; color: rgb(var(--on) / 0.42); touch-action: none; cursor: grab; }
 .set-reorder.is-dragged .set-grip { cursor: grabbing; color: var(--ink); }
 .set-grip .icon { width: 26px; height: 26px; }
 @media (prefers-reduced-motion: reduce) { .set-reorder { transition-duration: 0.01ms; } }
