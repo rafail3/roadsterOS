@@ -12,6 +12,9 @@ import android.os.Bundle
 import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import ro.rdstr.car.TimeSource
 import ro.rdstr.car.TimeZones
 import ro.rdstr.os.AdminReceiver
@@ -79,6 +82,19 @@ class TimeKeeper(private val context: Context) {
     /** Every zone named after a place, by city (core-car TimeZones). */
     @Emulates("store.allTimeZones")
     fun zones(): List<String> = TimeZones.places(TimeZone.getAvailableIDs().toList())
+
+    /**
+     * The time the shell shows, on each new second while collected: the unit's own clock, which [set] and [setZone]
+     * move. The emulator works the same out of the browser's clock, and can also fix a simulated hour.
+     */
+    @Emulates("store.useNow")
+    fun now(): Flow<Long> = flow {
+        while (true) {
+            val t = System.currentTimeMillis()
+            emit(t)
+            delay(1000 - t % 1000)
+        }
+    }
 
     /** The zone's offset from GMT right now, summer time included. */
     @Emulates("store.zoneOffsetMinutes")

@@ -80,12 +80,22 @@ class Updates(private val context: Context) {
             val result = Updater.check(current, Http.text(Updater.LATEST))
             Log.i(TAG, "check $current -> $result")
             if (result != Updater.Check.Failed) prefs.edit().putLong(CHECKED, System.currentTimeMillis()).apply()
-            _state.value = when (result) {
-                is Updater.Check.Available -> State.Available(result.release, result.apk, Updater.popUp(result, prefs.getString(DISMISSED, null)))
-                Updater.Check.UpToDate -> State.UpToDate
-                Updater.Check.Failed -> State.Failed("no answer from GitHub")
-            }
+            releaseOut(result)
         }.start()
+    }
+
+    /**
+     * A newer version on GitHub, or none, as the check found it. The emulator sets this by hand (its control panel's
+     * switch, and none once an update is installed); on the unit, the version just installed is what the next check
+     * compares against.
+     */
+    @Emulates("store.setReleaseOut")
+    private fun releaseOut(result: Updater.Check) {
+        _state.value = when (result) {
+            is Updater.Check.Available -> State.Available(result.release, result.apk, Updater.popUp(result, prefs.getString(DISMISSED, null)))
+            Updater.Check.UpToDate -> State.UpToDate
+            Updater.Check.Failed -> State.Failed("no answer from GitHub")
+        }
     }
 
     /** "Later": this version is not offered in a pop-up again; About still lists it. */

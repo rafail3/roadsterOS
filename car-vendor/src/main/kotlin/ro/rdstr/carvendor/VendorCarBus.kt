@@ -14,6 +14,7 @@ class VendorCarBus(context: Context) : CarBus {
     private val messages = VendorMessages(context.applicationContext).also { it.start() }
     private val dash = VendorDash()
     private val sound = VendorSound()
+    private val volume = VendorVolume(context.applicationContext)
 
     override val events: Flow<CarEvent> = merge(phone.events, messages.events)
 
@@ -25,6 +26,8 @@ class VendorCarBus(context: Context) : CarBus {
             CarCommand.Bluetooth.Disconnect -> phone.link(null, connect = false)
             is CarCommand.DashKey -> dash.press(command.key)
             is CarCommand.Dsp -> sound.write(command.write)
+            is CarCommand.Audio.Volume -> volume.step(command.delta)
+            is CarCommand.Audio.Mute -> volume.mute(command.on)
             // the vendor's camera screen reads these from libts50xhw; logged until the unit shows which way in works
             is CarCommand.Camera.Write -> Log.i("rdstr.camera", "${command.write.call}(${command.write.args.joinToString()})")
             else -> Log.i("VendorCarBus", "send $command")
