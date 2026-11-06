@@ -86,16 +86,15 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .handle-line { width: 48px; height: 4px; border-radius: 2px; background: var(--ink-subtle); transition: background var(--fast); }
 .handle:hover .handle-line, .handle:active .handle-line { background: var(--ink-muted); }
 
-/* rail */
-.rail { grid-row: 2; display: flex; flex-direction: column; justify-content: center; gap: var(--space-3); padding: 0 var(--space-3) var(--space-5); position: relative; z-index: 1; }
-.rail-item {
-  height: 88px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  border-radius: var(--radius-sm); color: var(--ink-muted); font-size: var(--size-label); font-weight: 500;
-  transition: background var(--fast), color var(--fast);
-}
-.rail-item .icon { width: 30px; height: 30px; }
-.rail-item:active { background: var(--glass-pressed); }
-.rail-item.is-active { color: var(--accent); background: var(--glass); border: 1px solid var(--hairline); }
+/* rail: a dock of app icons down the left edge, a tinted rounded panel with no live blur */
+.rail { grid-row: 2; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 0 var(--space-5) var(--space-3); position: relative; z-index: 1; }
+.dock { display: flex; flex-direction: column; gap: 14px; padding: 14px; border-radius: 30px; background: rgba(255, 255, 255, 0.09); border: 1px solid var(--hairline); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+.screen.light .dock { background: rgba(255, 255, 255, 0.55); border-color: rgba(20, 28, 38, 0.08); }
+.dock-item { position: relative; display: grid; place-items: center; border-radius: 18px; transition: transform 200ms var(--spring-glyph, ease-out); }
+.dock-item .app-mark { width: 68px; height: 68px; border-radius: 16px; }
+.dock-item:active { transform: scale(0.92); }
+.dock-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.dock-item.is-active::before { content: ""; position: absolute; left: -11px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--accent); }
 
 /* centre field */
 .field { grid-row: 2; display: flex; flex-direction: column; justify-content: space-between; padding: var(--space-6) var(--space-6) var(--space-5) var(--space-5); position: relative; z-index: 1; }
@@ -373,3 +372,14 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .setup-text { margin: 0; font-size: 22px; color: var(--ink-muted); }
 .setup-start { margin-top: var(--space-6); min-width: 240px; height: 64px; padding: 0 var(--space-7); border-radius: 32px; background: #0a84ff; color: #fff; font-size: 20px; font-weight: 600; }
 .setup-start:active { background: #0060df; }
+
+.app-mark-camera { background: url(/images/app-camera.webp) center / cover no-repeat; border-color: transparent; }
+
+/* arranging the home icons: they jiggle, the held one follows the finger, the others slide aside */
+.app { transition: transform 220ms var(--seamless); touch-action: manipulation; }
+.apps.is-arranging .app { touch-action: none; }
+.apps.is-arranging .app .app-mark { animation: icon-jiggle 280ms ease-in-out infinite alternate; animation-delay: calc(var(--i) * -70ms); }
+.app.is-dragged { position: relative; z-index: 2; transition: none; }
+.app.is-dragged .app-mark { animation: none; transform: scale(1.12); box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45); }
+@keyframes icon-jiggle { from { transform: rotate(-2.2deg); } to { transform: rotate(2.2deg); } }
+@media (prefers-reduced-motion: reduce) { .apps.is-arranging .app .app-mark { animation: none; } }

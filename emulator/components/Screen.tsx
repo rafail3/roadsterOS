@@ -28,13 +28,18 @@ import { useFingerMouse } from "./controls";
 
 const THEME_FADE_MS = 750;
 
+/** The dock down the left edge: the functions a driver reaches most, as app icons. */
 const RAIL = [
-  { id: "music", label: "Music", icon: "i-music-notes" },
-  { id: "radio", label: "Radio", icon: "i-radio" },
-  { id: "phone", label: "Phone", icon: "i-phone" },
-  { id: "maps", label: "Maps", icon: "i-navigation-arrow" },
-  { id: "camera", label: "Camera", icon: "i-camera" },
+  { id: "music", label: "Music", mark: "app-mark-music" },
+  { id: "radio", label: "Radio", mark: "app-mark-radio" },
+  { id: "phone", label: "Phone", mark: "app-mark-phone" },
+  { id: "maps", label: "Maps", mark: "app-mark-nav" },
+  { id: "camera", label: "Camera", mark: "app-mark-camera" },
 ];
+/** A press held this long on a home icon starts arranging the icons. */
+const ARRANGE_HOLD_MS = 500;
+/** A finger moving this far before the hold cancels it: it is a swipe, not a press. */
+const ARRANGE_SLOP_PX = 10;
 /** The tile colour of each of our apps on home; other apps get one from their name. */
 const MARKS: Record<string, string> = { MAPS: "app-mark-nav", MUSIC: "app-mark-music", PHONE: "app-mark-phone", RADIO: "app-mark-radio", SETTINGS: "app-mark-settings" };
 const hue = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
@@ -187,33 +192,22 @@ export function Screen() {
       </header>
 
       <nav className="rail" aria-label="Functions" inert={covered || inApp}>
-        {RAIL.map(({ id, label, icon }) => {
-          const active = (car.source === "BT" && id === "music") || (car.source === "RADIO" && id === "radio");
-          return (
-            <button key={id} className={classes("rail-item", active && "is-active")} aria-current={active ? "page" : undefined} onClick={() => pressRail(id, car.camera)}>
-              <span className={`icon ${icon}`} /><span>{label}</span>
-            </button>
-          );
-        })}
-      </nav>
-
-      <section className="field" inert={covered || inApp}>
-        <Clock now={now} face={shell.face} h24={shell.clock24h} switchable={shell.faceMode === "BOTH"} />
-        <div className="apps" aria-label="Apps">
-          {/* the icons chosen in the settings (core-car HomeApps) */}
-          {bridge.homeApps(shell.homeApps, emulator.installed).map(({ id, label }) => {
-            // the phone's icon counts its unread messages, as a phone's does
-            const badge = id === "PHONE" ? unread : 0;
+        <div className="dock">
+          {RAIL.map(({ id, label, mark }) => {
+            // the source that plays carries a dot beside its icon
+            const active = (car.source === "BT" && id === "music") || (car.source === "RADIO" && id === "radio");
             return (
-              <button key={id} className="app" aria-label={badge ? `${label}, ${badge} unread messages` : label} onClick={() => launchApp(id)}>
-                <span className={`app-mark ${MARKS[id] ?? "app-mark-other"}`} style={MARKS[id] ? undefined : { "--mark-hue": hue(id) } as CSSProperties}>
-                  {badge > 0 && <span className="app-badge" aria-hidden="true">{badge}</span>}
-                </span>
-                <span>{label}</span>
+              <button key={id} className={classes("dock-item", active && "is-active")} aria-label={active ? `${label}, playing` : label} aria-current={active ? "page" : undefined} onClick={() => pressRail(id, car.camera)}>
+                <span className={`app-mark ${mark}`} aria-hidden="true" />
               </button>
             );
           })}
         </div>
+      </nav>
+
+      <section className="field" inert={covered || inApp}>
+        <Clock now={now} face={shell.face} h24={shell.clock24h} switchable={shell.faceMode === "BOTH"} />
+        <HomeApps apps={bridge.homeApps(shell.homeApps, emulator.installed)} unread={unread} />
       </section>
 
       <section className="panel" aria-label="Now playing and navigation" inert={covered || inApp}>
@@ -287,5 +281,92 @@ function Setup() {
       <p className="setup-text">Let's set up the unit.</p>
       <button className="setup-start" onClick={() => shellAction({ type: "FinishSetup" })}>Continue</button>
     </section>
+  );
+}
+
+/**
+ * The icons on home. A press held on one starts arranging them, as a phone's home screen does: they jiggle, the held
+ * one follows the finger left or right while the others make room, and the drop moves it (core-car HomeApps.move).
+ * A tap outside the row ends the arranging; while it lasts a tap opens nothing.
+ */
+function HomeApps({ apps, unread }: { apps: { id: string; label: string }[]; unread: number }) {
+  const [arranging, setArranging] = useState(false);
+  const [drag, setDrag] = useState<{ id: string; from: number; dx: number; slot: number; scale: number } | null>(null);
+  const press = useRef<{ timer: ReturnType<typeof setTimeout> | null; x: number; held: boolean }>({ timer: null, x: 0, held: false });
+  const row = useRef<HTMLDivElement>(null);
+  const to = drag ? Math.max(0, Math.min(apps.length - 1, drag.from + Math.round(drag.dx / drag.slot))) : -1;
+  const shift = (i: number) => {
+    if (!drag) return 0;
+    if (i === drag.from) return drag.dx;
+    if (drag.from < i && i <= to) return -drag.slot;
+    if (to <= i && i < drag.from) return drag.slot;
+    return 0;
+  };
+
+  useEffect(() => {
+    if (!arranging) return;
+    const away = (e: PointerEvent) => { if (!row.current?.contains(e.target as Node)) setArranging(false); };
+    window.addEventListener("pointerdown", away, true);
+    return () => window.removeEventListener("pointerdown", away, true);
+  }, [arranging]);
+
+  const startDrag = (el: HTMLElement, id: string, from: number, x: number) => {
+    const r = el.getBoundingClientRect();
+    // the screen is drawn scaled: pointer pixels to layout pixels, and one icon's step to the next
+    const scale = r.width / el.offsetWidth;
+    const next = (el.nextElementSibling ?? el.previousElementSibling) as HTMLElement | null;
+    const slot = next ? Math.abs(next.getBoundingClientRect().left - r.left) / scale : el.offsetWidth;
+    press.current.x = x;
+    setDrag({ id, from, dx: 0, slot, scale });
+  };
+  const down = (e: React.PointerEvent<HTMLButtonElement>, id: string, i: number) => {
+    const el = e.currentTarget;
+    el.setPointerCapture(e.pointerId);
+    press.current = { timer: null, x: e.clientX, held: false };
+    if (arranging) return startDrag(el, id, i, e.clientX);
+    press.current.timer = setTimeout(() => {
+      press.current.held = true;
+      setArranging(true);
+      startDrag(el, id, i, press.current.x);
+    }, ARRANGE_HOLD_MS);
+  };
+  const move = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (drag) return setDrag({ ...drag, dx: (e.clientX - press.current.x) / drag.scale });
+    if (press.current.timer && Math.abs(e.clientX - press.current.x) > ARRANGE_SLOP_PX) { clearTimeout(press.current.timer); press.current.timer = null; }
+  };
+  const up = () => {
+    if (press.current.timer) { clearTimeout(press.current.timer); press.current.timer = null; }
+    if (drag && to !== drag.from) shellAction({ type: "MoveHomeApp", id: drag.id, by: to - drag.from });
+    setDrag(null);
+  };
+  const open = (id: string) => {
+    // the hold that started the arranging, or any tap while arranging, opens nothing
+    if (press.current.held || arranging) { press.current.held = false; return; }
+    launchApp(id);
+  };
+  const key = (e: React.KeyboardEvent<HTMLButtonElement>, id: string) => {
+    const by = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
+    if (arranging && by) { e.preventDefault(); shellAction({ type: "MoveHomeApp", id, by }); }
+    if (arranging && e.key === "Escape") setArranging(false);
+  };
+
+  return (
+    <div ref={row} className={classes("apps", arranging && "is-arranging")} aria-label={arranging ? "Apps, arranging: drag an icon or use the arrow keys" : "Apps"}>
+      {/* the icons chosen in the settings (core-car HomeApps) */}
+      {apps.map(({ id, label }, i) => {
+        // the phone's icon counts its unread messages, as a phone's does
+        const badge = id === "PHONE" ? unread : 0;
+        return (
+          <button key={id} className={classes("app", drag?.id === id && "is-dragged")} style={{ "--i": i, transform: drag ? `translateX(${shift(i)}px)` : undefined } as CSSProperties}
+            aria-label={badge ? `${label}, ${badge} unread messages` : label}
+            onPointerDown={(e) => down(e, id, i)} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onKeyDown={(e) => key(e, id)} onClick={() => open(id)}>
+            <span className={`app-mark ${MARKS[id] ?? "app-mark-other"}`} style={MARKS[id] ? undefined : { "--mark-hue": hue(id) } as CSSProperties}>
+              {badge > 0 && <span className="app-badge" aria-hidden="true">{badge}</span>}
+            </span>
+            <span>{label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
