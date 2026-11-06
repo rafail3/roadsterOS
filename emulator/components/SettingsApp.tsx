@@ -350,7 +350,7 @@ function ReverseCamera({ e }: { e: EmulatorState }) {
         <div className="set-row cam-preview-row">
           <div className="camera-feed cam-preview" role="img" aria-label="Preview of the guidelines">
             <div className={`camera-scene${camera.mirror ? " is-mirrored" : ""}`} aria-hidden="true" />
-            <GuideLines camera={camera} steering={e.steering} />
+            <GuideLines camera={camera} eps={e.eps} />
           </div>
         </div>
         <Row label="Height">

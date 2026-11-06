@@ -39,6 +39,18 @@ class CameraTest {
     }
 
     @Test
+    fun `the lines stay straight unless they follow the steering past one step, then slide towards full lock`() {
+        val straight = Camera.guides(Guidelines.FIXED, 900)
+        assertEquals(Point(408.0, 240.0), straight.leftFar)
+        assertEquals(straight, Camera.guides(Guidelines.STEERING, Camera.EPS_STEP))
+        val lock = Camera.guides(Guidelines.STEERING, -5000)
+        assertEquals(Point(901.0, 276.0), lock.rightFar)
+        assertEquals(Point(36.0, 506.0), lock.leftFix)
+        val left = Camera.guides(Guidelines.STEERING, Camera.EPS_MAX)
+        assertEquals(Point(123.0, 276.0).x, left.leftFar.x, 0.001)
+    }
+
+    @Test
     fun `the lines stay within the vendor's range and are kept across starts`() {
         val high = Shell.reduce(ShellState(), ShellAction.SetCamera(CameraSettings(linePos = -500, mirror = true)))
         assertEquals(Camera.LINE_POS_MIN, high.camera.linePos)

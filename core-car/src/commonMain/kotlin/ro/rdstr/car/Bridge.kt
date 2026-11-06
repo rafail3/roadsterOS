@@ -244,6 +244,7 @@ object Bridge {
 
     /** The sound window (core-car Sound): the calls a change makes, presets, bands, resets and the ranges. */
     fun soundWrites(a: String, b: String): String = json.encodeToString(ListSerializer(DspWrite.serializer()), Sound.writes(sound(a), sound(b)))
+    fun cameraGuides(guidelines: String, eps: Int): String = json.encodeToString(Guides.serializer(), Camera.guides(Guidelines.valueOf(guidelines), eps))
     fun cameraWrites(a: String, b: String): String = json.encodeToString(
         ListSerializer(DspWrite.serializer()),
         Camera.writes(json.decodeFromString(CameraSettings.serializer(), a), json.decodeFromString(CameraSettings.serializer(), b)),

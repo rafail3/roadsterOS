@@ -62,8 +62,8 @@ export interface EmulatorState {
   calls: CallRecord[];
   /** what the phone reports over the hands-free link: battery and signal 0..5, the network */
   phoneStatus: { battery: number; signal: number; operator: string; roaming: boolean };
-  /** the steering wheel, -1 full left .. 1 full right; only the vendor's camera screen reads it, from the CAN box */
-  steering: number;
+  /** the steering angle as the CAN box reports it, positive to the left, -1080..1080; only the camera's lines read it */
+  eps: number;
   /** Bluetooth switching on, asked by the phone app */
   btTurningOn: boolean;
   /** the phone Bluetooth reports as connected */
@@ -796,8 +796,8 @@ export function dismissMessage() {
   if (state.newMessage) set({ newMessage: null });
 }
 
-export function setSteering(steering: number) {
-  set({ steering });
+export function setSteering(eps: number) {
+  set({ eps });
 }
 
 export function setPhoneStatus(status: { battery?: number; signal?: number; operator?: string; roaming?: boolean }) {
@@ -988,7 +988,7 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     contacts: SAMPLE_CONTACTS,
     calls: sampleCalls(Date.now()),
     phoneStatus: { battery: 4, signal: 3, operator: "Vela Mobile", roaming: false },
-    steering: 0,
+    eps: 0,
     btTurningOn: false,
     voiceAssistant: false,
     messages: [

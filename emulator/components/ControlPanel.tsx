@@ -42,13 +42,14 @@ function SteeringWheel() {
 }
 
 function Signals() {
-  const { car, acc, steering } = useEmulator();
+  const { car, acc, eps } = useEmulator();
   return (
     <Section title="Signals" open>
       <Switch label="Ignition (ACC)" checked={acc} onChange={(on) => carEvent({ type: "Power", acc: on })} />
       <Switch label="Reverse gear" checked={car.camera} onChange={(on) => carEvent({ type: "ReverseGear", on })} />
-      <Row label={`Steering ${steering < 0 ? "left" : steering > 0 ? "right" : "straight"}`}>
-        <input type="range" min="-1" max="1" step="0.05" value={steering} onChange={(e) => setSteering(Number(e.target.value))} />
+      {/* the slider turns right to the right; the CAN angle grows to the left */}
+      <Row label={`Steering ${eps > 0 ? "left" : eps < 0 ? "right" : "straight"}`}>
+        <input type="range" min="-1080" max="1080" step="46" value={-eps} onChange={(e) => setSteering(-Number(e.target.value))} />
       </Row>
       <Switch label="Headlights" checked={car.night} onChange={(on) => carEvent({ type: "Illumination", on })} />
     </Section>

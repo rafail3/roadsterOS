@@ -23,6 +23,12 @@ export interface DspWrite { call: string; args: number[] }
 export type Guidelines = "OFF" | "FIXED" | "STEERING";
 export type ReverseDip = "NONE" | "WEAK" | "MEDIUM" | "STRONG";
 /** The reverse camera's settings (core-car CameraSettings); linePos in pixels of the 1024x600 screen, negative higher. */
+export interface Point { x: number; y: number }
+/** The guidelines' points on the 1024x600 screen (core-car Guides). */
+export interface Guides {
+  leftFix: Point; leftControl: Point; leftFar: Point; leftMiddle: Point; leftNear: Point;
+  rightFix: Point; rightControl: Point; rightFar: Point; rightMiddle: Point; rightNear: Point;
+}
 export interface CameraSettings { mirror: boolean; guidelines: Guidelines; linePos: number; dip: ReverseDip }
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";
 export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
@@ -271,6 +277,7 @@ interface Kotlin {
       dashFollow(shownBefore: number, jump: number): string;
       soundWrites(a: string, b: string): string;
       cameraWrites(a: string, b: string): string;
+      cameraGuides(guidelines: string, eps: number): string;
       soundPreset(s: string, preset: string): string;
       soundBand(s: string, band: number, db: number): string;
       soundResetLoudness(s: string): string;
@@ -408,6 +415,8 @@ export const bridge = {
   /** The sound window (core-car Sound). */
   soundWrites: (a: SoundSettings, b: SoundSettings): DspWrite[] => JSON.parse(K!.Bridge.soundWrites(JSON.stringify(a), JSON.stringify(b))),
   /** The vendor calls a change of the camera settings makes (core-car Camera.writes). */
+  /** The guidelines as the vendor draws them, bent by the CAN steering angle [eps] (core-car Camera.guides). */
+  cameraGuides: (guidelines: Guidelines, eps: number): Guides => JSON.parse(K!.Bridge.cameraGuides(guidelines, eps)),
   cameraWrites: (a: CameraSettings, b: CameraSettings): DspWrite[] => JSON.parse(K!.Bridge.cameraWrites(JSON.stringify(a), JSON.stringify(b))),
   soundPreset: (s: SoundSettings, p: EqPreset): SoundSettings => JSON.parse(K!.Bridge.soundPreset(JSON.stringify(s), p)),
   soundBand: (s: SoundSettings, band: number, db: number): SoundSettings => JSON.parse(K!.Bridge.soundBand(JSON.stringify(s), band, db)),

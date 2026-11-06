@@ -264,7 +264,7 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .camera-scene::before { content: ""; position: absolute; left: 14%; bottom: 34%; width: 3.4%; height: 30%; border-radius: 6px 6px 0 0;
   background: repeating-linear-gradient(180deg, #e8b730 0 18%, #2a2a2a 18% 36%); }
 .camera-scene::after { content: ""; position: absolute; left: -10%; bottom: 14%; width: 42%; height: 2.4%; background: #5b5f66; transform: rotate(-10deg); transform-origin: left; }
-.guide-lines { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+.guide-lines { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke-width: 8; }
 .camera-close { position: absolute; top: var(--space-4); right: var(--space-4); width: var(--target); height: var(--target); border-radius: 50%; background: var(--glass-strong); border: 1px solid var(--hairline-strong); color: var(--ink); display: grid; place-items: center; }
 .camera-close .icon { width: 24px; height: 24px; }
 .camera-label { margin: 0; padding: var(--space-3) var(--space-5); font-size: var(--size-label); color: var(--ink-muted); background: var(--canvas); justify-self: stretch; }

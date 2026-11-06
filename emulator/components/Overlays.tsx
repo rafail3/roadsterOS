@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { bridge, type CameraSettings } from "../car/bridge";
 import { carCommand, carEvent, dismissMessage, openThread, shellAction, useEmulator, useNow, type EmulatorState } from "../car/store";
 import { Contacts, PadKey } from "./PhoneApp";
@@ -209,43 +209,49 @@ export function MessageBanner({ emulator }: { emulator: EmulatorState }) {
   );
 }
 
-// the lines as the vendor's camera screen draws them on the 1024x600 screen: near the car at the bottom, far up
-const GUIDE_NEAR_Y = 560;
-const GUIDE_DEPTH = 260;
-const GUIDE_NEAR_X = 250;
-const GUIDE_NARROWING = 150;
-/** How far the far end of a line moves sideways at full lock. */
-const GUIDE_BEND = 170;
-const GUIDE_TICK = 36;
-const GUIDE_SEGMENTS: [number, number, string][] = [[0, 0.3, "#ff453a"], [0.3, 0.6, "#ffd60a"], [0.6, 1, "#30d158"]];
+// the vendor's colours (MainUI com.ts.can.CameraUIView); the lines are yellow where no band recolours them
+const GUIDE_GREEN = "#4CAF50";
+const GUIDE_YELLOW = "#FFFF00";
+const GUIDE_RED = "#FF0000";
+const SCREEN_W = 1024;
 
-/** Fixed lines, or lines that bend with [steering] (-1 full left .. 1 full right); [linePos] moves them up or down. */
-export function GuideLines({ camera, steering }: { camera: CameraSettings; steering: number }) {
+/** The guidelines as the vendor draws them on the 1024x600 screen, bent by the CAN steering angle [eps]. */
+export function GuideLines({ camera, eps }: { camera: CameraSettings; eps: number }) {
+  const id = useId();
   if (camera.guidelines === "OFF") return null;
-  const bend = camera.guidelines === "STEERING" ? steering * GUIDE_BEND : 0;
-  const at = (side: -1 | 1, t: number) => [512 + side * (512 - GUIDE_NEAR_X - GUIDE_NARROWING * t) + bend * t * t, GUIDE_NEAR_Y - GUIDE_DEPTH * t];
-  const line = (side: -1 | 1, from: number, to: number) =>
-    Array.from({ length: 9 }, (_, i) => at(side, from + ((to - from) * i) / 8).join(",")).join(" ");
+  const g = bridge.cameraGuides(camera.guidelines, eps);
+  const curves = [g.leftFix, g.leftControl, g.leftFar, g.rightFix, g.rightControl, g.rightFar];
+  const path = [0, 3].map((i) => `M${curves[i].x} ${curves[i].y}Q${curves[i + 1].x} ${curves[i + 1].y} ${curves[i + 2].x} ${curves[i + 2].y}`).join("");
+  // the bands that recolour the curves, as the vendor's rectangles: red near the car, green far
+  const red: [number, number, number, number][] = [
+    [0, g.leftNear.y - 5, g.leftNear.x + 5, g.leftFix.y + 5], [g.rightNear.x - 5, g.rightNear.y - 5, SCREEN_W, g.rightFix.y + 5]];
+  const green: [number, number, number, number][] = [
+    [0, g.leftFar.y - 5, Math.max(g.leftFar.x, g.leftMiddle.x) + 8, g.leftMiddle.y - 3],
+    [Math.min(g.rightFar.x, g.rightMiddle.x) - 8, g.rightFar.y - 5, SCREEN_W, g.rightMiddle.y - 3]];
+  const clip = (name: string, rects: [number, number, number, number][]) => (
+    <clipPath id={`${id}${name}`}>{rects.map(([x1, y1, x2, y2], i) => <rect key={i} x={x1} y={y1} width={x2 - x1} height={y2 - y1} />)}</clipPath>
+  );
+  const bar = (a: { x: number; y: number }, b: { x: number; y: number }, color: string) => <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={color} />;
   return (
     <svg className="guide-lines" viewBox="0 0 1024 600" aria-hidden="true" style={{ transform: `translateY(${(camera.linePos / 600) * 100}%)` }}>
-      {([-1, 1] as const).map((side) => GUIDE_SEGMENTS.map(([from, to, color]) => {
-        const [x, y] = at(side, to);
-        return (<g key={`${side}${from}`} stroke={color}>
-          <polyline points={line(side, from, to)} />
-          <line x1={x} y1={y} x2={x - side * GUIDE_TICK} y2={y} />
-        </g>);
-      }))}
+      <defs>{clip("red", red)}{clip("green", green)}</defs>
+      <path d={path} stroke={GUIDE_YELLOW} />
+      <path d={path} stroke={GUIDE_RED} clipPath={`url(#${id}red)`} />
+      <path d={path} stroke={GUIDE_GREEN} clipPath={`url(#${id}green)`} />
+      {bar(g.leftFar, g.rightFar, GUIDE_GREEN)}
+      {bar(g.leftMiddle, g.rightMiddle, GUIDE_YELLOW)}
+      {bar(g.leftNear, g.rightNear, GUIDE_RED)}
     </svg>
   );
 }
 
 export function CameraOverlay() {
-  const { car, shell, steering } = useEmulator();
+  const { car, shell, eps } = useEmulator();
   return (
     <section className="overlay camera" role="dialog" aria-modal="true" aria-label="Reverse camera">
       <div className="camera-feed" role="img" aria-label={`Reverse camera, synthetic frame${shell.camera.mirror ? ", mirrored" : ""}`}>
         <div className={`camera-scene${shell.camera.mirror ? " is-mirrored" : ""}`} aria-hidden="true" />
-        <GuideLines camera={shell.camera} steering={steering} />
+        <GuideLines camera={shell.camera} eps={eps} />
       </div>
       {/* in reverse the gear closes it; opened from its icon, this does */}
       {!car.camera && <button className="camera-close" aria-label="Close camera" onClick={() => shellAction({ type: "CloseCamera" })}><span className="icon i-x" /></button>}
