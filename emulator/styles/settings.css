@@ -84,7 +84,8 @@
 .app-mark-radio { background: linear-gradient(145deg, #4a3a1f, #24190f); }
 /* the settings app's own icon, on home and in the drawer */
 .app-mark-settings { background: url(/images/settings-icon.webp) center / cover no-repeat; border-color: transparent; }
-.toggle-disc.is-app { background: url(/images/settings-icon.webp) center / cover no-repeat; border-radius: 24%; box-shadow: none; }
+/* in the drawer the gear alone, the size of the other toggles' icons */
+.toggle-disc.is-app { background: url(/images/settings-gear.webp) center / 30px 30px no-repeat; }
 .app-mark-other { background: linear-gradient(145deg, hsl(var(--mark-hue) 40% 26%), hsl(var(--mark-hue) 40% 12%)); }
 
 /* reordering home's apps: the dragged row lifts, the others slide out of its way */
