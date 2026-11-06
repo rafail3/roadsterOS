@@ -145,6 +145,12 @@ export function Screen() {
 
       <header className="bar" inert={covered} onPointerDown={onPointerDown}>
         <div className="bar-group">
+          {/* inside an app the big clock is gone: the time sits at the bar's left edge */}
+          {inApp && (
+            <time className="bar-clock" dateTime={now.toISOString()}>
+              {bridge.clockText(now.getHours(), now.getMinutes(), shell.clock24h)}{!shell.clock24h && <span className="bar-meridiem">{bridge.meridiem(now.getHours())}</span>}
+            </time>
+          )}
           {/* first, the connected phone's network and battery, as it reports them over the hands-free link */}
           {car.hfpConnected && <PhoneNetwork status={emulator.phoneStatus} />}
           <span
