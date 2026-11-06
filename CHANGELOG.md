@@ -1,5 +1,63 @@
 # Changelog
 
+## [1.12.0](https://github.com/rafail3/roadsterOS/compare/v1.11.0...v1.12.0) (2026-11-06)
+
+
+### Features
+
+* **camera:** guidelines drawn with the vendor's points, colours and 23 steering steps, computed in core-car ([5e9dbe5](https://github.com/rafail3/roadsterOS/commit/5e9dbe5d8e657eebef4b6e9609f115e659647e1e))
+* **camera:** reverse camera settings: mirror, fixed or steering guidelines, line height, music dip; vendor calls in core-car ([0517cd0](https://github.com/rafail3/roadsterOS/commit/0517cd08646556400ca8a5a1ecc794abe5f14021))
+* **camera:** the camera icon opens the camera without reverse gear; reverse gear takes it over; BackCar SDK feed on the unit ([65b840b](https://github.com/rafail3/roadsterOS/commit/65b840bf66d237ca72a294ae2e68f01c396d2870))
+* **rules:** a call stops the music or radio from its first ring or dial and plays it again when it ends ([63b63af](https://github.com/rafail3/roadsterOS/commit/63b63af0ea154a9fc915fa9f60537d9745a34296))
+* **settings:** car display page, clock or fuel switch and dash clock following the unit's clock ([fd91ef4](https://github.com/rafail3/roadsterOS/commit/fd91ef43429132262d48facb5308464da8efffc0))
+* **settings:** clock face Both, Digital or Analog ([25727b2](https://github.com/rafail3/roadsterOS/commit/25727b2f80fcb7d9bbb79ba2fb52add1c2a331fc))
+* **settings:** clock sync from internet, GPS or by hand, and a time zone list ([71b386c](https://github.com/rafail3/roadsterOS/commit/71b386c7581c3fef6ed9bfe493964c0b2b5619a5))
+* **settings:** Date & Time section ([3e12382](https://github.com/rafail3/roadsterOS/commit/3e12382bf4ddb9ce66dd0a420ca2f30acd501875))
+* **settings:** developer section with adb, touches, frame rate, animation speed, restart and Android options ([4ff5121](https://github.com/rafail3/roadsterOS/commit/4ff512148c68b52fd9c63f72a07dbcf3feae43dd))
+* **settings:** drag to reorder home apps, only installed apps can be added ([e7c42f2](https://github.com/rafail3/roadsterOS/commit/e7c42f2bb6a99f194f755a368533d2d1863a0e06))
+* **settings:** full troubleshooting journal with dates, filtering and a size cap ([228d0a5](https://github.com/rafail3/roadsterOS/commit/228d0a58b054b8413987e756212470377e1592cb))
+* **settings:** home screen apps and car event recording ([86a9449](https://github.com/rafail3/roadsterOS/commit/86a94498a45f1af671c89687417237cc04ccd9f5))
+* **settings:** pick the day, month or year to step, zone search stays on top ([ddd3897](https://github.com/rafail3/roadsterOS/commit/ddd38975367f9810e7b1ff5f0c62b58b8c32aa2d))
+* **settings:** preferences kept in the emulator, factory reset into setup ([885d9e4](https://github.com/rafail3/roadsterOS/commit/885d9e49935e82ab8d08543ba509203e130eff8c))
+* **settings:** settings app and saved preferences ([88dcddb](https://github.com/rafail3/roadsterOS/commit/88dcddb8e26ec9ce46e747539dcd16c37c46b3b4))
+* **settings:** speed limit chime in the Maps section ([ffb0d07](https://github.com/rafail3/roadsterOS/commit/ffb0d07846c2480183fc402d45bcd7ba7beb13c6))
+* **settings:** speed limit ring on the map can be switched off ([f0145e7](https://github.com/rafail3/roadsterOS/commit/f0145e79d0a17432a1e77a94ffd5e0013b8ed48b))
+* **settings:** the switch hides the speed limit sign, not the ring ([ff8bca7](https://github.com/rafail3/roadsterOS/commit/ff8bca701511b3612d3fb9f43a49c6836c91291d))
+* **settings:** voice guidance volume and music under it in Maps ([fa6386e](https://github.com/rafail3/roadsterOS/commit/fa6386e57979bd02fa368d210eadc79f7f5e6558))
+* **shell:** always-on display after the screen is left alone, with its settings in Display ([d138f83](https://github.com/rafail3/roadsterOS/commit/d138f83923e125a9d17678547b6cb803afd6d8e2))
+* **shell:** app icons for maps, music, phone and radio on home and in the home screen settings ([1f2907f](https://github.com/rafail3/roadsterOS/commit/1f2907fcec33254a470a41a767ab57fc45be144e))
+* **shell:** at most five home icons, centred between the dock and the card; the emulator reloads when the core-car bundle changes ([9b860cf](https://github.com/rafail3/roadsterOS/commit/9b860cf2194a7f3f584e0c47cbd926372bed5de3))
+* **shell:** dock of app icons on the left, home icons arranged with a long press and a drag ([2403516](https://github.com/rafail3/roadsterOS/commit/2403516a618d4c8f2183e786e7841a75ecf707cc))
+* **shell:** drawer settings toggle with the gear alone, at the icon size ([0932725](https://github.com/rafail3/roadsterOS/commit/0932725cc1defc79960e3ce650964227b7650e02))
+* **shell:** home icon arranging rules in core-car, the held icon kept inside the row ([8cee33b](https://github.com/rafail3/roadsterOS/commit/8cee33bfebd9f090927f7e018962fe8d9eb47c06))
+* **shell:** home icons glide to the new centre when one is added or taken off ([07b2134](https://github.com/rafail3/roadsterOS/commit/07b21341d2da30a4846e0e5da52c72f3a74afacc))
+* **shell:** larger app icons on home ([0ccdbb9](https://github.com/rafail3/roadsterOS/commit/0ccdbb942f7ac0e2b43745002714bb86119eb00d))
+* **shell:** no playing dot beside the dock icons ([71516cb](https://github.com/rafail3/roadsterOS/commit/71516cb97fcd52c7c78efa4bc9cc78721d70dc9f))
+* **shell:** re-centring glides and their timings in core-car ([82612fd](https://github.com/rafail3/roadsterOS/commit/82612fdcf0571ab81570f52bc2411ee9d50a747d))
+* **shell:** remove badges on the home icons while arranging, no pressed box behind an icon ([daf94f1](https://github.com/rafail3/roadsterOS/commit/daf94f1aa03805197de73fc00cb71a397e27a35c))
+* **shell:** settings app icon on home and in the drawer ([635a5a7](https://github.com/rafail3/roadsterOS/commit/635a5a720fd0478507253ec03176849200edb1c0))
+* **shell:** status bar tint fading at its edge, time at its left inside apps ([c664fc2](https://github.com/rafail3/roadsterOS/commit/c664fc21df95b23fde86b8045f1c380015a7f757))
+* **shell:** up to six apps on home ([d51da73](https://github.com/rafail3/roadsterOS/commit/d51da73aa4dccdaf468244ae1d06901fe35401f0))
+* **shell:** wider gap between the app icons on home ([6228e27](https://github.com/rafail3/roadsterOS/commit/6228e27ef7d9a3692164ce11821790385ae7c8da))
+* **sound:** call volume back to its default at each start ([a6d8df3](https://github.com/rafail3/roadsterOS/commit/a6d8df3305d2d8b46d039d723b4318f66852bc7b))
+* **sound:** call volume, navigation voice volume and the music level under it ([c9838e1](https://github.com/rafail3/roadsterOS/commit/c9838e15734fd0a7ad97aaf92213f5175351a5a5))
+* **sound:** car picture from above for balance and listening position, front and rear row focus, equalizer without scroll ([febd526](https://github.com/rafail3/roadsterOS/commit/febd5266b563261d36ccaf492fe6d620e2e803be))
+* **sound:** smooth car picture, speaker badges with level waves following the balance ([4378184](https://github.com/rafail3/roadsterOS/commit/4378184c505e49f5b9b4a4f8c55b1cf23a2a6529))
+* **sound:** sound window with equalizer, balance, listening position, loudness, smart bass and speaker filters ([6a76641](https://github.com/rafail3/roadsterOS/commit/6a766415649863d1c40ca7fe68651713e423c225))
+* **sound:** speaker pictures turned towards the cabin ([a8d4828](https://github.com/rafail3/roadsterOS/commit/a8d4828a82d2b0c55a70500a8dbbd4ceb8ee9cf6))
+* **sound:** speakers on the doors ([8c2aa06](https://github.com/rafail3/roadsterOS/commit/8c2aa06c6d1122a5b49fd2b2845965d6113937f9))
+* **startup:** the last source comes back after a start, the last phone is asked to connect, music plays again when it does ([6f282ec](https://github.com/rafail3/roadsterOS/commit/6f282ecf6a32c8cf053972c645a139f1ba0fc08a))
+
+
+### Bug Fixes
+
+* **emulator:** radio tuner class no longer styles the analog clock face ([5a6b98d](https://github.com/rafail3/roadsterOS/commit/5a6b98de99626d0d60ff2b4d1ec5b06a147e1708))
+* **settings:** lint for the factory reset's Bluetooth and Wi-Fi calls on API 27 ([04078ee](https://github.com/rafail3/roadsterOS/commit/04078ee5e41f1bc48e5d8c218a218338821e672c))
+* **shell:** an icon picked up while arranging never opens its app on the drop ([169a14d](https://github.com/rafail3/roadsterOS/commit/169a14d747871144fede32b3ebbff5bf17cb727e))
+* **shell:** arranging the home icons stops on the drop, the held icon lifts, the drop glides into place ([4b437ea](https://github.com/rafail3/roadsterOS/commit/4b437ea542100e3e1a4deb3eb68f6c0f730a4fd8))
+* **shell:** clock back at its height, clock and date centred between the dock and the card ([85c5083](https://github.com/rafail3/roadsterOS/commit/85c5083d097f21bfb4558ef50abb3186166a5735))
+* **shell:** red remove badge at the icon's top right, shown on the held icon at once ([210a41d](https://github.com/rafail3/roadsterOS/commit/210a41d120a6f645d701d6857e35b9a6304bfbc8))
+
 ## [1.11.0](https://github.com/rafail3/roadsterOS/compare/v1.10.0...v1.11.0) (2026-11-05)
 
 
