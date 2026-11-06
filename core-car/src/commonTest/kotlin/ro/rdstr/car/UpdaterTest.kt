@@ -48,13 +48,36 @@ class UpdaterTest {
     }
 
     @Test
-    fun `checked by itself on wifi every six hours`() {
-        val h = 60 * 60 * 1000L
-        assertTrue(Updater.dueForCheck(null, 0, wifi = true))
-        assertFalse(Updater.dueForCheck(null, 0, wifi = false))
-        assertFalse(Updater.dueForCheck(0, 5 * h, wifi = true))
-        assertTrue(Updater.dueForCheck(0, 6 * h, wifi = true))
-        assertTrue(Updater.dueForCheck(10 * h, 2 * h, wifi = true))
+    fun `checked once each time the unit joins wifi`() {
+        assertTrue(Updater.checkOnJoin(wifiBefore = false, wifiNow = true))
+        assertFalse(Updater.checkOnJoin(wifiBefore = true, wifiNow = true))
+        assertFalse(Updater.checkOnJoin(wifiBefore = true, wifiNow = false))
+    }
+
+    @Test
+    fun `the pop-up shows a version once, a newer one again`() {
+        val c = Updater.check("1.15.0", release("v1.16.0", asset(Updater.APK)))
+        assertTrue(Updater.popUp(c, dismissed = null))
+        assertFalse(Updater.popUp(c, dismissed = "1.16.0"))
+        assertTrue(Updater.popUp(c, dismissed = "1.15.5"))
+        assertFalse(Updater.popUp(Check.UpToDate, null))
+    }
+
+    @Test
+    fun `the progress bar shows percent, a smoothed speed and the time left`() {
+        val mb = 1024L * 1024
+        var d = Updater.Download(total = 20 * mb)
+        assertEquals(null, d.secondsLeft)
+        d = d.step(2 * mb, 1000)
+        assertEquals(10, d.percent)
+        assertEquals("2.0 MB/s", Updater.speedText(d.bytesPerSecond))
+        assertEquals(9, d.secondsLeft)
+        d = d.step(5 * mb, 1000)
+        assertEquals("3.0 MB/s", Updater.speedText(d.bytesPerSecond))
+        assertEquals(100, d.step(50 * mb, 1000).percent)
+        assertEquals("850 KB/s", Updater.speedText(850.0 * 1024))
+        assertEquals("45 s left", Updater.leftText(45))
+        assertEquals("3 min left", Updater.leftText(170))
     }
 
     @Test

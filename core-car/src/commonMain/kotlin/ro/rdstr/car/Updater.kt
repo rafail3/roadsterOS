@@ -68,10 +68,40 @@ object Updater {
         return if (isNewer(release.version, current)) Check.Available(release, apk) else Check.UpToDate
     }
 
-    /** Checked by itself at most this often, and only on Wi-Fi; About checks on demand at any time. */
-    const val CHECK_EVERY_MS = 6 * 60 * 60 * 1000L
+    /**
+     * The unit checks by itself once each time it joins a Wi-Fi network, in the background; Settings > About checks
+     * on demand at any time.
+     */
+    fun checkOnJoin(wifiBefore: Boolean, wifiNow: Boolean) = !wifiBefore && wifiNow
 
-    fun dueForCheck(lastMs: Long?, nowMs: Long, wifi: Boolean) = wifi && (lastMs == null || nowMs - lastMs >= CHECK_EVERY_MS || nowMs < lastMs)
+    /** The pop-up shows a version once; "Later" keeps it quiet until a newer one is out (About still lists it). */
+    fun popUp(check: Check, dismissed: String?): Boolean =
+        check is Check.Available && (dismissed == null || isNewer(check.release.version, dismissed))
+
+    /** A download as the progress bar shows it; [bytesPerSecond] is smoothed so the figures do not jump. */
+    data class Download(val total: Long, val done: Long = 0, val bytesPerSecond: Double = 0.0) {
+        val percent get() = if (total <= 0) 0 else (done * 100 / total).toInt().coerceIn(0, 100)
+        val fraction get() = if (total <= 0) 0f else (done.toDouble() / total).toFloat().coerceIn(0f, 1f)
+        /** Seconds left at the current speed, null until a speed is known. */
+        val secondsLeft get() = if (bytesPerSecond <= 0) null else ((total - done).coerceAtLeast(0) / bytesPerSecond).toLong()
+
+        /** [bytes] more arrived over [ms]; the speed moves a third of the way to the new reading. */
+        fun step(bytes: Long, ms: Long): Download {
+            val reading = if (ms > 0) bytes * 1000.0 / ms else bytesPerSecond
+            val speed = if (bytesPerSecond <= 0) reading else bytesPerSecond + (reading - bytesPerSecond) / 3
+            return copy(done = (done + bytes).coerceAtMost(total), bytesPerSecond = speed)
+        }
+    }
+
+    /** "850 KB/s", "1.2 MB/s". */
+    fun speedText(bytesPerSecond: Double): String = if (bytesPerSecond < 1024 * 1024) "${(bytesPerSecond / 1024).toLong()} KB/s"
+    else "${(bytesPerSecond * 10 / (1024 * 1024)).toLong().let { "${it / 10}.${it % 10}" }} MB/s"
+
+    /** "45 s left", "3 min left". */
+    fun leftText(seconds: Long): String = if (seconds < 60) "$seconds s left" else "${(seconds + 30) / 60} min left"
+
+    /** After the new version is installed the unit says so, counts this many seconds down, then restarts. */
+    const val RESTART_IN_S = 10
 
     /** Why an install waits. Restarting the app stops the screens and the sound for a few seconds. */
     enum class Wait { NONE, MOVING, CALL, REVERSE, SPACE }
