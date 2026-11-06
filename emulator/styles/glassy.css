@@ -30,9 +30,14 @@
 
 /* panels and buttons: one material, their places and shapes kept; :where keeps it a base style, so every state the
    Solid design draws on top (an active preset's accent border, the drawer cleared for brightness) still wins */
-[data-design="glassy"] :where(.dock, .np, .set-rows, .volume-hud, .notice, .message-banner, .map-offer, .drawer, .recents-clear,
-  .music-volume, .music-device, .radio-tag, .radio-list, .radio-bands, .radio-scan, .glass-button, .camera-close, .cast-close, .ctl, .preset, .set-stepper,
-  .set-inline, .pad-key, .call-toggle-disc, .radio-star) {
+[data-design="glassy"] :where(.dock, .np, .date-card, .set-rows, .volume-hud, .notice, .message-banner, .call-banner, .map-offer, .drawer, .toggle,
+  .recents-clear, .recents-card-body, .recents-preview-empty, .edge-back-arrow, .music-volume, .music-device, .music-nophone-icon,
+  .music-nophone-phone, .np-cover-empty, .music-cover-empty, .radio-tag, .radio-list, .radio-bands, .radio-scan, .tuner,
+  .glass-button, .camera-close, .cast-close, .cast-glyph, .ctl, .preset, .set-stepper, .set-inline, .pad-key, .pad-side,
+  .call-toggle-disc, .call-held, .call-waiting, .call-pill, .radio-star, .map-zoom, .map-pill, .map-speed, .map-credit-text,
+  .card-strip, .card-dots, .devices-panel, .devices-search, .devices-search-chip, .devices-answer, .saved-device, .device-icon,
+  .device-drop, .device-swipe, .wifi-field, .keyboard, .kb-key, .kb-fn, .alert-card, .alert-icon, .alert-button, .phone-tabs,
+  .phone-chip, .phone-search-field, .phone-chat, .phone-compose-field, .bubble, .voice, .snd-eq, .snd-stage) {
   background-color: var(--glassy-fill);
   background-image: var(--glassy-sheen);
   -webkit-backdrop-filter: var(--glassy-frost);
@@ -42,8 +47,19 @@
 [data-design="glassy"] :where(.glass-button, .ctl, .preset, .set-inline, .pad-key, .call-toggle-disc, .radio-star, .radio-scan, .music-device):active {
   background-color: var(--glassy-fill-strong);
 }
+/* coloured keys and badges keep their colour as tinted glass: the same sheen, rim and frost over their own fill;
+   :is, not :where, so the sheen stays over the coloured states (a green answer key, a red decline) */
+[data-design="glassy"] :is(.cast-action, .setup-start, .map-offer-button, .map-offer-icon, .music-nophone-pair, .kb-submit,
+  .wifi-location-on, .voice-mic, .ctl-primary, .ctl-accent, .ctl-danger, .device-trash, .call-key, .phone-send, .message-banner-icon,
+  .notice-disc, .alert-button.is-primary, .radio-tag.is-band, .radio-genre, .phone-avatar, .call-avatar) {
+  background-image: var(--glassy-sheen);
+  -webkit-backdrop-filter: var(--glassy-frost);
+  backdrop-filter: var(--glassy-frost);
+  box-shadow: var(--glassy-shadow);
+}
+
 /* the chosen section keeps its colour, under the same sheen and rim */
-[data-design="glassy"] :is(.set-nav-item.is-current, .radio-row.is-active) { background-image: var(--glassy-sheen); box-shadow: var(--glassy-shadow); }
+[data-design="glassy"] :is(.set-nav-item.is-current, .radio-row.is-active, .phone-tabs button[aria-pressed="true"], .radio-bands button[aria-pressed="true"]) { background-image: var(--glassy-sheen); box-shadow: var(--glassy-shadow); }
 
 /* transport keys sit on glass discs drawn inside their touch area (the area stays as on Solid), about two thirds of
    it, so the keys keep their spacing on the card and the strip as well as in the apps; play's is lighter */
@@ -93,9 +109,14 @@
 
 /* asked for less transparency: solid panels, still the glisse controls */
 @media (prefers-reduced-transparency: reduce) {
-  [data-design="glassy"] :where(.dock, .np, .set-rows, .volume-hud, .notice, .message-banner, .map-offer, .drawer, .recents-clear,
-    .music-volume, .music-device, .radio-tag, .radio-list, .radio-bands, .radio-scan, .glass-button, .camera-close, .cast-close, .ctl, .preset, .set-stepper,
-    .set-inline, .pad-key, .call-toggle-disc, .radio-star) {
+  [data-design="glassy"] :where(.dock, .np, .date-card, .set-rows, .volume-hud, .notice, .message-banner, .call-banner, .map-offer, .drawer, .toggle,
+    .recents-clear, .recents-card-body, .recents-preview-empty, .edge-back-arrow, .music-volume, .music-device, .music-nophone-icon,
+    .music-nophone-phone, .np-cover-empty, .music-cover-empty, .radio-tag, .radio-list, .radio-bands, .radio-scan, .tuner,
+    .glass-button, .camera-close, .cast-close, .cast-glyph, .ctl, .preset, .set-stepper, .set-inline, .pad-key, .pad-side,
+    .call-toggle-disc, .call-held, .call-waiting, .call-pill, .radio-star, .map-zoom, .map-pill, .map-speed, .map-credit-text,
+    .card-strip, .card-dots, .devices-panel, .devices-search, .devices-search-chip, .devices-answer, .saved-device, .device-icon,
+    .device-drop, .device-swipe, .wifi-field, .keyboard, .kb-key, .kb-fn, .alert-card, .alert-icon, .alert-button, .phone-tabs,
+    .phone-chip, .phone-search-field, .phone-chat, .phone-compose-field, .bubble, .voice, .snd-eq, .snd-stage) {
     background-color: var(--sheet-raised, var(--sheet));
     background-image: none;
     -webkit-backdrop-filter: none;
