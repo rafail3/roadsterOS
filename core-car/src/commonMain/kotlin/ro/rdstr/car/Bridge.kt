@@ -239,6 +239,30 @@ object Bridge {
 
     fun factoryPreferences(): String = Shell.encodePreferences(Shell.factoryState())
 
+    /**
+     * The boot picture (core-car BootArt): the colour table, the font, and the dots as flat lists, six numbers per dot
+     * (x, y, colour, layer or face, letter index or glyph, dissolve order), drawn the same here and on the unit.
+     */
+    fun bootArt(): String = buildString {
+        val word = BootArt.word()
+        append("{\"colors\":[").append(BootArt.COLORS.joinToString(",") { "\"$it\"" }).append("]")
+        append(",\"tiny\":{").append(BootArt.TINY.entries.joinToString(",") { (k, v) -> "\"$k\":\"$v\"" }).append("}")
+        append(",\"word\":{\"width\":${word.width},\"height\":${word.height},\"dots\":[")
+        append(word.dots.joinToString(",") { "${it.x},${it.y},${it.color},${it.layer},${it.letter},${it.order}" }).append("]}")
+        append(",\"cube\":[").append(BootArt.cube().joinToString(",") { "${it.x},${it.y},${it.color},${it.face},${if (it.glyph) 1 else 0},${it.order}" }).append("]}")
+    }
+
+    /** What the boot screen draws [t] ms after it starts (BootArt.frame). */
+    fun bootFrame(t: Double): String {
+        val f = BootArt.frame(t)
+        val tube = f.tube?.let { "{\"x\":${it.x},\"y\":${it.y},\"w\":${it.w},\"h\":${it.h},\"alpha\":${it.alpha}}" } ?: "null"
+        return "{\"tube\":$tube,\"cube\":${f.cube?.joinToString(",", "[", "]") ?: "null"},\"flash\":${f.flash}" +
+            ",\"letters\":${f.letters?.joinToString(",", "[", "]") ?: "null"},\"depth\":${f.depth},\"typed\":${f.typed}" +
+            ",\"cursor\":${f.cursor},\"flicker\":${f.flicker},\"rollY\":${BootArt.rollY(t)}}"
+    }
+
+    fun bootDoneMs(): Double = BootArt.DONE_MS
+
     private fun sound(text: String) = json.decodeFromString(SoundSettings.serializer(), text)
     private fun sound(s: SoundSettings) = json.encodeToString(SoundSettings.serializer(), s)
 

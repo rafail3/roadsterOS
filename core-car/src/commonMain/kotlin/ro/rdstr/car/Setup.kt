@@ -5,6 +5,7 @@ package ro.rdstr.car
  * "Preparing the system" screen runs. A unit switched off halfway resumes at the screen it was on.
  */
 object Setup {
+    @kotlinx.serialization.Serializable
     enum class Step { LOGO, START, CAR_NAME, PREPARE, WIFI, UPDATE, LOCATION, LOOK, FILES, WELCOME }
 
     /**
@@ -16,9 +17,18 @@ object Setup {
         return if (after == Step.UPDATE && !(wifi && updateAvailable)) next(after, wifi, updateAvailable) else after
     }
 
-    /** Where a unit starts: nothing saved (or a damaged value) is a first start; the logo is never resumed. */
-    fun resumeAt(saved: String?): Step =
-        Step.entries.firstOrNull { it.name == saved }?.takeIf { it != Step.LOGO } ?: Step.START
+    /**
+     * The screen before [step]. Back never reaches the logo or the start screen, and skips the update and the system
+     * preparation: one is gone once the update is in, the other runs once.
+     */
+    fun back(step: Step): Step {
+        var at = step
+        while (at.ordinal > Step.CAR_NAME.ordinal) {
+            at = Step.entries[at.ordinal - 1]
+            if (at != Step.UPDATE && at != Step.PREPARE) return at
+        }
+        return at.takeIf { it.ordinal >= Step.START.ordinal } ?: step
+    }
 
     const val CAR_NAME_MAX = 24
 

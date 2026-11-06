@@ -101,6 +101,10 @@ data class ShellState(
     val design: Design = Design.SOLID,
     /** The country whose grouping numbers typed without + follow on screen (PhoneFormat); dialling is unchanged. */
     val phoneRegion: String = "RO",
+    /** The setup screen the unit is on while setup is not done; kept across starts so a unit switched off resumes there. */
+    val setupStep: Setup.Step = Setup.Step.LOGO,
+    /** The car's name, given in setup: shown in About and on the boot screen, and the name phones see for casting. */
+    val carName: String = "",
     /** Every car event is written to a file on the unit, for troubleshooting. */
     val recordEvents: Boolean = false,
 )
@@ -181,6 +185,11 @@ sealed class ShellAction {
     @Serializable @SerialName("OpenCamera") data object OpenCamera : ShellAction()
     @Serializable @SerialName("SetCastVisible") data class SetCastVisible(val on: Boolean) : ShellAction()
     @Serializable @SerialName("SetPhoneRegion") data class SetPhoneRegion(val region: String) : ShellAction()
+    /** The setup's next screen; the host says whether Wi-Fi is up and a newer version is out (Setup.next). */
+    @Serializable @SerialName("SetupNext") data class SetupNext(val wifi: Boolean = false, val updateAvailable: Boolean = false) : ShellAction()
+    @Serializable @SerialName("SetupBack") data object SetupBack : ShellAction()
+    /** A blank or spaces-only name is ignored (Setup.carName). */
+    @Serializable @SerialName("SetCarName") data class SetCarName(val name: String) : ShellAction()
     /** Sent when the picture starts or stops: the app opens over everything, and leaves to home when it stops. */
     @Serializable @SerialName("CastChanged") data class CastChanged(val state: CarEvent.PhoneCast.State) : ShellAction()
     /** Also sent at each change of reverse gear. */
@@ -217,7 +226,7 @@ object Shell {
     const val DOUBLE_PRESS_MS = 500L
 
     /** What a factory reset leaves: every default, and setup to go through again. */
-    fun factoryState() = ShellState(setupDone = false)
+    fun factoryState() = ShellState(setupDone = false, setupStep = Setup.Step.LOGO)
 
     /** What every animation duration of the shell is multiplied by. */
     fun animationScale(s: ShellState): Float = when (s.animationSpeed) {
@@ -337,6 +346,9 @@ object Shell {
         ShellAction.CloseCamera -> s.copy(cameraOpen = false)
         is ShellAction.SetCastVisible -> s.copy(castVisible = a.on)
         is ShellAction.SetPhoneRegion -> if (PhoneFormat.callingCode(a.region) != null) s.copy(phoneRegion = a.region) else s
+        is ShellAction.SetupNext -> Setup.next(s.setupStep, a.wifi, a.updateAvailable)?.let { s.copy(setupStep = it) } ?: s.copy(setupDone = true)
+        ShellAction.SetupBack -> s.copy(setupStep = Setup.back(s.setupStep))
+        is ShellAction.SetCarName -> Setup.carName(a.name)?.let { s.copy(carName = it) } ?: s
         is ShellAction.CastChanged -> when {
             a.state == CarEvent.PhoneCast.State.LIVE -> reduce(s, ShellAction.OpenApp(App.PHONE_SCREEN))
             a.state == CarEvent.PhoneCast.State.CONNECTING -> s
@@ -388,6 +400,7 @@ object Shell {
         // the call level is for this drive only
         dsp = s.dsp.copy(callVolume = Sound.CALL_VOLUME_DEFAULT),
         camera = s.camera, castVisible = s.castVisible, design = s.design, phoneRegion = s.phoneRegion,
+        setupStep = s.setupStep, carName = s.carName,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))
