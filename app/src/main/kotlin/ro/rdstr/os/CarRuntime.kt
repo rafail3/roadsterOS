@@ -229,6 +229,9 @@ object CarRuntime {
         castVisibility()
     }
 
+    /** A car event from the adb test commands (ServiceReceiver), through the same rules as the bus's. */
+    fun injectEvent(event: CarEvent) { scope.launch { onEvent(event) } }
+
     /** Every car event, from the bus or from our own receivers, goes through the rules here. */
     @Synchronized private fun onEvent(event: CarEvent) {
         val wasLive = _ui.value.state.cast == CarEvent.PhoneCast.State.LIVE

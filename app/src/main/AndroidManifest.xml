@@ -69,11 +69,15 @@
 
         <receiver android:name=".setup.Updates$Installed" android:exported="false" />
 
-        <receiver android:name=".ServiceReceiver" android:exported="true">
+        <!-- adb only: the shell holds DUMP, other apps cannot -->
+        <receiver android:name=".ServiceReceiver" android:exported="true" android:permission="android.permission.DUMP">
             <intent-filter>
                 <action android:name="ro.rdstr.SERVICE" />
                 <action android:name="ro.rdstr.PREPARE" />
                 <action android:name="ro.rdstr.UPDATE" />
+                <action android:name="ro.rdstr.SHELL" />
+                <action android:name="ro.rdstr.EVENT" />
+                <action android:name="ro.rdstr.COMMAND" />
             </intent-filter>
         </receiver>
 
