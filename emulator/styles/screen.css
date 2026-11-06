@@ -382,6 +382,31 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 .setup-start:active { background: #0060df; }
 /* the boot and start screens: a 1024x600 canvas, drawn 1:1 on the unit's pixels (the screen is zoomed by --unit-scale) */
 .boot { position: absolute; inset: 0; z-index: 8; display: block; padding: 0; border: 0; background: #07080a; cursor: pointer; }
+/* About's picture of the unit: the frame as the unit's own (piano-black, bevelled edge, one diagonal reflection), scaled down */
+.about-hero { display: flex; align-items: center; justify-content: flex-end; gap: 28px; margin: 0 0 20px; }
+.unit-mini { position: relative; flex: none; }
+.unit-mini-bezel {
+  position: absolute; left: 0; top: 0; isolation: isolate; width: 1154px; height: 676px; padding: 36px 30px 40px 100px; border-radius: 22px; transform-origin: 0 0;
+  background: linear-gradient(180deg, #0b0c0d, #040405 55%, #020203);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(255, 255, 255, 0.06), inset 1px 0 0 rgba(255, 255, 255, 0.06), inset -1px 0 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.9), 0 6px 14px rgba(0, 0, 0, 0.45);
+}
+.unit-mini-bezel::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  background: linear-gradient(112deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.05) 18%, transparent 34%, transparent 72%, rgba(255, 255, 255, 0.035) 84%, transparent 92%),
+    radial-gradient(60% 40% at 20% 0%, rgba(255, 255, 255, 0.07), transparent 70%);
+}
+.unit-mini-keys { position: absolute; left: 0; top: 36px; width: 100px; height: 600px; color: rgba(235, 238, 242, 0.86); }
+.unit-mini-pin { position: absolute; left: 30px; top: 0; display: flex; align-items: center; gap: 7px; font: 600 10px/1 var(--font); letter-spacing: 0.04em; color: rgba(235, 238, 242, 0.62); }
+.unit-mini-pin.is-rst { top: 34px; }
+.unit-mini-pin i { width: 7px; height: 7px; border-radius: 50%; background: #000; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.12); }
+.unit-mini-key { position: absolute; left: 18px; width: 64px; height: 64px; display: grid; place-items: center; }
+.unit-mini-key:nth-of-type(3) { top: 84px; } .unit-mini-key:nth-of-type(4) { top: 184px; } .unit-mini-key:nth-of-type(5) { top: 284px; }
+.unit-mini-key:nth-of-type(6) { top: 384px; } .unit-mini-key:nth-of-type(7) { top: 484px; }
+.unit-mini-key .icon { width: 30px; height: 30px; }
+.unit-mini-key:has(.unit-mini-sign) .icon { margin-left: -8px; }
+.unit-mini-sign { position: absolute; right: 12px; top: 50%; transform: translateY(-54%); font: 500 20px/1 var(--font); }
+.unit-mini-screen { display: block; width: 1024px; height: 600px; border-radius: 3px; box-shadow: 0 0 0 1px #000, 0 0 0 2px rgba(255, 255, 255, 0.05); }
 .boot-canvas { display: block; width: var(--canvas-w); height: var(--canvas-h); image-rendering: pixelated; }
 
 /* the setup screens: home's dark glass and type under the boot screen's tube, amber as the one accent */

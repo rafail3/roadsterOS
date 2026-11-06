@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { bridge, type AnimationSpeed, type Design, type AodFace, type CameraSettings, type FaceMode, type Guidelines, type ReverseDip, type ThemeMode, type TimeSource } from "../car/bridge";
 import { allTimeZones, carCommand, factoryReset, setCamera, setCastVisible, setSound, openAndroidSettings, askRestart, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
+import { UnitPicture } from "./UnitPicture";
 import { Keyboard } from "./Keyboard";
 import { PillSlider } from "./Drawer";
 import { useCloseOntoCard } from "./media";
@@ -569,6 +570,7 @@ function HomeScreen({ e }: { e: EmulatorState }) {
 function About({ e }: { e: EmulatorState }) {
   const [confirm, setConfirm] = useState(false);
   return (<>
+    <UnitPicture />
     <Group>
       <Row label="Car" value={e.shell.carName || "Not named"} />
       <Row label="roadsterOS" value={VERSION} />
