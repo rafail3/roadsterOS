@@ -222,6 +222,7 @@ export type ShellAction =
   | { type: "SetPhoneRegion"; region: string }
   | { type: "SetupNext"; wifi?: boolean; updateAvailable?: boolean }
   | { type: "SetupBack" | "RestartSetup" }
+  | { type: "SetupStepDone"; step: SetupStep }
   | { type: "SetBtAutoConnect"; on: boolean }
   | { type: "OpenSettingsPage"; page: string }
   | { type: "RadioSwitched"; radio: "BLUETOOTH" | "WIFI"; on: boolean }
