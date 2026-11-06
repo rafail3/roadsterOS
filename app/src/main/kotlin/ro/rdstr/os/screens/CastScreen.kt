@@ -23,8 +23,7 @@ class CastScreen(activity: Activity) : Screen {
     override fun bind(scope: CoroutineScope) {
         scope.launch {
             combine(CarRuntime.shell, CarRuntime.ui) { s, ui -> s to ui }.collect { (s, ui) ->
-                // ponytail: the sharing phone's name is not kept in the unit's state yet
-                view.bind(s.app == App.PHONE_SCREEN, ui.state.cast, s.castVisible, device = "")
+                view.bind(s.app == App.PHONE_SCREEN, ui.state.cast, s.castVisible, device = ui.castDevice)
             }
         }
     }

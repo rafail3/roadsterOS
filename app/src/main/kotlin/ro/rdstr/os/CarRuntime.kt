@@ -52,6 +52,8 @@ data class UiState(
     val lastEvent: String = "",
     /** The phone's battery, signal and network over the hands-free link; null until the phone sends them. */
     val phoneStatus: CarEvent.PhoneStatus? = null,
+    /** The phone sharing its screen, as the last screen-casting event names it. */
+    val castDevice: String = "",
     /** Where the call is heard; back to the car for every new call. */
     val callInCar: Boolean = true,
     val contacts: List<Contact> = emptyList(),
@@ -90,7 +92,8 @@ data class UiState(
     val maps: MapsState = MapsState(),
 ) {
     fun reduce(state: RulesState, actions: List<Action>, event: CarEvent, now: Long = System.currentTimeMillis()): UiState {
-        var ui = copy(state = state, lastEvent = event.toString(), track = event as? CarEvent.Track ?: track)
+        var ui = copy(state = state, lastEvent = event.toString(), track = event as? CarEvent.Track ?: track,
+            castDevice = (event as? CarEvent.PhoneCast)?.device ?: castDevice)
         for (a in actions) ui = when (a) {
             Action.ShowCamera -> ui.copy(camera = true)
             Action.HideCamera -> ui.copy(camera = false)
