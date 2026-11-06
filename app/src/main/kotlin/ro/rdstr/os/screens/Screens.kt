@@ -27,6 +27,7 @@ object Screens {
         Layer.PANEL to ::HomeCardScreen,
         Layer.CLOCK to ::ClockScreen,
         Layer.AOD_DIAL to ::AodDialScreen,
+        Layer.MAPS to ::MapsScreen,
         Layer.RECENTS to ::RecentsScreen,
         Layer.GESTURES to ::GesturesScreen,
         Layer.VOLUME to ::VolumeScreen,

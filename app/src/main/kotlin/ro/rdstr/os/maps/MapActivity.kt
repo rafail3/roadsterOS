@@ -96,7 +96,7 @@ class MapActivity : Activity(), LocationListener {
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return
         val lm = getSystemService(LOCATION_SERVICE) as LocationManager
         lm.getLastKnownLocation(LocationManager.GPS_PROVIDER)?.let { view.setCar(it.longitude, it.latitude, null, driving = false) }
-        lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, GPS_EVERY_MS, 0f, this)
+        lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, MapView.GPS_EVERY_MS, 0f, this)
     }
 
     override fun onLocationChanged(l: Location) {
@@ -160,7 +160,6 @@ class MapActivity : Activity(), LocationListener {
     }
 
     private companion object {
-        const val GPS_EVERY_MS = 500L
         const val MOVING_MPS = 1.5f
         const val DEMO_KMH = 50.0
         const val DEMO_TICK_MS = 33L
