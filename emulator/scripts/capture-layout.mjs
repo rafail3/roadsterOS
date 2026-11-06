@@ -65,6 +65,23 @@ const SCENES = [
   ...looks.map(([theme, design]) => ({ name: `settings-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=settings` })),
   // the status bar's Wi-Fi bars, connected to the strongest network (level 3)
   ...looks.map(([theme, design]) => ({ name: `wifibars-${theme}-${design}`, query: `theme=${theme}&design=${design}`, root: "bar/bar-group:1/span/wifi-bars.bar-wifi" })),
+  // --- sound window (core-ui SoundParity.kt): the section list and each section's own parts; `clicks` pick the section and the state
+  ...looks.flatMap(([theme, design]) => {
+    const S = "music-app.settings-app.sound-app";
+    const nav = (n) => `.sound-app .set-nav li:nth-child(${n}) button`;
+    const rock = ".sound-app .snd-presets >> text=Rock";
+    return [
+      { name: "nav", root: `${S}/set-nav`, clicks: [] },
+      { name: "curve", root: `${S}/set-detail/snd-eq/snd-curve`, clicks: [rock] },
+      { name: "bands", root: `${S}/set-detail/snd-eq/snd-bands`, clicks: [rock] },
+      { name: "balance", root: `${S}/set-detail`, clicks: [nav(2)] },
+      { name: "field", root: `${S}/set-detail/snd-stage`, clicks: [nav(3), '.snd-seat-hit[aria-label="Front Left"]'] },
+      { name: "loudness", root: `${S}/set-detail/set-group:1`, clicks: [nav(4)] },
+      { name: "bass", root: `${S}/set-detail/set-group:1`, clicks: [nav(5)] },
+      { name: "filters", root: `${S}/set-detail/set-group:0/set-rows/snd-response`, clicks: [nav(6), '[aria-label="Front Speakers high-pass"]', ...Array(3).fill('[aria-label="Raise Front Speakers high-pass frequency"]')] },
+    ].map((x) => ({ ...x, name: `sound-${x.name}-${theme}-${design}`, query: `theme=${theme}&design=${design}&sound` }));
+  }),
+  // --- end of the sound window
   // --- shell (Screen.tsx and its home): the open apps, the connection notice, the status bar, the dock, the card
   ...looks.map(([theme, design]) => ({ name: `recents-${theme}-${design}`, query: `theme=${theme}&design=${design}&recents=maps,radio,settings`, root: "recents" })),
   ...looks.map(([theme, design]) => ({ name: `notice-${theme}-${design}`, query: `theme=${theme}&design=${design}&notice=bt`, root: "notice" })),
@@ -197,6 +214,7 @@ for (const scene of SCENES.filter((s) => !wanted || wanted.includes(s.name))) {
   page.on("pageerror", (e) => console.error(`${scene.name}: page error: ${e.message}`));
   await page.goto(url, { waitUntil: "networkidle" });
   await page.waitForSelector(".screen");
+  for (const selector of scene.clicks ?? []) await page.click(selector);
   // the dev server's own badge sits over the page, outside the screen
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   await page.evaluate(() => document.fonts.ready);

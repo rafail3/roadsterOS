@@ -18,9 +18,9 @@ import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.widget.LinearLayout
 import ro.rdstr.ui.Mirrors
+import ro.rdstr.ui.uiKey
 import ro.rdstr.ui.tokens.Shadow
 import ro.rdstr.ui.tokens.Icons
-import ro.rdstr.ui.uiKey
 
 /**
  * controls.tsx `holdToRepeat`: a press sends once at once, again after 270 ms and then every 210 ms while the finger
@@ -178,9 +178,9 @@ internal class Gap(private val px: Int) : Drawable() {
  */
 class SettingsGroup(context: Context) : LinearLayout(context) {
     private val d = resources.displayMetrics.density
-    private val titleView = KitText(context, TextStyle(15f, 600)).apply { visibility = GONE }
-    private val footerView = KitText(context, TextStyle(15f, 400, lineHeight = 1.45f)).apply { visibility = GONE }
-    val rows = SettingsRows(context)
+    private val titleView = KitText(context, TextStyle(15f, 600)).apply { visibility = GONE; uiKey = "set-group-title" }
+    private val footerView = KitText(context, TextStyle(15f, 400, lineHeight = 1.45f)).apply { visibility = GONE; uiKey = "set-footer" }
+    val rows = SettingsRows(context).apply { uiKey = "set-rows" }
     private val drop = CssBox().apply { radius = 18f }
 
     var title: CharSequence? = null; set(v) { field = v; titleView.text = v; titleView.visibility = if (v == null) GONE else VISIBLE }
@@ -188,9 +188,6 @@ class SettingsGroup(context: Context) : LinearLayout(context) {
 
     init {
         uiKey = "set-group"
-        titleView.uiKey = "set-group-title"
-        footerView.uiKey = "set-footer"
-        rows.uiKey = "set-rows"
         orientation = VERTICAL
         dividerDrawable = Gap((8 * d + 0.5f).toInt())
         showDividers = SHOW_DIVIDER_MIDDLE
@@ -261,9 +258,9 @@ class SettingsRows(context: Context) : LinearLayout(context) {
 @SuppressLint("ViewConstructor")
 class SettingsRow(context: Context, label: CharSequence = "", slider: Boolean = false) : LinearLayout(context) {
     private val d = resources.displayMetrics.density
-    val label = KitText(context, TextStyle(19f, 500)).apply { text = label; maxLines = 1; ellipsize = TextUtils.TruncateAt.END }
-    private val valueView = KitText(context, TextStyle(18f)).apply { maxLines = 1; ellipsize = TextUtils.TruncateAt.END; visibility = GONE }
-    private val chevron = IconView(context, Icons.CARET_RIGHT, 20f).apply { visibility = GONE }
+    val label = KitText(context, TextStyle(19f, 500)).apply { text = label; maxLines = 1; ellipsize = TextUtils.TruncateAt.END; uiKey = "set-row-label" }
+    private val valueView = KitText(context, TextStyle(18f)).apply { maxLines = 1; ellipsize = TextUtils.TruncateAt.END; visibility = GONE; uiKey = "set-row-value" }
+    private val chevron = IconView(context, Icons.CARET_RIGHT, 20f).apply { visibility = GONE; uiKey = "icon.i-caret-right.set-chevron" }
     private val paint = Paint()
     private val press = ColorTransition(0)
     private val controls = ArrayList<View>()
@@ -274,9 +271,6 @@ class SettingsRow(context: Context, label: CharSequence = "", slider: Boolean = 
 
     init {
         uiKey = "set-row"
-        this.label.uiKey = "set-row-label"
-        valueView.uiKey = "set-row-value"
-        chevron.uiKey = "icon.i-caret-right.set-chevron"
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         minimumHeight = ((if (slider) 80 else 68) * d + 0.5f).toInt()
@@ -328,13 +322,19 @@ class SettingsRow(context: Context, label: CharSequence = "", slider: Boolean = 
         val now = Motion.now()
         val bg = press.value(now)
         if (CssColor.alpha(bg) > 0) { paint.color = bg; canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint) }
-        // .set-row + .set-row { box-shadow: inset 0 1px 0 var(--set-line) }
-        if (((parent as? ViewGroup)?.indexOfChild(this) ?: 0) > 0) {
+        // .set-row + .set-row { box-shadow: inset 0 1px 0 var(--set-line) }: only right after another row
+        if (afterRow()) {
             paint.color = UiTheme.settings.setLine
             canvas.drawRect(0f, 0f, width.toFloat(), d, paint)
         }
         super.onDraw(canvas)
         if (press.running(now)) postInvalidateOnAnimation()
+    }
+
+    private fun afterRow(): Boolean {
+        val p = parent as? ViewGroup ?: return false
+        for (i in p.indexOfChild(this) - 1 downTo 0) p.getChildAt(i).let { if (it.visibility != GONE) return it is SettingsRow }
+        return false
     }
 
     private companion object {
