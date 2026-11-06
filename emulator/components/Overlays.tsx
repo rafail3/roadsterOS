@@ -95,7 +95,7 @@ export function CallOverlay({ emulator }: { emulator: EmulatorState }) {
           ) : tones !== null ? (
             <div className="call-tones">
               <output className="call-tones-typed" aria-label="Tones sent">{tones}</output>
-              <div className="pad-grid is-compact">{TONE_KEYS.map(([d, l]) => <PadKey key={d} digit={d} letters={l} onPress={press} />)}</div>
+              <div className="pad-grid is-compact">{TONE_KEYS.map(([d, l]) => <PadKey key={d} digit={d} letters={l} onPress={press} plus={false} />)}</div>
             </div>
           ) : (
             <div className="call-controls">
