@@ -11,8 +11,8 @@ export const CAR_SEATS: { id: ListeningSeat; x: number; y: number; w: number; h:
   { id: "REAR_LEFT", x: 172, y: 464, w: 54, h: 80 },
   { id: "REAR_RIGHT", x: 234, y: 464, w: 54, h: 80 },
 ];
-/** A speaker by each door, just outside the body, so the four read at a glance. */
-export const CAR_SPEAKERS = [[24, 382], [435, 382], [24, 512], [435, 512]];
+/** A speaker in each door, on the body by the window. */
+export const CAR_SPEAKERS = [[100, 382], [359, 382], [100, 512], [359, 512]];
 
 /** How loud each speaker plays for a balance and fader (−7..7 each): 1 in the centre, down towards 0 away from it. */
 export function speakerLevels(balance: number, fader: number): number[] {
@@ -22,7 +22,7 @@ export function speakerLevels(balance: number, fader: number): number[] {
 }
 
 /** The speaker picture (images/speaker.webp, 160x170, its cone facing right). */
-const SPEAKER = { w: 62, h: 66 };
+const SPEAKER = { w: 54, h: 57 };
 
 /** A speaker turned towards the cabin, with sound waves as loud as it plays. */
 function Speaker({ cx, cy, level, side }: { cx: number; cy: number; level: number; side: 1 | -1 }) {
@@ -36,8 +36,8 @@ function Speaker({ cx, cy, level, side }: { cx: number; cy: number; level: numbe
       {/* the picture faces right: the left side's speakers as they are, the right side's mirrored */}
       <image href="/images/speaker.webp" x={-SPEAKER.w / 2} y={-SPEAKER.h / 2} width={SPEAKER.w} height={SPEAKER.h}
         transform={`translate(${cx} ${cy}) scale(${side} 1)`} />
-      {level > 0.02 && <path d={wave(40)} className="spk-wave" style={{ opacity: level }} />}
-      {level > 0.5 && <path d={wave(50)} className="spk-wave" style={{ opacity: (level - 0.5) * 2 }} />}
+      {level > 0.02 && <path d={wave(34)} className="spk-wave" style={{ opacity: level }} />}
+      {level > 0.5 && <path d={wave(43)} className="spk-wave" style={{ opacity: (level - 0.5) * 2 }} />}
     </g>
   );
 }
