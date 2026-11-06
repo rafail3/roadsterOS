@@ -165,15 +165,19 @@ function WifiScreen({ next }: { next: () => void }) {
   const [joining, setJoining] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [typing, setTyping] = useState(false);
+  const [reveal, setReveal] = useState(false);
   useEffect(() => {
     if (!wifiOn || !locationOn) return;
     wifiScan();
     const timer = setInterval(wifiScan, 10000);
     return () => clearInterval(timer);
   }, [wifiOn, locationOn]);
-  useEffect(() => { setPassword(""); setTyping(false); }, [joining]);
+  useEffect(() => { setPassword(""); setTyping(false); setReveal(false); }, [joining]);
   useEffect(() => { if (joining && wifi.connected === joining) setJoining(null); }, [joining, wifi.connected]);
-  const seen = WIFI_NETWORKS.filter((n) => wifi.seen.includes(n.ssid) || wifi.connected === n.ssid);
+  // the joined network first, then the saved ones, then the strongest
+  const rank = (n: WifiNetwork) => (wifi.connected === n.ssid ? 0 : wifi.saved.includes(n.ssid) ? 1 : 2);
+  const seen = WIFI_NETWORKS.filter((n) => wifi.seen.includes(n.ssid) || wifi.connected === n.ssid)
+    .sort((a, b) => rank(a) - rank(b) || b.signal - a.signal);
   const pick = (n: WifiNetwork) => (n.secure && !wifi.saved.includes(n.ssid) ? setJoining(n.ssid) : wifiConnect(n.ssid));
   const status = (n: WifiNetwork) => wifi.connected === n.ssid ? "Connected" : wifi.connecting === n.ssid ? "Connecting…" : n.secure ? "Secured" : "Open";
   const connected = wifi.connected !== null;
@@ -184,10 +188,15 @@ function WifiScreen({ next }: { next: () => void }) {
       <Frame step="WIFI" title={joining} text={wifi.wrongPassword === joining ? "Incorrect password. Try again." : "Enter the password, at least 8 characters."}
         next={send} nextLabel={wifi.connecting === joining ? "Connecting…" : "Join"} canNext={password.length >= 8 && wifi.connecting !== joining} back={false}
         extra={<button className="sf-button" onClick={() => setJoining(null)}>Cancel</button>}>
-        <button className={`sf-field${typing ? " is-typing" : ""}`} aria-label="Password" onClick={() => setTyping(true)}>
-          <span className="sf-value">{"•".repeat(password.length)}</span>
-          {typing && <span className="sf-cursor" aria-hidden="true" />}
-        </button>
+        <div className="sf-field-wrap">
+          <button className={`sf-field${typing ? " is-typing" : ""}`} aria-label="Password" onClick={() => setTyping(true)}>
+            <span className="sf-value">{reveal ? password : "•".repeat(password.length)}</span>
+            {typing && <span className="sf-cursor" aria-hidden="true" />}
+          </button>
+          <button className="sf-reveal" aria-label={reveal ? "Hide the password" : "Show the password"} aria-pressed={reveal} onClick={() => setReveal(!reveal)}>
+            <span className={`icon ${reveal ? "i-eye-slash" : "i-eye"}`} aria-hidden="true" />
+          </button>
+        </div>
         <Keyboard open={typing} onKey={(c) => setPassword((p) => p + c)} onBackspace={() => setPassword((p) => p.slice(0, -1))}
           onSubmit={() => { setTyping(false); send(); }} submitLabel="Join" submitEnabled={password.length >= 8} />
       </Frame>
@@ -204,8 +213,12 @@ function WifiScreen({ next }: { next: () => void }) {
         <ul className="sf-list sf-networks" aria-live="polite">
           {seen.map((n) => (
             <li key={n.ssid}>
-              <button className={`sf-row${wifi.connected === n.ssid ? " is-done" : ""}`} disabled={wifi.connecting !== null} onClick={() => pick(n)}>
-                <span className="sf-row-text"><span className="sf-row-name">{n.ssid}</span><span className="sf-row-detail">{status(n)}</span></span>
+              <button className={`sf-row${wifi.connected === n.ssid ? " is-connected" : ""}`} disabled={wifi.connecting !== null} onClick={() => pick(n)}
+                aria-current={wifi.connected === n.ssid ? "true" : undefined}>
+                <span className="sf-row-text">
+                  <span className="sf-row-name">{n.ssid}</span>
+                  <span className="sf-row-detail">{wifi.connected === n.ssid && <span className="icon i-check" aria-hidden="true" />}{status(n)}</span>
+                </span>
                 <span className="sf-signal">{n.secure && <span className="icon i-lock" aria-label="Secured" />}<WifiBars level={n.signal} /></span>
               </button>
             </li>
@@ -308,6 +321,8 @@ const THEMES: { id: ThemeMode; label: string }[] = [{ id: "AUTO", label: "Auto" 
 /** The look: Solid or Glassy, and the theme; both apply at once and stay changeable in Settings. */
 function LookScreen({ next }: { next: () => void }) {
   const { shell } = useEmulator();
+  // the Glassy controls load the first time Glassy is chosen; fetched ahead here, the first switch is not held up
+  useEffect(() => { void import("glisse"); }, []);
   return (
     <Frame step="LOOK" title="Choose the look" text="Auto follows the headlights: dark at night, light by day." next={next}>
       <div className="sf-looks" role="radiogroup" aria-label="Design">
