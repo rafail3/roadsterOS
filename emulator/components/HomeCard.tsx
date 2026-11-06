@@ -10,7 +10,7 @@ import { FreqCounter, useGlidingKhz } from "./RadioApp";
 /** A swipe longer than this share of the card, or quicker than this, turns the page. */
 const TURN_SHARE = 0.18;
 const TURN_PX_PER_MS = 0.45;
-/** Pixels a finger moves before the card knows the swipe is sideways. */
+/** Canvas pixels a finger moves before the card knows the swipe is sideways. */
 const INTENT_PX = 8;
 /** Past the first or last page the card gives only this share of the finger's way. */
 const EDGE_GIVE = 0.3;
@@ -115,12 +115,12 @@ export function HomeCard({ emulator, card }: { emulator: EmulatorState; card: Ca
     const move = (e: PointerEvent) => {
       const s = swipe.current;
       if (!s) return;
-      const dx = e.clientX - s.x;
-      const dy = e.clientY - s.y;
-      if (s.sideways === null && Math.hypot(dx, dy) > INTENT_PX) s.sideways = Math.abs(dx) > Math.abs(dy);
-      if (!s.sideways) return;
       // the screen is drawn scaled; the finger's way is measured in the card's own pixels
       const scale = box.current ? box.current.getBoundingClientRect().width / box.current.offsetWidth || 1 : 1;
+      const dx = e.clientX - s.x;
+      const dy = e.clientY - s.y;
+      if (s.sideways === null && Math.hypot(dx, dy) / scale > INTENT_PX) s.sideways = Math.abs(dx) > Math.abs(dy);
+      if (!s.sideways) return;
       const atEdge = (dx > 0 && index === 0) || (dx < 0 && index === pages.length - 1);
       s.dx = dx / scale;
       setDrag(atEdge ? s.dx * EDGE_GIVE : s.dx);

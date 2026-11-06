@@ -9,7 +9,7 @@
 .settings-app {
   --ink: #fff; --ink-muted: rgba(235, 235, 245, 0.64); --sheet: #0f1216;
   --glass: rgb(var(--on) / 0.08); --hairline: rgb(var(--on) / 0.1); --hairline-strong: rgb(var(--on) / 0.2);
-  --set-group: rgb(var(--on) / 0.07); --set-line: rgb(var(--on) / 0.08); --set-blue: #0a84ff;
+  --set-group: rgb(var(--on) / 0.07); --set-line: rgb(var(--on) / 0.08);
   /* the selected section: a deeper blue, so its white text and value keep 4.5:1 */
   --set-current: #0060df;
   grid-template-columns: 340px minmax(0, 1fr); column-gap: 48px; align-items: stretch;
@@ -19,8 +19,11 @@
 .screen.light .settings-app {
   --ink: #171c23; --ink-muted: rgba(60, 60, 67, 0.62); --sheet: #eef1f5;
   --glass: rgb(20 28 38 / 0.05); --hairline: rgb(20 28 38 / 0.1); --hairline-strong: rgb(20 28 38 / 0.18);
-  --set-group: #ffffff; --set-line: rgb(20 28 38 / 0.08); --set-blue: #0a6cdc; --set-current: #0a6cdc;
+  --set-group: #ffffff; --set-line: rgb(20 28 38 / 0.08); --set-current: #0a6cdc;
 }
+/* the blue of links and back buttons, also in the Wi-Fi sheet, which shows the same networks pages outside Settings */
+.settings-app, .networks { --set-blue: #0a84ff; }
+.screen.light .settings-app, .screen.light .networks { --set-blue: #0a6cdc; }
 .settings-app :is(button, [role="slider"]):focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 /* left: the sections */

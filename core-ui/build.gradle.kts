@@ -15,7 +15,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":core-car"))
+    api(project(":core-car"))
     testImplementation(libs.junit)
 }
 
