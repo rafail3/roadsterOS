@@ -48,7 +48,7 @@ export function PhoneScreenApp({ open }: { open: boolean }) {
           {!shell.castVisible && <button className="cast-action" onClick={() => setCastVisible(true)}>Make Visible</button>}
         </div>
       )}
-      <button className={`glass-button cast-close${live && !controls ? " is-faded" : ""}`} aria-label="Close phone screen" onClick={() => shellAction({ type: "Home" })}>
+      <button className={`glass-button cast-close${live && !controls ? " is-faded" : ""}`} inert={live && !controls} aria-label="Close phone screen" onClick={() => shellAction({ type: "Home" })}>
         <span className="icon i-caret-down" aria-hidden="true" />
       </button>
     </section>
