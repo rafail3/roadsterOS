@@ -58,6 +58,14 @@ class PhoneFormatTest {
     }
 
     @Test
+    fun `the number country is Romania first, an unknown one is ignored, the choice is kept across starts`() {
+        assertEquals("RO", ShellState().phoneRegion)
+        val hu = Shell.reduce(ShellState(), ShellAction.SetPhoneRegion("HU"))
+        assertEquals("HU", Shell.decodePreferences(Shell.encodePreferences(hu)).phoneRegion)
+        assertEquals("HU", Shell.reduce(hu, ShellAction.SetPhoneRegion("XX")).phoneRegion)
+    }
+
+    @Test
     fun `every region of the table can be chosen`() {
         assertTrue(PhoneFormat.regions().containsAll(listOf("RO", "US", "GB", "DE", "HU", "MD")))
         assertEquals(40, PhoneFormat.callingCode("RO"))

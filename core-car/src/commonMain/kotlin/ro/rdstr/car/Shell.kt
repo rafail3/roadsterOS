@@ -96,6 +96,8 @@ data class ShellState(
     val cameraOpen: Boolean = false,
     /** Phones find the unit in their screen-sharing list (Smart View, Miracast) while the car is on. */
     val castVisible: Boolean = true,
+    /** The country whose grouping numbers typed without + follow on screen (PhoneFormat); dialling is unchanged. */
+    val phoneRegion: String = "RO",
     /** Every car event is written to a file on the unit, for troubleshooting. */
     val recordEvents: Boolean = false,
 )
@@ -174,6 +176,7 @@ sealed class ShellAction {
     @Serializable @SerialName("SetCamera") data class SetCamera(val settings: CameraSettings) : ShellAction()
     @Serializable @SerialName("OpenCamera") data object OpenCamera : ShellAction()
     @Serializable @SerialName("SetCastVisible") data class SetCastVisible(val on: Boolean) : ShellAction()
+    @Serializable @SerialName("SetPhoneRegion") data class SetPhoneRegion(val region: String) : ShellAction()
     /** Sent when the picture starts or stops: the app opens over everything, and leaves to home when it stops. */
     @Serializable @SerialName("CastChanged") data class CastChanged(val state: CarEvent.PhoneCast.State) : ShellAction()
     /** Also sent at each change of reverse gear. */
@@ -328,6 +331,7 @@ object Shell {
         ShellAction.OpenCamera -> s.copy(cameraOpen = true, drawer = false, recents = false)
         ShellAction.CloseCamera -> s.copy(cameraOpen = false)
         is ShellAction.SetCastVisible -> s.copy(castVisible = a.on)
+        is ShellAction.SetPhoneRegion -> if (PhoneFormat.callingCode(a.region) != null) s.copy(phoneRegion = a.region) else s
         is ShellAction.CastChanged -> when {
             a.state == CarEvent.PhoneCast.State.LIVE -> reduce(s, ShellAction.OpenApp(App.PHONE_SCREEN))
             a.state == CarEvent.PhoneCast.State.CONNECTING -> s
@@ -378,7 +382,7 @@ object Shell {
         animationSpeed = s.animationSpeed, setupDone = s.setupDone,
         // the call level is for this drive only
         dsp = s.dsp.copy(callVolume = Sound.CALL_VOLUME_DEFAULT),
-        camera = s.camera, castVisible = s.castVisible,
+        camera = s.camera, castVisible = s.castVisible, phoneRegion = s.phoneRegion,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))

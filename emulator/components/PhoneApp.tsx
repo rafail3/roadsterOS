@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { bridge, type CallType, type Contact } from "../car/bridge";
-import { carCommand, markRead, openThread, shellAction, turnOnBluetooth, useEmulator, useNow, type EmulatorState } from "../car/store";
+import { carCommand, formatNumber, markRead, openThread, shellAction, turnOnBluetooth, useEmulator, useNow, type EmulatorState } from "../car/store";
 import { holdToRepeat } from "./controls";
 import { useCloseOntoCard } from "./media";
 import { Keyboard } from "./Keyboard";
@@ -77,8 +77,8 @@ function Recents({ emulator }: { emulator: EmulatorState }) {
           <button className={`phone-row${r.type === "MISSED" ? " is-missed" : ""}`} aria-label={`Call ${r.name || r.number}, ${TYPE_LABEL[r.type]}${r.count > 1 ? `, ${r.count} calls` : ""}, ${when(r.atMs, now)}`} onClick={() => dial(r.number)}>
             <span className={`icon phone-row-type ${TYPE_ICON[r.type]}`} aria-hidden="true" />
             <span className="phone-row-text">
-              <span className="phone-row-name">{r.name || r.number}{r.count > 1 && <span className="phone-row-count"> ({r.count})</span>}</span>
-              <span className="phone-row-sub">{r.name ? r.label || r.number : TYPE_LABEL[r.type]}</span>
+              <span className="phone-row-name">{r.name || formatNumber(r.number)}{r.count > 1 && <span className="phone-row-count"> ({r.count})</span>}</span>
+              <span className="phone-row-sub">{r.name ? r.label || formatNumber(r.number) : TYPE_LABEL[r.type]}</span>
             </span>
             <span className="phone-row-when">{when(r.atMs, now)}</span>
           </button>
@@ -114,7 +114,7 @@ export function Contacts({ emulator, onDialed, search }: { emulator: EmulatorSta
         <button key={n.number} className="phone-number" aria-label={`Call ${c.name}, ${n.label || n.number}`} onClick={() => call(n.number)}>
           <span className="icon i-phone-fill" aria-hidden="true" />
           <span className="phone-row-sub">{n.label}</span>
-          <span className="phone-number-digits">{n.number}</span>
+          <span className="phone-number-digits">{formatNumber(n.number)}</span>
         </button>
       ))}
     </div>
@@ -181,7 +181,7 @@ function Keypad({ emulator }: { emulator: EmulatorState }) {
   return (
     <div className="phone-pad">
       <div className="phone-typed" aria-live="polite">
-        <output className="phone-typed-number" aria-label="Number">{typed}</output>
+        <output className="phone-typed-number" aria-label="Number">{formatNumber(typed)}</output>
         <span className="phone-typed-match">{match && `${match.name}${match.label ? ` · ${match.label}` : ""}`}</span>
       </div>
       <div className="pad-grid">
@@ -235,7 +235,7 @@ function Messages({ emulator, compose }: { emulator: EmulatorState; compose: Com
             <button className="phone-row" onClick={() => openThread(t.messages[t.messages.length - 1].number)} aria-label={`${t.name || t.number}${t.unread ? `, ${t.unread} unread` : ""}`}>
               <span className="phone-avatar" aria-hidden="true">{bridge.initials(t.name) || <span className="icon i-user" />}</span>
               <span className="phone-row-text">
-                <span className="phone-row-name">{t.name || t.number}</span>
+                <span className="phone-row-name">{t.name || formatNumber(t.number)}</span>
                 <span className="phone-row-sub phone-row-preview">{speed.stopped ? t.last : "Stop the car to read"}</span>
               </span>
               <span className="phone-row-when">{when(t.atMs, now)}</span>
@@ -253,7 +253,7 @@ function Messages({ emulator, compose }: { emulator: EmulatorState; compose: Com
     <div className="phone-thread">
       <header className="phone-thread-head">
         <button className="pad-side" aria-label="All messages" onClick={() => openThread(null)}><span className="icon i-caret-left" aria-hidden="true" /></button>
-        <span className="phone-row-name">{open.name || open.number}</span>
+        <span className="phone-row-name">{open.name || formatNumber(open.number)}</span>
         <button className="call-key is-accept is-small" aria-label={`Call ${open.name || open.number}`} onClick={() => dial(to)}><span className="icon i-call-accept" aria-hidden="true" /></button>
       </header>
       <div className="phone-chat">

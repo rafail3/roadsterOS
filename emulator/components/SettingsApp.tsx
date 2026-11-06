@@ -370,9 +370,58 @@ function ReverseCamera({ e }: { e: EmulatorState }) {
   </>);
 }
 
+/** The country names as the screen writes them; the unit takes them from Android's locale. */
+const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
+const regionName = (code: string) => { try { return regionNames.of(code) ?? code; } catch { return code; } };
+
+/** The countries to group numbers by, searchable by name, code or calling code ("+40"). */
+function RegionPicker({ e, onDone }: { e: EmulatorState; onDone: () => void }) {
+  const [query, setQuery] = useState("");
+  const [typing, setTyping] = useState(false);
+  const regions = useMemo(() => bridge.phoneRegions()
+    .map((id) => ({ id, name: regionName(id), code: bridge.phoneCallingCode(id) }))
+    .sort((a, b) => a.name.localeCompare(b.name)), []);
+  const q = query.trim().toLowerCase().replace(/^\+/, "");
+  const shown = q ? regions.filter((r) => r.name.toLowerCase().includes(q) || r.id.toLowerCase() === q || String(r.code).startsWith(q)) : regions;
+  const pick = (region: string) => { shellAction({ type: "SetPhoneRegion", region }); onDone(); };
+  return (<>
+    <div className={`set-zones${typing ? " is-typing" : ""}`}>
+      <div className="set-zones-head">
+      <button className="set-back" onClick={onDone}><span className="icon i-caret-left" aria-hidden="true" />Phone</button>
+      <div className="phone-search" role="search">
+        <button className={`phone-search-field${typing ? " is-focused" : ""}`} aria-label={query ? `Search, ${query}` : "Search countries"} onClick={() => setTyping(true)}>
+          <span className="icon i-magnifying-glass" aria-hidden="true" />
+          <span className={query ? "phone-search-text" : "phone-search-placeholder"}>{query || "Search a country or +code"}</span>
+          {typing && <span className="phone-search-caret" aria-hidden="true" />}
+        </button>
+        {(query || typing) && <button className="phone-search-cancel" onClick={() => { setQuery(""); setTyping(false); }}>Cancel</button>}
+      </div>
+      </div>
+      <Group title="Number Country" footer={shown.length ? `${shown.length} countries` : undefined}>
+        {shown.map((r) => (
+          <button key={r.id} className="set-row is-button" aria-current={r.id === e.shell.phoneRegion || undefined} onClick={() => pick(r.id)}>
+            <span className="set-row-label">{r.name}</span>
+            <span className="set-row-value">+{r.code}</span>
+            <span className={`icon i-check set-check${r.id === e.shell.phoneRegion ? "" : " is-hidden"}`} aria-hidden="true" />
+          </button>
+        ))}
+        {!shown.length && <Row label={`No country matches “${query}”`} />}
+      </Group>
+    </div>
+    <Keyboard open={typing} onKey={(c) => setQuery((v) => v + c)} onBackspace={() => setQuery((v) => v.slice(0, -1))}
+      onSubmit={() => setTyping(false)} submitLabel="Search" submitEnabled />
+  </>);
+}
+
 function Phone({ e }: { e: EmulatorState }) {
   const on = e.shell.lockTypingWhileMoving;
+  const [picking, setPicking] = useState(false);
+  if (picking) return <RegionPicker e={e} onDone={() => setPicking(false)} />;
+  const region = e.shell.phoneRegion;
   return (<>
+    <Group title="Numbers" footer={`Numbers written without + are grouped as in ${regionName(region)}. Calls dial the digits as they are.`}>
+      <Row label="Number Country" value={`${regionName(region)} (+${bridge.phoneCallingCode(region)})`} onPress={() => setPicking(true)} />
+    </Group>
     <Group title="Messages" footer="With this on, a message can be typed only while the car stands. Quick replies and calls work either way.">
       <Row label="Block Typing While Driving"><Switch label="Block Typing While Driving" on={on} onChange={(v) => shellAction({ type: "SetTypingLock", on: v })} /></Row>
     </Group>

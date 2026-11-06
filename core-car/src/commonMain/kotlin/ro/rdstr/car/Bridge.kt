@@ -249,6 +249,9 @@ object Bridge {
     fun startupConnectWaitMs(): Int = Startup.CONNECT_WAIT_MS
     fun startupConnectTryMs(): Int = Startup.CONNECT_TRY_MS
     fun castName(): String = CarEvent.PhoneCast.NAME
+    fun phoneFormat(typed: String, region: String): String = PhoneFormat.format(typed, region)
+    fun phoneRegions(): String = json.encodeToString(ListSerializer(String.serializer()), PhoneFormat.regions())
+    fun phoneCallingCode(region: String): Int = PhoneFormat.callingCode(region) ?: 0
     fun cameraGuides(guidelines: String, eps: Int): String = json.encodeToString(Guides.serializer(), Camera.guides(Guidelines.valueOf(guidelines), eps))
     fun cameraWrites(a: String, b: String): String = json.encodeToString(
         ListSerializer(DspWrite.serializer()),
