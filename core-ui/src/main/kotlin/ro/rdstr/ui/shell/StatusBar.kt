@@ -140,6 +140,7 @@ class StatusBar(context: Context, private val actions: ShellActions) : ViewGroup
         volumeIcon.color = if (m.car.muted) b.mute else color
         volume.contentDescription = if (m.car.muted) "Volume, muted" else "Volume"
         theme.setIcon(if (UiTheme.light) Icons.SUN_FILL else Icons.MOON_FILL)
+        theme.uiKey = if (UiTheme.light) "icon.i-sun-fill" else "icon.i-moon-fill"
         theme.color = color
         theme.contentDescription = if (UiTheme.light) "Day theme" else "Night theme"
         fillColor = b.sheet; fillH = -1
@@ -151,9 +152,11 @@ class StatusBar(context: Context, private val actions: ShellActions) : ViewGroup
         val h = (56 * d + 0.5f).toInt()
         val exactH = MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY)
         val min = (200 * d + 0.5f).toInt()
+        // align-items: center: each group as tall as its content
+        val wrapH = MeasureSpec.makeMeasureSpec(h, MeasureSpec.AT_MOST)
         for (g in listOf(left, right)) {
-            g.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), exactH)
-            if (g.measuredWidth < min) g.measure(MeasureSpec.makeMeasureSpec(min, MeasureSpec.EXACTLY), exactH)
+            g.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), wrapH)
+            if (g.measuredWidth < min) g.measure(MeasureSpec.makeMeasureSpec(min, MeasureSpec.EXACTLY), wrapH)
         }
         handle.measure(MeasureSpec.makeMeasureSpec((160 * d + 0.5f).toInt(), MeasureSpec.EXACTLY), exactH)
         setMeasuredDimension(w, h)
@@ -164,8 +167,10 @@ class StatusBar(context: Context, private val actions: ShellActions) : ViewGroup
         val pad = (24 * d + 0.5f).toInt()
         val w = r - l
         val h = b - t
-        left.layout(pad, 0, pad + left.measuredWidth, h)
-        right.layout(w - pad - right.measuredWidth, 0, w - pad, h)
+        val lt = (h - left.measuredHeight) / 2
+        val rt = (h - right.measuredHeight) / 2
+        left.layout(pad, lt, pad + left.measuredWidth, lt + left.measuredHeight)
+        right.layout(w - pad - right.measuredWidth, rt, w - pad, rt + right.measuredHeight)
         val free = w - 2 * pad - left.measuredWidth - right.measuredWidth - handle.measuredWidth
         val x = pad + left.measuredWidth + max(0, free) / 2
         handle.layout(x, 0, x + handle.measuredWidth, h)

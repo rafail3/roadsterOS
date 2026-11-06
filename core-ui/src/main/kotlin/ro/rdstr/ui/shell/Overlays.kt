@@ -89,7 +89,7 @@ class NoticeView(context: Context) : FrameLayout(context) {
         val on = shown && !hidden
         val now = Motion.now()
         if (on) {
-            rise.to(1f, now, UiTheme.duration(640), Motion.easing(Notice.DARK.springRise))
+            rise.to(1f, now, UiTheme.duration(640), Motion.easing(ro.rdstr.ui.tokens.Base.DARK.springRise))
             opacity.to(1f, now, UiTheme.duration(220), Motion.easeOut)
         } else {
             rise.to(0f, now, UiTheme.duration(240), SINK)
@@ -115,7 +115,7 @@ class NoticeView(context: Context) : FrameLayout(context) {
     override fun dispatchTouchEvent(ev: MotionEvent?) = false
 
     /** `div.notice`: 68 px tall, 300 to 520 wide, on `--sheet-raised` (glass on Glassy); a disc, the title and the name. */
-    private class Pill(context: Context) : Row(context, 16f) {
+    private class Pill(context: Context) : Row(context, 0f) {
         private val d = resources.displayMetrics.density
         private val box = CssBox().apply { radius = 34f; border = 1f }
         private val disc = Disc(context)
@@ -129,9 +129,14 @@ class NoticeView(context: Context) : FrameLayout(context) {
             uiKey = "notice"
             setWillNotDraw(false)
             minimumWidth = (300 * d).toInt()
-            setPadding((12 * d).toInt(), 0, (32 * d).toInt(), 0)
-            addView(disc, LayoutParams((44 * d).toInt(), (44 * d).toInt()))
-            addView(text, LayoutParams(-2, -2))
+            // the padding is inside the 1 px edge, drawn as whole device pixels
+            val edge = ro.rdstr.ui.kit.UiScale.borderPx(1f, d).toInt()
+            setPadding((12 * d).toInt() + edge, edge, (32 * d).toInt() + edge, edge)
+            // div.notice-body: the disc and the text, the pill's whole height
+            val body = Row(context, 16f).apply { uiKey = "notice-body" }
+            body.addView(disc, LayoutParams((44 * d).toInt(), (44 * d).toInt()))
+            body.addView(text, LayoutParams(-2, -2))
+            addView(body, LayoutParams(0, -1, 1f))
             UiTheme.link(this) { theme() }
         }
 
@@ -201,7 +206,7 @@ class NoticeView(context: Context) : FrameLayout(context) {
 
         fun pop() {
             val now = Motion.now()
-            pop.snap(0f); pop.to(1f, now + UiTheme.duration(80), UiTheme.duration(560), Motion.easing(Notice.DARK.springRise))
+            pop.snap(0f); pop.to(1f, now + UiTheme.duration(80), UiTheme.duration(560), Motion.easing(ro.rdstr.ui.tokens.Base.DARK.springRise))
             slash.snap(0f); slash.to(1f, now + UiTheme.duration(260), UiTheme.duration(260), Motion.easeOut)
             invalidate()
         }

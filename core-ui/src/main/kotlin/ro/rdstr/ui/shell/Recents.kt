@@ -201,6 +201,7 @@ class RecentsView(context: Context, private val actions: RecentsActions) : Frame
 
         /** `recents-in`: up 24 px and in over 260 ms. */
         fun enter(i: Int) {
+            if (UiTheme.speed <= 0f) return
             translationY = 24 * d; alpha = 0f
             animate().translationY(0f).alpha(1f).setDuration(UiTheme.duration(260)).setInterpolator(Motion.interpolator(Motion.easeOut)).start()
         }

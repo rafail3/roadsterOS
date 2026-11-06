@@ -177,6 +177,7 @@ class ShellView(context: Context, private val actions: ShellActions) : FrameLayo
 
     /** `wake-zoom`: the bar, rail, field and panel settle from 1.06 over 650 ms. */
     private fun wakeZoom() {
+        if (UiTheme.speed <= 0f) return
         for (c in cells) {
             c.scaleX = 1.06f; c.scaleY = 1.06f
             c.animate().scaleX(if (inApp && c !== barCell && c !== panel) 1.02f else 1f).scaleY(if (inApp && c !== barCell && c !== panel) 1.02f else 1f)
