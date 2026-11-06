@@ -1,5 +1,6 @@
 package ro.rdstr.ui.kit
 
+import ro.rdstr.ui.R
 import android.graphics.Bitmap
 import android.graphics.BitmapShader
 import android.graphics.BlurMaskFilter
@@ -274,10 +275,27 @@ object Backdrop {
         background.invalidate()
     }
 
+    /** A view inside one that draws frost (the glass rows of a glass card, the toggles of the glass drawer). */
+    fun onGlass(view: View): Boolean {
+        var p = view.parent
+        while (p is View) {
+            if (p.getTag(R.id.rdstr_glass) == true) return true
+            p = p.parent
+        }
+        return false
+    }
+
+    /** A background has been captured (else the flat stand-in is drawn). */
+    val captured: Boolean get() = shader != null
+
     /** Back to the flat stand-in (no background captured). */
     fun clear() { frosted = null; shader = null }
 
     internal fun draw(canvas: Canvas, view: View, shape: Path, paint: Paint, frost: Frost) {
+        view.setTag(R.id.rdstr_glass, true)
+        // glass inside glass: the browser's backdrop-filter sees the outer glass already painted there, so the inner one
+        // keeps those pixels and adds its own fill and sheen over them, instead of the screen's frost
+        if (onGlass(view)) return
         val s = shader
         if (s == null) {
             val ground = UiTheme.base.canvas

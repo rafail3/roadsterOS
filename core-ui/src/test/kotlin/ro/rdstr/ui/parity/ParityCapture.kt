@@ -1,5 +1,6 @@
 package ro.rdstr.ui.parity
 
+import ro.rdstr.ui.kit.UiTheme
 import android.graphics.drawable.ColorDrawable
 import android.view.View
 import android.view.ViewGroup
@@ -84,8 +85,18 @@ open class ParityCapture {
         view.translationX = (at.groupValues[1].toFloat() * density).roundToInt().toFloat()
         view.translationY = (at.groupValues[2].toFloat() * density).roundToInt().toFloat()
         screen.addView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        // Glassy: the browser captures a component with every other element hidden, so its glass frosts nothing; the
+        // backdrop is an empty, transparent screen (a scene that set its own backdrop keeps it)
+        val ownBackdrop = !UiTheme.glassy || ro.rdstr.ui.kit.Backdrop.captured
+        if (!ownBackdrop) {
+            val ambient = View(paparazzi.context)
+            ambient.measure(View.MeasureSpec.makeMeasureSpec(SCREEN_W, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(SCREEN_H, View.MeasureSpec.EXACTLY))
+            ambient.layout(0, 0, SCREEN_W, SCREEN_H)
+            ro.rdstr.ui.kit.Backdrop.capture(ambient, UiTheme.glass.glassyFrost)
+        }
         Png.target = File(ANDROID, "$scene.png").apply { parentFile.mkdirs() }
         paparazzi.snapshot(screen, scene)
+        if (!ownBackdrop) ro.rdstr.ui.kit.Backdrop.clear()
         val elements = mutableListOf<String>()
         collect(view, root, screen, density, elements)
         File(ANDROID, "$scene.json").writeText(

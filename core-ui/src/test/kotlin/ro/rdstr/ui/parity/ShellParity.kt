@@ -1,5 +1,6 @@
 package ro.rdstr.ui.parity
 
+import ro.rdstr.ui.shell.Ambient
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -143,8 +144,18 @@ class ShellParity {
         val screen = FrameLayout(ctx)
         val view = build()
         screen.addView(view, FrameLayout.LayoutParams((w * k + 0.5f).toInt(), (h * k + 0.5f).toInt()).apply { leftMargin = (x * k + 0.5f).toInt(); topMargin = (y * k + 0.5f).toInt() })
+        // Glassy: the browser captures a component with every other element hidden, so its glass frosts nothing; the
+        // backdrop is an empty, transparent screen
+        val ambient = UiTheme.glassy && !ro.rdstr.ui.kit.Backdrop.captured
+        if (ambient) {
+            val ground = View(ctx)
+            ground.measure(View.MeasureSpec.makeMeasureSpec(W, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(H, View.MeasureSpec.EXACTLY))
+            ground.layout(0, 0, W, H)
+            ro.rdstr.ui.kit.Backdrop.capture(ground, UiTheme.glass.glassyFrost)
+        }
         Png.target = File(ANDROID, "$scene.png").apply { parentFile.mkdirs() }
         paparazzi.snapshot(screen, scene)
+        if (ambient) ro.rdstr.ui.kit.Backdrop.clear()
         val out = mutableListOf<String>()
         if (root == null) for ((key, kid) in keyed(view)) collect(kid, key, screen, k, out)
         else find(view, root)?.let { collect(it, root, screen, k, out) }
