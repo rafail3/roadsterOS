@@ -1063,6 +1063,12 @@ function fromUrl(q: URLSearchParams): EmulatorState {
   if (q.get("app") === "phone") shell = bridge.shell(shell, { type: "OpenApp", app: "PHONE" });
   if (q.get("app") === "settings") shell = bridge.shell(shell, { type: "OpenApp", app: "SETTINGS" });
   if (q.has("devices")) shell = bridge.shell(shell, { type: "OpenDevices" });
+  // ?setup=wifi: the setup from the start, moved on to that screen (every screen reachable: Wi-Fi and a release assumed)
+  const setup = q.get("setup")?.toUpperCase();
+  if (setup) {
+    shell = bridge.shell(shell, { type: "RestartSetup" });
+    while (!shell.setupDone && shell.setupStep !== setup) shell = bridge.shell(shell, { type: "SetupNext", wifi: true, updateAvailable: true });
+  }
   // ?recents=maps,radio: those apps opened in that order, then the open apps over them
   const recents = q.get("recents");
   if (recents !== null) {
@@ -1152,7 +1158,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     wifiOn: true,
     wifi: { saved: [WIFI_NETWORKS[0].ssid], connected: WIFI_NETWORKS[0].ssid, connecting: null, wrongPassword: null, seen: [] },
     locationOn: true,
-    releaseOut: null,
+    // ?release=1.19.0: a newer version out
+    releaseOut: q.get("release"),
     restartAsked: false,
     updateCheck: { state: "IDLE", at: null },
     wifiNeedsLocation: false,

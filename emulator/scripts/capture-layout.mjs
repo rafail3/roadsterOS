@@ -114,6 +114,12 @@ const SCENES = [
   // of the car's road from the laptop's pack (MAP_PACKS); panned: moved by a drag, the credits open
   ...looks.map(([theme, design]) => ({ name: `maps-follow-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=maps`, root: MAPS, prepare: mapsStill })),
   ...looks.map(([theme, design]) => ({ name: `maps-panned-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=maps`, root: MAPS, prepare: mapsPanned })),
+  // --- setup (SetupScreens.tsx, UnitPicture.tsx): each step once its timers are done; `wait` ms after load, `click` a selector
+  ...[["carname", "car_name"], ["prepare", "prepare", 5000], ["wifi", "wifi", 2500], ["update", "update&release=1.19.0"], ["location", "location"],
+    ["look", "look"], ["files", "files", 3000], ["welcome", "welcome"]].flatMap(([step, setup, wait]) =>
+    looks.map(([theme, design]) => ({ name: `setup-${step}-${theme}-${design}`, query: `theme=${theme}&design=${design}&setup=${setup}`, wait, root: "sf" }))),
+  ...looks.map(([theme, design]) => ({ name: `unitpicture-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=settings`, click: '.set-nav-item:has-text("About")', root: "music-app.settings-app/set-detail/about-hero" })),
+  // --- end setup
 ];
 
 /** Runs in the page: the visible elements under .screen with their keys, boxes and computed styles. */
@@ -221,11 +227,11 @@ for (const scene of SCENES.filter((s) => !wanted || wanted.includes(s.name))) {
   page.on("pageerror", (e) => console.error(`${scene.name}: page error: ${e.message}`));
   await page.goto(url, { waitUntil: "networkidle" });
   await page.waitForSelector(".screen");
-  for (const selector of scene.clicks ?? []) await page.click(selector);
   // the dev server's own badge sits over the page, outside the screen
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   await page.evaluate(() => document.fonts.ready);
   if (scene.prepare) await scene.prepare(page);
+  if (scene.click) await page.click(scene.click);
   // two frames for layout effects that measure and set state once
   await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
   // scenes reached by taps (a settings section, a sub-page, a prompt): each selector clicked, then two frames

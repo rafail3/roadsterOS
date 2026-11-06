@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import ro.rdstr.car.Updater
 import java.io.File
 import ro.rdstr.ui.Emulates
+import ro.rdstr.ui.setup.UpdateInstall
 
 /**
  * New versions from GitHub Releases (core-car [Updater]): checked once in the background each time the unit joins
@@ -142,7 +143,29 @@ class Updates(private val context: Context) {
 
     private fun countdown(seconds: Int) {
         _state.value = State.Restarting(seconds)
-        if (seconds > 0) main.postDelayed({ countdown(seconds - 1) }, 1000) else restart()
+        if (seconds > 0) main.postDelayed({ countdown(seconds - 1) }, 1000) else { beforeRestart?.invoke(); restart() }
+    }
+
+    /** Runs right before the restart (update.ts `beforeRestart`): the setup moves past its update screen. */
+    @Volatile var beforeRestart: (() -> Unit)? = null
+
+    /** The last download's figures, kept for the screens once the file is in. */
+    @Volatile private var lastDownload: Updater.Download? = null
+
+    /** [state] as update.ts `useUpdateInstall` shows it: the download, then done with the countdown. */
+    fun install(state: State): UpdateInstall = when (state) {
+        is State.Downloading -> UpdateInstall(state.download.also { lastDownload = it })
+        State.Installing -> UpdateInstall(full(), done = true)
+        is State.Restarting -> UpdateInstall(full(), done = true, restartIn = state.seconds)
+        else -> UpdateInstall()
+    }
+
+    private fun full() = (lastDownload ?: Updater.Download(1)).let { it.copy(done = it.total) }
+
+    /** Install now: the version found, once nothing holds the unit back (no call, no reverse, room for the file). */
+    fun installAvailable(inCall: Boolean, reversing: Boolean) {
+        val a = _state.value as? State.Available ?: return
+        install(a.apk, Updater.installWait(0.0, inCall, reversing, context.cacheDir.usableSpace, a.apk.bytes))
     }
 
     /** REBOOT is a signature permission: granted with the platform key; without it the update still took effect. */

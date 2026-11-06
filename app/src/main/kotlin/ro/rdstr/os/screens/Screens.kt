@@ -38,5 +38,6 @@ object Screens {
         Layer.RESTART_PROMPT to ::RestartPromptScreen,
         Layer.NOTICE to ::NoticeScreen,
         Layer.DEV to ::DevOverlaysScreen,
+        Layer.STARTUP to ::SetupScreen,
     )
 }
