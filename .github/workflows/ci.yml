@@ -15,7 +15,13 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v6
-      - run: ./gradlew :core-car:allTests test assembleSimDebug assembleDeviceDebug :core-car:jsBrowserProductionWebpack lint --no-daemon
+      - run: ./gradlew :core-car:allTests test assembleSimDebug assembleDeviceDebug assembleDeviceRelease :core-car:jsBrowserProductionWebpack lint --no-daemon
+      # the display app of this commit, as a release installs it (minified, platform-signed)
+      - run: cp app/build/outputs/apk/device/release/app-device-release.apk roadsterOS.apk
+      - uses: actions/upload-artifact@v7
+        with:
+          name: roadsterOS-apk
+          path: roadsterOS.apk
       - uses: actions/setup-node@v7
         with:
           node-version: 22
