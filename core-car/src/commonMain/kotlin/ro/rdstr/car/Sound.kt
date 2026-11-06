@@ -55,6 +55,12 @@ data class SoundSettings(
     val rear: SpeakerFilter = SpeakerFilter(),
     /** Power on the antenna lead, for an amplified radio antenna (FtSet.SetExAmp). */
     val antennaPower: Boolean = true,
+    /** The phone call's level, 0..30 like the music (the vendor's Bluetooth channel, Iop.SetVolume(1, v)). */
+    val callVolume: Int = 20,
+    /** The navigation voice's level, 0..100 (StSet.SetNvol). */
+    val navVolume: Int = 60,
+    /** The music's level while the navigation speaks, 0..100 % of its own; 100 leaves it as it is (StSet.Setmvwns). */
+    val musicUnderNav: Int = 40,
 )
 
 /** One call on the vendor's sound library, as MainUI makes it: Iop.DspSetEqBand(3, 14), FtSet.SetExAmp(1). */
@@ -81,6 +87,8 @@ object Sound {
     val LOUD_HIGH_HZ = 2000..10000
     const val GAIN_DB = 12
     const val SUB_LEVEL = 15
+    const val CALL_VOLUME = 30
+    const val PERCENT = 100
     val SUB_HZ = 80..240
     private const val VBASS_RAW = 400
     private const val FRONT = 4
@@ -130,6 +138,8 @@ object Sound {
         loudLowHz = s.loudLowHz.coerceIn(LOUD_LOW_HZ), loudHighHz = s.loudHighHz.coerceIn(LOUD_HIGH_HZ),
         loudLowGain = s.loudLowGain.coerceIn(0, GAIN_DB), loudHighGain = s.loudHighGain.coerceIn(0, GAIN_DB),
         bassGain = s.bassGain.coerceIn(0, GAIN_DB), subLevel = s.subLevel.coerceIn(0, SUB_LEVEL), subHz = s.subHz.coerceIn(SUB_HZ),
+        callVolume = s.callVolume.coerceIn(0, CALL_VOLUME), navVolume = s.navVolume.coerceIn(0, PERCENT),
+        musicUnderNav = s.musicUnderNav.coerceIn(0, PERCENT),
     )
 
     /** The loudness and bass pages' reset, as the vendor's buttons do it. */
@@ -185,6 +195,9 @@ object Sound {
         filter(FRONT, a.front, b.front, ::w)
         filter(REAR, a.rear, b.rear, ::w)
         if (b.antennaPower != a.antennaPower) w("SetExAmp", if (b.antennaPower) 1 else 0)
+        if (b.callVolume != a.callVolume) w("SetVolume", 1, b.callVolume)
+        if (b.navVolume != a.navVolume) w("SetNvol", b.navVolume)
+        if (b.musicUnderNav != a.musicUnderNav) w("Setmvwns", b.musicUnderNav)
     }
 
     /** cmd 0 low-pass on, 1 high-pass on, 2 low-pass Hz, 3 high-pass Hz; switched off, the frequency goes back to its widest. */

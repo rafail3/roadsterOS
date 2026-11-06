@@ -297,6 +297,32 @@ function Sound({ e }: { e: EmulatorState }) {
     <Group footer="Equalizer, balance, the listening position, loudness, bass and the speakers' filters.">
       <Row label="Sound Effects" onPress={() => shellAction({ type: "OpenSound" })} />
     </Group>
+    <Group title="Calls" footer="How loud the other side of a call is in the car. Music keeps its own level.">
+      <div className="set-row is-slider">
+        <PillSlider label="Call volume" min={0} max={30} step={1} value={e.shell.dsp.callVolume} valueText={String(e.shell.dsp.callVolume)}
+          onValue={(callVolume) => setSound({ ...e.shell.dsp, callVolume })}
+          icon={<span className="pill-icon"><span className="icon i-phone-fill" aria-hidden="true" /></span>}
+          readout={<span className="pill-readout" aria-hidden="true">{e.shell.dsp.callVolume}</span>} />
+      </div>
+    </Group>
+    <Group title="Navigation" footer={e.shell.dsp.musicUnderNav === 0
+      ? "The music stops while the navigation speaks and comes back after."
+      : e.shell.dsp.musicUnderNav === 100 ? "The music keeps playing at its level under the navigation voice."
+      : `The music plays at ${e.shell.dsp.musicUnderNav}% of its level while the navigation speaks.`}>
+      <div className="set-row is-slider">
+        <PillSlider label="Navigation voice volume" min={0} max={100} step={5} value={e.shell.dsp.navVolume} valueText={`${e.shell.dsp.navVolume}%`}
+          onValue={(navVolume) => setSound({ ...e.shell.dsp, navVolume })}
+          icon={<span className="pill-icon"><span className="icon i-navigation-arrow-fill" aria-hidden="true" /></span>}
+          readout={<span className="pill-readout" aria-hidden="true">{e.shell.dsp.navVolume}%</span>} />
+      </div>
+      <Row label="Music While It Speaks">
+        <span className="set-stepper">
+          <button aria-label="Quieter music under the navigation voice" disabled={e.shell.dsp.musicUnderNav <= 0} onClick={() => setSound({ ...e.shell.dsp, musicUnderNav: Math.max(0, e.shell.dsp.musicUnderNav - 10) })}><span className="icon i-minus" aria-hidden="true" /></button>
+          <output aria-label="Music under the navigation voice" className="set-mix">{e.shell.dsp.musicUnderNav === 0 ? "Off" : `${e.shell.dsp.musicUnderNav}%`}</output>
+          <button aria-label="Louder music under the navigation voice" disabled={e.shell.dsp.musicUnderNav >= 100} onClick={() => setSound({ ...e.shell.dsp, musicUnderNav: Math.min(100, e.shell.dsp.musicUnderNav + 10) })}><span className="icon i-plus" aria-hidden="true" /></button>
+        </span>
+      </Row>
+    </Group>
     <Group title="Radio" footer="Powers an amplified antenna through the antenna lead. Off for a passive antenna.">
       <Row label="Antenna Power"><Switch label="Antenna Power" on={e.shell.dsp.antennaPower} onChange={(antennaPower) => setSound({ ...e.shell.dsp, antennaPower })} /></Row>
     </Group>

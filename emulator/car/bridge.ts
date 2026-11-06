@@ -17,6 +17,7 @@ export interface SoundSettings {
   preset: EqPreset; bands: number[]; balance: number; fader: number; seat: ListeningSeat; delays: number[];
   loudness: boolean; loudLowHz: number; loudLowGain: number; loudHighHz: number; loudHighGain: number;
   bass: boolean; bassGain: number; subLevel: number; subHz: number; front: SpeakerFilter; rear: SpeakerFilter; antennaPower: boolean;
+  callVolume: number; navVolume: number; musicUnderNav: number;
 }
 export interface DspWrite { call: string; args: number[] }
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";

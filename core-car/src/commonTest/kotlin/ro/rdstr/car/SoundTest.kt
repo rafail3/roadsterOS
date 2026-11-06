@@ -5,6 +5,16 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class SoundTest {
+    @Test
+    fun `call and navigation volumes, and the music under the navigation voice`() {
+        val s = SoundSettings()
+        assertEquals(
+            listOf(DspWrite("SetVolume", listOf(1, 12)), DspWrite("SetNvol", listOf(80)), DspWrite("Setmvwns", listOf(0))),
+            Sound.writes(s, s.copy(callVolume = 12, navVolume = 80, musicUnderNav = 0)),
+        )
+        assertEquals(30, Sound.clamp(s.copy(callVolume = 99)).callVolume)
+    }
+
     private val flat = SoundSettings()
     private fun w(call: String, vararg args: Int) = DspWrite(call, args.toList())
 
