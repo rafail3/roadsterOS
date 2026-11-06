@@ -29,11 +29,6 @@ object KeyboardLook {
     const val KEY_DOWN_DARK = 0xFF6A6A70.toInt()
     const val FN_DARK = 0xFF323236.toInt()
     const val FN_LIGHT = 0xFFABB1BB.toInt()
-    /**
-     * By day a pressed key moves from its white towards the ink by the share the dark pressed key moves from #505055
-     * towards its white ink (26 of 175): 255 - 238 * 26 / 175 = 220.
-     */
-    const val KEY_DOWN_LIGHT = 0xFFDCDCDC.toInt()
     const val WHITE = 0xFFFFFFFF.toInt()
     const val INK_ON = 0xFF111111.toInt()
     const val SUBMIT_DARK = 0xFF0A84FF.toInt()
@@ -44,6 +39,12 @@ object KeyboardLook {
     const val HARD_LIGHT = 0x4D000000
     /** `.sf .kb-submit:disabled { opacity: 0.4 }` */
     const val AMBER_OFF_ALPHA = 0.4f
+
+    // caps lock: `.kb-fn.is-locked::after`, a 26 x 3 bar (radius 2, the key's ink) 12 px above the key's bottom edge
+    const val LOCK_BAR_WIDTH = 26f
+    const val LOCK_BAR_HEIGHT = 3f
+    const val LOCK_BAR_RADIUS = 2f
+    const val LOCK_BAR_BOTTOM = 12f
 
     // the pressed key's bubble: .kb-key.is-down[data-char]::after
     const val BUBBLE_SIZE = 72f
@@ -71,17 +72,21 @@ object KeyboardLook {
 
     /**
      * [shiftOn]: Shift is on or locked. [enabled]: the submit key can send. [amber]: the keyboard sits in the setup,
-     * whose submit key is amber; by day `.screen.light .kb-submit` outranks `.sf .kb-submit`, so only its dimming stays.
+     * whose submit key is amber in both themes (`.screen.light .sf .kb-submit` outranks `.screen.light .kb-submit`).
+     * By day a pressed key takes the function keys' grey and a pressed function key turns white (`.kb-fn:active`).
      */
     fun key(type: KeyType, pressed: Boolean, shiftOn: Boolean, enabled: Boolean, light: Boolean, glassy: Boolean, amber: Boolean): KeyLook {
         val fn = type == KeyType.SHIFT || type == KeyType.BACKSPACE || type == KeyType.LAYER || type == KeyType.SUBMIT || type == KeyType.SPACER
         if (light) {
             val hard = HARD_LIGHT
             return when {
+                type == KeyType.SUBMIT && enabled && amber -> Sf.of(true, glassy).let { sf ->
+                    KeyLook(sf.amber, sheen = false, glass = glassy, hard = if (glassy) 0 else hard, ink = sf.amberInk, alpha = 1f)
+                }
                 type == KeyType.SUBMIT && enabled -> KeyLook(SUBMIT_LIGHT, sheen = false, glass = glassy, hard = if (glassy) 0 else hard, ink = WHITE, alpha = 1f)
                 type == KeyType.SUBMIT -> KeyLook(FN_LIGHT, sheen = glassy, glass = glassy, hard = if (glassy) 0 else hard, ink = SUBMIT_OFF_INK_LIGHT, alpha = if (amber) AMBER_OFF_ALPHA else 1f)
                 type == KeyType.SHIFT && shiftOn -> KeyLook(WHITE, sheen = false, glass = false, hard = hard, ink = INK_ON, alpha = 1f)
-                pressed -> KeyLook(KEY_DOWN_LIGHT, sheen = false, glass = false, hard = hard, ink = INK_ON, alpha = 1f)
+                pressed -> KeyLook(if (fn) WHITE else FN_LIGHT, sheen = false, glass = false, hard = hard, ink = INK_ON, alpha = 1f)
                 !fn -> KeyLook(WHITE, sheen = false, glass = false, hard = hard, ink = INK_ON, alpha = 1f)
                 else -> KeyLook(FN_LIGHT, sheen = false, glass = false, hard = hard, ink = INK_ON, alpha = 1f)
             }
