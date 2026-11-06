@@ -702,8 +702,36 @@ export function watchIdle() {
   }, 1000);
 }
 
+/** The phone connected last; the unit asks it first when the car starts. */
+let lastPhone: string | null = null;
+let connecting: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * A few seconds after the car starts, with no phone connected by then, the saved ones are asked in turn, the last one
+ * first, until one connects (core-car Startup; CarRuntime.connectLastPhone on the unit).
+ */
+function connectLastPhone() {
+  if (connecting) clearTimeout(connecting);
+  const next = (phones: string[], i: number) => {
+    connecting = null;
+    if (!state.btOn || !state.acc || state.car.btConnected || i >= phones.length) return;
+    tryConnect(phones[i]);
+    connecting = setTimeout(() => next(phones, i + 1), bridge.startupConnectTryMs());
+  };
+  connecting = setTimeout(() => next(bridge.startupPhones(state.saved.map((d) => d.name), lastPhone), 0), bridge.startupConnectWaitMs());
+}
+
 export function carEvent(event: CarEvent) {
   if (bridge.wakesAod(event)) userActivity();
+  if (event.type === "BtConnection" && event.connected && event.device) lastPhone = event.device;
+  // the car switched off: the unit sleeps and the phone's link drops with it, as on the unit
+  if (event.type === "Power" && !event.acc) {
+    if (connecting) clearTimeout(connecting);
+    if (state.car.btConnected) {
+      lastPhone = state.device;
+      carEvent({ type: "BtConnection", connected: false, device: state.device });
+    }
+  }
   // the car starts: the call level back to its default, as each start of the unit does (core-car Sound.atStart)
   if (event.type === "Power" && event.acc) queueMicrotask(() => setSound({ ...state.shell.dsp, callVolume: CALL_VOLUME_DEFAULT }));
   const step = bridge.apply(state.car, event);
@@ -723,6 +751,7 @@ export function carEvent(event: CarEvent) {
   if (event.type === "Power") shellAction({ type: event.acc ? "Wake" : "Sleep" });
   // a loud last level comes down to the start volume chosen in the settings (core-car Settings.startVolume)
   if (event.type === "Power" && event.acc) bridge.startVolume(state.car, state.shell.startVolume).forEach(carCommand);
+  if (event.type === "Power" && event.acc) connectLastPhone();
 }
 
 /** A command from our own UI: the rules remember it, then it goes to the car. */

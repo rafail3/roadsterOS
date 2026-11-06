@@ -278,6 +278,9 @@ interface Kotlin {
       soundWrites(a: string, b: string): string;
       cameraWrites(a: string, b: string): string;
       cameraGuides(guidelines: string, eps: number): string;
+      startupPhones(saved: string, last: string | null): string;
+      startupConnectWaitMs(): number;
+      startupConnectTryMs(): number;
       soundPreset(s: string, preset: string): string;
       soundBand(s: string, band: number, db: number): string;
       soundResetLoudness(s: string): string;
@@ -417,6 +420,10 @@ export const bridge = {
   /** The vendor calls a change of the camera settings makes (core-car Camera.writes). */
   /** The guidelines as the vendor draws them, bent by the CAN steering angle [eps] (core-car Camera.guides). */
   cameraGuides: (guidelines: Guidelines, eps: number): Guides => JSON.parse(K!.Bridge.cameraGuides(guidelines, eps)),
+  /** The saved phones to ask in turn after a start, the last one connected first (core-car Startup). */
+  startupPhones: (saved: string[], last: string | null): string[] => JSON.parse(K!.Bridge.startupPhones(JSON.stringify(saved), last)),
+  startupConnectWaitMs: () => K!.Bridge.startupConnectWaitMs(),
+  startupConnectTryMs: () => K!.Bridge.startupConnectTryMs(),
   cameraWrites: (a: CameraSettings, b: CameraSettings): DspWrite[] => JSON.parse(K!.Bridge.cameraWrites(JSON.stringify(a), JSON.stringify(b))),
   soundPreset: (s: SoundSettings, p: EqPreset): SoundSettings => JSON.parse(K!.Bridge.soundPreset(JSON.stringify(s), p)),
   soundBand: (s: SoundSettings, band: number, db: number): SoundSettings => JSON.parse(K!.Bridge.soundBand(JSON.stringify(s), band, db)),

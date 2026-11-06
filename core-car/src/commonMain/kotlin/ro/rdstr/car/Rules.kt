@@ -21,6 +21,8 @@ data class RulesState(
     val volume: Int = Rules.DEFAULT_VOLUME,
     /** The radio receives its station; false while paused (not muted: the volume is untouched). */
     val radioOn: Boolean = true,
+    /** The phone's music was playing when its link dropped: it plays again when the phone comes back. */
+    val playOnConnect: Boolean = false,
 )
 
 @Serializable
@@ -74,11 +76,15 @@ object Rules {
         is CarEvent.BtConnection ->
             if (e.connected) {
                 val resume = s.source == AudioSource.NONE && s.lastSource == AudioSource.BT
-                val next = s.copy(btConnected = true, source = if (resume) AudioSource.BT else s.source)
-                next to if (resume) listOf(Action.Send(CarCommand.Audio.Source(AudioSource.BT))) else emptyList()
+                val play = resume && s.playOnConnect
+                val next = s.copy(btConnected = true, source = if (resume) AudioSource.BT else s.source, playOnConnect = false)
+                next to buildList {
+                    if (resume) add(Action.Send(CarCommand.Audio.Source(AudioSource.BT)))
+                    if (play) add(Action.Send(CarCommand.Media.Play))
+                }
             } else {
                 val next = if (s.source == AudioSource.BT)
-                    s.copy(btConnected = false, source = AudioSource.NONE, lastSource = AudioSource.BT, playing = false)
+                    s.copy(btConnected = false, source = AudioSource.NONE, lastSource = AudioSource.BT, playing = false, playOnConnect = s.playing)
                 else s.copy(btConnected = false)
                 next to emptyList()
             }

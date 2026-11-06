@@ -26,6 +26,7 @@ import ro.rdstr.car.CallRecord
 import ro.rdstr.car.CarEvent
 import ro.rdstr.car.Contact
 import ro.rdstr.car.PhoneBook
+import ro.rdstr.car.Startup
 import ro.rdstr.car.PhoneGate
 import ro.rdstr.car.JournalRecord
 import ro.rdstr.car.Rules
@@ -133,20 +134,22 @@ object CarRuntime {
         radios = Radios(app)
         prefs = context.getSharedPreferences("rdstr", Context.MODE_PRIVATE)
         _shell.value = Shell.decodePreferences(prefs.getString(SHELL_KEY, null))
-        ro.rdstr.os.settings.DeveloperTools.setAdb(app, _shell.value.adbEnabled)
-        time = ro.rdstr.os.settings.TimeKeeper(app).also { it.apply(_shell.value.autoTime, _shell.value.timeSource) }
-        startCallVolume()
-        // the vendor keeps its own copy of the camera settings: ours are written over it at each start
-        ro.rdstr.car.Camera.writes(null, _shell.value.camera).forEach { send(CarCommand.Camera.Write(it)) }
-        dash = ro.rdstr.os.settings.DashFollower(app, prefs) { send(CarCommand.DashKey(it)) }.also { it.start { _shell.value.dashMatched } }
+        // first, so that every command sent at start can go into it
         val header = "roadsterOS ${runCatching { app.packageManager.getPackageInfo(app.packageName, 0).versionName }.getOrNull()} " +
             "Android ${android.os.Build.VERSION.RELEASE} ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
         journal = ro.rdstr.os.settings.JournalRecorder(java.io.File(app.filesDir, "journal"), header).also {
             it.catchCrashes()
             it.followLogs(_shell.value.recordEvents)
         }
+        ro.rdstr.os.settings.DeveloperTools.setAdb(app, _shell.value.adbEnabled)
+        time = ro.rdstr.os.settings.TimeKeeper(app).also { it.apply(_shell.value.autoTime, _shell.value.timeSource) }
+        startCallVolume()
+        // the vendor keeps its own copy of the camera settings: ours are written over it at each start
+        ro.rdstr.car.Camera.writes(null, _shell.value.camera).forEach { send(CarCommand.Camera.Write(it)) }
+        dash = ro.rdstr.os.settings.DashFollower(app, prefs) { send(CarCommand.DashKey(it)) }.also { it.start { _shell.value.dashMatched } }
         watchPhoneBook(app)
         watchIdle()
+        resumeAtStart()
         covers = CoverDesk.create(context.applicationContext, scope).also { desk ->
             desk.follow(ui.map { it.track }.distinctUntilChanged())
         }
@@ -159,11 +162,13 @@ object CarRuntime {
                         if (_shell.value.recordEvents) journal.write(JournalRecord(0, command = a.command))
                         bus.send(a.command)
                     }
-                    Action.SaveState -> prefs.edit().putString("source", next.source.name).putBoolean("playing", next.playing).apply()
+                    Action.SaveState -> prefs.edit().putString(KEPT_KEY, Startup.encodeKept(next)).apply()
                     else -> Unit
                 }
                 // the car starts: a loud last level comes down to the start volume chosen in the settings
                 if (event is CarEvent.Power && event.acc) startCallVolume()
+                if (event is CarEvent.Power) if (event.acc) connectLastPhone() else connecting?.cancel()
+                if (event is CarEvent.BtConnection && event.connected && event.device.isNotEmpty()) prefs.edit().putString(LAST_PHONE_KEY, event.device).apply()
                 if (event is CarEvent.Power && event.acc) for (c in Settings.startVolume(next, _shell.value.startVolume)) {
                     bus.send(c)
                     next = Rules.onCommand(next, c)
@@ -222,6 +227,38 @@ object CarRuntime {
         }
     }
 
+    /** A full start of the unit: the source it was switched off with (core-car Startup), then the last phone. */
+    private fun resumeAtStart() {
+        val kept = Startup.decodeKept(prefs.getString(KEPT_KEY, null))
+        if (kept != null) {
+            val (state, commands) = Startup.resume(kept)
+            _ui.value = _ui.value.copy(state = state)
+            commands.forEach(::send)
+        }
+        connectLastPhone()
+    }
+
+    private var connecting: Job? = null
+
+    /**
+     * When no phone has connected a few seconds after a start, the saved ones are asked in turn, the last one first;
+     * it stops as soon as one connects, and with Bluetooth off.
+     */
+    @android.annotation.SuppressLint("MissingPermission") // BLUETOOTH is granted at install on API 27
+    private fun connectLastPhone() {
+        connecting?.cancel()
+        connecting = scope.launch {
+            delay(Startup.CONNECT_WAIT_MS.toLong())
+            val adapter = android.bluetooth.BluetoothAdapter.getDefaultAdapter()?.takeIf { it.isEnabled } ?: return@launch
+            val saved = adapter.bondedDevices.mapNotNull { it.name }
+            for (name in Startup.phonesToTry(saved, prefs.getString(LAST_PHONE_KEY, null))) {
+                if (_ui.value.state.btConnected) return@launch
+                send(CarCommand.Bluetooth.Connect(name))
+                delay(Startup.CONNECT_TRY_MS.toLong())
+            }
+        }
+    }
+
     /** Each start of the unit and of the car: the call level back to its default (core-car Sound.atStart). */
     private fun startCallVolume() {
         val (dsp, writes) = ro.rdstr.car.Sound.atStart(_shell.value.dsp)
@@ -263,6 +300,8 @@ object CarRuntime {
     fun systemInfo(): SystemInfo = SystemInfo.read(app)
 
     private const val SHELL_KEY = "shell"
+    private const val KEPT_KEY = "kept"
+    private const val LAST_PHONE_KEY = "lastPhone"
 
     private var phoneBookLoad: Job? = null
 
