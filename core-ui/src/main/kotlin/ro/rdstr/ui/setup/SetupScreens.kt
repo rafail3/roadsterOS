@@ -165,7 +165,8 @@ class SetupView(context: Context, private val actions: Actions) : FrameLayout(co
         s = state
         bound = true
         if (stepChanged) {
-            name = state.carName
+            // the field starts empty each time the step shows; the name is kept only on Continue
+            name = ""
             typing = false
             join(null)
         }
