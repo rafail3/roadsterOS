@@ -12,6 +12,7 @@ import ro.rdstr.car.CarEvent
 class VendorCarBus(context: Context) : CarBus {
     private val phone = VendorPhone(context.applicationContext).also { it.start() }
     private val messages = VendorMessages(context.applicationContext).also { it.start() }
+    private val dash = VendorDash()
 
     override val events: Flow<CarEvent> = merge(phone.events, messages.events)
 
@@ -21,6 +22,7 @@ class VendorCarBus(context: Context) : CarBus {
             is CarCommand.Phone -> phone.send(command)
             is CarCommand.Bluetooth.Connect -> phone.link(command.device, connect = true)
             CarCommand.Bluetooth.Disconnect -> phone.link(null, connect = false)
+            is CarCommand.DashKey -> dash.press(command.key)
             else -> Log.i("VendorCarBus", "send $command")
         }
     }

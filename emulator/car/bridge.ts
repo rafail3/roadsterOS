@@ -6,6 +6,7 @@ export type ThemeMode = "AUTO" | "LIGHT" | "DARK";
 export type Face = "DIGITAL" | "ANALOG";
 export type FaceMode = "BOTH" | "DIGITAL" | "ANALOG";
 export type TimeSource = "NETWORK" | "GPS";
+export type DashKey = "HOUR" | "MINUTE" | "CLOCK";
 export type SteeringKey = "VOL_UP" | "VOL_DOWN" | "NEXT" | "PREV" | "MODE" | "PHONE" | "MUTE";
 export type PanelKey = "POWER" | "HOME" | "BACK" | "VOL_UP" | "VOL_DOWN";
 export type Band = "FM" | "AM";
@@ -58,6 +59,7 @@ export interface ShellState {
   faceMode: FaceMode;
   autoTime: boolean;
   timeSource: TimeSource;
+  dashMatched: boolean;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -93,6 +95,7 @@ export type CarCommand =
   | { type: "Phone.Answer" | "Phone.HangUp" }
   | { type: "Phone.Mute"; on: boolean }
   | { type: "Phone.Dial"; number: string }
+  | { type: "Dash.Key"; key: DashKey }
   | { type: "Phone.Dtmf"; digit: string }
   | { type: "Phone.AudioInCar"; on: boolean }
   | { type: "Phone.Redial" | "Phone.Hold" | "Phone.Merge" | "Phone.DeclineWaiting" }
@@ -130,7 +133,8 @@ export type ShellAction =
   | { type: "SetRecording"; on: boolean }
   | { type: "SetSpeedLimitSign"; on: boolean }
   | { type: "SetFaceMode"; mode: FaceMode }
-  | { type: "SetTimeSync"; auto: boolean; source: TimeSource };
+  | { type: "SetTimeSync"; auto: boolean; source: TimeSource }
+  | { type: "SetDashMatched"; on: boolean };
 
 export interface PhoneNumber { number: string; label: string }
 export interface Contact { name: string; numbers: PhoneNumber[] }
@@ -203,6 +207,7 @@ interface Kotlin {
       timeZoneCity(id: string): string;
       timeZoneRegion(id: string): string;
       timeZoneOffset(minutes: number): string;
+      dashFollow(shownBefore: number, jump: number): string;
       callDuration(ms: number): string;
       clockText(hour: number, minute: number, h24: boolean): string;
       meridiem(hour: number): string;
@@ -291,6 +296,8 @@ export const bridge = {
   timeZoneCity: (id: string) => K!.Bridge.timeZoneCity(id),
   timeZoneRegion: (id: string) => K!.Bridge.timeZoneRegion(id),
   timeZoneOffset: (minutes: number) => K!.Bridge.timeZoneOffset(minutes),
+  /** The dash display's keys for a jump of the unit's local time (core-car DashClock). */
+  dashFollow: (shownBefore: number, jump: number): DashKey[] => JSON.parse(K!.Bridge.dashFollow(shownBefore, jump)),
   callDuration: (ms: number) => K!.Bridge.callDuration(ms),
   /** The big clock's text on the 24- or 12-hour clock, and the half of the day beside a 12-hour one. */
   clockText: (hour: number, minute: number, h24: boolean) => K!.Bridge.clockText(hour, minute, h24),

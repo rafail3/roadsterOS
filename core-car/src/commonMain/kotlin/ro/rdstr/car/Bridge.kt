@@ -209,6 +209,10 @@ object Bridge {
     fun timeZoneRegion(id: String): String = TimeZones.region(id)
     fun timeZoneOffset(minutes: Int): String = TimeZones.offset(minutes)
 
+    private val dashKeys = ListSerializer(DashClock.Key.serializer())
+    /** The dash display's keys for a jump of the unit's local time (core-car DashClock). */
+    fun dashFollow(shownBefore: Int, jump: Int): String = json.encodeToString(dashKeys, DashClock.follow(shownBefore, jump))
+
     fun ownApps(): String = json.encodeToString(ListSerializer(LaunchableApp.serializer()), HomeApps.OWN)
 
     fun shellInitial(): String = json.encodeToString(ShellState.serializer(), ShellState())

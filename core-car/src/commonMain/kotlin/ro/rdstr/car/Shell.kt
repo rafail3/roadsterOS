@@ -59,6 +59,8 @@ data class ShellState(
     /** The clock sets itself from [timeSource]; off, it keeps the time set by hand. */
     val autoTime: Boolean = true,
     val timeSource: TimeSource = TimeSource.NETWORK,
+    /** The dash display was matched to the unit's clock once and follows it since. */
+    val dashMatched: Boolean = false,
     /** Every car event is written to a file on the unit, for troubleshooting. */
     val recordEvents: Boolean = false,
 )
@@ -120,6 +122,7 @@ sealed class ShellAction {
     /** Both faces switched with a tap, or one face that a tap leaves as it is. */
     @Serializable @SerialName("SetFaceMode") data class SetFaceMode(val mode: FaceMode) : ShellAction()
     @Serializable @SerialName("SetTimeSync") data class SetTimeSync(val auto: Boolean, val source: TimeSource) : ShellAction()
+    @Serializable @SerialName("SetDashMatched") data class SetDashMatched(val on: Boolean) : ShellAction()
 }
 
 /**
@@ -212,6 +215,7 @@ object Shell {
         is ShellAction.SetRecording -> s.copy(recordEvents = a.on)
         is ShellAction.SetSpeedLimitSign -> s.copy(speedLimitSign = a.on)
         is ShellAction.SetTimeSync -> s.copy(autoTime = a.auto, timeSource = a.source)
+        is ShellAction.SetDashMatched -> s.copy(dashMatched = a.on)
         is ShellAction.SetFaceMode -> s.copy(faceMode = a.mode, face = when (a.mode) {
             FaceMode.DIGITAL -> Face.DIGITAL
             FaceMode.ANALOG -> Face.ANALOG
@@ -246,7 +250,7 @@ object Shell {
         theme = s.theme, face = s.face, font = s.font, brightness = s.brightness,
         clock24h = s.clock24h, speedChime = s.speedChime, startVolume = s.startVolume,
         lockTypingWhileMoving = s.lockTypingWhileMoving, homeApps = s.homeApps, recordEvents = s.recordEvents, speedLimitSign = s.speedLimitSign, faceMode = s.faceMode,
-        autoTime = s.autoTime, timeSource = s.timeSource,
+        autoTime = s.autoTime, timeSource = s.timeSource, dashMatched = s.dashMatched,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))

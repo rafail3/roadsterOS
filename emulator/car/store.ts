@@ -92,6 +92,8 @@ export interface EmulatorState {
   /** the unit's time zone, and how far the clock was set by hand from the real time */
   timeZone: string;
   clockShiftMs: number;
+  /** the car's dash display: how far its clock is from the browser's, and whether it shows the consumption */
+  dash: { offsetMin: number; fuel: boolean };
   log: LogEntry[];
   replay: { name: string; progress: number } | null;
   replayError: string | null;
@@ -432,6 +434,7 @@ export function setPcMedia(on: boolean) {
 function sendToCar(command: CarCommand) {
   set({ log: addLog("out", command) });
   if (PHONE_CALLS.has(command.type)) return void setTimeout(() => phoneCalls(command), ECHO_DELAY_MS);
+  if (command.type === "Dash.Key") return pressDash(command.key);
   const echo = bridge.echo(command);
   if (echo) setTimeout(() => carEvent(echo), ECHO_DELAY_MS);
   if (command.type === "Phone.SendMessage") setTimeout(() => carEvent({ type: "Message", id: `sent-${Date.now()}`, number: command.number, text: command.text, atMs: Date.now(), sent: true }), ECHO_DELAY_MS);
@@ -940,6 +943,8 @@ function fromUrl(q: URLSearchParams): EmulatorState {
     hour: q.get("clock") === "fixed" ? 12 : hour !== null ? Number(hour) : null,
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     clockShiftMs: 0,
+    // a car's clock is rarely right: a few minutes off at start
+    dash: { offsetMin: 7, fuel: false },
     log: [],
     replay: null,
     replayError: null,
@@ -966,9 +971,46 @@ export function useNow(hour: number | null) {
     return () => clearInterval(timer);
   }, []);
   if (hour !== null) return new Date(2026, 9, 31, hour, 0);
-  // the browser's getters read local time: shift by the zone's difference from the browser's
+  return shownNow(live);
+}
+
+/** The unit's local time: the browser's, as set by hand and in the unit's zone (the browser's getters read local time). */
+function shownNow(live = new Date()) {
   const zoneShift = (zoneOffsetMinutes(state.timeZone, live) + live.getTimezoneOffset()) * 60_000;
   return new Date(live.getTime() + state.clockShiftMs + zoneShift);
+}
+
+const minutesOfDay = (d: Date) => d.getHours() * 60 + d.getMinutes();
+const DAY_MIN = 24 * 60;
+
+/** What the dash display shows now, in minutes of the day. */
+export function dashMinutes(): number {
+  return (((minutesOfDay(new Date()) + state.dash.offsetMin) % DAY_MIN) + DAY_MIN) % DAY_MIN;
+}
+
+/** A key reaching the dash display over CAN: hour and minute count up and wrap on their own, the clock key switches. */
+function pressDash(key: "HOUR" | "MINUTE" | "CLOCK") {
+  if (key === "CLOCK") return set({ dash: { ...state.dash, fuel: !state.dash.fuel } });
+  const shown = dashMinutes();
+  const h = Math.floor(shown / 60);
+  const m = shown % 60;
+  const next = key === "HOUR" ? ((h + 1) % 24) * 60 + m : h * 60 + ((m + 1) % 60);
+  set({ dash: { ...state.dash, offsetMin: state.dash.offsetMin + next - shown } });
+}
+
+/** The car's battery was disconnected: the dash clock starts again from 00:00. */
+export function resetDash() {
+  set({ dash: { offsetMin: -minutesOfDay(new Date()), fuel: false } });
+}
+
+/** After a jump of the unit's local time, a matched display gets the keys that follow it (DashFollower on the unit). */
+function followDash(change: () => void) {
+  const before = minutesOfDay(shownNow());
+  const beforeMs = shownNow().getTime();
+  change();
+  const jump = Math.round((shownNow().getTime() - beforeMs) / 60_000);
+  if (!state.shell.dashMatched || jump === 0) return;
+  for (const key of bridge.dashFollow(before, jump)) carCommand({ type: "Dash.Key", key });
 }
 
 const zoneFormats = new Map<string, Intl.DateTimeFormat>();
@@ -991,15 +1033,15 @@ export function allTimeZones(): string[] {
 
 /** Automatic from the internet or GPS, or by hand; going back to automatic corrects a clock set by hand. */
 export function setTimeSync(auto: boolean, source: TimeSource) {
-  if (auto) set({ clockShiftMs: 0 });
+  if (auto) followDash(() => set({ clockShiftMs: 0 }));
   shellAction({ type: "SetTimeSync", auto, source });
 }
 
 /** The date and time steppers: the clock moves by this much (AlarmManager.setTime on the unit). */
 export function shiftClock(ms: number) {
-  set({ clockShiftMs: state.clockShiftMs + ms });
+  followDash(() => set({ clockShiftMs: state.clockShiftMs + ms }));
 }
 
 export function setTimeZone(timeZone: string) {
-  set({ timeZone });
+  followDash(() => set({ timeZone }));
 }

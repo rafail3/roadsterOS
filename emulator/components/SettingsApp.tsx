@@ -1,11 +1,11 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { bridge, type FaceMode, type ThemeMode, type TimeSource } from "../car/bridge";
-import { allTimeZones, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
+import { allTimeZones, carCommand, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
 import { Keyboard } from "./Keyboard";
 import { PillSlider } from "./Drawer";
 import { useCloseOntoCard } from "./media";
 
-type Page = "wifi" | "bluetooth" | "location" | "display" | "datetime" | "sound" | "phone" | "home" | "maps" | "about";
+type Page = "wifi" | "bluetooth" | "location" | "display" | "datetime" | "dash" | "sound" | "phone" | "home" | "maps" | "about";
 
 /** The level a start is capped at when the limit is first switched on. */
 const START_VOLUME_DEFAULT = 12;
@@ -237,6 +237,34 @@ function TimeZonePicker({ e, onDone }: { e: EmulatorState; onDone: () => void })
   </>);
 }
 
+/**
+ * The car's small dash display: switch it between the clock and the consumption, and match its clock once; it follows
+ * the unit's clock after that (DashFollower on the unit). Its keys only count up and nothing is read back.
+ */
+function CarDisplay({ e }: { e: EmulatorState }) {
+  const now = useNow(e.hour);
+  const unit = bridge.clockText(now.getHours(), now.getMinutes(), true);
+  const press = (key: "HOUR" | "MINUTE" | "CLOCK") => carCommand({ type: "Dash.Key", key });
+  return (<>
+    <Group footer="Switches the car's small display between the clock and the instant fuel consumption.">
+      <Row label="Clock or Fuel"><button className="set-inline" onClick={() => press("CLOCK")}>Switch</button></Row>
+    </Group>
+    {e.shell.dashMatched ? (
+      <Group title="Clock" footer="Changes of the unit's time, its zone and summer time go to the display. Match again after the car's battery was disconnected, or when the display has drifted.">
+        <Row label="Follows the Unit's Clock" value={unit} />
+        <Row label="Match Again" onPress={() => shellAction({ type: "SetDashMatched", on: false })} />
+      </Group>
+    ) : (
+      <Group title="Match the Clock" footer="The display only counts up. Step it until it shows the unit's time, then tap Done; from then on it follows the unit's clock.">
+        <Row label="Unit Time" value={unit} />
+        <Row label="Display Hour"><button className="set-inline" onClick={() => press("HOUR")}>+1 Hour</button></Row>
+        <Row label="Display Minute"><button className="set-inline" onClick={() => press("MINUTE")}>+1 Minute</button></Row>
+        <Row label="The Display Shows This Time"><button className="set-inline" onClick={() => shellAction({ type: "SetDashMatched", on: true })}>Done</button></Row>
+      </Group>
+    )}
+  </>);
+}
+
 function Sound({ e }: { e: EmulatorState }) {
   const { car, shell } = e;
   const limit = shell.startVolume > 0;
@@ -395,6 +423,7 @@ const PAGES: { id: Page; label: string; icon: string; tint: string }[] = [
   { id: "datetime", label: "Date & Time", icon: "i-clock-fill", tint: "#8e8e93" },
   { id: "sound", label: "Sound", icon: "i-speaker-high-fill", tint: "#ff375f" },
   { id: "phone", label: "Phone", icon: "i-phone-fill", tint: "#17d847" },
+  { id: "dash", label: "Car Display", icon: "i-car-fill", tint: "#ff3b30" },
   { id: "home", label: "Home Screen", icon: "i-house-fill", tint: "#5e5ce6" },
   { id: "maps", label: "Maps", icon: "i-map-trifold-fill", tint: "#30d158" },
   { id: "about", label: "About", icon: "i-info-fill", tint: "#8e8e93" },
@@ -405,6 +434,7 @@ function summary(id: Page, e: EmulatorState): string {
   if (id === "wifi") return !e.wifiOn ? "Off" : e.wifi.connected ?? "On";
   if (id === "bluetooth") return !e.btOn ? "Off" : e.car.btConnected ? e.device : "On";
   if (id === "location") return e.locationOn ? "On" : "Off";
+  if (id === "dash") return e.shell.dashMatched ? "Synced" : "";
   return "";
 }
 
@@ -444,6 +474,7 @@ export function SettingsApp({ open }: { open: boolean }) {
         {page === "phone" && <Phone e={e} />}
         {page === "maps" && <Maps e={e} />}
         {page === "home" && <HomeScreen e={e} />}
+        {page === "dash" && <CarDisplay e={e} />}
         {page === "about" && <About e={e} />}
       </div>
     </section>

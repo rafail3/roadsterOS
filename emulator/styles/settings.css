@@ -112,3 +112,4 @@
 .set-check { width: 22px; height: 22px; color: var(--set-blue); }
 .set-check.is-hidden { visibility: hidden; }
 .set-stepper + .set-stepper { margin-left: 8px; }
+.i-car-fill { --m: url(/icons/car-fill.svg); }

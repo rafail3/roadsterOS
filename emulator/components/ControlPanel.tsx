@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { Face, SteeringKey, ThemeMode } from "../car/bridge";
 import { SAMPLE_CALLERS, SAMPLE_PHONE } from "../car/phone";
-import { carEvent, setInstalled, UNIT_APPS, GPS_PLACES, incomingCall, incomingMessage, remoteHangUp, removePack, setPhoneStatus, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
+import { carEvent, dashMinutes, resetDash, setInstalled, UNIT_APPS, GPS_PLACES, incomingCall, incomingMessage, remoteHangUp, removePack, setPhoneStatus, replay, setDriving, setSpeedSweep, setHour, setInRange, setPcMedia, setPosition, shellAction, stopReplay, useEmulator, useNow, WIFI_NETWORKS } from "../car/store";
 import { Field, holdToRepeat, Section, Segmented, Switch } from "./controls";
 
 const DEFAULT_TRACK_MS = 228000;
@@ -233,6 +233,22 @@ function Gps() {
   );
 }
 
+/** The car's small dash display, as the driver sees it; only the keys the unit sends change it. */
+function DashDisplay() {
+  const { dash, gps } = useEmulator();
+  useNow(null);
+  const m = dashMinutes();
+  const clock = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  // a synthetic instant consumption that rises with speed
+  const fuel = gps.kmh > 0 ? `${(4.2 + gps.kmh / 45).toFixed(1)} L/100km` : "-- L/100km";
+  return (
+    <Section title="Car display">
+      <p className="note">The dash shows {dash.fuel ? fuel : clock}.</p>
+      <button className="button" onClick={resetDash}>Battery disconnected (clock to 00:00)</button>
+    </Section>
+  );
+}
+
 /** Other apps on the unit: the ones Settings can put on home. */
 function UnitApps() {
   const { installed } = useEmulator();
@@ -258,6 +274,7 @@ export function ControlPanel() {
       <Phone />
       <Radio />
       <Gps />
+      <DashDisplay />
       <UnitApps />
       <p className="note">Names, tracks and numbers are synthetic.</p>
     </div>
