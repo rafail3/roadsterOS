@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type
 import { bridge, type AnimationSpeed, type Design, type AodFace, type CameraSettings, type FaceMode, type Guidelines, type ReverseDip, type ThemeMode, type TimeSource } from "../car/bridge";
 import { allTimeZones, carCommand, factoryReset, setCamera, setCastVisible, setSound, openAndroidSettings, askRestart, checkForUpdate, installedAt, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
 import { UnitPicture } from "./UnitPicture";
+import { WifiNetworks } from "./NetworksSheet";
 import { downloadFigures, useUpdateInstall } from "./update";
 import { Keyboard } from "./Keyboard";
 import { PillSlider } from "./Drawer";
@@ -79,24 +80,28 @@ export function Row({ label, value, onPress, danger, children }: { label: ReactN
     : <div className="set-row">{body}</div>;
 }
 
+/** Settings > Wi-Fi: the switch, then the networks to join right here, as in the Wi-Fi sheet. */
 function Wifi({ e }: { e: EmulatorState }) {
-  return (
+  return (<>
     <Group footer={!e.locationOn && e.wifiOn ? "Finding networks needs Location on." : undefined}>
       <Row label="Wi-Fi"><Switch label="Wi-Fi" on={e.wifiOn} onChange={setWifi} /></Row>
-      {e.wifiOn && <Row label="Network" value={e.wifi.connected ?? "Not connected"} onPress={() => shellAction({ type: "OpenNetworks" })} />}
     </Group>
-  );
+    {e.wifiOn && <div className="set-networks"><WifiNetworks shown /></div>}
+  </>);
 }
 
 function Bluetooth({ e }: { e: EmulatorState }) {
   const { car, btOn, device, saved } = e;
-  return (
+  return (<>
     <Group footer="Phones connect for music and calls. A tablet or a laptop plays music only.">
       <Row label="Bluetooth"><Switch label="Bluetooth" on={btOn} onChange={setBluetooth} /></Row>
       {btOn && <Row label="Connected" value={car.btConnected ? device : "None"} />}
       {btOn && <Row label="Devices" value={`${saved.length} saved`} onPress={() => shellAction({ type: "OpenDevices" })} />}
     </Group>
-  );
+    <Group footer="When the car starts or Bluetooth comes on, the unit connects to the phone connected last. Off, you pick the phone each time.">
+      <Row label="Connect to Last Phone"><Switch label="Connect to Last Phone" on={e.shell.btAutoConnect} onChange={(on) => shellAction({ type: "SetBtAutoConnect", on })} /></Row>
+    </Group>
+  </>);
 }
 
 function Location({ e }: { e: EmulatorState }) {
@@ -707,7 +712,9 @@ function summary(id: Page, e: EmulatorState): string {
 /** Settings: the sections on the left, the chosen one on the right, as a tablet's settings in landscape. */
 export function SettingsApp({ open }: { open: boolean }) {
   const e = useEmulator();
-  const [page, setPage] = useState<Page>("wifi");
+  // the section lives in the shell, so the drawer can bring Settings to it (OpenDevices, OpenNetworks)
+  const page = e.shell.settingsPage as Page;
+  const setPage = (id: Page) => shellAction({ type: "OpenSettingsPage", page: id });
   const section = useCloseOntoCard(open);
   // the Developer section shows only while it is switched on in About
   const pages = PAGES.filter((p) => p.id !== "developer" || e.shell.developer);

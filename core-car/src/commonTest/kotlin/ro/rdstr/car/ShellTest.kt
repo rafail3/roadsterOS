@@ -7,6 +7,29 @@ import kotlin.test.assertTrue
 
 class ShellTest {
     @Test
+    fun `a list is never a sheet and a settings page at once`() {
+        val sheet = Shell.reduce(ShellState(), ShellAction.OpenNetworks)
+        val settings = Shell.reduce(sheet, ShellAction.OpenApp(App.SETTINGS))
+        assertFalse(settings.networks)
+        val bt = Shell.reduce(settings.copy(drawer = true), ShellAction.OpenDevices)
+        assertFalse(bt.devices)
+        assertEquals("bluetooth", bt.settingsPage)
+        assertFalse(bt.drawer)
+        assertEquals("wifi", Shell.reduce(bt, ShellAction.RadioSwitched(Radio.WIFI, on = true)).settingsPage)
+        assertTrue(Shell.reduce(Shell.reduce(bt, ShellAction.Home), ShellAction.OpenDevices).devices)
+    }
+
+    @Test
+    fun `switching a radio on from the drawer opens its list, off closes it`() {
+        val open = Shell.reduce(ShellState(drawer = true), ShellAction.RadioSwitched(Radio.BLUETOOTH, on = true))
+        assertTrue(open.devices)
+        assertFalse(open.drawer)
+        val wifi = Shell.reduce(ShellState(drawer = true), ShellAction.RadioSwitched(Radio.WIFI, on = true))
+        assertTrue(wifi.networks)
+        assertFalse(Shell.reduce(open, ShellAction.RadioSwitched(Radio.BLUETOOTH, on = false)).devices)
+    }
+
+    @Test
     fun `the sound window opens over the app and Back or Home closes it`() {
         val music = Shell.reduce(ShellState(), ShellAction.OpenApp(App.MUSIC))
         val open = Shell.reduce(music, ShellAction.OpenSound)

@@ -125,6 +125,8 @@ export interface ShellState {
   phoneRegion: string;
   setupStep: SetupStep;
   carName: string;
+  btAutoConnect: boolean;
+  settingsPage: string;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -218,6 +220,9 @@ export type ShellAction =
   | { type: "SetPhoneRegion"; region: string }
   | { type: "SetupNext"; wifi?: boolean; updateAvailable?: boolean }
   | { type: "SetupBack" | "RestartSetup" }
+  | { type: "SetBtAutoConnect"; on: boolean }
+  | { type: "OpenSettingsPage"; page: string }
+  | { type: "RadioSwitched"; radio: "BLUETOOTH" | "WIFI"; on: boolean }
   | { type: "SetCarName"; name: string }
   | { type: "CastChanged"; state: CastState }
   | { type: "OpenCamera" | "CloseCamera" };
@@ -328,9 +333,8 @@ interface Kotlin {
       soundWrites(a: string, b: string): string;
       cameraWrites(a: string, b: string): string;
       cameraGuides(guidelines: string, eps: number): string;
-      startupPhones(saved: string, last: string | null): string;
+      reconnectPhone(enabled: boolean, saved: string, last: string | null): string;
       startupConnectWaitMs(): number;
-      startupConnectTryMs(): number;
       castName(): string;
       phoneFormat(typed: string, region: string): string;
       phoneRegions(): string;
@@ -499,9 +503,8 @@ export const bridge = {
   /** The guidelines as the vendor draws them, bent by the CAN steering angle [eps] (core-car Camera.guides). */
   cameraGuides: (guidelines: Guidelines, eps: number): Guides => JSON.parse(K!.Bridge.cameraGuides(guidelines, eps)),
   /** The saved phones to ask in turn after a start, the last one connected first (core-car Startup). */
-  startupPhones: (saved: string[], last: string | null): string[] => JSON.parse(K!.Bridge.startupPhones(JSON.stringify(saved), last)),
+  reconnectPhone: (enabled: boolean, saved: string[], last: string | null): string => K!.Bridge.reconnectPhone(enabled, JSON.stringify(saved), last),
   startupConnectWaitMs: () => K!.Bridge.startupConnectWaitMs(),
-  startupConnectTryMs: () => K!.Bridge.startupConnectTryMs(),
   /** The name phones list the unit under in Smart View. */
   castName: () => K!.Bridge.castName(),
   /** A phone number grouped as its country writes it, also while typed (core-car PhoneFormat). */

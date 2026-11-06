@@ -8,6 +8,8 @@ enum class ThemeMode { AUTO, LIGHT, DARK }
 enum class Theme { LIGHT, DARK }
 /** The look of every surface and control: the flat Solid one, or Glassy (frosted glass, liquid controls). Layout and icons are the same in both. */
 enum class Design { SOLID, GLASSY }
+/** The radios the drawer switches. */
+enum class Radio { BLUETOOTH, WIFI }
 enum class Face { DIGITAL, ANALOG }
 /** Which clock home shows: both, switched with a tap on the clock, or always the one chosen. */
 enum class FaceMode { BOTH, DIGITAL, ANALOG }
@@ -44,6 +46,8 @@ data class ShellState(
     val sound: Boolean = false,
     /** The Wi-Fi networks sheet. */
     val networks: Boolean = false,
+    /** The section Settings shows ("wifi", "bluetooth", ...); not kept across starts. */
+    val settingsPage: String = "wifi",
     /** Our own apps opened since boot and not closed, most recently used first; never [App.HOME]. */
     val running: List<App> = emptyList(),
     /** The open-apps screen. */
@@ -105,6 +109,8 @@ data class ShellState(
     val setupStep: Setup.Step = Setup.Step.LOGO,
     /** The car's name, given in setup: shown in About and on the boot screen, and the name phones see for casting. */
     val carName: String = "",
+    /** Settings > Bluetooth > Connect to Last Phone: off by default, the driver picks the phone (Startup.phoneToReconnect). */
+    val btAutoConnect: Boolean = false,
     /** Every car event is written to a file on the unit, for troubleshooting. */
     val recordEvents: Boolean = false,
 )
@@ -188,6 +194,10 @@ sealed class ShellAction {
     /** The setup's next screen; the host says whether Wi-Fi is up and a newer version is out (Setup.next). */
     @Serializable @SerialName("SetupNext") data class SetupNext(val wifi: Boolean = false, val updateAvailable: Boolean = false) : ShellAction()
     @Serializable @SerialName("SetupBack") data object SetupBack : ShellAction()
+    @Serializable @SerialName("SetBtAutoConnect") data class SetBtAutoConnect(val on: Boolean) : ShellAction()
+    @Serializable @SerialName("OpenSettingsPage") data class OpenSettingsPage(val page: String) : ShellAction()
+    /** A radio switched from the drawer: on opens its list (devices, networks) to pick from, off closes it. */
+    @Serializable @SerialName("RadioSwitched") data class RadioSwitched(val radio: Radio, val on: Boolean) : ShellAction()
     /** The setup from its first screen again, every other setting kept (the emulator's control panel). */
     @Serializable @SerialName("RestartSetup") data object RestartSetup : ShellAction()
     /** A blank or spaces-only name is ignored (Setup.carName). */
@@ -282,14 +292,18 @@ object Shell {
         is ShellAction.OpenApp -> s.copy(
             app = a.app,
             running = if (a.app == App.HOME) s.running else listOf(a.app) + (s.running - a.app),
-            drawer = false, devices = false, recents = false,
+            // the sheets go: Settings shows the same lists on its own pages, never both at once
+            drawer = false, devices = false, networks = false, recents = false,
         )
         ShellAction.Home -> goHome(s)
-        ShellAction.OpenDevices -> s.copy(devices = true, networks = false, drawer = false)
+        // with Settings open the list is its own page there, not a sheet over it
+        ShellAction.OpenDevices -> if (s.app == App.SETTINGS) s.copy(settingsPage = "bluetooth", devices = false, networks = false, drawer = false)
+            else s.copy(devices = true, networks = false, drawer = false)
         ShellAction.OpenSound -> s.copy(sound = true, drawer = false, devices = false)
         ShellAction.CloseSound -> s.copy(sound = false)
         ShellAction.CloseDevices -> s.copy(devices = false)
-        ShellAction.OpenNetworks -> s.copy(networks = true, devices = false, drawer = false)
+        ShellAction.OpenNetworks -> if (s.app == App.SETTINGS) s.copy(settingsPage = "wifi", devices = false, networks = false, drawer = false)
+            else s.copy(networks = true, devices = false, drawer = false)
         ShellAction.CloseNetworks -> s.copy(networks = false)
         is ShellAction.HomePressed -> {
             val last = s.lastHomeMs
@@ -350,6 +364,13 @@ object Shell {
         is ShellAction.SetPhoneRegion -> if (PhoneFormat.callingCode(a.region) != null) s.copy(phoneRegion = a.region) else s
         is ShellAction.SetupNext -> Setup.next(s.setupStep, a.wifi, a.updateAvailable)?.let { s.copy(setupStep = it) } ?: s.copy(setupDone = true)
         ShellAction.SetupBack -> s.copy(setupStep = Setup.back(s.setupStep))
+        is ShellAction.SetBtAutoConnect -> s.copy(btAutoConnect = a.on)
+        is ShellAction.OpenSettingsPage -> s.copy(settingsPage = a.page)
+        is ShellAction.RadioSwitched -> when {
+            !a.on -> if (a.radio == Radio.BLUETOOTH) s.copy(devices = false) else s.copy(networks = false)
+            a.radio == Radio.BLUETOOTH -> reduce(s, ShellAction.OpenDevices)
+            else -> reduce(s, ShellAction.OpenNetworks)
+        }
         ShellAction.RestartSetup -> s.copy(setupDone = false, setupStep = Setup.Step.LOGO)
         is ShellAction.SetCarName -> Setup.carName(a.name)?.let { s.copy(carName = it) } ?: s
         is ShellAction.CastChanged -> when {
@@ -403,7 +424,7 @@ object Shell {
         // the call level is for this drive only
         dsp = s.dsp.copy(callVolume = Sound.CALL_VOLUME_DEFAULT),
         camera = s.camera, castVisible = s.castVisible, design = s.design, phoneRegion = s.phoneRegion,
-        setupStep = s.setupStep, carName = s.carName,
+        setupStep = s.setupStep, carName = s.carName, btAutoConnect = s.btAutoConnect,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))

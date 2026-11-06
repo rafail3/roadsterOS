@@ -7,8 +7,6 @@ package ro.rdstr.car
 object Startup {
     /** The phone and the vendor's Bluetooth get this long to connect on their own before we ask. */
     const val CONNECT_WAIT_MS = 6_000
-    /** Each saved phone gets this long to answer before the next one is tried. */
-    const val CONNECT_TRY_MS = 10_000
 
     /** What is kept across a full restart of the unit. */
     fun kept(s: RulesState) = RulesState(
@@ -32,6 +30,9 @@ object Startup {
         AudioSource.NONE -> RulesState(lastSource = kept.lastSource, playOnConnect = kept.playOnConnect) to emptyList()
     }
 
-    /** The saved phones to ask in turn, the last one connected first. */
-    fun phonesToTry(saved: List<String>, last: String?): List<String> = (listOfNotNull(last?.takeIf { it in saved }) + saved).distinct()
+    /**
+     * The phone to ask for when the car starts or Bluetooth is switched on with none connected: the last one connected,
+     * still saved, and only with Settings > Bluetooth > Connect to Last Phone on (off by default). Null: ask nobody.
+     */
+    fun phoneToReconnect(enabled: Boolean, saved: List<String>, last: String?): String? = last?.takeIf { enabled && it in saved }
 }

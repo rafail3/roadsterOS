@@ -20,10 +20,10 @@
 .snd-curve-line { fill: none; stroke: var(--set-blue); stroke-width: 3; vector-effect: non-scaling-stroke; transition: d 160ms var(--seamless); }
 .snd-bands { display: grid; grid-template-columns: repeat(10, 1fr); margin-top: 12px; }
 .snd-band { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.snd-band-value { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; color: #fff; }
+.snd-band-value { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
 .snd-band-track { position: relative; width: 56px; height: 168px; touch-action: none; cursor: grab; }
 .snd-band-track::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 6px; margin-left: -3px; border-radius: 3px; background: rgba(118, 118, 128, 0.32); }
-.snd-band-track::after { content: ""; position: absolute; left: 50%; top: 50%; width: 20px; height: 2px; margin: -1px 0 0 -10px; background: rgba(235, 235, 245, 0.3); }
+.snd-band-track::after { content: ""; position: absolute; left: 50%; top: 50%; width: 20px; height: 2px; margin: -1px 0 0 -10px; background: rgb(var(--on) / 0.3); }
 .snd-band-fill { position: absolute; left: 50%; width: 6px; margin-left: -3px; border-radius: 3px; background: var(--set-blue); }
 .snd-band-knob { position: absolute; left: 50%; width: 40px; height: 24px; margin: 0 0 -12px -20px; border-radius: 12px; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); transition: transform 160ms var(--spring-glyph, ease-out); }
 .snd-band-track.is-dragging { cursor: grabbing; }
@@ -50,17 +50,17 @@
 .snd-readout { display: flex; flex-direction: column; align-items: flex-start; gap: 22px; }
 .snd-readout p { display: flex; flex-direction: column; gap: 4px; margin: 0; }
 .snd-readout span { font-size: 15px; color: var(--ink-muted); }
-.snd-readout strong { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: #fff; }
+.snd-readout strong { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--ink); }
 
 @media (prefers-reduced-motion: reduce) {
   .snd-curve-line, .snd-band-knob, .snd-dot, .snd-seat { transition-duration: 0.01ms; }
 }
 
-.snd-curve-page { fill: rgba(255, 255, 255, 0.05); }
+.snd-curve-page { fill: rgb(var(--on) / 0.05); }
 .snd-eq-pages { display: flex; justify-content: center; margin-top: 14px; }
 .snd-band-value.is-flat { color: var(--ink-muted); }
 .snd-readout-actions { display: flex; gap: 8px; }
-.snd-readout-actions .set-inline[aria-pressed="true"] { color: #fff; background: rgba(255, 255, 255, 0.12); }
+.snd-readout-actions .set-inline[aria-pressed="true"] { color: var(--ink); background: rgb(var(--on) / 0.12); }
 .snd-response { padding: 18px 20px 12px; box-shadow: inset 0 -1px 0 var(--set-line); }
 .snd-curve.is-small { height: 72px; }
 
@@ -85,8 +85,8 @@
 .snd-axis.is-y { top: 5%; bottom: 5%; }
 .snd-seat-hit { width: auto; height: auto; }
 .snd-focus { min-height: 48px; padding: 0 18px; border-radius: 12px; font-size: 17px; font-weight: 600; color: var(--set-blue); transition: background var(--fast); }
-.snd-focus[aria-checked="true"] { color: #fff; background: rgba(255, 255, 255, 0.14); }
-.snd-focus:active { background: rgba(255, 255, 255, 0.08); }
+.snd-focus[aria-checked="true"] { color: var(--ink); background: rgb(var(--on) / 0.14); }
+.snd-focus:active { background: rgb(var(--on) / 0.08); }
 .snd-hint { font-size: 15px; color: var(--ink-muted); }
 .snd-readout-actions { flex-wrap: wrap; }
 

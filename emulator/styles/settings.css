@@ -8,25 +8,31 @@
 
 .settings-app {
   --ink: #fff; --ink-muted: rgba(235, 235, 245, 0.64); --sheet: #0f1216;
-  --glass: rgba(255, 255, 255, 0.08); --hairline: rgba(255, 255, 255, 0.1); --hairline-strong: rgba(255, 255, 255, 0.2);
-  --set-group: rgba(255, 255, 255, 0.07); --set-line: rgba(255, 255, 255, 0.08); --set-blue: #0a84ff;
+  --glass: rgb(var(--on) / 0.08); --hairline: rgb(var(--on) / 0.1); --hairline-strong: rgb(var(--on) / 0.2);
+  --set-group: rgb(var(--on) / 0.07); --set-line: rgb(var(--on) / 0.08); --set-blue: #0a84ff;
   /* the selected section: a deeper blue, so its white text and value keep 4.5:1 */
   --set-current: #0060df;
   grid-template-columns: 340px minmax(0, 1fr); column-gap: 48px; align-items: stretch;
   padding: 76px 64px 24px 128px; background: var(--sheet);
 }
-.settings-app :is(button, [role="slider"]):focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+/* by day: the same layout on a light ground, rows as white cards */
+.screen.light .settings-app {
+  --ink: #171c23; --ink-muted: rgba(60, 60, 67, 0.62); --sheet: #eef1f5;
+  --glass: rgb(20 28 38 / 0.05); --hairline: rgb(20 28 38 / 0.1); --hairline-strong: rgb(20 28 38 / 0.18);
+  --set-group: #ffffff; --set-line: rgb(20 28 38 / 0.08); --set-blue: #0a6cdc; --set-current: #0a6cdc;
+}
+.settings-app :is(button, [role="slider"]):focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 /* left: the sections */
 .set-nav { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
 .set-title { margin: 4px 0 0 8px; font-size: 34px; font-weight: 700; letter-spacing: -0.02em; }
 .set-nav ul { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; overflow-y: auto; }
-.set-nav-item { width: 100%; min-height: 60px; display: flex; align-items: center; gap: 14px; padding: 0 16px 0 10px; border-radius: 14px; color: #fff; text-align: left; transition: background 200ms var(--seamless); }
-.set-nav-item:active { background: rgba(255, 255, 255, 0.08); }
+.set-nav-item { width: 100%; min-height: 60px; display: flex; align-items: center; gap: 14px; padding: 0 16px 0 10px; border-radius: 14px; color: var(--ink); text-align: left; transition: background 200ms var(--seamless); }
+.set-nav-item:active { background: rgb(var(--on) / 0.08); }
 .set-nav-item.is-current { background: var(--set-current); }
 .set-tile { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9px; color: #fff; }
 .set-tile .icon { width: 22px; height: 22px; }
-.set-nav-item.is-current .set-tile { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35); }
+.set-nav-item.is-current .set-tile { box-shadow: 0 0 0 1px rgb(var(--on) / 0.35); }
 .set-nav-label { flex: 1; font-size: 19px; font-weight: 600; }
 .set-nav-value { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; color: var(--ink-muted); }
 .set-nav-item.is-current .set-nav-value { color: #fff; }
@@ -36,7 +42,7 @@
 .set-detail::-webkit-scrollbar { width: 4px; }
 .set-detail::-webkit-scrollbar-button { display: none; }
 .set-detail::-webkit-scrollbar-track { background: transparent; }
-.set-detail::-webkit-scrollbar-thumb { border-radius: 2px; background: rgba(255, 255, 255, 0.24); }
+.set-detail::-webkit-scrollbar-thumb { border-radius: 2px; background: rgb(var(--on) / 0.24); }
 /* the page's name on a pill, so it reads as the head of the page above its groups */
 .set-page-title { align-self: flex-start; width: fit-content; margin: 4px 0 -8px; padding: 8px 22px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--glass-strong); font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
 .set-group { display: flex; flex-direction: column; gap: 8px; }
@@ -44,30 +50,30 @@
 .set-rows { border-radius: 18px; background: var(--set-group); overflow: hidden; }
 .set-footer { margin: 0 20px; max-width: 70ch; font-size: 15px; line-height: 1.45; color: var(--ink-muted); }
 
-.set-row { width: 100%; min-height: 68px; display: flex; align-items: center; gap: 16px; padding: 0 20px; color: #fff; text-align: left; }
+.set-row { width: 100%; min-height: 68px; display: flex; align-items: center; gap: 16px; padding: 0 20px; color: var(--ink); text-align: left; }
 .set-row + .set-row { box-shadow: inset 0 1px 0 var(--set-line); }
 .set-row.is-button { transition: background var(--fast); }
-.set-row.is-button:active { background: rgba(255, 255, 255, 0.08); }
+.set-row.is-button:active { background: rgb(var(--on) / 0.08); }
 .set-row.is-slider { min-height: 80px; }
 .set-row.is-slider .pill-slider { flex: 1; }
 .set-row-label { flex: 1; min-width: 0; font-size: 19px; font-weight: 500; }
 .set-row-value { max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 18px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
-.set-chevron { width: 20px; height: 20px; color: rgba(235, 235, 245, 0.42); }
+.set-chevron { width: 20px; height: 20px; color: rgb(var(--on) / 0.42); }
 .set-row.is-danger .set-row-label { color: #ff453a; font-weight: 600; }
 
 .set-seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 12px; background: rgba(118, 118, 128, 0.24); }
 .set-seg button { min-width: 96px; height: 48px; padding: 0 18px; border-radius: 10px; font-size: 17px; font-weight: 600; color: var(--ink-muted); transition: background 220ms var(--seamless), color 220ms var(--seamless); }
-.set-seg button[aria-checked="true"] { background: rgba(255, 255, 255, 0.2); color: #fff; }
+.set-seg button[aria-checked="true"] { background: rgb(var(--on) / 0.2); color: var(--ink); }
 
 .set-stepper { display: inline-flex; align-items: center; gap: 4px; padding: 3px; border-radius: 12px; background: rgba(118, 118, 128, 0.24); }
-.set-stepper button { display: grid; place-items: center; width: 56px; height: 48px; border-radius: 10px; color: #fff; transition: background var(--fast); }
-.set-stepper button:active:not(:disabled) { background: rgba(255, 255, 255, 0.16); }
-.set-stepper button:disabled { color: rgba(235, 235, 245, 0.3); }
+.set-stepper button { display: grid; place-items: center; width: 56px; height: 48px; border-radius: 10px; color: var(--ink); transition: background var(--fast); }
+.set-stepper button:active:not(:disabled) { background: rgb(var(--on) / 0.16); }
+.set-stepper button:disabled { color: rgb(var(--on) / 0.3); }
 .set-stepper .icon { width: 22px; height: 22px; }
 .set-stepper output { min-width: 44px; text-align: center; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .set-inline { min-height: 48px; padding: 0 16px; border-radius: 12px; font-size: 17px; font-weight: 600; color: var(--set-blue); transition: background var(--fast); }
-.set-inline:active { background: rgba(255, 255, 255, 0.08); }
+.set-inline:active { background: rgb(var(--on) / 0.08); }
 .set-inline.is-danger { color: #fff; background: #ff453a; }
 
 .recents-preview-settings .icon { transform: none; color: #8e8e93; }
@@ -79,7 +85,7 @@
 }
 
 .i-house-fill { --m: url(/icons/house-fill.svg); }
-.set-inline:disabled { color: rgba(235, 235, 245, 0.3); }
+.set-inline:disabled { color: rgb(var(--on) / 0.3); }
 .set-inline.is-remove { color: #ff453a; }
 /* tiles on home: our apps' own colours, other apps one from their name */
 .app-mark-radio { background: url(/images/app-radio.webp) center / cover no-repeat; border-color: transparent; }
@@ -92,16 +98,16 @@
 /* reordering home's apps: the dragged row lifts, the others slide out of its way */
 .i-list { --m: url(/icons/list.svg); }
 .set-reorder { position: relative; transition: transform 220ms var(--seamless); }
-.set-reorder.is-dragged { z-index: 1; transition: none; background: #3a3a3c; border-radius: 12px; }
-.set-grip { display: grid; place-items: center; width: 56px; height: 56px; margin-right: -12px; color: rgba(235, 235, 245, 0.42); touch-action: none; cursor: grab; }
-.set-reorder.is-dragged .set-grip { cursor: grabbing; color: #fff; }
+.set-reorder.is-dragged { z-index: 1; transition: none; background: var(--panel-row); border-radius: 12px; box-shadow: 0 6px 16px rgb(0 0 0 / 0.18); }
+.set-grip { display: grid; place-items: center; width: 56px; height: 56px; margin-right: -12px; color: rgb(var(--on) / 0.42); touch-action: none; cursor: grab; }
+.set-reorder.is-dragged .set-grip { cursor: grabbing; color: var(--ink); }
 .set-grip .icon { width: 26px; height: 26px; }
 @media (prefers-reduced-motion: reduce) { .set-reorder { transition-duration: 0.01ms; } }
 
 /* Date & Time: the zone list, searched on the on-screen keyboard */
 .i-check { --m: url(/icons/check.svg); }
 .set-back { align-self: flex-start; min-height: 48px; display: inline-flex; align-items: center; gap: 4px; margin: -12px 0 -12px -8px; padding: 0 8px; border-radius: 12px; font-size: 18px; font-weight: 600; color: var(--set-blue); }
-.set-back:active { background: rgba(255, 255, 255, 0.08); }
+.set-back:active { background: rgb(var(--on) / 0.08); }
 .set-back .icon { width: 22px; height: 22px; }
 .set-zones { display: flex; flex-direction: column; gap: 16px; }
 .set-zones-head { position: sticky; top: 0; z-index: 2; display: flex; flex-direction: column; gap: 12px; padding: 4px 0 4px; background: var(--sheet); }
@@ -109,7 +115,7 @@
 .set-zones-head .phone-search { position: static; padding: 0; background: none; }
 .set-date { display: inline-flex; align-items: center; gap: 2px; font-size: 18px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 .set-date-weekday { margin-right: 6px; }
-.set-date-part { min-height: 44px; padding: 0 10px; border-radius: 10px; color: #fff; transition: background var(--fast); }
+.set-date-part { min-height: 44px; padding: 0 10px; border-radius: 10px; color: var(--ink); transition: background var(--fast); }
 .set-date-part[aria-checked="true"] { background: rgba(10, 132, 255, 0.32); }
 .set-zones.is-typing { padding-bottom: 340px; }
 .set-row-sub { display: block; margin-top: 2px; font-size: 15px; font-weight: 400; color: var(--ink-muted); }
@@ -131,5 +137,9 @@
 /* Settings > About > Software Update */
 .set-sub-title { margin: 0 0 -10px 8px; font-size: 22px; font-weight: 700; }
 .set-update-progress { flex-wrap: wrap; row-gap: 12px; padding-bottom: 18px; }
-.set-progress { flex: 1 0 100%; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.set-progress { flex: 1 0 100%; height: 8px; border-radius: 4px; background: rgb(var(--on) / 0.12); overflow: hidden; }
 .set-progress span { display: block; height: 100%; border-radius: inherit; background: var(--set-blue); transform-origin: 0 50%; transition: transform 200ms linear; }
+/* Settings > Wi-Fi: the networks right under the switch, the sheet's rows at the page's width */
+.set-networks { display: flex; flex-direction: column; gap: 8px; }
+.set-networks .devices-scroll { overflow: visible; margin: 0; padding: 0; }
+.set-networks .devices-section { margin: 4px 0 10px 8px; }

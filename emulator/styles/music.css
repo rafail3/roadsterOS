@@ -34,14 +34,14 @@
 .marquee.is-running .marquee-text { padding-right: var(--marquee-gap); animation: marquee var(--marquee-duration) linear 1.2s infinite; }
 @keyframes marquee { to { transform: translateX(var(--marquee-distance)); } }
 
-.progress-line { position: relative; height: 6px; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, 0.16); }
-.progress-line-fill { position: absolute; inset: 0; transform-origin: left center; background: rgba(255, 255, 255, 0.82); transition: transform 250ms linear; }
+.progress-line { position: relative; height: 6px; border-radius: 999px; overflow: hidden; background: rgb(var(--on) / 0.16); }
+.progress-line-fill { position: absolute; inset: 0; transform-origin: left center; background: rgb(var(--on) / 0.82); transition: transform 250ms linear; }
 
 .transport { display: flex; justify-content: center; align-items: center; gap: var(--tx-gap, 36px); }
 /* a filled glyph with no plate; a soft disc blooms behind it while pressed */
 .tx { --tx-size: 96px; --tx-glyph: 52px; position: relative; width: var(--tx-size); height: var(--tx-size); display: grid; place-items: center; border-radius: 50%; color: var(--tx-color, #fff); }
 .tx-play { --tx-size: 120px; --tx-glyph: 68px; }
-.tx::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--tx-bloom, rgba(255, 255, 255, 0.16)); opacity: 0; transform: scale(0.85); transition: opacity 320ms var(--seamless), transform 320ms var(--seamless); }
+.tx::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--tx-bloom, rgb(var(--on) / 0.16)); opacity: 0; transform: scale(0.85); transition: opacity 320ms var(--seamless), transform 320ms var(--seamless); }
 .tx:active::before { opacity: 1; transform: scale(1); transition-duration: 60ms; transition-timing-function: linear; }
 .tx-glyph { position: relative; width: var(--tx-glyph); height: var(--tx-glyph); transition: transform 485ms var(--spring-glyph); animation: tx-pop 350ms var(--spring-swap) backwards, media-fade 120ms linear backwards; }
 .tx-glyph.is-delayed { animation-delay: 120ms; }
@@ -83,7 +83,7 @@
   position: absolute; inset: 0; z-index: 2; isolation: isolate; overflow: hidden;
   display: grid; grid-template-columns: 480px minmax(0, 1fr); align-items: center; column-gap: 80px; padding: 56px 96px 0 112px;
   /* the cover's top colour down to 60%, then its bottom colour */
-  background: linear-gradient(180deg, var(--cover-top) 0%, var(--cover-top) 60.6%, var(--cover-bottom) 100%); color: #fff;
+  background: linear-gradient(180deg, var(--cover-top) 0%, var(--cover-top) 60.6%, var(--cover-bottom) 100%); color: var(--ink);
   /* leaving, as on a phone: the app's outline closes onto its card on home (now playing; edges measured in MusicApp)
      with the card's rounded corners, its content fading first so nothing squashed shows; the outline fades as it lands */
   opacity: 0; visibility: hidden; pointer-events: none;
@@ -104,7 +104,7 @@
 .music-backdrop img { position: absolute; inset: -15%; width: 130%; height: 130%; object-fit: cover; opacity: 0.5; filter: blur(80px) saturate(1.5); animation: media-fade 1100ms var(--seamless) 360ms backwards; }
 .music-backdrop::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.38)); }
 
-.glass-button { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; color: rgba(235, 235, 245, 0.85); background: rgba(23, 23, 23, 0.55); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35); transition: transform 300ms var(--spring-glyph); }
+.glass-button { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; color: var(--button-glass-ink); background: var(--button-glass); border: 1px solid rgb(var(--on) / 0.12); box-shadow: inset 0 1px 0 rgb(var(--on) / 0.3), 0 8px 24px rgba(0, 0, 0, 0.35); transition: transform 300ms var(--spring-glyph); }
 .glass-button:active { transform: scale(1.07); transition-duration: 120ms; }
 .glass-button .icon { width: 28px; height: 28px; }
 .music-close { position: absolute; top: 76px; left: 32px; }
@@ -118,8 +118,8 @@
 .devices.is-open .devices-scrim { opacity: 1; }
 .devices-panel {
   position: absolute; top: 8px; right: 24px; bottom: 24px; width: 480px; display: flex; flex-direction: column; gap: 20px; padding: 24px;
-  border-radius: 24px; background: #0e0e12; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
-  color: #fff; opacity: 0; transform: translateX(32px); transition: transform 420ms var(--sheet-in), opacity 260ms var(--seamless);
+  border-radius: 24px; background: var(--panel); border: 1px solid rgb(var(--on) / 0.1); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  color: var(--ink); opacity: 0; transform: translateX(32px); transition: transform 420ms var(--sheet-in), opacity 260ms var(--seamless);
 }
 .devices.is-open .devices-panel { opacity: 1; transform: none; }
 .devices-head { display: flex; align-items: center; justify-content: space-between; }
@@ -134,58 +134,60 @@
 /* Bluetooth off: the panel says so instead of a list nobody can use */
 .devices-off { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 0 24px; animation: media-fade 260ms var(--seamless) backwards; }
 .devices-off h3 { margin: 12px 0 0; font-size: 24px; font-weight: 600; }
-.devices-off p { margin: 0; font-size: 17px; line-height: 1.4; color: rgba(255, 255, 255, 0.62); }
+.devices-off p { margin: 0; font-size: 17px; line-height: 1.4; color: rgb(var(--on) / 0.62); }
 .devices-scroll { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -8px; padding: 0 8px; }
 .devices-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 /* spacing as a margin, so a removed row can close its gap smoothly */
 .devices-list > li + li { margin-top: 12px; }
-.devices-nearby h3 { margin: 24px 0 12px; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.62); }
-.devices-empty { padding: 16px; font-size: 16px; color: rgba(255, 255, 255, 0.62); }
+.devices-nearby h3 { margin: 24px 0 12px; font-size: 16px; font-weight: 600; color: rgb(var(--on) / 0.62); }
+.devices-empty { padding: 16px; font-size: 16px; color: rgb(var(--on) / 0.62); }
 /* a thin scroll indicator, no arrows, as on a phone; the whole list scrolls under a drag */
 .devices-scroll { user-select: none; }
 .devices-scroll::-webkit-scrollbar { width: 4px; }
 .devices-scroll::-webkit-scrollbar-button { display: none; }
 .devices-scroll::-webkit-scrollbar-track { background: transparent; }
-.devices-scroll::-webkit-scrollbar-thumb { border-radius: 2px; background: rgba(255, 255, 255, 0.24); }
+.devices-scroll::-webkit-scrollbar-thumb { border-radius: 2px; background: rgb(var(--on) / 0.24); }
 .devices-pairing { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; animation: media-fade 260ms var(--seamless) backwards; }
 .devices-pairing h3 { margin: 12px 0 0; font-size: 24px; font-weight: 600; }
-.devices-pairing p { margin: 0; font-size: 17px; color: rgba(255, 255, 255, 0.62); }
+.devices-pairing p { margin: 0; font-size: 17px; color: rgb(var(--on) / 0.62); }
 .device-icon.is-large { width: 72px; height: 72px; }
 .device-icon.is-large .icon { width: 36px; height: 36px; }
-.device-code { margin: 12px 0 20px; font-size: 56px; font-weight: 600; letter-spacing: 0.06em; line-height: 1; font-variant-numeric: tabular-nums; color: #fff; }
+.device-code { margin: 12px 0 20px; font-size: 56px; font-weight: 600; letter-spacing: 0.06em; line-height: 1; font-variant-numeric: tabular-nums; color: var(--ink); }
 .devices-pairing-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-self: stretch; }
 .devices-foot { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
-.devices-foot p { margin: 0; font-size: 15px; color: rgba(255, 255, 255, 0.55); text-align: center; text-wrap: balance; }
+.devices-foot p { margin: 0; font-size: 15px; color: rgb(var(--on) / 0.55); text-align: center; text-wrap: balance; }
 /* the search key hugs its label: a round chip with the glass inside, flowing into the pill around the word */
-.devices-search { align-self: center; display: inline-flex; align-items: center; gap: 14px; height: 64px; padding: 0 28px 0 8px; border-radius: 32px; font-size: 18px; font-weight: 600; color: #fff; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.12); transition: background var(--fast); }
-.devices-search-chip { flex: none; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: rgba(255, 255, 255, 0.14); transition: background var(--fast); }
+.devices-search { align-self: center; display: inline-flex; align-items: center; gap: 14px; height: 64px; padding: 0 28px 0 8px; border-radius: 32px; font-size: 18px; font-weight: 600; color: var(--ink); background: rgb(var(--on) / 0.1); border: 1px solid rgb(var(--on) / 0.12); transition: background var(--fast); }
+.devices-search-chip { flex: none; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: rgb(var(--on) / 0.14); transition: background var(--fast); }
 .devices-search-chip .icon { width: 28px; height: 28px; }
-.devices-search:not(:disabled):active { background: rgba(255, 255, 255, 0.18); }
-.devices-search:not(:disabled):active .devices-search-chip { background: rgba(255, 255, 255, 0.24); }
-.devices-search:disabled { cursor: default; color: rgba(255, 255, 255, 0.72); }
+.devices-search:not(:disabled):active { background: rgb(var(--on) / 0.18); }
+.devices-search:not(:disabled):active .devices-search-chip { background: rgb(var(--on) / 0.24); }
+.devices-search:disabled { cursor: default; color: rgb(var(--on) / 0.72); }
 .devices-search:focus-visible, .devices-answer:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.devices-answer { height: 64px; border-radius: 32px; font-size: 18px; font-weight: 600; color: #fff; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.12); transition: background var(--fast); }
-.devices-answer:active { background: rgba(255, 255, 255, 0.18); }
+.devices-answer { height: 64px; border-radius: 32px; font-size: 18px; font-weight: 600; color: var(--ink); background: rgb(var(--on) / 0.1); border: 1px solid rgb(var(--on) / 0.12); transition: background var(--fast); }
+.devices-answer:active { background: rgb(var(--on) / 0.18); }
 .devices-answer.is-primary { background: #fff; color: #111; border-color: transparent; }
-.devices-answer.is-primary:active { background: rgba(255, 255, 255, 0.86); }
+/* by day the white key would vanish on the pale panel: the ink takes its place, as the play key does */
+.screen.light .devices-answer.is-primary { background: var(--ink); color: var(--canvas); }
+.devices-answer.is-primary:active { background: rgb(var(--on) / 0.86); }
 /* while searching, the glass sweeps gently so the wait reads as work in progress */
 .devices-search.is-scanning .icon { animation: device-search 1400ms var(--seamless) infinite; }
 @keyframes device-search { 0%, 100% { transform: translateX(-3px); } 50% { transform: translateX(3px); } }
-.saved-device { display: flex; align-items: center; gap: 12px; border-radius: 16px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.06); }
+.saved-device { display: flex; align-items: center; gap: 12px; border-radius: 16px; background: rgb(var(--on) / 0.06); border: 1px solid rgb(var(--on) / 0.06); }
 .saved-device.is-connected { background: rgba(159, 211, 255, 0.1); border-color: rgba(159, 211, 255, 0.24); }
 .device-main { flex: 1; min-width: 0; min-height: 80px; display: flex; align-items: center; gap: 16px; padding: 12px 16px; border-radius: 16px; text-align: left; transition: background var(--fast); }
-.device-main:not(:disabled):active { background: rgba(255, 255, 255, 0.08); }
+.device-main:not(:disabled):active { background: rgb(var(--on) / 0.08); }
 .device-main:disabled { cursor: default; }
 .device-main:focus-visible, .device-drop:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.device-icon { position: relative; flex: none; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.86); }
+.device-icon { position: relative; flex: none; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: rgb(var(--on) / 0.1); color: rgb(var(--on) / 0.86); }
 .device-icon .icon { width: 26px; height: 26px; }
 /* a saved row is an opaque card over a red remove key; sliding it left uncovers the key */
 .saved-device.is-swipeable { position: relative; display: block; overflow: hidden; background: none; border: 0; touch-action: pan-y; transition: transform 260ms cubic-bezier(0.4, 0, 1, 1), height 300ms var(--sheet-in), margin-top 300ms var(--sheet-in); }
 /* removal: the row with its key leaves to the left, then the gap it leaves closes */
 .saved-device.is-slide, .saved-device.is-collapse { transform: translateX(-110%); }
 .saved-device.is-swipeable.is-connected { background: none; }
-.device-swipe { position: relative; display: flex; align-items: center; gap: 12px; border-radius: 16px; background: #1b1b1f; border: 1px solid rgba(255, 255, 255, 0.06); transition: transform 340ms var(--sheet-in); user-select: none; }
-.saved-device.is-connected .device-swipe { background: #1a2129; border-color: rgba(159, 211, 255, 0.24); }
+.device-swipe { position: relative; display: flex; align-items: center; gap: 12px; border-radius: 16px; background: var(--panel-row); border: 1px solid rgb(var(--on) / 0.06); transition: transform 340ms var(--sheet-in); user-select: none; }
+.saved-device.is-connected .device-swipe { background: var(--panel-row-on); border-color: var(--accent-line); }
 .saved-device.is-dragging .device-swipe { transition: none; }
 .saved-device.is-collapse { margin-top: 0 !important; }
 .device-trash { position: absolute; top: 1px; right: 1px; bottom: 1px; width: 112px; padding-left: 16px; display: grid; place-items: center; border-radius: 0 15px 15px 0; color: #fff; background: #e5453b; }
@@ -193,41 +195,41 @@
 .saved-device.is-dragging .device-trash .icon { transition: none; }
 .device-trash:active { background: #c93a31; }
 .device-trash:focus-visible { outline: 2px solid #fff; outline-offset: -4px; }
-.saved-device.is-connected .device-icon { background: rgba(159, 211, 255, 0.2); color: #cfe9ff; }
+.saved-device.is-connected .device-icon { background: var(--accent-tint); color: var(--accent); }
 /* trying a phone: a ring breathes around its icon until it answers or times out */
-.saved-device.is-connecting .device-icon::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.5); animation: device-try 1200ms var(--seamless) infinite; }
+.saved-device.is-connecting .device-icon::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid rgb(var(--on) / 0.5); animation: device-try 1200ms var(--seamless) infinite; }
 @keyframes device-try { 0% { opacity: 0.9; transform: scale(0.92); } 100% { opacity: 0; transform: scale(1.18); } }
 .device-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .device-name { font-size: 20px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.device-status { font-size: 15px; color: rgba(255, 255, 255, 0.62); }
-.saved-device.is-connected .device-status { color: #9fd3ff; }
-.saved-device.is-failed .device-status { color: #ff8a80; }
-.device-drop { flex: none; height: 56px; margin-right: 12px; padding: 0 20px; border-radius: 28px; font-size: 16px; font-weight: 600; color: #fff; background: rgba(255, 255, 255, 0.12); transition: background var(--fast); }
-.device-drop:active { background: rgba(255, 255, 255, 0.2); }
+.device-status { font-size: 15px; color: rgb(var(--on) / 0.62); }
+.saved-device.is-connected .device-status { color: var(--accent); }
+.saved-device.is-failed .device-status { color: var(--danger); }
+.device-drop { flex: none; height: 56px; margin-right: 12px; padding: 0 20px; border-radius: 28px; font-size: 16px; font-weight: 600; color: var(--ink); background: rgb(var(--on) / 0.12); transition: background var(--fast); }
+.device-drop:active { background: rgb(var(--on) / 0.2); }
 /* the status bar stays over the app; over the coloured backdrop it needs light ink */
-.screen:has(.music-app.is-open) .bar, .screen:has(.music-app.is-open) .bar-text, .screen:has(.music-app.is-open) #bar-theme { color: rgba(255, 255, 255, 0.86); }
+.screen:has(.music-app:not(.settings-app, .phone-app, .maps-app).is-open) :is(.bar, .bar-text, #bar-theme) { --ink: rgba(255, 255, 255, 0.9); --ink-muted: rgba(255, 255, 255, 0.7); color: rgba(255, 255, 255, 0.86); }
 
 /* the cover sits back when paused and springs forward when playing */
 .music-cover { position: relative; width: 480px; aspect-ratio: 1; border-radius: 16px; box-shadow: 0 14px 36px rgba(0, 0, 0, 0.36); transform: scale(0.92); transition: transform 720ms var(--cover-settle), box-shadow 720ms var(--cover-settle); }
 .music-cover.is-playing { transform: scale(1); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); }
 .music-cover img, .music-cover-empty { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; animation: media-fade 450ms var(--seamless) 90ms backwards; }
-.music-cover-empty { display: grid; place-items: center; background: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.6); }
+.music-cover-empty { display: grid; place-items: center; background: rgb(var(--on) / 0.2); color: rgb(var(--on) / 0.6); }
 .music-cover-empty .icon { width: 120px; height: 120px; }
 
 .music-side { display: flex; flex-direction: column; gap: 32px; min-width: 0; }
 /* no phone connected: one centred column over both grid columns; saved phones are the actions */
 .music-nophone { grid-column: 1 / -1; align-self: center; justify-self: center; display: flex; flex-direction: column; align-items: center; gap: 12px; width: min(560px, 100%); text-align: center; animation: media-fade 320ms var(--seamless) backwards; }
-.music-nophone-icon { display: grid; place-items: center; width: 96px; height: 96px; border-radius: 50%; background: rgba(255, 255, 255, 0.12); }
+.music-nophone-icon { display: grid; place-items: center; width: 96px; height: 96px; border-radius: 50%; background: rgb(var(--on) / 0.12); }
 .music-nophone-icon .icon { width: 44px; height: 44px; }
 .music-nophone h2 { margin: 16px 0 0; font-size: 32px; font-weight: 600; letter-spacing: -0.01em; }
-.music-nophone p { margin: 0; font-size: 18px; color: rgba(255, 255, 255, 0.62); }
+.music-nophone p { margin: 0; font-size: 18px; color: rgb(var(--on) / 0.62); }
 .music-nophone-list { display: flex; flex-direction: column; gap: 12px; width: 100%; margin: 24px 0 0; padding: 0; list-style: none; }
-.music-nophone-phone { width: 100%; height: 72px; display: flex; align-items: center; gap: 16px; padding: 0 28px; border-radius: 999px; background: rgba(255, 255, 255, 0.14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14); color: #fff; font-size: 20px; font-weight: 600; text-align: left; transition: background var(--fast), transform 420ms var(--spring-glyph); }
+.music-nophone-phone { width: 100%; height: 72px; display: flex; align-items: center; gap: 16px; padding: 0 28px; border-radius: 999px; background: rgb(var(--on) / 0.14); box-shadow: inset 0 1px 0 rgb(var(--on) / 0.14); color: var(--ink); font-size: 20px; font-weight: 600; text-align: left; transition: background var(--fast), transform 420ms var(--spring-glyph); }
 .music-nophone-phone .icon { width: 26px; height: 26px; color: #0a84ff; }
-.music-nophone-phone:active:not(:disabled) { transform: scale(0.97); background: rgba(255, 255, 255, 0.22); transition-duration: var(--fast), 120ms; }
+.music-nophone-phone:active:not(:disabled) { transform: scale(0.97); background: rgb(var(--on) / 0.22); transition-duration: var(--fast), 120ms; }
 .music-nophone-phone:disabled { opacity: 0.55; }
-.music-nophone-more { margin-top: 12px; height: 56px; padding: 0 28px; border-radius: 999px; color: rgba(255, 255, 255, 0.86); font-size: 18px; font-weight: 600; }
-.music-nophone-more:active { background: rgba(255, 255, 255, 0.12); }
+.music-nophone-more { margin-top: 12px; height: 56px; padding: 0 28px; border-radius: 999px; color: rgb(var(--on) / 0.86); font-size: 18px; font-weight: 600; }
+.music-nophone-more:active { background: rgb(var(--on) / 0.12); }
 .music-nophone-pair { margin-top: 24px; height: 64px; display: flex; align-items: center; gap: 12px; padding: 0 36px; border-radius: 999px; background: #0a84ff; color: #fff; font-size: 20px; font-weight: 600; transition: background var(--fast), transform 420ms var(--spring-glyph); }
 .music-nophone-pair .icon { width: 24px; height: 24px; }
 .music-nophone-pair:active { transform: scale(0.96); background: #0070e0; transition-duration: var(--fast), 120ms; }
@@ -235,29 +237,29 @@
 .music-nophone-phone:focus-visible, .music-nophone-more:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .music-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; animation: media-fade 380ms var(--seamless) 200ms backwards; }
 .music-title { margin: 0; font-size: 36px; line-height: 44px; font-weight: 600; letter-spacing: -0.02em; color: #fff; }
-.music-artist { margin: 0; font-size: 26px; line-height: 34px; color: rgba(255, 255, 255, 0.78); }
+.music-artist { margin: 0; font-size: 26px; line-height: 34px; color: rgb(var(--on) / 0.78); }
 
 .music-seek .progress-line { height: 8px; }
-.music-times { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 16px; font-weight: 600; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; color: rgba(255, 255, 255, 0.62); }
-.music-device { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.62); font-size: 14px; }
+.music-times { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 16px; font-weight: 600; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; color: rgb(var(--on) / 0.62); }
+.music-device { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgb(var(--on) / 0.1); color: rgb(var(--on) / 0.62); font-size: 14px; }
 .music-device .icon { width: 16px; height: 16px; }
 .music-device { transition: background var(--fast); }
-.music-device:active { background: rgba(255, 255, 255, 0.2); }
+.music-device:active { background: rgb(var(--on) / 0.2); }
 .music-device:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* volume sits in its own glass capsule, so it never reads as a second timeline */
-.music-volume { display: flex; align-items: center; gap: 4px; margin-top: 8px; padding: 4px; border-radius: 999px; color: rgba(255, 255, 255, 0.62); background: rgba(23, 23, 23, 0.32); border: 1px solid rgba(255, 255, 255, 0.1); }
+.music-volume { display: flex; align-items: center; gap: 4px; margin-top: 8px; padding: 4px; border-radius: 999px; color: rgb(var(--on) / 0.62); background: rgba(23, 23, 23, 0.32); border: 1px solid rgb(var(--on) / 0.1); }
 .music-volume-step { flex: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; color: inherit; transition: background var(--fast), color var(--fast); }
-.music-volume-step:active { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.music-volume-step:active { background: rgb(var(--on) / 0.14); color: #fff; }
 .music-volume-step:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 /* same glyph size as the mute key of the volume bar */
 .music-volume .icon { width: 28px; height: 28px; }
 .music-volume.is-muted .music-mute { color: var(--mute); }
 /* the finger target is the whole row height; the bar inside thickens while held */
 .music-volume-track { flex: 1; height: 48px; display: flex; align-items: center; touch-action: none; cursor: pointer; border-radius: 12px; }
-.music-volume-bar { position: relative; flex: 1; height: 10px; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, 0.15); transition: height 420ms var(--spring-glyph); }
+.music-volume-bar { position: relative; flex: 1; height: 10px; border-radius: 999px; overflow: hidden; background: rgb(var(--on) / 0.15); transition: height 420ms var(--spring-glyph); }
 .music-volume.is-active .music-volume-bar { height: 14px; }
-.music-volume-fill { position: absolute; inset: 0; transform-origin: left center; background: rgba(255, 255, 255, 0.7); transition: transform 120ms linear; }
+.music-volume-fill { position: absolute; inset: 0; transform-origin: left center; background: rgb(var(--on) / 0.7); transition: transform 120ms linear; }
 
 @media (prefers-reduced-motion: reduce) {
   .music-app, .music-cover, .np-cover, .tx-glyph, .tx::before, .glass-button, .music-volume-bar, .devices-scrim, .devices-panel, .switch, .switch-knob { transition-duration: 0.01ms; }
@@ -270,9 +272,9 @@
 .i-lock { --m: url(/icons/lock.svg); }
 .i-arrow-fat-up { --m: url(/icons/arrow-fat-up.svg); }
 .i-backspace { --m: url(/icons/backspace.svg); }
-.devices-section { margin: 20px 0 12px; font-size: 16px; font-weight: 600; color: rgba(255, 255, 255, 0.62); }
+.devices-section { margin: 20px 0 12px; font-size: 16px; font-weight: 600; color: rgb(var(--on) / 0.62); }
 .devices-scroll > section:first-child .devices-section { margin-top: 4px; }
-.wifi-signal { flex: none; margin-left: auto; display: flex; align-items: center; gap: 10px; color: rgba(255, 255, 255, 0.86); }
+.wifi-signal { flex: none; margin-left: auto; display: flex; align-items: center; gap: 10px; color: rgb(var(--on) / 0.86); }
 .wifi-signal .icon { width: 16px; height: 16px; }
 .wifi-bars { width: 24px; height: 24px; }
 .device-icon .wifi-bars { width: 36px; height: 36px; }
@@ -280,15 +282,15 @@
 .devices-panel.has-keyboard { bottom: 396px; }
 .wifi-join { display: flex; flex-direction: column; gap: 10px; animation: media-fade 220ms var(--seamless) backwards; }
 .wifi-join h3 { margin: 0; font-size: 24px; font-weight: 600; }
-.wifi-join > p { margin: 0 0 6px; font-size: 16px; color: rgba(255, 255, 255, 0.62); }
-.wifi-field { display: flex; align-items: center; gap: 12px; height: 64px; padding: 0 8px 0 18px; border-radius: 16px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16); transition: border-color var(--fast); }
+.wifi-join > p { margin: 0 0 6px; font-size: 16px; color: rgb(var(--on) / 0.62); }
+.wifi-field { display: flex; align-items: center; gap: 12px; height: 64px; padding: 0 8px 0 18px; border-radius: 16px; background: rgb(var(--on) / 0.08); border: 1px solid rgb(var(--on) / 0.16); transition: border-color var(--fast); }
 .wifi-field.is-wrong { border-color: #ff453a; }
 .wifi-field-text { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; font-size: 22px; letter-spacing: 0.04em; }
 .wifi-caret { display: inline-block; width: 2px; height: 26px; margin-left: 2px; vertical-align: -4px; background: #0a84ff; animation: caret-blink 1s steps(1) infinite; }
 @keyframes caret-blink { 50% { opacity: 0; } }
 .wifi-reveal { flex: none; height: 48px; padding: 0 14px; border-radius: 12px; color: #0a84ff; font-size: 17px; font-weight: 600; }
-.wifi-reveal:active { background: rgba(255, 255, 255, 0.1); }
-.wifi-note { margin: 0; font-size: 15px; color: rgba(255, 255, 255, 0.62); }
+.wifi-reveal:active { background: rgb(var(--on) / 0.1); }
+.wifi-note { margin: 0; font-size: 15px; color: rgb(var(--on) / 0.62); }
 .wifi-field.is-wrong + .wifi-note { color: #ff8a80; }
 
 /* our keyboard: the phone layout, dark by night and light by day, the submit key blue once it can send */
@@ -330,17 +332,17 @@
 .alert.is-open { pointer-events: auto; }
 .alert-scrim { position: absolute; inset: 0; width: 100%; background: rgba(0, 0, 0, 0.45); opacity: 0; transition: opacity 220ms var(--seamless); cursor: default; }
 .alert.is-open .alert-scrim { opacity: 1; }
-.alert-card { position: relative; width: 420px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 24px 20px; border-radius: 28px; background: #1c1c1f; border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; text-align: center; box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45); opacity: 0; transform: scale(1.08); transition: opacity 220ms var(--seamless), transform 320ms var(--spring-glyph); }
+.alert-card { position: relative; width: 420px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 24px 20px; border-radius: 28px; background: var(--panel); border: 1px solid rgb(var(--on) / 0.1); color: var(--ink); text-align: center; box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45); opacity: 0; transform: scale(1.08); transition: opacity 220ms var(--seamless), transform 320ms var(--spring-glyph); }
 .alert.is-open .alert-card { opacity: 1; transform: none; }
 .alert-icon { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: rgba(10, 132, 255, 0.18); color: #0a84ff; }
 .alert-icon .icon { width: 30px; height: 30px; }
 .alert-card h2 { margin: 8px 0 0; font-size: 22px; font-weight: 600; }
-.alert-card p { margin: 0; font-size: 16px; line-height: 1.4; color: rgba(255, 255, 255, 0.62); }
+.alert-card p { margin: 0; font-size: 16px; line-height: 1.4; color: rgb(var(--on) / 0.62); }
 .alert-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 14px; }
-.alert-button { height: 56px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); color: #fff; font-size: 18px; font-weight: 600; transition: background var(--fast), transform 420ms var(--spring-glyph); }
-.alert-button.is-primary { background: #0a84ff; }
+.alert-button { height: 56px; border-radius: 999px; background: rgb(var(--on) / 0.12); color: var(--ink); font-size: 18px; font-weight: 600; transition: background var(--fast), transform 420ms var(--spring-glyph); }
+.alert-button.is-primary { background: #0a84ff; color: #fff; }
 .alert-button:active { transform: scale(0.97); transition-duration: var(--fast), 120ms; }
-.alert-button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.alert-button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { .alert-scrim, .alert-card { transition-duration: 0.01ms; } }
 
 .wifi-nolocation { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }

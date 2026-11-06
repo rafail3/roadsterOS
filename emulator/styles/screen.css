@@ -175,13 +175,17 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .toggle-state { font-size: 14px; font-weight: 500; line-height: 1.2; opacity: 0.62; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .toggle-title, .toggle-state { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .toggle:active { transform: scale(0.95); transition-duration: var(--fast), var(--fast), 120ms; }
-.toggle.is-on { background: #fff; color: #111; box-shadow: none; }
-.toggle-bt.is-on .toggle-disc, .toggle-wifi.is-on .toggle-disc { color: var(--on-blue); }
-.toggle-mute.is-on .toggle-disc { color: var(--mute); }
-.toggle-location.is-on .toggle-disc { color: var(--on-blue); }
-.toggle-theme.is-on .toggle-disc { color: var(--on-indigo); }
+/* on: each function in its own colour with white ink, as a phone's control centre; the tones are deep enough for
+   white text at 4.5:1, by day and by night */
+.toggle-bt { --toggle-on: #0a6cdc; }
+.toggle-wifi { --toggle-on: #ff9500; }
+.toggle-location { --toggle-on: #4f4cd6; }
+.toggle-mute { --toggle-on: #d1332b; }
+.toggle-theme { --toggle-on: #a347d1; }
+.toggle.is-on { background: var(--toggle-on); color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22); }
+.toggle.is-on .toggle-state { opacity: 0.82; }
 .screen.light .toggle { color: var(--ink); background: rgba(20, 28, 38, 0.07); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6); }
-.screen.light .toggle.is-on { background: #fff; color: #111; box-shadow: 0 1px 2px rgba(20, 28, 38, 0.12); }
+.screen.light .toggle.is-on { background: var(--toggle-on); color: #fff; box-shadow: 0 1px 2px rgba(20, 28, 38, 0.18); }
 .toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 /* drawer sliders: a thick track filled from the left; the icon rides inside the filled end */
 .pill-slider { --pill: 48px; display: flex; align-items: center; gap: var(--space-4); }
@@ -357,6 +361,9 @@ button.pill-readout:focus-visible { outline: 2px solid var(--accent); outline-of
 /* the status bar: a light tint of the sheet that fades out at its lower edge, so what is under it shows through
    with no hard line. No live blur: the unit's Mali-450 cannot blur moving content each frame */
 .bar { background: linear-gradient(to bottom, color-mix(in srgb, var(--sheet) 58%, transparent) 0%, color-mix(in srgb, var(--sheet) 40%, transparent) 55%, transparent 100%); }
+/* over an app the bar takes the app's own ground: no band of the home's colour across the top (the map keeps it,
+   for the names under it) */
+.screen.in-app:not(.in-maps) .bar { background: none; }
 .bar-clock { font-size: var(--size-label); font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
 .bar-meridiem { margin-left: 4px; font-size: 0.8em; font-weight: 500; }
 

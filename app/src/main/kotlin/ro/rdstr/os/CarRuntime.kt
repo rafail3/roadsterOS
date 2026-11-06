@@ -198,6 +198,8 @@ object CarRuntime {
     }
 
     fun send(command: CarCommand) {
+        // a phone picked by hand ends the wait for the last one
+        if (command is CarCommand.Bluetooth.Connect && !reconnecting) connecting?.cancel()
         _ui.value = _ui.value.copy(state = Rules.onCommand(_ui.value.state, command))
         if (_shell.value.recordEvents) journal.write(JournalRecord(0, command = command))
         bus.send(command)
@@ -268,9 +270,11 @@ object CarRuntime {
         if (::cast.isInitialized) cast.surface = surface
     }
 
+    private var reconnecting = false
+
     /**
-     * When no phone has connected a few seconds after a start, the saved ones are asked in turn, the last one first;
-     * it stops as soon as one connects, and with Bluetooth off.
+     * A few seconds after a start, or after Bluetooth comes on, with no phone connected: one try for the last phone,
+     * with Connect to Last Phone on (Startup.phoneToReconnect).
      */
     @android.annotation.SuppressLint("MissingPermission") // BLUETOOTH is granted at install on API 27
     private fun connectLastPhone() {
@@ -279,11 +283,9 @@ object CarRuntime {
             delay(Startup.CONNECT_WAIT_MS.toLong())
             val adapter = android.bluetooth.BluetoothAdapter.getDefaultAdapter()?.takeIf { it.isEnabled } ?: return@launch
             val saved = adapter.bondedDevices.mapNotNull { it.name }
-            for (name in Startup.phonesToTry(saved, prefs.getString(LAST_PHONE_KEY, null))) {
-                if (_ui.value.state.btConnected) return@launch
-                send(CarCommand.Bluetooth.Connect(name))
-                delay(Startup.CONNECT_TRY_MS.toLong())
-            }
+            val phone = Startup.phoneToReconnect(_shell.value.btAutoConnect, saved, prefs.getString(LAST_PHONE_KEY, null)) ?: return@launch
+            // one try: a phone out of reach just fails, and the list stays free for any phone picked by hand
+            if (!_ui.value.state.btConnected) { reconnecting = true; send(CarCommand.Bluetooth.Connect(phone)); reconnecting = false }
         }
     }
 
@@ -361,8 +363,22 @@ object CarRuntime {
      */
     fun openPhone(): PhoneGate.Screen {
         val on = radios.bluetoothOn
-        if (!on) radios.bluetooth(true)
+        if (!on && radios.bluetooth(true)) connectLastPhone()
         return PhoneGate.screen(on, _ui.value.state.hfpConnected).also { Log.i(PHONE_TAG, "phone app $it") }
+    }
+
+    /**
+     * The drawer's Bluetooth and Wi-Fi switches: on opens the radio's list (Shell RadioSwitched). Bluetooth then asks for
+     * the last phone with Connect to Last Phone on; Wi-Fi joins a saved network in range by itself (Android's own).
+     */
+    fun switchBluetooth(on: Boolean) {
+        if (radios.bluetooth(on) && on) connectLastPhone()
+        shellAction(ro.rdstr.car.ShellAction.RadioSwitched(ro.rdstr.car.Radio.BLUETOOTH, on))
+    }
+
+    fun switchWifi(on: Boolean) {
+        radios.wifi(on)
+        shellAction(ro.rdstr.car.ShellAction.RadioSwitched(ro.rdstr.car.Radio.WIFI, on))
     }
 
     private const val PHONE_TAG = "rdstr.phone"
