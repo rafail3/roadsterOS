@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.13.0](https://github.com/rafail3/roadsterOS/compare/v1.12.0...v1.13.0) (2026-11-06)
+
+
+### Features
+
+* **cast:** Miracast receiver on the unit: Wi-Fi Direct display named roadsterOS, RTSP session, hardware H.264 decoding onto a surface, LPCM sound ([0a2ed1a](https://github.com/rafail3/roadsterOS/commit/0a2ed1afc7e8d994301a4f81707eb9a6864cd1c1))
+* **cast:** Miracast sink RTSP dialogue, RTP and MPEG-TS unpacking into H.264 frames and LPCM sound in core-car ([0de9df5](https://github.com/rafail3/roadsterOS/commit/0de9df51fb0ea2d55653a47bb968f2c286036da9))
+* **cast:** phone screen app with Miracast states, sound paused while sharing, visible to phones setting; a laptop window stands for the phone in the emulator ([919a08a](https://github.com/rafail3/roadsterOS/commit/919a08a583d9b6caa51db6c2cb1f0d02529198da))
+* **cast:** phone screen over Miracast ([f7346f0](https://github.com/rafail3/roadsterOS/commit/f7346f00692c7ebde985e125b8b14f7131d87978))
+
 ## [1.12.0](https://github.com/rafail3/roadsterOS/compare/v1.11.0...v1.12.0) (2026-11-06)
 
 
