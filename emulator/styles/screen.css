@@ -102,9 +102,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 /* clock faces live in clock.css */
 
 .apps { display: flex; gap: var(--space-4); }
-.app { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); width: 96px; padding: var(--space-3) 0; border-radius: var(--radius-sm); color: var(--ink-muted); font-size: var(--size-label); font-weight: 500; transition: background var(--fast), color var(--fast); }
+.app { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); width: 112px; padding: var(--space-3) 0; border-radius: var(--radius-sm); color: var(--ink-muted); font-size: var(--size-label); font-weight: 500; transition: background var(--fast), color var(--fast); }
 .app:active { background: var(--glass-pressed); }
-.app-mark { width: 56px; height: 56px; border-radius: 14px; border: 1px solid var(--hairline-strong); }
+.app-mark { width: 80px; height: 80px; border-radius: 19px; border: 1px solid var(--hairline-strong); }
 /* synthetic app marks: stand-ins for the installed apps' icons */
 .app-mark-nav { background: url(/images/app-maps.webp) center / cover no-repeat; border-color: transparent; }
 .app-mark-music { background: url(/images/app-music.webp) center / cover no-repeat; border-color: transparent; }
