@@ -47,7 +47,7 @@ class SettingsLogicTest {
         assertEquals("0", SettingsLogic.lineHeight(0))
         assertEquals(125, SettingsLogic.markHue("com.spotify.music"))
         assertEquals(314, SettingsLogic.markHue("a"))
-        assertEquals("Saturday 31 October 2026", SettingsLogic.longDate(SettingsLogic.clock(at(2026, Calendar.OCTOBER, 31), zone)))
+        assertEquals("Saturday, 31 October 2026", SettingsLogic.longDate(SettingsLogic.clock(at(2026, Calendar.OCTOBER, 31), zone)))
         assertEquals("31 Oct, 12:00", SettingsLogic.updateDate(at(2026, Calendar.OCTOBER, 31), zone, time = true))
         assertEquals("31 October 2026", SettingsLogic.updateDate(at(2026, Calendar.OCTOBER, 31), zone))
         assertEquals("The music plays at 40% of its level while a direction is spoken.", SettingsLogic.musicUnderNav(40))

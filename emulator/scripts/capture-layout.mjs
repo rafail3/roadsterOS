@@ -51,6 +51,19 @@ const SCENES = [
   ...looks.map(([theme, design]) => ({ name: `bar-${theme}-${design}`, query: `theme=${theme}&design=${design}`, root: "bar" })),
   ...looks.map(([theme, design]) => ({ name: `rail-${theme}-${design}`, query: `theme=${theme}&design=${design}`, root: "rail" })),
   ...looks.map(([theme, design]) => ({ name: `card-nophone-${theme}-${design}`, query: `theme=${theme}&design=${design}&nophone`, root: "panel" })),
+  // ---- Settings (SettingsApp.tsx, RestartPrompt.tsx): every section, the Software Update states and the restart prompt
+  ...["wifi", "bluetooth", "location", "display", "datetime", "sound", "phone", "dash", "camera", "home", "maps", "about"].flatMap((id, i) =>
+    looks.map(([theme, design]) => ({ name: `settings-${id}-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=settings`,
+      root: "music-app.settings-app", clicks: i ? [`.set-nav-item >> nth=${i}`] : [] }))),
+  ...looks.map(([theme, design]) => ({ name: `settings-developer-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=settings`,
+    root: "music-app.settings-app", clicks: [".set-nav-item >> nth=11", "[aria-label='Developer Settings']", ".set-nav-item >> nth=12"] })),
+  ...looks.map(([theme, design]) => ({ name: `settings-update-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=settings`,
+    root: "music-app.settings-app", clicks: [".set-nav-item >> nth=11", ".set-row.is-button:has-text('roadsterOS')"] })),
+  ...looks.map(([theme, design]) => ({ name: `settings-update-checked-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=settings`,
+    root: "music-app.settings-app", clicks: [".set-nav-item >> nth=11", ".set-row.is-button:has-text('roadsterOS')", ".set-row.is-button:has-text('Check for Updates')"], wait: 1600 })),
+  ...looks.map(([theme, design]) => ({ name: `restart-${theme}-${design}`, query: `theme=${theme}&design=${design}&app=settings`,
+    root: "alert:1", clicks: [".set-nav-item >> nth=11", ".set-row.is-button:has-text('Restart the Unit')"] })),
+  // ---- end Settings
   // --- end shell
 ];
 
@@ -164,6 +177,12 @@ for (const scene of SCENES.filter((s) => !wanted || wanted.includes(s.name))) {
   await page.evaluate(() => document.fonts.ready);
   // two frames for layout effects that measure and set state once
   await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+  // scenes reached by taps (a settings section, a sub-page, a prompt): each selector clicked, then two frames
+  for (const target of scene.clicks ?? []) {
+    await page.click(target);
+    await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+  }
+  if (scene.wait) await page.waitForTimeout(scene.wait);
   const layout = await page.evaluate(collect, scene.root ?? null);
   if (scene.root) {
     if (!layout.elements.some((e) => e.key === scene.root)) {

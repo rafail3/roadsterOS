@@ -45,10 +45,12 @@ class RestartPromptView(context: Context) : FrameLayout(context) {
         set(v) {
             if (field == v) return
             field = v
-            val ms = UiTheme.duration(220)
-            scrim.animate().alpha(if (v) 1f else 0f).setDuration(ms).setInterpolator(Motion.interpolator(Motion.seamless))
-            card.animate().alpha(if (v) 1f else 0f).setDuration(ms).setInterpolator(Motion.interpolator(Motion.seamless))
-            card.animate().scaleX(if (v) 1f else 1.08f).scaleY(if (v) 1f else 1.08f).setDuration(UiTheme.duration(320)).setInterpolator(Motion.interpolator(Motion.springGlyph))
+            scrim.fadeTo(if (v) 1f else 0f, 220, Motion.seamless)
+            // opacity in 220 ms, the scale in 320 ms on the spring: one animator each, on the card and its content
+            card.fadeTo(if (v) 1f else 0f, 220, Motion.seamless)
+            val sc = if (v) 1f else 1.08f
+            if (UiTheme.duration(320) <= 0L) { card.scaleX = sc; card.scaleY = sc }
+            else card.animate().scaleX(sc).scaleY(sc).setDuration(UiTheme.duration(320)).setInterpolator(Motion.interpolator(Motion.springGlyph))
             isClickable = v
             scrim.isClickable = v
         }

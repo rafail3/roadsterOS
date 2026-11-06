@@ -71,6 +71,14 @@ internal fun iconRes(name: String): Int = when (name) {
 /** An icon keyed as the emulator's `span.icon.i-<name>`. */
 internal fun icon(context: Context, name: String, size: Float) = IconView(context, iconRes(name), size).apply { uiKey = "icon.i-$name" }
 
+/** [alpha] (and [scale]) over [ms] on [ease], or at once with animations off. */
+internal fun View.fadeTo(alpha: Float, ms: Long, ease: Easing, scale: Float? = null) {
+    val d = UiTheme.duration(ms)
+    animate().cancel()
+    if (d <= 0L) { this.alpha = alpha; scale?.let { scaleX = it; scaleY = it }; return }
+    animate().alpha(alpha).apply { scale?.let { scaleX(it).scaleY(it) } }.setDuration(d).setInterpolator(Motion.interpolator(ease))
+}
+
 /** The children of [this] in this order; nothing is touched when they already are. */
 internal fun ViewGroup.children(list: List<View>) {
     if (childCount == list.size && list.indices.all { getChildAt(it) === list[it] }) return

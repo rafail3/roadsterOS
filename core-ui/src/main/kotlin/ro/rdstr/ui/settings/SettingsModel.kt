@@ -173,8 +173,8 @@ object SettingsLogic {
             WEEKDAYS[it.get(Calendar.DAY_OF_WEEK) - 1])
     }
 
-    /** `toLocaleDateString("en-GB", { weekday, day, month: "long", year })`: "Saturday 31 October 2026". */
-    fun longDate(c: Clock) = "${c.weekday} ${c.day} ${c.monthName} ${c.year}"
+    /** `toLocaleDateString("en-GB", { weekday, day, month: "long", year })`: "Saturday, 31 October 2026". */
+    fun longDate(c: Clock) = "${c.weekday}, ${c.day} ${c.monthName} ${c.year}"
 
     /** Software Update's dates: "31 October 2026", or with the time "31 Oct, 12:00". */
     fun updateDate(ms: Long, zone: String, time: Boolean = false): String = clock(ms, zone).let {

@@ -146,8 +146,11 @@ class SettingsView(context: Context, private val slots: SettingsSlots? = null) :
         keyboard.onSubmit = { typing = false; render() }
         addView(keyboard, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.BOTTOM))
 
-        UiTheme.link(this) { setBackgroundColor(UiTheme.settings.sheet) }
+        // .set-page-title { align-self: flex-start; margin: 4px 0 -8px }
+        pill.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = px(4f); bottomMargin = -px(8f) }
+        UiTheme.link(this) { setBackgroundColor(UiTheme.settings.sheet); navTitle.setTextColor(UiTheme.settings.ink) }
         setBackgroundColor(UiTheme.settings.sheet)
+        navTitle.setTextColor(UiTheme.settings.ink)
         visibility = INVISIBLE
     }
 
@@ -175,11 +178,11 @@ class SettingsView(context: Context, private val slots: SettingsSlots? = null) :
                 visibility = VISIBLE
                 shut.snap(0f); fade.snap(1f)
                 rise.snap(1f); rise.to(0f, now, UiTheme.duration(420), Motion.sheetIn)
-                for (i in 0 until childCount) getChildAt(i).animate().alpha(1f).setDuration(UiTheme.duration(100)).setInterpolator(Motion.interpolator(Motion.easeOut))
+                for (i in 0 until childCount) getChildAt(i).fadeTo(1f, 100, Motion.easeOut)
             } else {
                 shut.to(1f, now, UiTheme.duration(280), Motion.sheetIn)
                 fade.to(0f, now, UiTheme.duration(280), ro.rdstr.ui.kit.CssBezier(0.4f, 0f, 1f, 1f))
-                for (i in 0 until childCount) getChildAt(i).animate().alpha(0f).setDuration(UiTheme.duration(100)).setInterpolator(Motion.interpolator(Motion.easeOut))
+                for (i in 0 until childCount) getChildAt(i).fadeTo(0f, 100, Motion.easeOut)
                 postDelayed({ if (!this.open) visibility = INVISIBLE }, UiTheme.duration(280))
             }
             invalidate()
@@ -225,7 +228,7 @@ class SettingsView(context: Context, private val slots: SettingsSlots? = null) :
             keep.clear()
             detail.scrollTo(0, 0)
             content.alpha = 0f
-            content.animate().alpha(1f).setDuration(UiTheme.duration(200)).setInterpolator(Motion.interpolator(Motion.seamless))
+            content.fadeTo(1f, 200, Motion.seamless)
         }
         pill.title.setIfChanged(shown.label)
         val out = arrayListOf<View>(pill)
