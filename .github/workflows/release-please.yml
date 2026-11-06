@@ -12,6 +12,9 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       # A personal token, because pull requests opened with GITHUB_TOKEN do not start CI
       # and the required check on main would never report.
@@ -27,3 +30,28 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           PR_JSON: ${{ steps.release.outputs.pr }}
         run: gh pr merge "$(jq -r '.number' <<< "$PR_JSON")" --auto --squash --repo "$GITHUB_REPOSITORY"
+
+  # The display app of the release, attached as roadsterOS.apk: the unit's updater looks for that name in the latest
+  # release and checks the SHA-256 digest GitHub records for it.
+  apk:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew assembleDeviceRelease --no-daemon
+      - run: cp app/build/outputs/apk/device/release/app-device-release.apk roadsterOS.apk
+      - name: Attach the APK to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: gh release upload "$TAG" roadsterOS.apk --clobber --repo "$GITHUB_REPOSITORY"
