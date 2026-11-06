@@ -2,7 +2,6 @@ package ro.rdstr.ui.keyboard
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -49,11 +48,13 @@ class KeyboardTest {
         box(k.of(KeyType.SUBMIT), 932.73f, 292f, 339.27f, 60f)
     }
 
-    @Test fun symbolsThirdRowKeysAreWide() {
+    @Test fun symbolsThirdRowKeysHaveTheLetterWidth() {
         val letters = KeyboardLayout.keys(Layer.LETTERS, true, 1280f)
         val symbols = KeyboardLayout.keys(Layer.SYMBOLS, true, 1280f)
-        assertTrue(symbols.char(".").width > letters.char("z").width)
-        assertTrue(symbols.char(".").width > letters.char("q").width)
+        // measured in the emulator at 1280 px: "." sits where "z" does, 109.88 wide
+        assertEquals(225.42f, symbols.char(".").left, eps)
+        assertEquals(109.88f, symbols.char(".").width, eps)
+        assertEquals(letters.char("m").right, symbols.char("~").right, eps)
         // the side keys keep their place, so the row keeps its shape
         assertEquals(letters.of(KeyType.BACKSPACE).left, symbols.of(KeyType.BACKSPACE).left, eps)
         assertEquals(letters.of(KeyType.BACKSPACE).width, symbols.of(KeyType.BACKSPACE).width, eps)
@@ -105,13 +106,15 @@ class KeyboardTest {
         assertEquals(KeyboardLook.SUBMIT_DARK, KeyboardLook.key(KeyType.SUBMIT, true, false, true, false, false, false).fill)
         assertEquals(0xFFFFA41B.toInt(), KeyboardLook.key(KeyType.SUBMIT, false, false, true, false, false, amber = true).fill)
         assertEquals(KeyboardLook.AMBER_OFF_ALPHA, KeyboardLook.key(KeyType.SUBMIT, false, false, false, false, false, amber = true).alpha)
-        // by day the setup's submit key is blue: `.screen.light .kb-submit` outranks `.sf .kb-submit`
-        assertEquals(KeyboardLook.SUBMIT_LIGHT, KeyboardLook.key(KeyType.SUBMIT, false, false, true, true, false, amber = true).fill)
-        // by day a press shows
-        val rest = KeyboardLook.key(KeyType.CHAR, false, false, true, true, false, false)
-        val down = KeyboardLook.key(KeyType.CHAR, true, false, true, true, false, false)
-        assertNotEquals(rest.fill, down.fill)
-        assertNotEquals(KeyboardLook.key(KeyType.BACKSPACE, false, false, true, true, false, false).fill, KeyboardLook.key(KeyType.BACKSPACE, true, false, true, true, false, false).fill)
+        // by day the setup's submit key stays amber: `.screen.light .sf .kb-submit` outranks `.screen.light .kb-submit`
+        assertEquals(0xFFFFA41B.toInt(), KeyboardLook.key(KeyType.SUBMIT, false, false, true, true, false, amber = true).fill)
+        assertEquals(KeyboardLook.SUBMIT_LIGHT, KeyboardLook.key(KeyType.SUBMIT, false, false, true, true, false, amber = false).fill)
+        // by day a pressed key takes the function keys' grey, a pressed function key turns white, the bubble stays white
+        assertEquals(KeyboardLook.FN_LIGHT, KeyboardLook.key(KeyType.CHAR, true, false, true, true, false, false).fill)
+        assertEquals(KeyboardLook.FN_LIGHT, KeyboardLook.key(KeyType.SPACE, true, false, true, true, false, false).fill)
+        assertEquals(KeyboardLook.WHITE, KeyboardLook.key(KeyType.BACKSPACE, true, false, true, true, false, false).fill)
+        assertEquals(KeyboardLook.FN_LIGHT, KeyboardLook.key(KeyType.BACKSPACE, false, false, true, true, false, false).fill)
+        assertEquals(KeyboardLook.WHITE, KeyboardLook.bubbleFill(true))
         // glassy dark: glass fill with sheen; a press or Shift on drops the sheen and keeps the glass edge
         val glass = KeyboardLook.key(KeyType.CHAR, false, false, true, false, true, false)
         assertTrue(glass.sheen && glass.glass && glass.hard == 0)
