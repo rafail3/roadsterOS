@@ -1,6 +1,7 @@
 package ro.rdstr.os.settings
 
 import android.app.AlarmManager
+import android.bluetooth.BluetoothAdapter
 import android.app.PendingIntent
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
@@ -52,6 +53,34 @@ object DeveloperTools {
             .recoverCatching { context.startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
         Log.i(TAG, "android settings ok=$ok")
         return ok
+    }
+
+    /**
+     * The part of a factory reset outside our preferences: the phones paired with the unit, the saved Wi-Fi networks,
+     * our files (journal, covers, map packs, caches), and Android's internet time back on. adb stays on, so the unit
+     * can still be reached.
+     */
+    fun erase(context: Context) {
+        BluetoothAdapter.getDefaultAdapter()?.bondedDevices?.forEach { device ->
+            // API 27: removeBond is hidden, reached by reflection
+            runCatching { device.javaClass.getMethod("removeBond").invoke(device) }.onFailure { Log.w(TAG, "bond kept", it) }
+        }
+        context.applicationContext.getSystemService(WifiManager::class.java)?.let { wifi ->
+            @Suppress("DEPRECATION") // API 27: the saved networks are managed this way
+            runCatching {
+                wifi.configuredNetworks?.forEach { wifi.removeNetwork(it.networkId) }
+                wifi.saveConfiguration()
+            }.onFailure { Log.w(TAG, "wifi networks kept", it) }
+        }
+        listOfNotNull(context.filesDir, context.cacheDir, context.getExternalFilesDir(null)).forEach { dir ->
+            dir.listFiles()?.forEach { it.deleteRecursively() }
+        }
+        val dpm = context.getSystemService(DevicePolicyManager::class.java)
+        if (dpm.isDeviceOwnerApp(context.packageName)) runCatching {
+            dpm.setGlobalSetting(ComponentName(context, AdminReceiver::class.java), Settings.Global.AUTO_TIME, "1")
+        }
+        setAdb(context, true)
+        Log.i(TAG, "erased")
     }
 
     private const val RESTART_DELAY_MS = 500L

@@ -81,6 +81,8 @@ data class ShellState(
     val showTouches: Boolean = false,
     val showFrameRate: Boolean = false,
     val animationSpeed: AnimationSpeed = AnimationSpeed.NORMAL,
+    /** False after a factory reset: the unit starts in setup until it is finished. */
+    val setupDone: Boolean = true,
     /** Every car event is written to a file on the unit, for troubleshooting. */
     val recordEvents: Boolean = false,
 )
@@ -152,6 +154,7 @@ sealed class ShellAction {
     @Serializable @SerialName("SetShowTouches") data class SetShowTouches(val on: Boolean) : ShellAction()
     @Serializable @SerialName("SetShowFrameRate") data class SetShowFrameRate(val on: Boolean) : ShellAction()
     @Serializable @SerialName("SetAnimationSpeed") data class SetAnimationSpeed(val speed: AnimationSpeed) : ShellAction()
+    @Serializable @SerialName("FinishSetup") data object FinishSetup : ShellAction()
     /** The screen was left alone long enough (see [Shell.aodDue]). */
     @Serializable @SerialName("EnterAod") data object EnterAod : ShellAction()
     /** A touch, a key, a call or reverse gear. */
@@ -182,6 +185,9 @@ object Shell {
     const val DRAWER_OPEN_FRACTION = 1.0 / 3
     /** Two Home presses this close together open the open-apps screen. */
     const val DOUBLE_PRESS_MS = 500L
+
+    /** What a factory reset leaves: every default, and setup to go through again. */
+    fun factoryState() = ShellState(setupDone = false)
 
     /** What every animation duration of the shell is multiplied by. */
     fun animationScale(s: ShellState): Float = when (s.animationSpeed) {
@@ -291,6 +297,7 @@ object Shell {
         is ShellAction.SetShowTouches -> s.copy(showTouches = a.on)
         is ShellAction.SetShowFrameRate -> s.copy(showFrameRate = a.on)
         is ShellAction.SetAnimationSpeed -> s.copy(animationSpeed = a.speed)
+        ShellAction.FinishSetup -> s.copy(setupDone = true)
         ShellAction.EnterAod -> if (s.aodEnabled && s.screenOn) s.copy(aod = true, drawer = false) else s
         ShellAction.ExitAod -> s.copy(aod = false)
         is ShellAction.SetFaceMode -> s.copy(faceMode = a.mode, face = when (a.mode) {
@@ -330,7 +337,7 @@ object Shell {
         autoTime = s.autoTime, timeSource = s.timeSource, dashMatched = s.dashMatched,
         aodEnabled = s.aodEnabled, aodAfterMin = s.aodAfterMin, aodFace = s.aodFace,
         developer = s.developer, adbEnabled = s.adbEnabled, showTouches = s.showTouches, showFrameRate = s.showFrameRate,
-        animationSpeed = s.animationSpeed,
+        animationSpeed = s.animationSpeed, setupDone = s.setupDone,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))

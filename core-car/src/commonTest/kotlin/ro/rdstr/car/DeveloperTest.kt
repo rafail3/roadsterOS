@@ -29,6 +29,16 @@ class DeveloperTest {
     }
 
     @Test
+    fun `a factory reset starts setup again with every default`() {
+        val back = Shell.decodePreferences(Shell.encodePreferences(Shell.factoryState()))
+        assertFalse(back.setupDone)
+        assertFalse(back.developer)
+        assertTrue(Shell.reduce(back, ShellAction.FinishSetup).setupDone)
+        // an install that never went through a reset has no setup pending
+        assertTrue(Shell.decodePreferences(null).setupDone)
+    }
+
+    @Test
     fun `the choices are kept across starts`() {
         val s = ShellState(developer = true, adbEnabled = false, showFrameRate = true, animationSpeed = AnimationSpeed.OFF)
         val back = Shell.decodePreferences(Shell.encodePreferences(s))

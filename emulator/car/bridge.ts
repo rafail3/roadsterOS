@@ -71,6 +71,7 @@ export interface ShellState {
   showTouches: boolean;
   showFrameRate: boolean;
   animationSpeed: AnimationSpeed;
+  setupDone: boolean;
 }
 
 export type CardPage = "BLUETOOTH" | "NO_PHONE" | "BT_OFF" | "RADIO" | "NAVIGATION";
@@ -151,7 +152,8 @@ export type ShellAction =
   | { type: "SetAodFace"; face: AodFace }
   | { type: "EnterAod" | "ExitAod" }
   | { type: "SetDeveloper" | "SetAdb" | "SetShowTouches" | "SetShowFrameRate"; on: boolean }
-  | { type: "SetAnimationSpeed"; speed: AnimationSpeed };
+  | { type: "SetAnimationSpeed"; speed: AnimationSpeed }
+  | { type: "FinishSetup" };
 
 export interface PhoneNumber { number: string; label: string }
 export interface Contact { name: string; numbers: PhoneNumber[] }
@@ -186,6 +188,9 @@ interface Kotlin {
       coverColors(pixels: string, width: number): string;
       effectiveTheme(state: string, hour: number): "LIGHT" | "DARK";
       minBrightness(): number;
+      encodePreferences(state: string): string;
+      decodePreferences(text: string): string;
+      factoryPreferences(): string;
       aodDue(state: string, idleMs: number, busy: boolean): boolean;
       aodFace(state: string): "DIGITAL" | "ANALOG";
       wakesAod(event: string): boolean;
@@ -283,6 +288,10 @@ export const bridge = {
   setVolume: (state: CarState, level: number): CarCommand[] => JSON.parse(K!.Bridge.setVolume(JSON.stringify(state), level)),
   effectiveTheme: (state: ShellState, hour: number) => K!.Bridge.effectiveTheme(JSON.stringify(state), hour),
   minBrightness: () => K!.Bridge.minBrightness(),
+  /** The preferences kept across starts (SharedPreferences on the unit, the browser's storage here). */
+  encodePreferences: (state: ShellState): string => K!.Bridge.encodePreferences(JSON.stringify(state)),
+  decodePreferences: (text: string): ShellState => JSON.parse(K!.Bridge.decodePreferences(text)),
+  factoryPreferences: (): string => K!.Bridge.factoryPreferences(),
   /** The always-on display: due after the wait, its face, the car events that end it (core-car Shell). */
   aodDue: (state: ShellState, idleMs: number, busy: boolean) => K!.Bridge.aodDue(JSON.stringify(state), idleMs, busy),
   aodFace: (state: ShellState) => K!.Bridge.aodFace(JSON.stringify(state)),

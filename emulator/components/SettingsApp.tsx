@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { bridge, type AnimationSpeed, type AodFace, type FaceMode, type ThemeMode, type TimeSource } from "../car/bridge";
-import { allTimeZones, carCommand, openAndroidSettings, restartShell, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
+import { allTimeZones, carCommand, factoryReset, openAndroidSettings, restartShell, UNIT_IP, removePack, setBluetooth, setLocation, setTimeSync, setTimeZone, setVolume, setWifi, shellAction, shiftClock, useEmulator, useNow, zoneOffsetMinutes, type EmulatorState } from "../car/store";
 import { Keyboard } from "./Keyboard";
 import { PillSlider } from "./Drawer";
 import { useCloseOntoCard } from "./media";
@@ -434,6 +434,8 @@ function About({ e }: { e: EmulatorState }) {
 /** The developer options that work from roadsterOS on this unit; every other one is in Android's own settings. */
 function Developer({ e }: { e: EmulatorState }) {
   const { shell } = e;
+  const [opened, setOpened] = useState(false);
+  const [erasing, setErasing] = useState(false);
   const address = e.wifi.connected ? `${UNIT_IP}:5555` : null;
   return (<>
     <Group title="Debugging" footer={!shell.adbEnabled ? "adb cannot reach the unit until this is on again." : address ? `From a laptop on the same Wi-Fi: adb connect ${address}` : "Connect the unit to Wi-Fi to reach it with adb."}>
@@ -447,9 +449,19 @@ function Developer({ e }: { e: EmulatorState }) {
         <Segmented<AnimationSpeed> label="Animation speed" options={[["NORMAL", "Normal"], ["FAST", "Fast"], ["OFF", "Off"]]} value={shell.animationSpeed} onChange={(speed) => shellAction({ type: "SetAnimationSpeed", speed })} />
       </Row>
     </Group>
-    <Group title="System" footer="Android's own developer options hold every other setting of the unit.">
+    <Group title="System" footer={opened
+      ? "On the unit this opens Android's own developer options over roadsterOS; the emulator has no Android behind it, so it only logs the request."
+      : "Android's own developer options hold every other setting of the unit."}>
       <Row label="Restart roadsterOS" onPress={restartShell} />
-      <Row label="Android Developer Options" onPress={openAndroidSettings} />
+      <Row label="Android Developer Options" onPress={() => { openAndroidSettings(); setOpened(true); }} />
+    </Group>
+    <Group footer={erasing
+      ? "Erases everything roadsterOS keeps: every setting, the journal, map packs, the phones paired with the unit and the saved Wi-Fi networks. The unit then restarts into setup."
+      : undefined}>
+      {erasing ? (<>
+        <Row label="Erase Everything" danger onPress={factoryReset} />
+        <Row label="Cancel" onPress={() => setErasing(false)} />
+      </>) : <Row label="Factory Reset…" onPress={() => setErasing(true)} />}
     </Group>
   </>);
 }

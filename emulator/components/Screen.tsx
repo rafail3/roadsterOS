@@ -256,6 +256,7 @@ export function Screen() {
       <div className="dimmer" aria-hidden="true" style={{ opacity: veil.dark.toFixed(3) }} />
       {/* always there: it fades in to switch the screen off and lifts to switch it on; a tap on it wakes the screen */}
       <DevOverlays touches={shell.showTouches} fps={shell.showFrameRate} speed={shell.animationSpeed} />
+      {!shell.setupDone && <Setup />}
       <AlwaysOn on={shell.aod} now={now} face={bridge.aodFace(shell)} h24={shell.clock24h} />
       <button className={classes("screen-off", !shell.screenOn && "is-on", waking && "is-lifting")} aria-label="Screen off, tap to wake" tabIndex={shell.screenOn ? -1 : 0} aria-hidden={shell.screenOn} onClick={() => shellAction({ type: "Wake" })} />
     </div>
@@ -273,5 +274,16 @@ function AlwaysOn({ on, now, face, h24 }: { on: boolean; now: Date; face: "DIGIT
         : <time className="aod-time" dateTime={now.toISOString()}>{bridge.clockText(now.getHours(), now.getMinutes(), h24)}{!h24 && <span className="aod-meridiem">{bridge.meridiem(now.getHours())}</span>}</time>}
       <p className="aod-date">{date}</p>
     </div>
+  );
+}
+
+/** After a factory reset the unit starts here until setup is finished. */
+function Setup() {
+  return (
+    <section className="setup" aria-label="Setup">
+      <h1 className="setup-title">Welcome to roadsterOS</h1>
+      <p className="setup-text">Let's set up the unit.</p>
+      <button className="setup-start" onClick={() => shellAction({ type: "FinishSetup" })}>Continue</button>
+    </section>
   );
 }

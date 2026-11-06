@@ -217,6 +217,13 @@ object Bridge {
 
     fun shellInitial(): String = json.encodeToString(ShellState.serializer(), ShellState())
 
+    /** The shell's preferences as stored across starts, and back (Shell.encodePreferences / decodePreferences). */
+    fun encodePreferences(state: String): String = Shell.encodePreferences(json.decodeFromString(ShellState.serializer(), state))
+
+    fun decodePreferences(text: String): String = json.encodeToString(ShellState.serializer(), Shell.decodePreferences(text))
+
+    fun factoryPreferences(): String = Shell.encodePreferences(Shell.factoryState())
+
     fun shell(state: String, action: String): String {
         val next = Shell.reduce(
             json.decodeFromString(ShellState.serializer(), state),

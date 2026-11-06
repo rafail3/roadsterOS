@@ -228,6 +228,19 @@ object CarRuntime {
 
     fun restart() = ro.rdstr.os.settings.DeveloperTools.restart(app)
 
+    /**
+     * Factory reset: every preference file cleared, our files, paired phones and saved networks erased, then a restart
+     * into setup (Shell.factoryState).
+     */
+    fun factoryReset() {
+        java.io.File(app.applicationInfo.dataDir, "shared_prefs").listFiles()?.forEach { file ->
+            app.getSharedPreferences(file.nameWithoutExtension, Context.MODE_PRIVATE).edit().clear().commit()
+        }
+        ro.rdstr.os.settings.DeveloperTools.erase(app)
+        prefs.edit().putString(SHELL_KEY, Shell.encodePreferences(Shell.factoryState())).commit()
+        ro.rdstr.os.settings.DeveloperTools.restart(app)
+    }
+
     fun openAndroidSettings() = ro.rdstr.os.settings.DeveloperTools.openAndroidSettings(app)
 
     /** The About page, read when it opens. */

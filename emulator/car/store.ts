@@ -813,6 +813,38 @@ const counted = () => (state.shell.recordEvents ? state.recorded + 1 : state.rec
 
 export function shellAction(action: ShellAction) {
   set({ shell: bridge.shell(state.shell, action), recorded: counted() });
+  savePreferences();
+}
+
+// var: the store writes savedPrefs while building its first state, before this line runs
+var PREFS_KEY = "rdstr.shell";
+var savedPrefs = "";
+
+/** A changed preference is written at once, as the unit does; the browser may refuse storage, the shell works on. */
+function savePreferences() {
+  const text = bridge.encodePreferences(state.shell);
+  if (text === savedPrefs) return;
+  savedPrefs = text;
+  try { localStorage.setItem(PREFS_KEY, text); } catch { /* private window or storage off */ }
+}
+
+/** The preferences kept from the last run, or the defaults; ?fresh starts from the defaults. */
+function storedShell(q: URLSearchParams) {
+  if (q.has("fresh")) return bridge.shellInitial();
+  try {
+    const text = localStorage.getItem("rdstr.shell"); // PREFS_KEY is not set yet this early
+    if (text) {
+      savedPrefs = text;
+      return bridge.decodePreferences(text);
+    }
+  } catch { /* storage off */ }
+  return bridge.shellInitial();
+}
+
+/** Factory reset: every preference back to its default and setup to go through again, then a restart (CarRuntime.factoryReset). */
+export function factoryReset() {
+  try { localStorage.setItem(PREFS_KEY, bridge.factoryPreferences()); } catch { /* storage off: the reload starts from defaults anyway */ }
+  window.location.reload();
 }
 
 export function pressKey(key: PanelKey | null) {
@@ -864,7 +896,7 @@ export async function replay(name: string) {
 
 /** URL state for captures, e.g. ?bare&theme=light&hour=20&source=radio&call=ringing&drawer&camera&brightness=40&analog&app=music&track=1 */
 function fromUrl(q: URLSearchParams): EmulatorState {
-  let shell = bridge.shellInitial();
+  let shell = storedShell(q);
   let car = bridge.initial();
   const applyEvent = (event: CarEvent) => { car = bridge.apply(car, event).state; };
   const theme = q.get("theme")?.toUpperCase();
