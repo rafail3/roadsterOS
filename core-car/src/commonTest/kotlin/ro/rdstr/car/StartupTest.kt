@@ -44,9 +44,10 @@ class StartupTest {
     }
 
     @Test
-    fun `the last phone is asked first, a forgotten one not at all`() {
-        assertEquals(listOf("B", "A", "C"), Startup.phonesToTry(listOf("A", "B", "C"), "B"))
-        assertEquals(listOf("A", "C"), Startup.phonesToTry(listOf("A", "C"), "Gone"))
-        assertEquals(listOf("A"), Startup.phonesToTry(listOf("A"), null))
+    fun `only the last phone is asked, and only with the setting on`() {
+        assertEquals("B", Startup.phoneToReconnect(true, listOf("A", "B", "C"), "B"))
+        assertEquals(null, Startup.phoneToReconnect(false, listOf("A", "B", "C"), "B"))
+        assertEquals(null, Startup.phoneToReconnect(true, listOf("A", "C"), "Gone"))
+        assertEquals(null, Startup.phoneToReconnect(true, listOf("A"), null))
     }
 }

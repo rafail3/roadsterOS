@@ -358,12 +358,15 @@ function fromLaptop(line: string) {
 
 /**
  * Bluetooth off drops the connected phone, as on the unit, and a Bluetooth source with it: home then offers the sources.
- * On again, nothing connects by itself: the devices list opens and the driver picks the phone.
+ * On again, the last phone is asked for with Connect to Last Phone on; else the driver picks one from the list.
  */
 export function setBluetooth(on: boolean) {
-  if (!on && state.car.btConnected) carEvent({ type: "BtConnection", connected: false, device: state.device });
+  // the phone it drops is the last one connected, asked for again when Bluetooth comes back on
+  if (!on && state.car.btConnected) { lastPhone = state.device; carEvent({ type: "BtConnection", connected: false, device: state.device }); }
   if (!on && state.car.source === "BT") carCommand({ type: "Audio.Source", source: "NONE" });
+  const was = state.btOn;
   set({ btOn: on });
+  if (on && !was) connectLastPhone();
 }
 
 /** Wi-Fi off drops the network and forgets the scan; on again, the strongest saved network joins by itself. */
@@ -727,18 +730,16 @@ let lastPhone: string | null = null;
 let connecting: ReturnType<typeof setTimeout> | null = null;
 
 /**
- * A few seconds after the car starts, with no phone connected by then, the saved ones are asked in turn, the last one
- * first, until one connects (core-car Startup; CarRuntime.connectLastPhone on the unit).
+ * A few seconds after the car starts, or after Bluetooth is switched on, with no phone connected by then, the last phone
+ * is asked for, with Connect to Last Phone on (core-car Startup; CarRuntime.connectLastPhone on the unit).
  */
 function connectLastPhone() {
   if (connecting) clearTimeout(connecting);
-  const next = (phones: string[], i: number) => {
+  connecting = setTimeout(() => {
     connecting = null;
-    if (!state.btOn || !state.acc || state.car.btConnected || i >= phones.length) return;
-    tryConnect(phones[i]);
-    connecting = setTimeout(() => next(phones, i + 1), bridge.startupConnectTryMs());
-  };
-  connecting = setTimeout(() => next(bridge.startupPhones(state.saved.map((d) => d.name), lastPhone), 0), bridge.startupConnectWaitMs());
+    const phone = bridge.reconnectPhone(state.shell.btAutoConnect, state.saved.map((d) => d.name), lastPhone);
+    if (phone && state.btOn && state.acc && !state.car.btConnected) tryConnect(phone);
+  }, bridge.startupConnectWaitMs());
 }
 
 export function carEvent(event: CarEvent) {

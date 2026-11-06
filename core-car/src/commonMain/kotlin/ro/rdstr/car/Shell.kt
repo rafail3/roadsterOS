@@ -107,6 +107,8 @@ data class ShellState(
     val setupStep: Setup.Step = Setup.Step.LOGO,
     /** The car's name, given in setup: shown in About and on the boot screen, and the name phones see for casting. */
     val carName: String = "",
+    /** Settings > Bluetooth > Connect to Last Phone: off by default, the driver picks the phone (Startup.phoneToReconnect). */
+    val btAutoConnect: Boolean = false,
     /** Every car event is written to a file on the unit, for troubleshooting. */
     val recordEvents: Boolean = false,
 )
@@ -190,6 +192,7 @@ sealed class ShellAction {
     /** The setup's next screen; the host says whether Wi-Fi is up and a newer version is out (Setup.next). */
     @Serializable @SerialName("SetupNext") data class SetupNext(val wifi: Boolean = false, val updateAvailable: Boolean = false) : ShellAction()
     @Serializable @SerialName("SetupBack") data object SetupBack : ShellAction()
+    @Serializable @SerialName("SetBtAutoConnect") data class SetBtAutoConnect(val on: Boolean) : ShellAction()
     /** A radio switched from the drawer: on opens its list (devices, networks) to pick from, off closes it. */
     @Serializable @SerialName("RadioSwitched") data class RadioSwitched(val radio: Radio, val on: Boolean) : ShellAction()
     /** The setup from its first screen again, every other setting kept (the emulator's control panel). */
@@ -354,6 +357,7 @@ object Shell {
         is ShellAction.SetPhoneRegion -> if (PhoneFormat.callingCode(a.region) != null) s.copy(phoneRegion = a.region) else s
         is ShellAction.SetupNext -> Setup.next(s.setupStep, a.wifi, a.updateAvailable)?.let { s.copy(setupStep = it) } ?: s.copy(setupDone = true)
         ShellAction.SetupBack -> s.copy(setupStep = Setup.back(s.setupStep))
+        is ShellAction.SetBtAutoConnect -> s.copy(btAutoConnect = a.on)
         is ShellAction.RadioSwitched -> when {
             !a.on -> if (a.radio == Radio.BLUETOOTH) s.copy(devices = false) else s.copy(networks = false)
             a.radio == Radio.BLUETOOTH -> reduce(s, ShellAction.OpenDevices)
@@ -412,7 +416,7 @@ object Shell {
         // the call level is for this drive only
         dsp = s.dsp.copy(callVolume = Sound.CALL_VOLUME_DEFAULT),
         camera = s.camera, castVisible = s.castVisible, design = s.design, phoneRegion = s.phoneRegion,
-        setupStep = s.setupStep, carName = s.carName,
+        setupStep = s.setupStep, carName = s.carName, btAutoConnect = s.btAutoConnect,
     )
 
     fun encodePreferences(s: ShellState): String = prefsJson.encodeToString(ShellState.serializer(), preferences(s))

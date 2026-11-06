@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { setLocation, setWifi, shellAction, useEmulator, WIFI_NETWORKS, wifiConnect, wifiForget, wifiScan, type WifiNetwork } from "../car/store";
 import { SavedRow, type Status } from "./DevicesSheet";
 import { Keyboard } from "./Keyboard";
@@ -123,14 +124,16 @@ export function WifiNetworks({ shown, onJoining }: { shown: boolean; onJoining?:
         </section>
       </div>
     )}
-    <Keyboard
-      open={shown && joining !== null}
-      onKey={(c) => setPassword((p) => p + c)}
-      onBackspace={() => setPassword((p) => p.slice(0, -1))}
-      onSubmit={submit}
-      submitLabel={sending ? "Connecting…" : "Connect"}
-      submitEnabled={password.length >= MIN_PASSWORD && !sending}
-    />
+    {/* the keyboard rises from the screen's bottom edge, the whole width, wherever the list is shown */}
+    {typeof document !== "undefined" && document.querySelector(".screen") && createPortal(
+      <Keyboard
+        open={shown && joining !== null}
+        onKey={(c) => setPassword((p) => p + c)}
+        onBackspace={() => setPassword((p) => p.slice(0, -1))}
+        onSubmit={submit}
+        submitLabel={sending ? "Connecting…" : "Connect"}
+        submitEnabled={password.length >= MIN_PASSWORD && !sending}
+      />, document.querySelector(".screen")!)}
   </>);
 }
 

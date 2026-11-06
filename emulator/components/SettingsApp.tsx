@@ -92,13 +92,16 @@ function Wifi({ e }: { e: EmulatorState }) {
 
 function Bluetooth({ e }: { e: EmulatorState }) {
   const { car, btOn, device, saved } = e;
-  return (
+  return (<>
     <Group footer="Phones connect for music and calls. A tablet or a laptop plays music only.">
       <Row label="Bluetooth"><Switch label="Bluetooth" on={btOn} onChange={setBluetooth} /></Row>
       {btOn && <Row label="Connected" value={car.btConnected ? device : "None"} />}
       {btOn && <Row label="Devices" value={`${saved.length} saved`} onPress={() => shellAction({ type: "OpenDevices" })} />}
     </Group>
-  );
+    <Group footer="When the car starts or Bluetooth comes on, the unit connects to the phone connected last. Off, you pick the phone each time.">
+      <Row label="Connect to Last Phone"><Switch label="Connect to Last Phone" on={e.shell.btAutoConnect} onChange={(on) => shellAction({ type: "SetBtAutoConnect", on })} /></Row>
+    </Group>
+  </>);
 }
 
 function Location({ e }: { e: EmulatorState }) {

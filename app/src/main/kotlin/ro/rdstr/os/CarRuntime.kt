@@ -279,11 +279,8 @@ object CarRuntime {
             delay(Startup.CONNECT_WAIT_MS.toLong())
             val adapter = android.bluetooth.BluetoothAdapter.getDefaultAdapter()?.takeIf { it.isEnabled } ?: return@launch
             val saved = adapter.bondedDevices.mapNotNull { it.name }
-            for (name in Startup.phonesToTry(saved, prefs.getString(LAST_PHONE_KEY, null))) {
-                if (_ui.value.state.btConnected) return@launch
-                send(CarCommand.Bluetooth.Connect(name))
-                delay(Startup.CONNECT_TRY_MS.toLong())
-            }
+            val phone = Startup.phoneToReconnect(_shell.value.btAutoConnect, saved, prefs.getString(LAST_PHONE_KEY, null)) ?: return@launch
+            if (!_ui.value.state.btConnected) send(CarCommand.Bluetooth.Connect(phone))
         }
     }
 
@@ -361,16 +358,16 @@ object CarRuntime {
      */
     fun openPhone(): PhoneGate.Screen {
         val on = radios.bluetoothOn
-        if (!on) radios.bluetooth(true)
+        if (!on && radios.bluetooth(true)) connectLastPhone()
         return PhoneGate.screen(on, _ui.value.state.hfpConnected).also { Log.i(PHONE_TAG, "phone app $it") }
     }
 
     /**
-     * The drawer's Bluetooth and Wi-Fi switches: on opens the radio's list (Shell RadioSwitched). Bluetooth then waits
-     * for the driver to pick a phone; Wi-Fi joins a saved network in range by itself (Android's own), the list showing it.
+     * The drawer's Bluetooth and Wi-Fi switches: on opens the radio's list (Shell RadioSwitched). Bluetooth then asks for
+     * the last phone with Connect to Last Phone on; Wi-Fi joins a saved network in range by itself (Android's own).
      */
     fun switchBluetooth(on: Boolean) {
-        radios.bluetooth(on)
+        if (radios.bluetooth(on) && on) connectLastPhone()
         shellAction(ro.rdstr.car.ShellAction.RadioSwitched(ro.rdstr.car.Radio.BLUETOOTH, on))
     }
 

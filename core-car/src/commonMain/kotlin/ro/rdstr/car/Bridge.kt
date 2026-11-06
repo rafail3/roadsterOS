@@ -311,10 +311,10 @@ object Bridge {
 
     /** The sound window (core-car Sound): the calls a change makes, presets, bands, resets and the ranges. */
     fun soundWrites(a: String, b: String): String = json.encodeToString(ListSerializer(DspWrite.serializer()), Sound.writes(sound(a), sound(b)))
-    fun startupPhones(saved: String, last: String?): String =
-        json.encodeToString(ListSerializer(String.serializer()), Startup.phonesToTry(json.decodeFromString(ListSerializer(String.serializer()), saved), last))
+    /** The phone to ask for at a start or when Bluetooth comes on, "" for none (Startup.phoneToReconnect). */
+    fun reconnectPhone(enabled: Boolean, saved: String, last: String?): String =
+        Startup.phoneToReconnect(enabled, json.decodeFromString(ListSerializer(String.serializer()), saved), last).orEmpty()
     fun startupConnectWaitMs(): Int = Startup.CONNECT_WAIT_MS
-    fun startupConnectTryMs(): Int = Startup.CONNECT_TRY_MS
     fun castName(): String = CarEvent.PhoneCast.NAME
     fun phoneFormat(typed: String, region: String): String = PhoneFormat.format(typed, region)
     fun phoneRegions(): String = json.encodeToString(ListSerializer(String.serializer()), PhoneFormat.regions())
