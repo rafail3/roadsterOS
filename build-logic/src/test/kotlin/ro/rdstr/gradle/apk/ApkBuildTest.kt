@@ -1,4 +1,4 @@
-package ro.rdstr.gradle.display
+package ro.rdstr.gradle.apk
 
 import java.io.File
 import kotlin.test.Test
@@ -7,7 +7,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class DisplayBuildTest {
+class ApkBuildTest {
     private val sheet = """
         :root { --on: 255 255 255; --ink: #eef1f5; --glass: rgb(var(--on) / 0.08); --space-1: 4px; --fast: 150ms; --t: .7s;
                 --ease: cubic-bezier(0.16, 1, 0.3, 1); --font: "Inter", system-ui, sans-serif; }
@@ -92,10 +92,10 @@ class DisplayBuildTest {
 
     @Test
     fun `a selector that is not a chain of classes stops the build`() {
-        assertFailsWith<DisplayBuildException> { Tokens.scopeOf("t.css", ".a > .b") }
-        assertFailsWith<DisplayBuildException> { Tokens.scopeOf("t.css", ".a:hover") }
-        assertFailsWith<DisplayBuildException> { Values.parse("12em", "t") }
-        assertFailsWith<DisplayBuildException> { Css.declarations("t.css", "@media (min-width: 1px) { .a { --x: 1px; } }") }
+        assertFailsWith<ApkBuildException> { Tokens.scopeOf("t.css", ".a > .b") }
+        assertFailsWith<ApkBuildException> { Tokens.scopeOf("t.css", ".a:hover") }
+        assertFailsWith<ApkBuildException> { Values.parse("12em", "t") }
+        assertFailsWith<ApkBuildException> { Css.declarations("t.css", "@media (min-width: 1px) { .a { --x: 1px; } }") }
     }
 
     @Test
@@ -112,7 +112,7 @@ class DisplayBuildTest {
         assertTrue("M32,128 A96,96 0 1,0 224,128 A96,96 0 1,0 32,128 Z" in xml)
         assertTrue("android:strokeWidth=\"16\"" in xml)
         assertTrue("android:viewportWidth=\"256\"" in xml)
-        assertFailsWith<DisplayBuildException> { Svg.toVector("x", """<svg viewBox="0 0 2 2"><path d="M0 0" fill="#f00"/></svg>""") }
+        assertFailsWith<ApkBuildException> { Svg.toVector("x", """<svg viewBox="0 0 2 2"><path d="M0 0" fill="#f00"/></svg>""") }
     }
 
     @Test
@@ -129,9 +129,9 @@ class DisplayBuildTest {
     @Test
     fun `the emulator's own styles and icons generate`() {
         val emulator = File("../emulator")
-        val order = DisplayBuild.sheetOrder(File(emulator, "app/layout.tsx").readText(), listOf("chrome.css"))
+        val order = ApkBuild.sheetOrder(File(emulator, "app/layout.tsx").readText(), listOf("chrome.css"))
         assertTrue("tokens.css" == order.first() && "chrome.css" !in order)
-        val result = DisplayBuild.run(order.map { it to File(emulator, "styles/$it").readText() },
+        val result = ApkBuild.run(order.map { it to File(emulator, "styles/$it").readText() },
             File(emulator, "public/icons").listFiles()!!.filter { it.extension == "svg" }.associate { it.nameWithoutExtension to it.readText() },
             "ro.rdstr.ui.tokens", "ro.rdstr.ui",
             File(emulator, "public/fonts").listFiles()!!.associate { it.name to it.readBytes() })
@@ -146,8 +146,8 @@ class DisplayBuildTest {
     @Test
     fun `a font split by unicode-range or in woff2 stops the build`() {
         val split = "@font-face { font-family: \"A\"; src: url(/fonts/a.ttf); unicode-range: U+0000-00FF; }"
-        assertFailsWith<DisplayBuildException> { DisplayBuild.fontFaces(listOf("t.css" to split), mapOf("a.ttf" to ByteArray(1))) }
+        assertFailsWith<ApkBuildException> { ApkBuild.fontFaces(listOf("t.css" to split), mapOf("a.ttf" to ByteArray(1))) }
         val woff = "@font-face { font-family: \"A\"; src: url(/fonts/a.woff2) format(\"woff2\"); }"
-        assertFailsWith<DisplayBuildException> { DisplayBuild.fontFaces(listOf("t.css" to woff), mapOf("a.woff2" to ByteArray(1))) }
+        assertFailsWith<ApkBuildException> { ApkBuild.fontFaces(listOf("t.css" to woff), mapOf("a.woff2" to ByteArray(1))) }
     }
 }

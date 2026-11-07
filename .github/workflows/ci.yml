@@ -32,3 +32,34 @@ jobs:
         with:
           name: apk-sim-debug
           path: app/build/outputs/apk/sim/debug/*.apk
+
+  # the whole build-apk suite, as `./gradlew build-apk` runs on a laptop with the emulator running:
+  # browser capture, strict logic check, tests, lint, visual parity against core-ui/parity-baseline.json, release APK
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # the emulator, built and served on its usual port (prebuild compiles core-car to JavaScript)
+      - run: npm run build
+      - run: |
+          npm start > emulator.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:8787/ > /dev/null && exit 0; sleep 1; done
+          cat emulator.log; exit 1
+      - run: ./gradlew build-apk -Prdstr.parity.channel=chrome --no-daemon
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-apk-report
+          path: |
+            build/reports/parity/
+            core-ui/build/reports/rdstr/

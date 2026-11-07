@@ -11,8 +11,8 @@ dependencies {
 gradlePlugin {
     plugins {
         register("display") {
-            id = "rdstr.display"
-            implementationClass = "ro.rdstr.gradle.display.DisplayPlugin"
+            id = "rdstr.apk"
+            implementationClass = "ro.rdstr.gradle.apk.ApkPlugin"
         }
     }
 }

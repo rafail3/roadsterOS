@@ -1,5 +1,5 @@
 /* roadsterOS design tokens. The Android theme mirrors these values. */
-/* one file per family, the same one the display app is built with (rdstr.display copies it into core-ui):
+/* one file per family, the same one the display app is built with (rdstr.apk copies it into core-ui):
    Inter 4.001 and Geist 1.401, variable on weight, from the Google Fonts repository */
 @font-face {
   font-family: "Inter";
