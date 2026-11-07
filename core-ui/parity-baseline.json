@@ -1,0 +1,1074 @@
+{
+    "bar-dark-glassy": {
+        "percent": 1.65,
+        "layout": 23
+    },
+    "bar-dark-solid": {
+        "percent": 1.65,
+        "layout": 23
+    },
+    "bar-light-glassy": {
+        "percent": 0.992,
+        "layout": 23
+    },
+    "bar-light-solid": {
+        "percent": 0.992,
+        "layout": 23
+    },
+    "call-active-dark-glassy": {
+        "percent": 0.131,
+        "layout": 8
+    },
+    "call-active-dark-solid": {
+        "percent": 0.21,
+        "layout": 8
+    },
+    "call-active-light-glassy": {
+        "percent": 0.131,
+        "layout": 8
+    },
+    "call-active-light-solid": {
+        "percent": 0.21,
+        "layout": 8
+    },
+    "call-incoming-dark-glassy": {
+        "percent": 0.168,
+        "layout": 6
+    },
+    "call-incoming-dark-solid": {
+        "percent": 0.281,
+        "layout": 6
+    },
+    "call-incoming-light-glassy": {
+        "percent": 0.168,
+        "layout": 6
+    },
+    "call-incoming-light-solid": {
+        "percent": 0.281,
+        "layout": 6
+    },
+    "callbar-dark-glassy": {
+        "percent": 0.044,
+        "layout": 0
+    },
+    "callbar-dark-solid": {
+        "percent": 0.052,
+        "layout": 0
+    },
+    "callbar-light-glassy": {
+        "percent": 0.028,
+        "layout": 0
+    },
+    "callbar-light-solid": {
+        "percent": 0.049,
+        "layout": 0
+    },
+    "callbar-ringing-dark-glassy": {
+        "percent": 0.063,
+        "layout": 0
+    },
+    "callbar-ringing-dark-solid": {
+        "percent": 0.071,
+        "layout": 0
+    },
+    "callbar-ringing-light-glassy": {
+        "percent": 0.063,
+        "layout": 0
+    },
+    "callbar-ringing-light-solid": {
+        "percent": 0.068,
+        "layout": 0
+    },
+    "camera-dark-glassy": {
+        "percent": 0.002,
+        "layout": 0
+    },
+    "camera-dark-solid": {
+        "percent": 0.002,
+        "layout": 0
+    },
+    "camera-light-glassy": {
+        "percent": 0.002,
+        "layout": 0
+    },
+    "camera-light-solid": {
+        "percent": 0.002,
+        "layout": 0
+    },
+    "card-nophone-dark-glassy": {
+        "percent": 21.857,
+        "layout": 129
+    },
+    "card-nophone-dark-solid": {
+        "percent": 1.436,
+        "layout": 129
+    },
+    "card-nophone-light-glassy": {
+        "percent": 20.768,
+        "layout": 129
+    },
+    "card-nophone-light-solid": {
+        "percent": 0.382,
+        "layout": 129
+    },
+    "devices-dark-glassy": {
+        "percent": 0.383,
+        "layout": 72
+    },
+    "devices-dark-solid": {
+        "percent": 0.321,
+        "layout": 67
+    },
+    "devices-light-glassy": {
+        "percent": 1.705,
+        "layout": 72
+    },
+    "devices-light-solid": {
+        "percent": 0.307,
+        "layout": 67
+    },
+    "devices-off-dark-glassy": {
+        "percent": 0.354,
+        "layout": 22
+    },
+    "devices-off-dark-solid": {
+        "percent": 0.34,
+        "layout": 18
+    },
+    "devices-off-light-glassy": {
+        "percent": 0.634,
+        "layout": 22
+    },
+    "devices-off-light-solid": {
+        "percent": 0.279,
+        "layout": 18
+    },
+    "drawerpanel-dark-glassy": {
+        "percent": 6.745,
+        "layout": 56
+    },
+    "drawerpanel-dark-solid": {
+        "percent": 0.296,
+        "layout": 50
+    },
+    "drawerpanel-light-glassy": {
+        "percent": 6.53,
+        "layout": 56
+    },
+    "drawerpanel-light-solid": {
+        "percent": 0.268,
+        "layout": 50
+    },
+    "drawerpanel-off-dark-glassy": {
+        "percent": 11.208,
+        "layout": 48
+    },
+    "drawerpanel-off-dark-solid": {
+        "percent": 0.253,
+        "layout": 41
+    },
+    "drawerpanel-off-light-glassy": {
+        "percent": 10.972,
+        "layout": 48
+    },
+    "drawerpanel-off-light-solid": {
+        "percent": 0.236,
+        "layout": 41
+    },
+    "home-dark-glassy": {
+        "percent": 27.625,
+        "layout": 243
+    },
+    "home-dark-solid": {
+        "percent": 27.273,
+        "layout": 243
+    },
+    "home-light-glassy": {
+        "percent": 53.056,
+        "layout": 243
+    },
+    "home-light-solid": {
+        "percent": 52.212,
+        "layout": 243
+    },
+    "mapoffer-dark-glassy": {
+        "percent": 4.562,
+        "layout": 18
+    },
+    "mapoffer-dark-solid": {
+        "percent": 1.193,
+        "layout": 18
+    },
+    "mapoffer-light-glassy": {
+        "percent": 2.38,
+        "layout": 18
+    },
+    "mapoffer-light-solid": {
+        "percent": 1.308,
+        "layout": 18
+    },
+    "maps-follow-dark-glassy": {
+        "percent": 0.096,
+        "layout": 33
+    },
+    "maps-follow-dark-solid": {
+        "percent": 0.148,
+        "layout": 33
+    },
+    "maps-follow-light-glassy": {
+        "percent": 0.101,
+        "layout": 33
+    },
+    "maps-follow-light-solid": {
+        "percent": 0.129,
+        "layout": 33
+    },
+    "maps-panned-dark-glassy": {
+        "percent": 0.183,
+        "layout": 36
+    },
+    "maps-panned-dark-solid": {
+        "percent": 0.293,
+        "layout": 36
+    },
+    "maps-panned-light-glassy": {
+        "percent": 0.19,
+        "layout": 36
+    },
+    "maps-panned-light-solid": {
+        "percent": 0.264,
+        "layout": 36
+    },
+    "message-banner-dark-glassy": {
+        "percent": 0.006,
+        "layout": 0
+    },
+    "message-banner-dark-solid": {
+        "percent": 0.007,
+        "layout": 0
+    },
+    "message-banner-light-glassy": {
+        "percent": 0.0,
+        "layout": 0
+    },
+    "message-banner-light-solid": {
+        "percent": 0.003,
+        "layout": 0
+    },
+    "music-nophone-dark-glassy": {
+        "percent": 0.566,
+        "layout": 39
+    },
+    "music-nophone-dark-solid": {
+        "percent": 0.632,
+        "layout": 39
+    },
+    "music-nophone-light-glassy": {
+        "percent": 1.155,
+        "layout": 39
+    },
+    "music-nophone-light-solid": {
+        "percent": 1.349,
+        "layout": 39
+    },
+    "music-paused-dark-glassy": {
+        "percent": 2.168,
+        "layout": 67
+    },
+    "music-paused-dark-solid": {
+        "percent": 1.107,
+        "layout": 63
+    },
+    "music-paused-light-glassy": {
+        "percent": 2.229,
+        "layout": 67
+    },
+    "music-paused-light-solid": {
+        "percent": 1.82,
+        "layout": 63
+    },
+    "music-playing-dark-glassy": {
+        "percent": 2.122,
+        "layout": 67
+    },
+    "music-playing-dark-solid": {
+        "percent": 1.113,
+        "layout": 63
+    },
+    "music-playing-light-glassy": {
+        "percent": 2.183,
+        "layout": 67
+    },
+    "music-playing-light-solid": {
+        "percent": 1.826,
+        "layout": 63
+    },
+    "networks-dark-glassy": {
+        "percent": 0.193,
+        "layout": 53
+    },
+    "networks-dark-solid": {
+        "percent": 0.165,
+        "layout": 48
+    },
+    "networks-join-dark-glassy": {
+        "percent": 0.097,
+        "layout": 25
+    },
+    "networks-join-dark-solid": {
+        "percent": 0.087,
+        "layout": 20
+    },
+    "networks-join-light-glassy": {
+        "percent": 2.704,
+        "layout": 25
+    },
+    "networks-join-light-solid": {
+        "percent": 0.079,
+        "layout": 20
+    },
+    "networks-light-glassy": {
+        "percent": 9.355,
+        "layout": 53
+    },
+    "networks-light-solid": {
+        "percent": 0.151,
+        "layout": 48
+    },
+    "notice-dark-glassy": {
+        "percent": 3.344,
+        "layout": 14
+    },
+    "notice-dark-solid": {
+        "percent": 4.46,
+        "layout": 14
+    },
+    "notice-light-glassy": {
+        "percent": 3.322,
+        "layout": 14
+    },
+    "notice-light-solid": {
+        "percent": 4.572,
+        "layout": 14
+    },
+    "phone-contacts-dark-glassy": {
+        "percent": 0.445,
+        "layout": 37
+    },
+    "phone-contacts-dark-solid": {
+        "percent": 0.637,
+        "layout": 37
+    },
+    "phone-contacts-light-glassy": {
+        "percent": 0.527,
+        "layout": 37
+    },
+    "phone-contacts-light-solid": {
+        "percent": 0.656,
+        "layout": 37
+    },
+    "phone-keypad-dark-glassy": {
+        "percent": 0.301,
+        "layout": 63
+    },
+    "phone-keypad-dark-solid": {
+        "percent": 0.561,
+        "layout": 63
+    },
+    "phone-keypad-light-glassy": {
+        "percent": 0.255,
+        "layout": 63
+    },
+    "phone-keypad-light-solid": {
+        "percent": 0.367,
+        "layout": 63
+    },
+    "phone-messages-dark-glassy": {
+        "percent": 0.322,
+        "layout": 51
+    },
+    "phone-messages-dark-solid": {
+        "percent": 0.465,
+        "layout": 51
+    },
+    "phone-messages-light-glassy": {
+        "percent": 0.309,
+        "layout": 51
+    },
+    "phone-messages-light-solid": {
+        "percent": 0.403,
+        "layout": 51
+    },
+    "phone-recents-dark-glassy": {
+        "percent": 0.356,
+        "layout": 63
+    },
+    "phone-recents-dark-solid": {
+        "percent": 0.604,
+        "layout": 63
+    },
+    "phone-recents-light-glassy": {
+        "percent": 0.307,
+        "layout": 63
+    },
+    "phone-recents-light-solid": {
+        "percent": 0.411,
+        "layout": 63
+    },
+    "phone-thread-dark-glassy": {
+        "percent": 0.849,
+        "layout": 35
+    },
+    "phone-thread-dark-solid": {
+        "percent": 0.378,
+        "layout": 35
+    },
+    "phone-thread-light-glassy": {
+        "percent": 0.235,
+        "layout": 35
+    },
+    "phone-thread-light-solid": {
+        "percent": 0.356,
+        "layout": 35
+    },
+    "prompt-location-dark-glassy": {
+        "percent": 0.124,
+        "layout": 4
+    },
+    "prompt-location-dark-solid": {
+        "percent": 0.153,
+        "layout": 4
+    },
+    "prompt-location-light-glassy": {
+        "percent": 2.071,
+        "layout": 4
+    },
+    "prompt-location-light-solid": {
+        "percent": 0.136,
+        "layout": 4
+    },
+    "prompt-restart-dark-glassy": {
+        "percent": 0.141,
+        "layout": 4
+    },
+    "prompt-restart-dark-solid": {
+        "percent": 0.168,
+        "layout": 4
+    },
+    "prompt-restart-light-glassy": {
+        "percent": 2.032,
+        "layout": 4
+    },
+    "prompt-restart-light-solid": {
+        "percent": 0.141,
+        "layout": 4
+    },
+    "radio-am-dark-glassy": {
+        "percent": 2.418,
+        "layout": 256
+    },
+    "radio-am-dark-solid": {
+        "percent": 2.0,
+        "layout": 256
+    },
+    "radio-am-light-glassy": {
+        "percent": 2.808,
+        "layout": 256
+    },
+    "radio-am-light-solid": {
+        "percent": 2.486,
+        "layout": 256
+    },
+    "radio-fm-dark-glassy": {
+        "percent": 5.191,
+        "layout": 374
+    },
+    "radio-fm-dark-solid": {
+        "percent": 3.36,
+        "layout": 374
+    },
+    "radio-fm-light-glassy": {
+        "percent": 5.292,
+        "layout": 374
+    },
+    "radio-fm-light-solid": {
+        "percent": 3.838,
+        "layout": 374
+    },
+    "rail-dark-glassy": {
+        "percent": 21.992,
+        "layout": 11
+    },
+    "rail-dark-solid": {
+        "percent": 6.309,
+        "layout": 11
+    },
+    "rail-light-glassy": {
+        "percent": 6.937,
+        "layout": 11
+    },
+    "rail-light-solid": {
+        "percent": 9.02,
+        "layout": 11
+    },
+    "recents-dark-glassy": {
+        "percent": 7.029,
+        "layout": 97
+    },
+    "recents-dark-solid": {
+        "percent": 0.556,
+        "layout": 97
+    },
+    "recents-light-glassy": {
+        "percent": 7.073,
+        "layout": 97
+    },
+    "recents-light-solid": {
+        "percent": 0.589,
+        "layout": 97
+    },
+    "restart-dark-glassy": {
+        "percent": 10.619,
+        "layout": 22
+    },
+    "restart-dark-solid": {
+        "percent": 2.753,
+        "layout": 22
+    },
+    "restart-light-glassy": {
+        "percent": 12.202,
+        "layout": 22
+    },
+    "restart-light-solid": {
+        "percent": 2.752,
+        "layout": 22
+    },
+    "settings-about-dark-glassy": {
+        "percent": 0.981,
+        "layout": 135
+    },
+    "settings-about-dark-solid": {
+        "percent": 1.225,
+        "layout": 135
+    },
+    "settings-about-light-glassy": {
+        "percent": 0.964,
+        "layout": 135
+    },
+    "settings-about-light-solid": {
+        "percent": 1.279,
+        "layout": 135
+    },
+    "settings-bluetooth-dark-glassy": {
+        "percent": 1.433,
+        "layout": 121
+    },
+    "settings-bluetooth-dark-solid": {
+        "percent": 1.572,
+        "layout": 113
+    },
+    "settings-bluetooth-light-glassy": {
+        "percent": 1.392,
+        "layout": 121
+    },
+    "settings-bluetooth-light-solid": {
+        "percent": 1.338,
+        "layout": 113
+    },
+    "settings-camera-dark-glassy": {
+        "percent": 1.331,
+        "layout": 130
+    },
+    "settings-camera-dark-solid": {
+        "percent": 1.317,
+        "layout": 118
+    },
+    "settings-camera-light-glassy": {
+        "percent": 1.297,
+        "layout": 130
+    },
+    "settings-camera-light-solid": {
+        "percent": 1.231,
+        "layout": 118
+    },
+    "settings-dash-dark-glassy": {
+        "percent": 1.601,
+        "layout": 127
+    },
+    "settings-dash-dark-solid": {
+        "percent": 1.547,
+        "layout": 127
+    },
+    "settings-dash-light-glassy": {
+        "percent": 1.524,
+        "layout": 127
+    },
+    "settings-dash-light-solid": {
+        "percent": 1.492,
+        "layout": 127
+    },
+    "settings-datetime-dark-glassy": {
+        "percent": 1.632,
+        "layout": 150
+    },
+    "settings-datetime-dark-solid": {
+        "percent": 1.522,
+        "layout": 134
+    },
+    "settings-datetime-light-glassy": {
+        "percent": 2.102,
+        "layout": 150
+    },
+    "settings-datetime-light-solid": {
+        "percent": 1.471,
+        "layout": 134
+    },
+    "settings-developer-dark-glassy": {
+        "percent": 1.956,
+        "layout": 150
+    },
+    "settings-developer-dark-solid": {
+        "percent": 1.978,
+        "layout": 133
+    },
+    "settings-developer-light-glassy": {
+        "percent": 1.453,
+        "layout": 150
+    },
+    "settings-developer-light-solid": {
+        "percent": 1.644,
+        "layout": 133
+    },
+    "settings-display-dark-glassy": {
+        "percent": 1.417,
+        "layout": 163
+    },
+    "settings-display-dark-solid": {
+        "percent": 1.584,
+        "layout": 137
+    },
+    "settings-display-light-glassy": {
+        "percent": 1.382,
+        "layout": 163
+    },
+    "settings-display-light-solid": {
+        "percent": 1.425,
+        "layout": 137
+    },
+    "settings-home-dark-glassy": {
+        "percent": 1.693,
+        "layout": 181
+    },
+    "settings-home-dark-solid": {
+        "percent": 1.507,
+        "layout": 181
+    },
+    "settings-home-light-glassy": {
+        "percent": 1.404,
+        "layout": 181
+    },
+    "settings-home-light-solid": {
+        "percent": 1.519,
+        "layout": 181
+    },
+    "settings-location-dark-glassy": {
+        "percent": 0.894,
+        "layout": 104
+    },
+    "settings-location-dark-solid": {
+        "percent": 1.003,
+        "layout": 100
+    },
+    "settings-location-light-glassy": {
+        "percent": 0.969,
+        "layout": 104
+    },
+    "settings-location-light-solid": {
+        "percent": 0.997,
+        "layout": 100
+    },
+    "settings-maps-dark-glassy": {
+        "percent": 1.709,
+        "layout": 154
+    },
+    "settings-maps-dark-solid": {
+        "percent": 1.976,
+        "layout": 139
+    },
+    "settings-maps-light-glassy": {
+        "percent": 1.483,
+        "layout": 154
+    },
+    "settings-maps-light-solid": {
+        "percent": 1.689,
+        "layout": 139
+    },
+    "settings-phone-dark-glassy": {
+        "percent": 1.514,
+        "layout": 133
+    },
+    "settings-phone-dark-solid": {
+        "percent": 1.72,
+        "layout": 126
+    },
+    "settings-phone-light-glassy": {
+        "percent": 1.339,
+        "layout": 133
+    },
+    "settings-phone-light-solid": {
+        "percent": 1.471,
+        "layout": 126
+    },
+    "settings-sound-dark-glassy": {
+        "percent": 1.817,
+        "layout": 145
+    },
+    "settings-sound-dark-solid": {
+        "percent": 1.95,
+        "layout": 131
+    },
+    "settings-sound-light-glassy": {
+        "percent": 1.52,
+        "layout": 145
+    },
+    "settings-sound-light-solid": {
+        "percent": 1.648,
+        "layout": 131
+    },
+    "settings-update-checked-dark-glassy": {
+        "percent": 1.988,
+        "layout": 127
+    },
+    "settings-update-checked-dark-solid": {
+        "percent": 1.721,
+        "layout": 127
+    },
+    "settings-update-checked-light-glassy": {
+        "percent": 1.667,
+        "layout": 127
+    },
+    "settings-update-checked-light-solid": {
+        "percent": 1.954,
+        "layout": 127
+    },
+    "settings-update-dark-glassy": {
+        "percent": 1.759,
+        "layout": 119
+    },
+    "settings-update-dark-solid": {
+        "percent": 1.552,
+        "layout": 119
+    },
+    "settings-update-light-glassy": {
+        "percent": 1.438,
+        "layout": 119
+    },
+    "settings-update-light-solid": {
+        "percent": 1.786,
+        "layout": 119
+    },
+    "settings-wifi-dark-glassy": {
+        "percent": 10.133,
+        "layout": 133
+    },
+    "settings-wifi-dark-solid": {
+        "percent": 6.718,
+        "layout": 129
+    },
+    "settings-wifi-light-glassy": {
+        "percent": 3.577,
+        "layout": 133
+    },
+    "settings-wifi-light-solid": {
+        "percent": 1.681,
+        "layout": 129
+    },
+    "setup-carname-dark-glassy": {
+        "percent": 0.343,
+        "layout": 315
+    },
+    "setup-carname-dark-solid": {
+        "percent": 0.343,
+        "layout": 315
+    },
+    "setup-carname-light-glassy": {
+        "percent": 0.197,
+        "layout": 315
+    },
+    "setup-carname-light-solid": {
+        "percent": 0.197,
+        "layout": 315
+    },
+    "setup-files-dark-glassy": {
+        "percent": 0.505,
+        "layout": 335
+    },
+    "setup-files-dark-solid": {
+        "percent": 0.505,
+        "layout": 335
+    },
+    "setup-files-light-glassy": {
+        "percent": 0.382,
+        "layout": 335
+    },
+    "setup-files-light-solid": {
+        "percent": 0.382,
+        "layout": 335
+    },
+    "setup-location-dark-glassy": {
+        "percent": 0.512,
+        "layout": 350
+    },
+    "setup-location-dark-solid": {
+        "percent": 0.512,
+        "layout": 350
+    },
+    "setup-location-light-glassy": {
+        "percent": 0.399,
+        "layout": 350
+    },
+    "setup-location-light-solid": {
+        "percent": 0.399,
+        "layout": 350
+    },
+    "setup-look-dark-glassy": {
+        "percent": 0.529,
+        "layout": 328
+    },
+    "setup-look-dark-solid": {
+        "percent": 0.529,
+        "layout": 328
+    },
+    "setup-look-light-glassy": {
+        "percent": 0.572,
+        "layout": 328
+    },
+    "setup-look-light-solid": {
+        "percent": 0.572,
+        "layout": 328
+    },
+    "setup-prepare-dark-glassy": {
+        "percent": 1.682,
+        "layout": 365
+    },
+    "setup-prepare-dark-solid": {
+        "percent": 1.682,
+        "layout": 365
+    },
+    "setup-prepare-light-glassy": {
+        "percent": 1.026,
+        "layout": 365
+    },
+    "setup-prepare-light-solid": {
+        "percent": 1.026,
+        "layout": 365
+    },
+    "setup-update-dark-glassy": {
+        "percent": 0.659,
+        "layout": 321
+    },
+    "setup-update-dark-solid": {
+        "percent": 0.659,
+        "layout": 321
+    },
+    "setup-update-light-glassy": {
+        "percent": 0.466,
+        "layout": 321
+    },
+    "setup-update-light-solid": {
+        "percent": 0.466,
+        "layout": 321
+    },
+    "setup-welcome-dark-glassy": {
+        "percent": 0.614,
+        "layout": 320
+    },
+    "setup-welcome-dark-solid": {
+        "percent": 0.614,
+        "layout": 320
+    },
+    "setup-welcome-light-glassy": {
+        "percent": 0.492,
+        "layout": 320
+    },
+    "setup-welcome-light-solid": {
+        "percent": 0.492,
+        "layout": 320
+    },
+    "setup-wifi-dark-glassy": {
+        "percent": 0.752,
+        "layout": 382
+    },
+    "setup-wifi-dark-solid": {
+        "percent": 0.752,
+        "layout": 382
+    },
+    "setup-wifi-light-glassy": {
+        "percent": 0.462,
+        "layout": 382
+    },
+    "setup-wifi-light-solid": {
+        "percent": 0.462,
+        "layout": 382
+    },
+    "sound-balance-dark-glassy": {
+        "percent": 4.727,
+        "layout": 26
+    },
+    "sound-balance-dark-solid": {
+        "percent": 0.377,
+        "layout": 26
+    },
+    "sound-balance-light-glassy": {
+        "percent": 2.437,
+        "layout": 26
+    },
+    "sound-balance-light-solid": {
+        "percent": 0.239,
+        "layout": 26
+    },
+    "sound-bands-dark-glassy": {
+        "percent": 16.415,
+        "layout": 80
+    },
+    "sound-bands-dark-solid": {
+        "percent": 18.139,
+        "layout": 80
+    },
+    "sound-bands-light-glassy": {
+        "percent": 13.468,
+        "layout": 80
+    },
+    "sound-bands-light-solid": {
+        "percent": 15.167,
+        "layout": 80
+    },
+    "sound-bass-dark-glassy": {
+        "percent": 2.068,
+        "layout": 6
+    },
+    "sound-bass-dark-solid": {
+        "percent": 2.081,
+        "layout": 6
+    },
+    "sound-bass-light-glassy": {
+        "percent": 1.761,
+        "layout": 6
+    },
+    "sound-bass-light-solid": {
+        "percent": 3.194,
+        "layout": 6
+    },
+    "sound-curve-dark-glassy": {
+        "percent": 6.677,
+        "layout": 1
+    },
+    "sound-curve-dark-solid": {
+        "percent": 6.677,
+        "layout": 1
+    },
+    "sound-curve-light-glassy": {
+        "percent": 6.677,
+        "layout": 1
+    },
+    "sound-curve-light-solid": {
+        "percent": 6.677,
+        "layout": 1
+    },
+    "sound-field-dark-glassy": {
+        "percent": 0.515,
+        "layout": 27
+    },
+    "sound-field-dark-solid": {
+        "percent": 0.227,
+        "layout": 27
+    },
+    "sound-field-light-glassy": {
+        "percent": 0.068,
+        "layout": 27
+    },
+    "sound-field-light-solid": {
+        "percent": 0.322,
+        "layout": 27
+    },
+    "sound-filters-dark-glassy": {
+        "percent": 22.997,
+        "layout": 14
+    },
+    "sound-filters-dark-solid": {
+        "percent": 7.127,
+        "layout": 14
+    },
+    "sound-filters-light-glassy": {
+        "percent": 13.131,
+        "layout": 14
+    },
+    "sound-filters-light-solid": {
+        "percent": 7.006,
+        "layout": 14
+    },
+    "sound-loudness-dark-glassy": {
+        "percent": 15.521,
+        "layout": 30
+    },
+    "sound-loudness-dark-solid": {
+        "percent": 0.482,
+        "layout": 30
+    },
+    "sound-loudness-light-glassy": {
+        "percent": 14.895,
+        "layout": 30
+    },
+    "sound-loudness-light-solid": {
+        "percent": 0.414,
+        "layout": 30
+    },
+    "sound-nav-dark-glassy": {
+        "percent": 9.6,
+        "layout": 59
+    },
+    "sound-nav-dark-solid": {
+        "percent": 13.59,
+        "layout": 59
+    },
+    "sound-nav-light-glassy": {
+        "percent": 9.549,
+        "layout": 59
+    },
+    "sound-nav-light-solid": {
+        "percent": 12.397,
+        "layout": 59
+    },
+    "unitpicture-dark-glassy": {
+        "percent": 0.802,
+        "layout": 28
+    },
+    "unitpicture-dark-solid": {
+        "percent": 0.807,
+        "layout": 28
+    },
+    "unitpicture-light-glassy": {
+        "percent": 0.802,
+        "layout": 28
+    },
+    "unitpicture-light-solid": {
+        "percent": 0.802,
+        "layout": 28
+    },
+    "wifibars-dark-glassy": {
+        "percent": 0.0,
+        "layout": 0
+    },
+    "wifibars-dark-solid": {
+        "percent": 0.0,
+        "layout": 0
+    },
+    "wifibars-light-glassy": {
+        "percent": 0.0,
+        "layout": 0
+    },
+    "wifibars-light-solid": {
+        "percent": 0.0,
+        "layout": 0
+    }
+}

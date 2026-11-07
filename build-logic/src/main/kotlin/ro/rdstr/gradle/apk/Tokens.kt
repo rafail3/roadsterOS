@@ -1,4 +1,4 @@
-package ro.rdstr.gradle.display
+package ro.rdstr.gradle.apk
 
 /**
  * Where a custom property applies: the screen itself ([chain] empty) or the elements of a component, as the chain of
@@ -37,7 +37,7 @@ class Tokens(private val declarations: List<Declaration>) {
             val icon = Regex("""^\.(i-[a-z0-9-]+)$""").find(d.selector)
             if (icon != null && d.name == "--m") {
                 val url = Values.parse(d.value, "${d.file} ${d.selector}") as? UrlValue
-                    ?: throw DisplayBuildException("${d.file} ${d.selector}: --m must be url()")
+                    ?: throw ApkBuildException("${d.file} ${d.selector}: --m must be url()")
                 iconList += IconClass(icon.groupValues[1], url.url.substringAfterLast('/'))
                 continue
             }
@@ -49,7 +49,7 @@ class Tokens(private val declarations: List<Declaration>) {
 
     /** The value of [name] for [ctx], its `var()`s substituted, or null when nothing sets it there. */
     fun raw(name: String, ctx: Context, seen: Set<String> = emptySet()): String? {
-        if (name in seen) throw DisplayBuildException("var() cycle through ${seen.joinToString()} and $name")
+        if (name in seen) throw ApkBuildException("var() cycle through ${seen.joinToString()} and $name")
         val hit = entries.asSequence()
             .filter { it.decl.name == name && (!it.scope.light || ctx.light) && (!it.scope.glassy || ctx.glassy) }
             .filter { it.scope.chain.isEmpty() || descendantMatch(it.scope.chain, ctx.chain) }
@@ -68,7 +68,7 @@ class Tokens(private val declarations: List<Declaration>) {
         val ref = args[0].trim()
         val fallback = if (args.size > 1) value.substring(at + 4, close).substringAfter(',').trim() else null
         val inner = raw(ref, ctx, seen) ?: fallback?.let { substitute(it, ctx, seen) }
-            ?: throw DisplayBuildException("var($ref) has no value in ${describe(ctx)}")
+            ?: throw ApkBuildException("var($ref) has no value in ${describe(ctx)}")
         return substitute(value.substring(0, at) + inner + value.substring(close + 1), ctx, seen)
     }
 
@@ -83,7 +83,7 @@ class Tokens(private val declarations: List<Declaration>) {
         val names = mutableSetOf("Base", "Glassy")
         for ((component, list) in components.toSortedMap()) {
             val name = className(component)
-            if (!names.add(name)) throw DisplayBuildException("two components named $name")
+            if (!names.add(name)) throw ApkBuildException("two components named $name")
             out += build(name, component, list.first().scope.chain, list.map { it.decl.name })
         }
         return out
@@ -100,7 +100,7 @@ class Tokens(private val declarations: List<Declaration>) {
         val instances = all.filterValues { v -> v.values.any { it != null } }
         val fields = props.map { p ->
             val types = instances.values.mapNotNull { it[p]?.type }.distinct()
-            if (types.size > 1) throw DisplayBuildException("$p in ${component.ifEmpty { "the screen" }} is ${types.joinToString(" and ")} in different themes")
+            if (types.size > 1) throw ApkBuildException("$p in ${component.ifEmpty { "the screen" }} is ${types.joinToString(" and ")} in different themes")
             val files = entries.filter { it.decl.name == p && it.scope.component == component }.map { it.decl.file }.distinct()
             TokenClass.Field(fieldName(p), p, types.single(), instances.values.any { it[p] == null }, files)
         }
@@ -133,7 +133,7 @@ class Tokens(private val declarations: List<Declaration>) {
                 .replace(Regex("""\.light(?![\w-])"""), " ").replace(Regex("""\.screen(?![\w-])"""), " ")
             s = Css.normalize(s)
             if (s.isNotEmpty() && !Regex("""^(\.[a-z0-9-]+)+( (\.[a-z0-9-]+)+)*$""").matches(s))
-                throw DisplayBuildException("$file: selector `$selector` is not a chain of classes; name it in Tokens.ALIASES")
+                throw ApkBuildException("$file: selector `$selector` is not a chain of classes; name it in Tokens.ALIASES")
             val chain = if (s.isEmpty()) emptyList() else s.split(' ').map { c -> c.split('.').filter { it.isNotEmpty() }.toSet() }
             return Scope(chain, light, glassy)
         }

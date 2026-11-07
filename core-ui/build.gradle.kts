@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.android.library)
-    id("rdstr.display")
+    id("rdstr.apk")
     alias(libs.plugins.paparazzi)
 }
 

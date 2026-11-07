@@ -1,7 +1,7 @@
 package ro.rdstr.ui
 
-// The contract between the browser emulator and the display app, checked at build time by rdstr.display
-// (`:core-ui:checkDisplayLogic`, report in core-ui/build/reports/rdstr/display-logic.md).
+// The contract between the browser emulator and the display app, checked at build time by rdstr.apk
+// (`:core-ui:checkApkLogic`, report in core-ui/build/reports/rdstr/apk-logic.md).
 
 /**
  * This code is the Android implementation of values the emulator's screen takes from `emulator/car/`, named

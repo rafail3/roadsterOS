@@ -1,4 +1,4 @@
-package ro.rdstr.gradle.display
+package ro.rdstr.gradle.apk
 
 /**
  * What the screen's components ask of the logic, against what the display app implements.
@@ -129,11 +129,11 @@ object LogicCheck {
         while (queue.isNotEmpty()) {
             val f = queue.removeFirst()
             if (!seen.add(f)) continue
-            val text = components[f] ?: throw DisplayBuildException("emulator/components/$f is imported but missing")
+            val text = components[f] ?: throw ApkBuildException("emulator/components/$f is imported but missing")
             for (imp in imports(text)) if (imp.from.startsWith("./")) {
                 val stem = imp.from.removePrefix("./")
                 queue += listOf("$stem.tsx", "$stem.ts").firstOrNull { it in components }
-                    ?: throw DisplayBuildException("$f imports ${imp.from}, which is not in emulator/components")
+                    ?: throw ApkBuildException("$f imports ${imp.from}, which is not in emulator/components")
             }
         }
         return seen

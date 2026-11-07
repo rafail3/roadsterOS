@@ -1,5 +1,5 @@
 pluginManagement {
-    // rdstr.display: the display app's design generated from the browser emulator
+    // rdstr.apk: the display app's design generated from the browser emulator
     includeBuild("build-logic")
     repositories {
         google()

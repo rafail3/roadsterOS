@@ -1,4 +1,4 @@
-package ro.rdstr.gradle.display
+package ro.rdstr.gradle.apk
 
 import java.awt.image.BufferedImage
 import kotlin.test.Test
@@ -32,5 +32,27 @@ class ParityTest {
         assertEquals(0, aa.over)
         // one pixel to the right: the three columns that changed (left edge, its old place, the new right column) count
         assertEquals(30, Parity.pixels(square(5), square(6), Parity.Limits()).over)
+    }
+
+    @Test
+    fun baseline() {
+        val dir = kotlin.io.path.createTempDirectory("parity").toFile()
+        val web = java.io.File(dir, "web").apply { mkdirs() }
+        val android = java.io.File(dir, "android").apply { mkdirs() }
+        for ((d, x, picture) in listOf(Triple(web, 10.0, square(5)), Triple(android, 10.6, square(6)))) {
+            java.io.File(d, "s.json").writeText("""{"scene":"s","root":null,"elements":[${el("bar", x = x)}]}""")
+            javax.imageio.ImageIO.write(picture, "png", java.io.File(d, "s.png"))
+        }
+        val report = java.io.File(dir, "report")
+        // no baseline: the moved square and the moved box fail
+        assertEquals(2, Parity.run(web, android, report, Parity.Limits()).failures.size)
+        // the measured state accepted: nothing fails, and the measured baseline reads back
+        val accepted = Parity.readBaseline(java.io.File(report, "baseline.json").readText())
+        val s = accepted.getValue("s")
+        assertEquals(1, s.layout)
+        assertEquals(emptyList(), Parity.run(web, android, report, Parity.Limits(), accepted).failures)
+        // worse than accepted: fails again
+        assertEquals(1, Parity.run(web, android, report, Parity.Limits(), mapOf("s" to s.copy(percent = s.percent - 1))).failures.size)
+        assertEquals(1, Parity.run(web, android, report, Parity.Limits(), mapOf("s" to s.copy(layout = 0))).failures.size)
     }
 }

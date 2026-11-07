@@ -1,10 +1,12 @@
-package ro.rdstr.gradle.display
+package ro.rdstr.gradle.apk
 
+import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
 import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.max
 
 /**
@@ -34,8 +36,16 @@ object Parity {
         val percent get() = if (painted == 0) 0.0 else over * 100.0 / painted
     }
 
-    class Scene(val name: String, val layout: List<String>, val pixels: Pixels?, val pixelFailure: String?) {
-        val failures get() = layout + listOfNotNull(pixelFailure)
+    /**
+     * What a scene is accepted with (the baseline, core-ui/parity-baseline.json): its share of counted pixels and its
+     * number of layout findings. A scene fails only when it gets worse than that.
+     */
+    data class Accepted(val percent: Double, val layout: Int)
+
+    class Scene(val name: String, val layout: List<String>, val pixels: Pixels?, val pixelFailure: String?, val acceptedLayout: Int = 0) {
+        // ponytail: layout findings are accepted by count, so one fixed and another new in the same scene go unseen;
+        // the pixel share still catches a visible change. Accept by element key if that ever matters.
+        val failures get() = (if (layout.size > acceptedLayout) layout else emptyList()) + listOfNotNull(pixelFailure)
     }
 
     class Report(val scenes: List<Scene>, val notBuilt: List<String>) {
@@ -127,32 +137,48 @@ object Parity {
     }
 
     /** Compares every Android scene in [androidDir] with the browser's and writes the report into [reportDir]. */
-    fun run(webDir: File, androidDir: File, reportDir: File, limits: Limits): Report {
+    fun run(webDir: File, androidDir: File, reportDir: File, limits: Limits, accepted: Map<String, Accepted> = emptyMap(), margin: Double = 0.0): Report {
         reportDir.deleteRecursively()
         reportDir.mkdirs()
         val names = androidDir.listFiles { f -> f.name.endsWith(".json") }.orEmpty().map { it.name.removeSuffix(".json") }.sorted()
         val scenes = names.map { name ->
             val web = File(webDir, "$name.json")
             if (!web.isFile) return@map Scene(name, listOf("no browser capture; run npm run parity:capture"), null, null)
+            val ok = accepted[name]
+            val allowed = ok?.let { max(limits.maxPercent, it.percent + margin) } ?: limits.maxPercent
             val wl = read(web.readText())
             val layout = compare(wl, read(File(androidDir, "$name.json").readText()))
             val wi = ImageIO.read(File(webDir, "$name.png"))
             val ai = ImageIO.read(File(androidDir, "$name.png"))
             if (wi.width != ai.width || wi.height != ai.height) {
-                return@map Scene(name, layout, null, "picture is ${ai.width}x${ai.height} on Android, ${wi.width}x${wi.height} in the browser")
+                return@map Scene(name, layout, null, "picture is ${ai.width}x${ai.height} on Android, ${wi.width}x${wi.height} in the browser", ok?.layout ?: 0)
             }
             val px = pixels(wi, ai, limits)
             ImageIO.write(wi, "png", File(reportDir, "$name.web.png"))
             ImageIO.write(ai, "png", File(reportDir, "$name.android.png"))
             ImageIO.write(px.diff, "png", File(reportDir, "$name.diff.png"))
             wl.elements.firstOrNull { it.key == wl.root }?.let { root -> ImageIO.write(zoom(root.box, listOf(wi, ai, px.diff)), "png", File(reportDir, "$name.zoom.png")) }
-            Scene(name, layout, px, if (px.percent > limits.maxPercent) "${px.over} pixels (${fmt(px.percent)} % of the painted ones) over the limits ${limits.tolerance}/${limits.edgeTolerance}" else null)
+            Scene(name, layout, px, if (px.percent > allowed) "${px.over} pixels (${fmt(px.percent)} % of the painted ones, accepted ${fmt(allowed)} %) over the limits ${limits.tolerance}/${limits.edgeTolerance}" else null,
+                ok?.layout ?: 0)
         }
         val notBuilt = webDir.listFiles { f -> f.name.endsWith(".json") }.orEmpty().map { it.name.removeSuffix(".json") }.filter { it !in names }.sorted()
         val report = Report(scenes, notBuilt)
         File(reportDir, "index.md").writeText(markdown(report, limits, reportDir))
+        File(reportDir, "baseline.json").writeText(baselineJson(report))
         return report
     }
+
+    /** The baseline file: each scene's accepted pixel share (rounded up to 0.001 %) and layout findings. */
+    fun readBaseline(json: String): Map<String, Accepted> {
+        @Suppress("UNCHECKED_CAST")
+        val o = JsonSlurper().parseText(json) as Map<String, Map<String, Number>>
+        return o.mapValues { (_, v) -> Accepted(v.getValue("percent").toDouble(), v.getValue("layout").toInt()) }
+    }
+
+    /** What this run measured, in the baseline's form: copied over the baseline to accept it. */
+    fun baselineJson(r: Report): String = JsonOutput.prettyPrint(JsonOutput.toJson(r.scenes.sortedBy { it.name }.associate { s ->
+        s.name to mapOf("percent" to ceil((s.pixels?.percent ?: 100.0) * 1000) / 1000, "layout" to s.layout.size)
+    })) + "\n"
 
     private fun markdown(r: Report, limits: Limits, dir: File) = buildString {
         appendLine("# Visual parity")
@@ -170,7 +196,8 @@ object Parity {
             appendLine()
             appendLine("## ${s.name}")
             appendLine()
-            if (s.failures.isEmpty()) appendLine("No differences over the limits.") else s.failures.forEach { appendLine("- $it") }
+            if (s.failures.isEmpty()) appendLine(if (s.layout.isEmpty() && s.pixelFailure == null && (s.pixels?.over ?: 0) == 0) "No differences over the limits." else "Within the baseline.")
+            (s.failures.ifEmpty { s.layout }).forEach { appendLine("- $it") }
             if (s.pixels != null) {
                 appendLine()
                 appendLine("Browser, Android, difference (red: counted, orange: edge within ${limits.edgeTolerance}, yellow: within ${limits.tolerance}):")

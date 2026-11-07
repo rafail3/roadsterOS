@@ -1,10 +1,10 @@
-package ro.rdstr.gradle.display
+package ro.rdstr.gradle.apk
 
 /** A custom property declared in a style sheet: `selector { --name: value }`, one selector of a list each. */
 data class Declaration(val file: String, val selector: String, val name: String, val value: String, val order: Int)
 
 /** A failure in the emulator's styles that the Android side cannot follow; the build stops on it. */
-class DisplayBuildException(message: String) : RuntimeException(message)
+class ApkBuildException(message: String) : RuntimeException(message)
 
 /** The small part of CSS syntax the emulator's sheets use: rules, at-rules, selector lists, declarations. */
 object Css {
@@ -22,11 +22,11 @@ object Css {
                     prelude.startsWith("@media") || prelude.startsWith("@supports") || prelude.startsWith("@container") ->
                         walk(block, prelude)
                     prelude.startsWith("@") -> if (ignoredAtRules.none { prelude.startsWith(it) })
-                        throw DisplayBuildException("$file: at-rule not handled: ${prelude.take(60)}")
+                        throw ApkBuildException("$file: at-rule not handled: ${prelude.take(60)}")
                     else -> {
                         val props = properties(block).filter { it.first.startsWith("--") }
                         if (props.isEmpty()) continue
-                        if (media != null) throw DisplayBuildException("$file: custom properties inside `$media` ($prelude) are not handled")
+                        if (media != null) throw ApkBuildException("$file: custom properties inside `$media` ($prelude) are not handled")
                         for (selector in splitTop(prelude, ',')) for ((name, value) in props)
                             out += Declaration(file, normalize(selector), name, normalize(value), order++)
                     }
@@ -62,7 +62,7 @@ object Css {
                         }
                         j++
                     }
-                    if (depth != 0) throw DisplayBuildException("unbalanced braces after `${prelude.take(60)}`")
+                    if (depth != 0) throw ApkBuildException("unbalanced braces after `${prelude.take(60)}`")
                     out += prelude to text.substring(i + 1, j - 1)
                     i = j
                     start = j
@@ -175,6 +175,6 @@ object Css {
             if (s[i] == '(') depth++
             if (s[i] == ')') { depth--; if (depth == 0) return i }
         }
-        throw DisplayBuildException("unbalanced parentheses in `$s`")
+        throw ApkBuildException("unbalanced parentheses in `$s`")
     }
 }

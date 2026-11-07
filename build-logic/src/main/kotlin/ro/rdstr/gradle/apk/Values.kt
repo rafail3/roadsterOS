@@ -1,4 +1,4 @@
-package ro.rdstr.gradle.display
+package ro.rdstr.gradle.apk
 
 import kotlin.math.roundToInt
 
@@ -110,12 +110,12 @@ object Values {
                 Regex("""^-?[\d.]+px$""").matches(s) -> DpValue(s.removeSuffix("px").toDouble())
                 s == "0" -> NumberValue(0.0)
                 Regex("""^-?[\d.]+$""").matches(s) -> NumberValue(s.toDouble())
-                else -> shadows(s) ?: throw DisplayBuildException("unknown value")
+                else -> shadows(s) ?: throw ApkBuildException("unknown value")
             }
-        } catch (e: DisplayBuildException) {
-            throw DisplayBuildException("$where: ${e.message}: `$s`")
+        } catch (e: ApkBuildException) {
+            throw ApkBuildException("$where: ${e.message}: `$s`")
         } catch (e: RuntimeException) {
-            throw DisplayBuildException("$where: cannot read `$s` (${e.message})")
+            throw ApkBuildException("$where: cannot read `$s` (${e.message})")
         }
     }
 
@@ -145,7 +145,7 @@ object Values {
             val rgb = (if (slash >= 0) parts.subList(0, slash) else parts.take(3)).map { channel(it) }
             val alphaText = if (slash >= 0) parts.getOrNull(slash + 1) else parts.getOrNull(3)
             val a = alphaText?.let { if (it.endsWith("%")) it.removeSuffix("%").toDouble() / 100 else it.toDouble() } ?: 1.0
-            if (rgb.size != 3) throw DisplayBuildException("rgb() needs three channels")
+            if (rgb.size != 3) throw ApkBuildException("rgb() needs three channels")
             return ColorValue.of(rgb[0], rgb[1], rgb[2], a)
         }
         if (t.startsWith("color-mix(")) return mix(args(t, "color-mix"))
@@ -163,11 +163,11 @@ object Values {
 
     /** CSS Color 5 `color-mix()` in sRGB: premultiplied mixing, the percentages normalised, a sum under 100 % fades it. */
     private fun mix(a: List<String>): ColorValue {
-        if (a.size != 3 || a[0].trim() != "in srgb") throw DisplayBuildException("color-mix() only in srgb with two colours")
+        if (a.size != 3 || a[0].trim() != "in srgb") throw ApkBuildException("color-mix() only in srgb with two colours")
         fun part(p: String): Pair<ColorValue, Double?> {
             val w = Css.words(p)
             val pct = w.lastOrNull()?.takeIf { it.endsWith("%") }?.removeSuffix("%")?.toDouble()?.div(100)
-            val c = color((if (pct != null) w.dropLast(1) else w).joinToString(" ")) ?: throw DisplayBuildException("color-mix() colour")
+            val c = color((if (pct != null) w.dropLast(1) else w).joinToString(" ")) ?: throw ApkBuildException("color-mix() colour")
             return c to pct
         }
         val (c1, p1o) = part(a[1])
@@ -192,7 +192,7 @@ object Values {
             first == "to right" -> 90.0
             first == "to bottom" -> 180.0
             first == "to left" -> 270.0
-            first.startsWith("to ") -> throw DisplayBuildException("corner gradients")
+            first.startsWith("to ") -> throw ApkBuildException("corner gradients")
             else -> null
         }
         val stops = if (angle != null) a.drop(1) else a
@@ -201,8 +201,8 @@ object Values {
         for (stop in stops) {
             val w = Css.words(stop)
             val pos = w.last().takeIf { it.endsWith("%") || it.endsWith("px") }
-            if (pos != null && pos.endsWith("px")) throw DisplayBuildException("gradient stops in px")
-            colors += color((if (pos != null) w.dropLast(1) else w).joinToString(" ")) ?: throw DisplayBuildException("gradient colour")
+            if (pos != null && pos.endsWith("px")) throw ApkBuildException("gradient stops in px")
+            colors += color((if (pos != null) w.dropLast(1) else w).joinToString(" ")) ?: throw ApkBuildException("gradient colour")
             at += pos?.removeSuffix("%")?.toDouble()?.div(100)
         }
         return GradientValue(angle ?: 180.0, colors, positions(at))
@@ -215,7 +215,7 @@ object Values {
             val w = Css.words(p)
             values += w[0].toDouble()
             at += w.getOrNull(1)?.removeSuffix("%")?.toDouble()?.div(100)
-            if (w.size > 2) throw DisplayBuildException("linear() points with two positions")
+            if (w.size > 2) throw ApkBuildException("linear() points with two positions")
         }
         return StopsValue(values, positions(at))
     }
@@ -254,7 +254,7 @@ object Values {
                 "blur" -> blur = v.removeSuffix("px").toDouble()
                 "saturate" -> saturate = v.toDouble()
                 "brightness" -> brightness = v.toDouble()
-                else -> throw DisplayBuildException("filter $name()")
+                else -> throw ApkBuildException("filter $name()")
             }
         }
         return FrostValue(blur, saturate, brightness)
@@ -278,7 +278,7 @@ object Values {
     /** The comma separated arguments of `fn(…)`. */
     fun args(s: String, fn: String): List<String> {
         val open = s.indexOf('(')
-        if (!s.startsWith("$fn(") || Css.matching(s, open) != s.lastIndex) throw DisplayBuildException("$fn() must be the whole value")
+        if (!s.startsWith("$fn(") || Css.matching(s, open) != s.lastIndex) throw ApkBuildException("$fn() must be the whole value")
         return Css.splitTop(s.substring(open + 1, s.lastIndex), ',')
     }
 }
