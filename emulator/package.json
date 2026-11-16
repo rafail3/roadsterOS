@@ -11,9 +11,9 @@
     "parity:capture": "node scripts/capture-layout.mjs"
   },
   "dependencies": {
-    "glisse": "^0.5.0",
+    "glisse": "^0.6.0",
     "maplibre-gl": "^5.24.0",
-    "next": "^16.4.3",
+    "next": "^16.4.6",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
